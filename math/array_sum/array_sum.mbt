@@ -52,31 +52,31 @@ pub fn count_nonneg(
 }
 
 test "array_sum: basic" {
-  let xs = FixedArray::make(5, fn(i) { i + 1 })  // [1, 2, 3, 4, 5]
+  let xs = FixedArray::makei(5, fn(i) { i + 1 })  // [1, 2, 3, 4, 5]
   assert_eq(array_sum(xs), 15)
 }
 
 test "array_sum: zeros" {
-  let xs = FixedArray::make(5, fn(_) { 0 })
+  let xs = FixedArray::make(5, 0)
   assert_eq(array_sum(xs), 0)
 }
 
 test "array_sum: empty" {
-  let xs : FixedArray[Int] = FixedArray::new(0)
+  let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(array_sum(xs), 0)
 }
 
 test "count_nonneg: mixed" {
-  let xs = FixedArray::make(6, fn(i) { i - 3 })  // [-3, -2, -1, 0, 1, 2]
+  let xs = FixedArray::makei(6, fn(i) { i - 3 })  // [-3, -2, -1, 0, 1, 2]
   assert_eq(count_nonneg(xs), 3)
 }
 
 test "count_nonneg: all positive" {
-  let xs = FixedArray::make(4, fn(i) { i + 1 })  // [1, 2, 3, 4]
+  let xs = FixedArray::makei(4, fn(i) { i + 1 })  // [1, 2, 3, 4]
   assert_eq(count_nonneg(xs), 4)
 }
 
 test "count_nonneg: all negative" {
-  let xs = FixedArray::make(3, fn(i) { -(i + 1) })  // [-1, -2, -3]
+  let xs = FixedArray::makei(3, fn(i) { -(i + 1) })  // [-1, -2, -3]
   assert_eq(count_nonneg(xs), 0)
 }

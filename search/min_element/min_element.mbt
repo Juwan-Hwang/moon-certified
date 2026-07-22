@@ -36,22 +36,22 @@ pub fn min_element(
 }
 
 test "min_element: basic" {
-  let xs = FixedArray::make(5, fn(i) { 10 - i })  // [10, 9, 8, 7, 6]
+  let xs = FixedArray::makei(5, fn(i) { 10 - i })  // [10, 9, 8, 7, 6]
   assert_eq(min_element(xs), 4)
 }
 
 test "min_element: first element" {
-  let xs = FixedArray::make(4, fn(i) { i })  // [0, 1, 2, 3]
+  let xs = FixedArray::makei(4, fn(i) { i })  // [0, 1, 2, 3]
   assert_eq(min_element(xs), 0)
 }
 
 test "min_element: all equal" {
-  let xs = FixedArray::make(5, fn(_) { 3 })
+  let xs = FixedArray::make(5, 3)  // [3, 3, 3, 3, 3]
   let result = min_element(xs)
   assert_eq(xs[result], 3)
 }
 
 test "min_element: negative and positive" {
-  let xs = FixedArray::make(4, fn(i) { i - 2 })  // [-2, -1, 0, 1]
+  let xs = FixedArray::makei(4, fn(i) { i - 2 })  // [-2, -1, 0, 1]
   assert_eq(min_element(xs), 0)
 }

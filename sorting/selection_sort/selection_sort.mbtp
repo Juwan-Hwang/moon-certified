@@ -1,0 +1,26 @@
+// The subarray xs[lo..hi) is sorted in non-decreasing order
+predicate sorted_range(xs : FixedArray[Int], lo : Int, hi : Int) {
+  ∀ i : Int, ∀ j : Int,
+    (lo <= i) && (i < j) && (j < hi) →
+    xs[i] <= xs[j]
+}
+
+// The entire array is sorted
+predicate fully_sorted(xs : FixedArray[Int]) {
+  sorted_range(xs, 0, xs.length())
+}
+
+// idx is the index of the minimum element in xs[lo..hi)
+predicate min_in_range(xs : FixedArray[Int], lo : Int, hi : Int, idx : Int) {
+  (lo <= idx) && (idx < hi) &&
+  (∀ k : Int, (lo <= k) && (k < hi) → xs[idx] <= xs[k])
+}
+
+// All elements in xs[0..mid) are <= all elements in xs[mid..n)
+// This is the partition property: the sorted prefix elements
+// are no greater than any element in the unsorted suffix.
+predicate partitioned(xs : FixedArray[Int], mid : Int) {
+  ∀ k : Int, ∀ m : Int,
+    (0 <= k) && (k < mid) && (mid <= m) && (m < xs.length()) →
+    xs[k] <= xs[m]
+}

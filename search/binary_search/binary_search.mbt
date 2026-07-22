@@ -49,26 +49,26 @@ pub fn search(
 }
 
 test "binary_search: found" {
-  let xs = FixedArray::make(5, fn(i) { i * 2 })  // [0, 2, 4, 6, 8]
+  let xs = FixedArray::makei(5, fn(i) { i * 2 })  // [0, 2, 4, 6, 8]
   assert_eq(search(xs, 4), Some(2))
   assert_eq(search(xs, 0), Some(0))
   assert_eq(search(xs, 8), Some(4))
 }
 
 test "binary_search: not found" {
-  let xs = FixedArray::make(5, fn(i) { i * 2 })  // [0, 2, 4, 6, 8]
+  let xs = FixedArray::makei(5, fn(i) { i * 2 })  // [0, 2, 4, 6, 8]
   assert_eq(search(xs, 1), None)
   assert_eq(search(xs, 5), None)
   assert_eq(search(xs, 9), None)
 }
 
 test "binary_search: empty array" {
-  let xs : FixedArray[Int] = FixedArray::new(0)
+  let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(search(xs, 42), None)
 }
 
 test "binary_search: single element" {
-  let xs = FixedArray::make(1, fn(_) { 42 })
+  let xs = FixedArray::make(1, 42)
   assert_eq(search(xs, 42), Some(0))
   assert_eq(search(xs, 41), None)
 }
