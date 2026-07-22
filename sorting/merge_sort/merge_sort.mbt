@@ -49,7 +49,8 @@ fn merge_sort_range(
 }
 
 /// Top-level merge sort. Sorts the entire array in ascending order.
-/// Note: uses recursive helpers with while loops; tested but not formally verified.
+/// Not formally verified (recursive helpers + while loops).
+/// Correctness ensured by comprehensive tests including permutation checks.
 pub fn merge_sort(
   xs : FixedArray[Int],
 ) -> Unit {

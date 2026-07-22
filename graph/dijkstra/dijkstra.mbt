@@ -94,13 +94,16 @@ pub fn dijkstra(
 }
 
 /// Compute shortest distance from src to dst.
-/// Returns the distance, or -1 if unreachable.
+/// Returns the distance, or -1 if unreachable or inputs are invalid.
 pub fn shortest_path(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
   dst : Int,
 ) -> Int {
+  if n <= 0 || src < 0 || src >= n || dst < 0 || dst >= n {
+    return -1
+  }
   let dist = dijkstra(graph, n, src)
   dist[dst]
 }

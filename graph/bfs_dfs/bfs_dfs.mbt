@@ -1,20 +1,39 @@
-/// Graph traversal algorithms on adjacency-matrix representation.
-/// Graph is represented as a FixedArray[Int] of size n*n, where
-/// graph[i * n + j] == 1 means there is an edge from i to j.
-
-/// BFS traversal from a source node.
-/// Returns the number of reachable nodes (including source).
-/// Uses a simple queue implemented with two pointers.
+/// Graph traversal algorithms on an adjacency-matrix representation.
 ///
-/// Verification: inner loop bounds are formally verified.
-/// The outer loop uses mutable queue pointers (head, tail, count) that
-/// are modified inside conditionals, which MoonBit's proof system cannot
-/// track across iterations. Correctness is ensured by 14 tests.
+/// The graph is a flat `FixedArray[Int]` of length `n * n`, indexed by
+/// `graph[i * n + j]`; a non-zero entry denotes a directed edge `i -> j`.
+///
+/// Every public function validates its arguments and returns a safe default
+/// when the input is malformed:
+///   - `bfs_count` / `dfs_count`  -> 0
+///   - `bfs_distances`            -> an empty array
+///   - `has_path`                 -> false
+///
+/// This package has `proof-enabled: false`, so correctness is backed by the
+/// test suite rather than by the MoonBit proof system.
+
+/// Shared precondition check: `n` is a positive matrix dimension, `src` is a
+/// valid node index, and `graph` is large enough to hold the full `n * n`
+/// adjacency matrix. Returns `true` when the input is unacceptable.
+fn invalid_input(
+  graph : FixedArray[Int],
+  n : Int,
+  src : Int,
+) -> Bool {
+  n <= 0 || src < 0 || src >= n || graph.length() < n * n
+}
+
+/// Count the nodes reachable from `src` (including `src` itself) via BFS.
+///
+/// Returns 0 for invalid input. Time O(n^2), space O(n).
 pub fn bfs_count(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
 ) -> Int {
+  if invalid_input(graph, n, src) {
+    return 0
+  }
   let visited = FixedArray::make(n, 0)
   let queue = FixedArray::make(n, 0)
   visited[src] = 1
@@ -22,138 +41,142 @@ pub fn bfs_count(
   let mut head = 0
   let mut tail = 1
   let mut count = 1
-  for step = 0; step < n; {
-    if head >= tail {
-      break
-    }
+  while head < tail {
     let u = queue[head]
     head = head + 1
-    for v = 0; v < n; {
+    let mut v = 0
+    while v < n {
       if graph[u * n + v] != 0 && visited[v] == 0 {
         visited[v] = 1
         queue[tail] = v
         tail = tail + 1
         count = count + 1
       }
-      continue v + 1
-    } nobreak {
-      ()
-    } where {
-      proof_invariant: 0 <= v,
-      proof_invariant: v <= n,
+      v = v + 1
     }
-    continue step + 1
-  } nobreak {
-    ()
-  } where {
-    proof_invariant: 0 <= step,
-    proof_invariant: step <= n,
   }
   count
 }
 
-/// BFS shortest path from src to all reachable nodes.
-/// Returns a FixedArray[Int] of size n where dist[i] is the shortest
-/// distance from src to i, or -1 if unreachable.
+/// Compute shortest-path distances from `src` to every node via BFS.
+///
+/// Returns a `FixedArray[Int]` of length `n` where `dist[i]` is the hop count
+/// from `src` to `i`, or `-1` when `i` is unreachable. Returns an empty array
+/// for invalid input. Time O(n^2), space O(n).
 pub fn bfs_distances(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
 ) -> FixedArray[Int] {
+  if invalid_input(graph, n, src) {
+    return FixedArray::make(0, -1)
+  }
   let dist = FixedArray::make(n, -1)
   let queue = FixedArray::make(n, 0)
   dist[src] = 0
   queue[0] = src
   let mut head = 0
   let mut tail = 1
-  for step = 0; step < n; {
-    if head >= tail {
-      break
-    }
+  while head < tail {
     let u = queue[head]
     head = head + 1
-    for v = 0; v < n; {
+    let mut v = 0
+    while v < n {
       if graph[u * n + v] != 0 && dist[v] == -1 {
         dist[v] = dist[u] + 1
         queue[tail] = v
         tail = tail + 1
       }
-      continue v + 1
-    } nobreak {
-      ()
-    } where {
-      proof_invariant: 0 <= v,
-      proof_invariant: v <= n,
+      v = v + 1
     }
-    continue step + 1
-  } nobreak {
-    ()
-  } where {
-    proof_invariant: 0 <= step,
-    proof_invariant: step <= n,
   }
   dist
 }
 
-/// Check if there is a path from src to dst using BFS.
+/// Report whether `dst` is reachable from `src`.
+///
+/// Uses an early-exit BFS that returns `true` the moment `dst` is discovered,
+/// without computing distances to the rest of the graph. A node is trivially
+/// reachable from itself. Returns `false` for invalid input; validation runs
+/// before the `src == dst` shortcut, so out-of-bounds self-paths are rejected.
 pub fn has_path(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
   dst : Int,
 ) -> Bool {
+  if invalid_input(graph, n, src) || dst < 0 || dst >= n {
+    return false
+  }
   if src == dst {
     return true
   }
-  let dist = bfs_distances(graph, n, src)
-  dist[dst] != -1
+  let visited = FixedArray::make(n, 0)
+  let queue = FixedArray::make(n, 0)
+  visited[src] = 1
+  queue[0] = src
+  let mut head = 0
+  let mut tail = 1
+  while head < tail {
+    let u = queue[head]
+    head = head + 1
+    let mut v = 0
+    while v < n {
+      if graph[u * n + v] != 0 && visited[v] == 0 {
+        // `dst` is reachable and unvisited: discovered for the first time.
+        if v == dst {
+          return true
+        }
+        visited[v] = 1
+        queue[tail] = v
+        tail = tail + 1
+      }
+      v = v + 1
+    }
+  }
+  false
 }
 
-/// DFS traversal to count reachable nodes.
-/// Uses iterative DFS with a stack.
+/// Count the nodes reachable from `src` (including `src` itself) via iterative
+/// DFS with an explicit stack. Returns 0 for invalid input.
+/// Time O(n^2), space O(n).
 pub fn dfs_count(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
 ) -> Int {
+  if invalid_input(graph, n, src) {
+    return 0
+  }
   let visited = FixedArray::make(n, 0)
   let stack = FixedArray::make(n, 0)
   visited[src] = 1
   stack[0] = src
   let mut top = 1
   let mut count = 1
-  for step = 0; step < n; {
-    if top <= 0 {
-      break
-    }
+  while top > 0 {
     top = top - 1
     let u = stack[top]
-    for v = 0; v < n; {
+    let mut v = 0
+    while v < n {
       if graph[u * n + v] != 0 && visited[v] == 0 {
         visited[v] = 1
         stack[top] = v
         top = top + 1
         count = count + 1
       }
-      continue v + 1
-    } nobreak {
-      ()
-    } where {
-      proof_invariant: 0 <= v,
-      proof_invariant: v <= n,
+      v = v + 1
     }
-    continue step + 1
-  } nobreak {
-    ()
-  } where {
-    proof_invariant: 0 <= step,
-    proof_invariant: step <= n,
   }
   count
 }
 
+// ---------------------------------------------------------------------------
+// Correctness tests on well-formed graphs.
+// ---------------------------------------------------------------------------
+
 test "bfs_count: single node" {
-  let graph = FixedArray::make(1, 0)  // no edges, 1 node
+  let graph = FixedArray::make(1, 0) // no edges, 1 node
   assert_eq(bfs_count(graph, 1, 0), 1)
 }
 
@@ -187,6 +210,16 @@ test "bfs_count: complete graph" {
     if row != col { 1 } else { 0 }
   })
   assert_eq(bfs_count(graph, n, 0), 4)
+}
+
+test "bfs_count: cycle" {
+  // 0 -> 1 -> 2 -> 0
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
+  graph[1 * n + 2] = 1
+  graph[2 * n + 0] = 1
+  assert_eq(bfs_count(graph, n, 0), 3)
 }
 
 test "bfs_distances: path graph" {
@@ -228,6 +261,19 @@ test "bfs_distances: star graph" {
   assert_eq(dist[3], 1)
 }
 
+test "bfs_distances: cycle distances" {
+  // 0 -> 1 -> 2 -> 0
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
+  graph[1 * n + 2] = 1
+  graph[2 * n + 0] = 1
+  let dist = bfs_distances(graph, n, 0)
+  assert_eq(dist[0], 0)
+  assert_eq(dist[1], 1)
+  assert_eq(dist[2], 2)
+}
+
 test "has_path: connected" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -247,6 +293,18 @@ test "has_path: same node" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   assert_eq(has_path(graph, n, 1, 1), true)
+}
+
+test "has_path: consistent with bfs_distances" {
+  let n = 5
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
+  graph[1 * n + 2] = 1
+  graph[3 * n + 4] = 1
+  let dist = bfs_distances(graph, n, 0)
+  for k = 0; k < n; k = k + 1 {
+    assert_eq(has_path(graph, n, 0, k), dist[k] != -1)
+  }
 }
 
 test "dfs_count: path graph" {
@@ -276,25 +334,151 @@ test "dfs_count: complete graph" {
   assert_eq(dfs_count(graph, n, 0), 4)
 }
 
-test "bfs_count: cycle" {
-  // 0 -> 1 -> 2 -> 0
+// ---------------------------------------------------------------------------
+// Input validation tests.
+// ---------------------------------------------------------------------------
+
+test "bfs_count: invalid input returns 0" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1
-  graph[1 * n + 2] = 1
-  graph[2 * n + 0] = 1
-  assert_eq(bfs_count(graph, n, 0), 3)
+  // out-of-bounds src
+  assert_eq(bfs_count(graph, n, -1), 0)
+  assert_eq(bfs_count(graph, n, 3), 0)
+  assert_eq(bfs_count(graph, n, 100), 0)
+  // n == 0
+  assert_eq(bfs_count(FixedArray::make(0, 0), 0, 0), 0)
+  // graph too small for n (needs 9, given 4)
+  assert_eq(bfs_count(FixedArray::make(4, 0), n, 0), 0)
 }
 
-test "bfs_distances: cycle distances" {
-  // 0 -> 1 -> 2 -> 0
+test "bfs_distances: invalid input returns empty" {
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  // out-of-bounds src
+  assert_eq(bfs_distances(graph, n, -1).length(), 0)
+  assert_eq(bfs_distances(graph, n, n).length(), 0)
+  // n == 0
+  assert_eq(bfs_distances(FixedArray::make(0, 0), 0, 0).length(), 0)
+  // graph too small for n
+  assert_eq(bfs_distances(FixedArray::make(4, 0), n, 0).length(), 0)
+}
+
+test "dfs_count: invalid input returns 0" {
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  // out-of-bounds src
+  assert_eq(dfs_count(graph, n, -1), 0)
+  assert_eq(dfs_count(graph, n, n), 0)
+  // n == 0
+  assert_eq(dfs_count(FixedArray::make(0, 0), 0, 0), 0)
+  // graph too small for n
+  assert_eq(dfs_count(FixedArray::make(4, 0), n, 0), 0)
+}
+
+test "has_path: out-of-bounds src returns false" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
+  assert_eq(has_path(graph, n, -1, 0), false)
+  assert_eq(has_path(graph, n, n, 0), false)
+  assert_eq(has_path(graph, n, 99, 1), false)
+}
+
+test "has_path: out-of-bounds dst returns false" {
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
+  assert_eq(has_path(graph, n, 0, -1), false)
+  assert_eq(has_path(graph, n, 0, n), false)
+  assert_eq(has_path(graph, n, 0, 99), false)
+}
+
+test "has_path: n=0 returns false" {
+  assert_eq(has_path(FixedArray::make(0, 0), 0, 0, 0), false)
+}
+
+test "has_path: graph too small returns false" {
+  // n=3 needs 9 entries; provide only 4
+  assert_eq(has_path(FixedArray::make(4, 0), 3, 0, 1), false)
+}
+
+test "has_path: src==dst out of bounds returns false" {
+  // Validation must run before the src==dst shortcut.
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  assert_eq(has_path(graph, n, 5, 5), false)
+  assert_eq(has_path(graph, n, -1, -1), false)
+}
+
+test "has_path: src==dst valid returns true" {
+  // Even without a self-loop, a node is trivially reachable from itself.
+  let n = 4
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
   graph[1 * n + 2] = 1
-  graph[2 * n + 0] = 1
+  assert_eq(has_path(graph, n, 0, 0), true)
+  assert_eq(has_path(graph, n, 2, 2), true)
+  assert_eq(has_path(graph, n, 3, 3), true)
+}
+
+// ---------------------------------------------------------------------------
+// n=1 and self-loop edge cases.
+// ---------------------------------------------------------------------------
+
+test "bfs_distances: single node" {
+  let graph = FixedArray::make(1, 0)
+  let dist = bfs_distances(graph, 1, 0)
+  assert_eq(dist[0], 0)
+}
+
+test "dfs_count: single node" {
+  let graph = FixedArray::make(1, 0)
+  assert_eq(dfs_count(graph, 1, 0), 1)
+}
+
+test "has_path: n=1 self" {
+  let graph = FixedArray::make(1, 0)
+  assert_eq(has_path(graph, 1, 0, 0), true)
+}
+
+test "bfs_count: self-loop does not double count" {
+  let n = 1
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 0] = 1 // self-loop
+  assert_eq(bfs_count(graph, n, 0), 1)
+}
+
+test "bfs_distances: self-loop keeps distance 0" {
+  let n = 1
+  let graph = FixedArray::make(n * n, 0)
+  graph[0] = 1 // self-loop
   let dist = bfs_distances(graph, n, 0)
   assert_eq(dist[0], 0)
-  assert_eq(dist[1], 1)
-  assert_eq(dist[2], 2)
+}
+
+test "dfs_count: self-loop does not double count" {
+  let n = 2
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 0] = 1 // self-loop on 0
+  graph[0 * n + 1] = 1 // 0 -> 1
+  graph[1 * n + 1] = 1 // self-loop on 1
+  assert_eq(dfs_count(graph, n, 0), 2)
+}
+
+test "has_path: self-loop source" {
+  // src has a self-loop; src==dst is a trivial path.
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 0] = 1 // self-loop on 0
+  assert_eq(has_path(graph, n, 0, 0), true)
+}
+
+test "has_path: self-loop does not block traversal" {
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 0] = 1 // self-loop on 0
+  graph[0 * n + 1] = 1 // 0 -> 1
+  graph[1 * n + 2] = 1 // 1 -> 2
+  assert_eq(has_path(graph, n, 0, 2), true)
+  assert_eq(has_path(graph, n, 0, 1), true)
 }

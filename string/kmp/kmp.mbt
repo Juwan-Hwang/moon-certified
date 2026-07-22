@@ -1,6 +1,8 @@
 /// KMP string matching algorithm.
 /// Implements the Knuth-Morris-Pratt algorithm for efficient
 /// pattern matching with O(n+m) time complexity.
+/// Not formally verified (String operations not supported by moon prove).
+/// Correctness ensured by comprehensive tests.
 
 /// Build the Longest Proper Prefix which is also Suffix (LPS) array.
 /// lps[i] = length of the longest proper prefix of pattern[0..i]
@@ -12,20 +14,18 @@ pub fn build_lps(pattern : String) -> FixedArray[Int] {
     return lps
   }
   lps[0] = 0
-  let mut len = 0  // length of previous longest prefix suffix
+  let mut len = 0
   let mut i = 1
   while i < m {
     if pattern[i] == pattern[len] {
       len = len + 1
       lps[i] = len
       i = i + 1
+    } else if len != 0 {
+      len = lps[len - 1]
     } else {
-      if len != 0 {
-        len = lps[len - 1]
-      } else {
-        lps[i] = 0
-        i = i + 1
-      }
+      lps[i] = 0
+      i = i + 1
     }
   }
   lps
@@ -33,7 +33,6 @@ pub fn build_lps(pattern : String) -> FixedArray[Int] {
 
 /// Search for pattern in text using KMP algorithm.
 /// Returns the starting index of the first occurrence, or -1 if not found.
-/// Note: String operations are not supported by moon prove; tested but not formally verified.
 pub fn kmp_search(
   text : String,
   pattern : String,
@@ -47,15 +46,15 @@ pub fn kmp_search(
     return -1
   }
   let lps = build_lps(pattern)
-  let mut i = 0  // index for text
-  let mut j = 0  // index for pattern
+  let mut i = 0
+  let mut j = 0
   while i < n {
     if text[i] == pattern[j] {
       i = i + 1
       j = j + 1
     }
     if j == m {
-      return i - j
+      return i - m
     } else if i < n && text[i] != pattern[j] {
       if j != 0 {
         j = lps[j - 1]
@@ -78,8 +77,8 @@ pub fn kmp_search_all(
   if m == 0 || n < m {
     return FixedArray::make(0, 0)
   }
-  // First pass: count matches
   let lps = build_lps(pattern)
+  // First pass: count matches
   let mut count = 0
   let mut i = 0
   let mut j = 0
@@ -99,7 +98,7 @@ pub fn kmp_search_all(
       }
     }
   }
-  // Second pass: collect matches
+  // Second pass: collect match positions
   let result = FixedArray::make(count, 0)
   let mut idx = 0
   i = 0
@@ -110,7 +109,7 @@ pub fn kmp_search_all(
       j = j + 1
     }
     if j == m {
-      result[idx] = i - j
+      result[idx] = i - m
       idx = idx + 1
       j = lps[j - 1]
     } else if i < n && text[i] != pattern[j] {

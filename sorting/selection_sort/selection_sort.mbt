@@ -1,12 +1,10 @@
 /// In-place selection sort on a FixedArray[Int].
+/// Not formally verified (array mutation causes Z3 to lose quantified invariants).
+/// Correctness ensured by comprehensive tests including permutation checks.
 ///
-/// Verification: loop bounds are formally verified (no out-of-bounds access).
-/// The sortedness postcondition (fully_sorted) is not formally verified due to
-/// MoonBit proof system limitation: array mutation causes Z3 to lose
-/// quantified invariants. Correctness is ensured by 8 tests.
-///
-/// Algorithm: For each position i from 0 to n-1, find the minimum
+/// Algorithm: For each position i from 0 to n-2, find the minimum
 /// element in the unsorted suffix xs[i..n) and swap it with xs[i].
+/// The last element (i = n-1) is already in place after n-1 iterations.
 pub fn selection_sort(
   xs : FixedArray[Int],
 ) -> Unit {
@@ -14,7 +12,7 @@ pub fn selection_sort(
   if n <= 1 {
     return
   }
-  for i = 0; i < n; {
+  for i = 0; i < n - 1; {
     let min_idx = for j = i, best = i; j < n; {
       if xs[j] < xs[best] {
         continue j + 1, j
