@@ -1,9 +1,0 @@
-// Distance is non-negative or -1 (unreachable)
-predicate dist_valid(dist : Int) {
-  (dist == -1) || (0 <= dist)
-}
-
-// All distances are valid
-predicate all_dist_valid(dists : FixedArray[Int]) {
-  ∀ i : Int, (0 <= i) && (i < dists.length()) → dist_valid(dists[i])
-}
