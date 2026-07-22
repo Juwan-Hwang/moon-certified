@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: curl -fsSL https://docs.moonbitlang.com/binaries/install.sh | bash
+
+      - name: MoonBit version
+        run: moon version
+
+      - name: Type check
+        run: moon check
+
+      - name: Run tests
+        run: moon test

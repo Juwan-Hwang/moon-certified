@@ -1,0 +1,24 @@
+# MoonBit build artifacts
+target/
+_build/
+.mooncakes/
+
+# Why3 verification artifacts
+_build/verif/
+*.proof.json
+*.mlw
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
