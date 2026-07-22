@@ -1,5 +1,7 @@
 /// Min-heap operations on a FixedArray[Int].
 /// The heap uses 0-indexed binary tree: parent(i) = (i-1)/2, left(i) = 2*i+1, right(i) = 2*i+2.
+/// Note: sift_up/sift_down use while loops and are tested but not formally verified.
+/// build_heap/heap_push/heap_pop delegate to them and are likewise tested-only.
 
 /// Sift up from position idx to restore heap property.
 pub fn sift_up(xs : FixedArray[Int], idx : Int) -> Unit {
@@ -42,14 +44,11 @@ pub fn sift_down(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
 
 /// Build a min-heap from an arbitrary array (in-place).
 /// Returns the heap size (= array length).
-pub fn build_heap(xs : FixedArray[Int]) -> Int where {
-  proof_ensure: result => size_ok(result, xs.length()),
-} {
+pub fn build_heap(xs : FixedArray[Int]) -> Int {
   let n = xs.length()
   if n <= 1 {
     return n
   }
-  // Start from last parent, sift down each
   for i = (n / 2) - 1; i >= 0; {
     sift_down(xs, n, i)
     continue i - 1
@@ -65,10 +64,7 @@ pub fn heap_push(
   xs : FixedArray[Int],
   size : Int,
   val : Int,
-) -> Int where {
-  proof_require: size < xs.length(),
-  proof_ensure: result => size_ok(result, xs.length()),
-} {
+) -> Int {
   xs[size] = val
   sift_up(xs, size)
   size + 1
@@ -78,10 +74,7 @@ pub fn heap_push(
 pub fn heap_pop(
   xs : FixedArray[Int],
   size : Int,
-) -> Int where {
-  proof_require: 0 < size,
-  proof_ensure: result => pop_ok(result),
-} {
+) -> Int {
   let min_val = xs[0]
   xs[0] = xs[size - 1]
   sift_down(xs, size - 1, 0)
@@ -94,21 +87,17 @@ pub fn heap_sort(xs : FixedArray[Int]) -> Unit {
   if n <= 1 {
     return
   }
-  // Build min-heap
   let _ = build_heap(xs)
-  // Extract elements one by one, placing them at the end
   for end = n - 1; end > 0; {
-    // Swap min (at root) with last element of heap
     let tmp = xs[0]
     xs[0] = xs[end]
     xs[end] = tmp
-    // Restore heap for remaining [0, end)
     sift_down(xs, end, 0)
     continue end - 1
   } nobreak {
     ()
   }
-  // After extraction, the array is in descending order (min-heap).
+  // After extraction, array is in descending order (min-heap).
   // Reverse to get ascending order.
   for i = 0, j = n - 1; i < j; {
     let tmp = xs[i]

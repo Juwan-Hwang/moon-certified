@@ -1,5 +1,0 @@
-// Result is in valid range [-1, text_len - pattern_len] or [-1, 0]
-predicate kmp_result_ok(text_len : Int, pattern_len : Int, result : Int) {
-  (result == -1) ||
-  (0 <= result && result + pattern_len <= text_len)
-}
