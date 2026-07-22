@@ -36,30 +36,30 @@ pub fn search(
 }
 
 test "linear_search: found" {
-  let xs = FixedArray::make(5, fn(i) { i * 3 })  // [0, 3, 6, 9, 12]
+  let xs = FixedArray::makei(5, fn(i) { i * 3 })  // [0, 3, 6, 9, 12]
   assert_eq(search(xs, 6), Some(2))
   assert_eq(search(xs, 0), Some(0))
   assert_eq(search(xs, 12), Some(4))
 }
 
 test "linear_search: not found" {
-  let xs = FixedArray::make(5, fn(i) { i * 3 })
+  let xs = FixedArray::makei(5, fn(i) { i * 3 })
   assert_eq(search(xs, 1), None)
   assert_eq(search(xs, 5), None)
   assert_eq(search(xs, 13), None)
 }
 
 test "linear_search: empty array" {
-  let xs : FixedArray[Int] = FixedArray::new(0)
+  let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(search(xs, 42), None)
 }
 
 test "linear_search: duplicates" {
-  let xs = FixedArray::make(6, fn(i) { if i < 3 { 1 } else { 2 } })  // [1,1,1,2,2,2]
+  let xs = FixedArray::makei(6, fn(i) { if i < 3 { 1 } else { 2 } })  // [1,1,1,2,2,2]
   let result = search(xs, 1)
   // Should return the first occurrence
   match result {
     Some(idx) => assert_eq(idx < 3, true)
-    None => panic("should find 1")
+    None => abort("should find 1")
   }
 }

@@ -5,8 +5,5 @@ predicate array_sorted(xs : FixedArray[Int]) {
 }
 
 predicate is_sorted_ok(xs : FixedArray[Int], result : Bool) {
-  match result {
-    true => array_sorted(xs)
-    false => true
-  }
+  (result == true → array_sorted(xs)) && (result == false → true)
 }

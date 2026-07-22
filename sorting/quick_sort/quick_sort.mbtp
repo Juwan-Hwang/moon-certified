@@ -1,0 +1,9 @@
+predicate sorted_range(xs : FixedArray[Int], lo : Int, hi : Int) {
+  ∀ i : Int, ∀ j : Int,
+    (lo <= i) && (i < j) && (j < hi) →
+    xs[i] <= xs[j]
+}
+
+predicate fully_sorted(xs : FixedArray[Int]) {
+  sorted_range(xs, 0, xs.length())
+}

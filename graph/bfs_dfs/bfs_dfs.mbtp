@@ -1,0 +1,9 @@
+// Result count is valid: 0 <= result <= n
+predicate visited_count_ok(n : Int, result : Int) {
+  0 <= result && result <= n
+}
+
+// Distance is non-negative or -1 (unreachable)
+predicate dist_ok(dist : Int) {
+  (dist == -1) || (0 <= dist)
+}

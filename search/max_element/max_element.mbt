@@ -36,22 +36,22 @@ pub fn max_element(
 }
 
 test "max_element: basic" {
-  let xs = FixedArray::make(5, fn(i) { i })  // [0, 1, 2, 3, 4]
+  let xs = FixedArray::makei(5, fn(i) { i })  // [0, 1, 2, 3, 4]
   assert_eq(max_element(xs), 4)
 }
 
 test "max_element: first element" {
-  let xs = FixedArray::make(4, fn(i) { 10 - i })  // [10, 9, 8, 7]
+  let xs = FixedArray::makei(4, fn(i) { 10 - i })  // [10, 9, 8, 7]
   assert_eq(max_element(xs), 0)
 }
 
 test "max_element: duplicates" {
-  let xs = FixedArray::make(5, fn(_) { 7 })  // [7, 7, 7, 7, 7]
+  let xs = FixedArray::make(5, 7)  // [7, 7, 7, 7, 7]
   let result = max_element(xs)
   assert_eq(xs[result], 7)
 }
 
 test "max_element: negative values" {
-  let xs = FixedArray::make(3, fn(i) { -(i + 1) })  // [-1, -2, -3]
+  let xs = FixedArray::makei(3, fn(i) { -(i + 1) })  // [-1, -2, -3]
   assert_eq(max_element(xs), 0)
 }

@@ -31,26 +31,26 @@ pub fn is_sorted(
 }
 
 test "is_sorted: sorted array" {
-  let xs = FixedArray::make(5, fn(i) { i })  // [0, 1, 2, 3, 4]
+  let xs = FixedArray::makei(5, fn(i) { i })  // [0, 1, 2, 3, 4]
   assert_eq(is_sorted(xs), true)
 }
 
 test "is_sorted: unsorted array" {
-  let xs = FixedArray::make(5, fn(i) { 4 - i })  // [4, 3, 2, 1, 0]
+  let xs = FixedArray::makei(5, fn(i) { 4 - i })  // [4, 3, 2, 1, 0]
   assert_eq(is_sorted(xs), false)
 }
 
 test "is_sorted: empty array" {
-  let xs : FixedArray[Int] = FixedArray::new(0)
+  let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(is_sorted(xs), true)
 }
 
 test "is_sorted: single element" {
-  let xs = FixedArray::make(1, fn(_) { 42 })
+  let xs = FixedArray::make(1, 42)
   assert_eq(is_sorted(xs), true)
 }
 
 test "is_sorted: with duplicates" {
-  let xs = FixedArray::make(6, fn(i) { i / 2 })  // [0, 0, 1, 1, 2, 2]
+  let xs = FixedArray::makei(6, fn(i) { i / 2 })  // [0, 0, 1, 1, 2, 2]
   assert_eq(is_sorted(xs), true)
 }
