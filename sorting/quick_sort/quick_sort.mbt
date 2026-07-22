@@ -1,5 +1,6 @@
 /// Quick sort with Lomuto partition scheme.
-/// In-place sorting with verified postcondition.
+/// In-place sorting. Not formally verified (recursive helpers + mutable state).
+/// Correctness ensured by comprehensive tests including permutation checks.
 
 /// Partition subroutine: selects last element as pivot,
 /// places it at correct position, with smaller elements to left
@@ -43,7 +44,6 @@ fn quick_sort_range(
 }
 
 /// Top-level quick sort. Sorts entire array in ascending order.
-/// Note: uses recursive helpers with while loops; tested but not formally verified.
 pub fn quick_sort(
   xs : FixedArray[Int],
 ) -> Unit {

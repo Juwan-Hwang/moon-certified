@@ -4,6 +4,13 @@ predicate array_sorted(xs : FixedArray[Int]) {
     xs[i] <= xs[j]
 }
 
+// If result == true, the array is sorted.
+// If result == false, there exists at least one out-of-order pair
+// (the function did not miss any unsorted adjacent elements).
 predicate is_sorted_ok(xs : FixedArray[Int], result : Bool) {
-  (result == true → array_sorted(xs)) && (result == false → true)
+  (result == true → array_sorted(xs)) &&
+  (result == false →
+    ∃ i : Int,
+      (0 <= i) && (i < xs.length() - 1) && (xs[i] > xs[i + 1])
+  )
 }
