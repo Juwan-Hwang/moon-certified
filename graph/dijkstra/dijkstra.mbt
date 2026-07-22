@@ -3,6 +3,29 @@
 /// graph[i * n + j] is the weight of edge i->j, or 0 if no edge.
 /// Uses simple O(n^2) implementation (no priority queue needed for dense graphs).
 
+/// Nonlinear arithmetic lemma: for 0 <= u < n, 0 <= v < n, 0 < n,
+/// and n*n <= len, u*n + v < len holds. Z3 cannot prove this
+/// automatically because it involves variable multiplication.
+/// Declared as proof_axiomatized so the verifier assumes the
+/// contract without discharging it.
+pub fn graph_index_bound(
+  u : Int,
+  n : Int,
+  v : Int,
+  len : Int,
+) -> Unit where {
+  proof_axiomatized: true,
+  proof_require: 0 <= u,
+  proof_require: u < n,
+  proof_require: 0 <= v,
+  proof_require: v < n,
+  proof_require: 0 < n,
+  proof_require: n * n <= len,
+  proof_ensure: u * n + v < len,
+} {
+  // proof_axiomatized: contract assumed without proof.
+}
+
 /// Compute shortest distances from src to all other nodes.
 /// Returns a FixedArray[Int] where dist[i] is the shortest distance
 /// from src to i, or -1 if unreachable.
@@ -17,6 +40,7 @@ pub fn dijkstra(
 ) -> FixedArray[Int] where {
   proof_require: 0 <= src && src < n,
   proof_require: 0 < n,
+  proof_require: n * n <= graph.length(),
   proof_ensure: result => result.length() == n,
 } {
   let dist = FixedArray::make(n, -1)
@@ -24,7 +48,6 @@ pub fn dijkstra(
   dist[src] = 0
   for step = 0; step < n; {
     // Find unvisited node with minimum distance using accumulator pattern
-    // (avoids let mut to enable Z3 bound tracking)
     let u = for i = 0, best = -1, best_dist = -1; i < n; {
       if visited[i] == 0 && dist[i] >= 0 {
         if best == -1 || dist[i] < best_dist {
@@ -45,6 +68,7 @@ pub fn dijkstra(
     }
     visited[u] = 1
     for v = 0; v < n; {
+      graph_index_bound(u, n, v, graph.length())
       let weight = graph[u * n + v]
       if weight > 0 && visited[v] == 0 {
         let new_dist = dist[u] + weight
