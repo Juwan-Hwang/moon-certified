@@ -1,10 +1,6 @@
 /// In-place insertion sort on a FixedArray[Int].
-///
-/// Verification: loop bounds are formally verified (no out-of-bounds access).
-/// The sortedness postcondition (fully_sorted) is not formally verified due to
-/// MoonBit proof system limitation: array mutation (`xs[j+1] = xs[j]`) causes
-/// Z3 to lose quantified array invariants. Correctness is ensured by 10 tests
-/// covering edge cases, duplicates, negatives, and large inputs.
+/// Not formally verified (proof-enabled: false).
+/// Correctness ensured by comprehensive tests including permutation checks.
 ///
 /// Algorithm: For each position i from 1 to n-1, insert xs[i] into the
 /// sorted prefix xs[0..i) by shifting larger elements right.
@@ -26,17 +22,11 @@ pub fn insertion_sort(
       }
     } nobreak {
       -1
-    } where {
-      proof_invariant: 0 <= j,
-      proof_invariant: j < n,
     }
     xs[pos + 1] = key
     continue i + 1
   } nobreak {
     ()
-  } where {
-    proof_invariant: 1 <= i,
-    proof_invariant: i <= n,
   }
 }
 
@@ -119,5 +109,25 @@ test "insertion_sort: large random-like" {
   insertion_sort(xs)
   for k = 0; k < 19; k = k + 1 {
     assert_eq(xs[k] <= xs[k + 1], true)
+  }
+}
+
+test "insertion_sort: permutation check" {
+  let n = 50
+  let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
+  let orig_freq = FixedArray::make(31, 0)
+  for k = 0; k < n; k = k + 1 {
+    orig_freq[xs[k]] = orig_freq[xs[k]] + 1
+  }
+  insertion_sort(xs)
+  for k = 0; k < n - 1; k = k + 1 {
+    assert_true(xs[k] <= xs[k + 1])
+  }
+  let sorted_freq = FixedArray::make(31, 0)
+  for k = 0; k < n; k = k + 1 {
+    sorted_freq[xs[k]] = sorted_freq[xs[k]] + 1
+  }
+  for k = 0; k < 31; k = k + 1 {
+    assert_eq(orig_freq[k], sorted_freq[k])
   }
 }

@@ -101,7 +101,7 @@ pub fn shortest_path(
   src : Int,
   dst : Int,
 ) -> Int {
-  if n <= 0 || src < 0 || src >= n || dst < 0 || dst >= n {
+  if n <= 0 || src < 0 || src >= n || dst < 0 || dst >= n || graph.length() < n * n {
     return -1
   }
   let dist = dijkstra(graph, n, src)

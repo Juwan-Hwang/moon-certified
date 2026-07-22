@@ -2,7 +2,9 @@
 /// Supports insert, search, delete, and in-order traversal.
 /// No duplicate values are stored.
 
-enum Node {
+/// Binary Search Tree node type.
+/// Use `Node::Empty` to create an empty tree.
+pub enum Node {
   Empty
   Node(Node, Int, Node)
 }
