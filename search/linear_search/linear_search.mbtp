@@ -1,0 +1,6 @@
+predicate linear_search_ok(xs : FixedArray[Int], key : Int, result : Option[Int]) {
+  match result {
+    None => ∀ i : Int, (0 <= i) && (i < xs.length()) → xs[i] != key
+    Some(result) => (0 <= result) && (result < xs.length()) && (xs[result] == key)
+  }
+}

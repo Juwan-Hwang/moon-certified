@@ -1,0 +1,5 @@
+predicate max_ok(xs : FixedArray[Int], result : Int) {
+  (0 <= result) &&
+  (result < xs.length()) &&
+  (∀ k : Int, (0 <= k) && (k < xs.length()) → xs[k] <= xs[result])
+}
