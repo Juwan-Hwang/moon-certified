@@ -12,13 +12,13 @@ pub fn dijkstra(
   src : Int,
 ) -> FixedArray[Int] where {
   proof_require: 0 <= src && src < n,
+  proof_require: n * n <= graph.length(),
   proof_ensure: result => all_dist_valid(result),
 } {
   let dist = FixedArray::make(n, -1)
   let visited = FixedArray::make(n, 0)
   dist[src] = 0
   for step = 0; step < n; {
-    // Find the unvisited node with minimum distance
     let mut u = -1
     let mut min_dist = -1
     for i = 0; i < n; {
@@ -31,13 +31,16 @@ pub fn dijkstra(
       continue i + 1
     } nobreak {
       ()
+    } where {
+      proof_invariant: 0 <= i,
+      proof_invariant: i <= n,
+      proof_invariant: -1 <= u,
+      proof_invariant: u < n,
     }
-    // No more reachable unvisited nodes
     if u == -1 {
       break
     }
     visited[u] = 1
-    // Relax edges from u
     for v = 0; v < n; {
       let weight = graph[u * n + v]
       if weight > 0 && visited[v] == 0 {
@@ -49,10 +52,18 @@ pub fn dijkstra(
       continue v + 1
     } nobreak {
       ()
+    } where {
+      proof_invariant: 0 <= v,
+      proof_invariant: v <= n,
+      proof_invariant: all_dist_valid(dist),
     }
     continue step + 1
   } nobreak {
     ()
+  } where {
+    proof_invariant: 0 <= step,
+    proof_invariant: step <= n,
+    proof_invariant: all_dist_valid(dist),
   }
   dist
 }
@@ -76,7 +87,6 @@ test "dijkstra: single node" {
 }
 
 test "dijkstra: path graph" {
-  // 0 --1-- 1 --2-- 2 --3-- 3
   let n = 4
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
@@ -93,7 +103,6 @@ test "dijkstra: path graph" {
 }
 
 test "dijkstra: unreachable node" {
-  // 0 --5-- 1, 2 is isolated
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 5
@@ -105,8 +114,6 @@ test "dijkstra: unreachable node" {
 }
 
 test "dijkstra: shorter path through intermediate" {
-  // 0 --1-- 1 --1-- 2
-  // 0 -------3------ 2
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
@@ -116,7 +123,7 @@ test "dijkstra: shorter path through intermediate" {
   graph[0 * n + 2] = 3
   graph[2 * n + 0] = 3
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[2], 2)  // 0->1->2 is shorter than 0->2
+  assert_eq(dist[2], 2)
 }
 
 test "dijkstra: complete graph" {
@@ -135,7 +142,6 @@ test "dijkstra: complete graph" {
 }
 
 test "dijkstra: directed graph" {
-  // 0 -> 1 (weight 2), 1 -> 2 (weight 3), no back edges
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 2
@@ -144,9 +150,8 @@ test "dijkstra: directed graph" {
   assert_eq(dist[0], 0)
   assert_eq(dist[1], 2)
   assert_eq(dist[2], 5)
-  // From 1's perspective
   let dist1 = dijkstra(graph, n, 1)
-  assert_eq(dist1[0], -1)  // can't go back
+  assert_eq(dist1[0], -1)
   assert_eq(dist1[2], 3)
 }
 
@@ -171,7 +176,6 @@ test "shortest_path: unreachable" {
 }
 
 test "dijkstra: star graph" {
-  // 0 connected to all others with weight 1
   let n = 5
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1

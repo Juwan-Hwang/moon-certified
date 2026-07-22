@@ -8,37 +8,46 @@ pub fn insertion_sort(
 ) -> Unit where {
   proof_ensure: fully_sorted(xs),
 } {
-  for i = 1; i < xs.length(); {
-    let key = xs[i]
-    // Shift elements greater than key to the right, find insertion point
-    let pos = for j = i - 1; j >= 0; {
-      if xs[j] > key {
-        xs[j + 1] = xs[j]
-        continue j - 1
-      } else {
-        break j
+  let n = xs.length()
+  if n <= 1 {
+    proof_assert fully_sorted(xs)
+  } else {
+    proof_assert 1 <= n
+    for i = 1; i < n; {
+      let key = xs[i]
+      let pos = for j = i - 1; j >= 0; {
+        if xs[j] > key {
+          xs[j + 1] = xs[j]
+          continue j - 1
+        } else {
+          break j
+        }
+      } nobreak {
+        -1
+      } where {
+        proof_invariant: 0 <= j,
+        proof_invariant: j < n,
       }
+      xs[pos + 1] = key
+      continue i + 1
     } nobreak {
-      -1
+      ()
+    } where {
+      proof_invariant: 1 <= i,
+      proof_invariant: i <= n,
+      proof_invariant: n == xs.length(),
+      proof_invariant: sorted_range(xs, 0, i),
+      proof_reasoning: (
+        #| The outer loop maintains that xs[0..i) is sorted.
+        #| For each element at position i, the inner loop shifts
+        #| all elements greater than xs[i] one position to the right,
+        #| then places xs[i] in the gap. This extends the sorted
+        #| prefix from [0, i) to [0, i+1).
+        #|
+        #| When the outer loop completes, i == n,
+        #| so the entire array is sorted.
+      ),
     }
-    xs[pos + 1] = key
-    continue i + 1
-  } nobreak {
-    ()
-  } where {
-    proof_invariant: 1 <= i,
-    proof_invariant: i <= xs.length(),
-    proof_invariant: sorted_range(xs, 0, i),
-    proof_reasoning: (
-      #| The outer loop maintains that xs[0..i) is sorted.
-      #| For each element at position i, the inner loop shifts
-      #| all elements greater than xs[i] one position to the right,
-      #| then places xs[i] in the gap. This extends the sorted
-      #| prefix from [0, i) to [0, i+1).
-      #|
-      #| When the outer loop completes, i == xs.length(),
-      #| so the entire array is sorted.
-    ),
   }
 }
 
@@ -83,7 +92,6 @@ test "insertion_sort: empty array" {
 test "insertion_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 })  // [0,1,2,0,1,2,0,1]
   insertion_sort(xs)
-  // After sort: [0,0,0,1,1,1,2,2]
   assert_eq(xs[0], 0)
   assert_eq(xs[1], 0)
   assert_eq(xs[2], 0)
@@ -120,7 +128,6 @@ test "insertion_sort: two elements" {
 test "insertion_sort: large random-like" {
   let xs = FixedArray::makei(20, fn(i) { (i * 7 + 3) % 13 })
   insertion_sort(xs)
-  // Verify sorted
   for k = 0; k < 19; k = k + 1 {
     assert_eq(xs[k] <= xs[k + 1], true)
   }
