@@ -157,3 +157,23 @@ test "merge_sort: odd length" {
     assert_eq(xs[k] <= xs[k + 1], true)
   }
 }
+
+test "merge_sort: permutation check" {
+  let n = 50
+  let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
+  let orig_freq = FixedArray::make(31, 0)
+  for k = 0; k < n; k = k + 1 {
+    orig_freq[xs[k]] = orig_freq[xs[k]] + 1
+  }
+  merge_sort(xs)
+  for k = 0; k < n - 1; k = k + 1 {
+    assert_true(xs[k] <= xs[k + 1])
+  }
+  let sorted_freq = FixedArray::make(31, 0)
+  for k = 0; k < n; k = k + 1 {
+    sorted_freq[xs[k]] = sorted_freq[xs[k]] + 1
+  }
+  for k = 0; k < 31; k = k + 1 {
+    assert_eq(orig_freq[k], sorted_freq[k])
+  }
+}

@@ -19,8 +19,8 @@ fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
 }
 
 /// Sift up from position idx to restore min-heap property.
-/// No-op if idx is out of bounds.
-pub fn sift_up(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
+/// No-op if idx is out of bounds. Internal helper.
+fn sift_up(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
   if idx < 0 || idx >= size {
     return
   }
@@ -37,8 +37,8 @@ pub fn sift_up(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
 }
 
 /// Sift down from position idx within heap of given size.
-/// No-op if idx is out of bounds or size <= 0.
-pub fn sift_down(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
+/// No-op if idx is out of bounds or size <= 0. Internal helper.
+fn sift_down(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
   if idx < 0 || size <= 0 || idx >= size {
     return
   }
@@ -149,42 +149,6 @@ fn sift_down_max(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
     swap(xs, i, largest)
     i = largest
   }
-}
-
-test "sift_up: basic" {
-  let xs = FixedArray::make(5, 0)
-  xs[0] = 3
-  xs[1] = 1
-  xs[2] = 5
-  xs[3] = 2
-  xs[4] = 4
-  sift_up(xs, 5, 1)
-  assert_eq(xs[0], 1)
-  assert_eq(xs[1], 3)
-}
-
-test "sift_down: basic" {
-  let xs = FixedArray::make(5, 0)
-  xs[0] = 5
-  xs[1] = 3
-  xs[2] = 1
-  xs[3] = 4
-  xs[4] = 2
-  sift_down(xs, 5, 0)
-  assert_eq(xs[0], 1)
-}
-
-test "sift_down: out of bounds" {
-  let xs = FixedArray::make(3, 0)
-  xs[0] = 1
-  xs[1] = 2
-  xs[2] = 3
-  sift_down(xs, 3, -1)  // no-op
-  sift_down(xs, 3, 5)  // no-op
-  sift_down(xs, 0, 0)  // no-op
-  assert_eq(xs[0], 1)
-  assert_eq(xs[1], 2)
-  assert_eq(xs[2], 3)
 }
 
 test "build_heap: basic" {

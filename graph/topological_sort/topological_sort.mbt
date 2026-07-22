@@ -27,7 +27,7 @@ fn compute_in_degrees(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
 /// Returns a FixedArray of size n containing a valid topological ordering,
 /// or a FixedArray of size 0 if the graph contains a cycle or n <= 0.
 pub fn topo_sort(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
-  if n <= 0 {
+  if n <= 0 || graph.length() < n * n {
     return FixedArray::make(0, 0)
   }
   let in_deg = compute_in_degrees(graph, n)
