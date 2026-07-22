@@ -1,0 +1,12 @@
+predicate array_sorted(xs : FixedArray[Int]) {
+  ∀ i : Int, ∀ j : Int,
+    (0 <= i) && (i < j) && (j < xs.length()) →
+    xs[i] <= xs[j]
+}
+
+predicate is_sorted_ok(xs : FixedArray[Int], result : Bool) {
+  match result {
+    true => array_sorted(xs)
+    false => true
+  }
+}

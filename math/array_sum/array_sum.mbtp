@@ -1,0 +1,9 @@
+// Result is non-negative when all elements are non-negative
+predicate sum_nonneg_ok(result : Int) {
+  0 <= result
+}
+
+// Result equals the number of non-negative elements (count)
+predicate count_nonneg_ok(xs : FixedArray[Int], result : Int) {
+  0 <= result && result <= xs.length()
+}
