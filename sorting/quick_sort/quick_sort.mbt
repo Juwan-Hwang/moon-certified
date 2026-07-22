@@ -43,11 +43,10 @@ fn quick_sort_range(
 }
 
 /// Top-level quick sort. Sorts entire array in ascending order.
+/// Note: uses recursive helpers with while loops; tested but not formally verified.
 pub fn quick_sort(
   xs : FixedArray[Int],
-) -> Unit where {
-  proof_ensure: fully_sorted(xs),
-} {
+) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return

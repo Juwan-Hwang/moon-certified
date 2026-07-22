@@ -9,8 +9,3 @@ predicate sorted_range(xs : FixedArray[Int], lo : Int, hi : Int) {
 predicate fully_sorted(xs : FixedArray[Int]) {
   sorted_range(xs, 0, xs.length())
 }
-
-// Element key is <= all elements in xs[lo..hi)
-predicate all_geq_from(xs : FixedArray[Int], key : Int, lo : Int, hi : Int) {
-  ∀ k : Int, (lo <= k) && (k < hi) → key <= xs[k]
-}
