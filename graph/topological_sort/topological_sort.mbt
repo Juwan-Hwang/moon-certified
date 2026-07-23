@@ -1,8 +1,6 @@
 /// Topological sort using Kahn's algorithm (BFS-based).
 /// Graph is represented as an adjacency matrix: graph[i * n + j] == 1
 /// means there is a directed edge from i to j.
-/// Returns a FixedArray of size n with a valid topological ordering,
-/// or a FixedArray of size 0 if the graph contains a cycle.
 
 /// Compute in-degree of each node from the adjacency matrix.
 fn compute_in_degrees(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
@@ -24,11 +22,19 @@ fn compute_in_degrees(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
 }
 
 /// Topological sort using Kahn's algorithm.
-/// Returns a FixedArray of size n containing a valid topological ordering,
-/// or a FixedArray of size 0 if the graph contains a cycle or n <= 0.
-pub fn topo_sort(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
+///
+/// Returns `Some(result)` where `result` is a `FixedArray[Int]` of size `n`
+/// containing a valid topological ordering, or `None` if the graph contains
+/// a cycle or the input is invalid (n <= 0, graph too small).
+///
+/// Using `Option` instead of an empty array eliminates the ambiguity between
+/// "cycle detected" and "valid empty result".
+pub fn topo_sort(
+  graph : FixedArray[Int],
+  n : Int,
+) -> FixedArray[Int]? {
   if n <= 0 || graph.length() < n * n {
-    return FixedArray::make(0, 0)
+    return None
   }
   let in_deg = compute_in_degrees(graph, n)
   let result = FixedArray::make(n, 0)
@@ -68,9 +74,9 @@ pub fn topo_sort(graph : FixedArray[Int], n : Int) -> FixedArray[Int] {
   }
   // If not all nodes were processed, a cycle exists
   if idx < n {
-    return FixedArray::make(0, 0)
+    return None
   }
-  result
+  Some(result)
 }
 
 test "topo_sort: DAG" {
@@ -82,28 +88,27 @@ test "topo_sort: DAG" {
   graph[0 * n + 2] = 1
   graph[1 * n + 3] = 1
   graph[2 * n + 3] = 1
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // 0 must come before 1, 2, 3; 3 must come last
   assert_eq(result[0], 0)
   assert_eq(result[n - 1], 3)
 }
 
-test "topo_sort: cyclic graph returns empty" {
+test "topo_sort: cyclic graph returns None" {
   // 0 -> 1 -> 2 -> 0
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
   graph[1 * n + 2] = 1
   graph[2 * n + 0] = 1
-  let result = topo_sort(graph, n)
-  assert_eq(result.length(), 0)
+  assert_true(topo_sort(graph, n) is None)
 }
 
 test "topo_sort: single node" {
   let n = 1
   let graph = FixedArray::make(n * n, 0)
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), 1)
   assert_eq(result[0], 0)
 }
@@ -115,7 +120,7 @@ test "topo_sort: linear chain" {
   for i = 0; i < n - 1; i = i + 1 {
     graph[i * n + (i + 1)] = 1
   }
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // Linear chain has exactly one valid ordering
   for i = 0; i < n; i = i + 1 {
@@ -135,7 +140,7 @@ test "topo_sort: diamond" {
   graph[0 * n + 2] = 1
   graph[1 * n + 3] = 1
   graph[2 * n + 3] = 1
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // 0 must be first, 3 must be last
   assert_eq(result[0], 0)
@@ -148,7 +153,7 @@ test "topo_sort: disconnected DAG" {
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
   graph[2 * n + 3] = 1
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // 0 before 1, 2 before 3
   let mut pos0 = -1
@@ -165,18 +170,17 @@ test "topo_sort: disconnected DAG" {
   assert_eq(pos2 < pos3, true)
 }
 
-test "topo_sort: invalid n returns empty" {
+test "topo_sort: invalid n returns None" {
   let graph = FixedArray::make(0, 0)
-  assert_eq(topo_sort(graph, 0).length(), 0)
-  assert_eq(topo_sort(graph, -1).length(), 0)
+  assert_true(topo_sort(graph, 0) is None)
+  assert_true(topo_sort(graph, -1) is None)
 }
 
 test "topo_sort: self-loop is a cycle" {
   let n = 2
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 0] = 1 // self-loop on node 0
-  let result = topo_sort(graph, n)
-  assert_eq(result.length(), 0)
+  assert_true(topo_sort(graph, n) is None)
 }
 
 test "topo_sort: complete DAG" {
@@ -187,7 +191,7 @@ test "topo_sort: complete DAG" {
     let col = i % n
     if row < col { 1 } else { 0 }
   })
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // The only valid ordering is 0, 1, 2, 3, 4
   for i = 0; i < n; i = i + 1 {
@@ -198,7 +202,7 @@ test "topo_sort: complete DAG" {
 test "topo_sort: no edges" {
   let n = 5
   let graph = FixedArray::make(n * n, 0)
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   // All nodes have in-degree 0; verify all are present
   let seen = FixedArray::make(n, 0)
@@ -220,7 +224,7 @@ test "topo_sort: larger DAG" {
   graph[2 * n + 3] = 1
   graph[3 * n + 4] = 1
   graph[1 * n + 4] = 1
-  let result = topo_sort(graph, n)
+  let result = topo_sort(graph, n).unwrap()
   assert_eq(result.length(), n)
   assert_eq(result[0], 0)
   assert_eq(result[n - 1], 4)
@@ -232,6 +236,5 @@ test "topo_sort: two-node cycle" {
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
   graph[1 * n + 0] = 1
-  let result = topo_sort(graph, n)
-  assert_eq(result.length(), 0)
+  assert_true(topo_sort(graph, n) is None)
 }

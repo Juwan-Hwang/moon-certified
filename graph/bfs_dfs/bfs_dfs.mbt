@@ -3,11 +3,15 @@
 /// The graph is a flat `FixedArray[Int]` of length `n * n`, indexed by
 /// `graph[i * n + j]`; a non-zero entry denotes a directed edge `i -> j`.
 ///
-/// Every public function validates its arguments and returns a safe default
-/// when the input is malformed:
-///   - `bfs_count` / `dfs_count`  -> 0
-///   - `bfs_distances`            -> an empty array
-///   - `has_path`                 -> false
+/// Input validation policy:
+///   - `bfs_count` / `dfs_count`  -> 0 (a valid count is always ≥ 1 since
+///      the source reaches itself, so 0 unambiguously signals invalid input)
+///   - `bfs_distances`            -> None (Option distinguishes "invalid
+///      input" from a valid distance array)
+///   - `has_path`                 -> false (safe default for "no path")
+///
+/// For `bfs_distances`, unreachable vertices are marked `-1` in the result
+/// array. This is unambiguous because BFS hop counts are always ≥ 0.
 ///
 /// This package has `proof-enabled: false`, so correctness is backed by the
 /// test suite rather than by the MoonBit proof system.
@@ -25,7 +29,8 @@ fn invalid_input(
 
 /// Count the nodes reachable from `src` (including `src` itself) via BFS.
 ///
-/// Returns 0 for invalid input. Time O(n^2), space O(n).
+/// Returns 0 for invalid input. A valid count is always ≥ 1 (the source
+/// itself), so 0 unambiguously signals an error. Time O(n^2), space O(n).
 pub fn bfs_count(
   graph : FixedArray[Int],
   n : Int,
@@ -60,16 +65,19 @@ pub fn bfs_count(
 
 /// Compute shortest-path distances from `src` to every node via BFS.
 ///
-/// Returns a `FixedArray[Int]` of length `n` where `dist[i]` is the hop count
-/// from `src` to `i`, or `-1` when `i` is unreachable. Returns an empty array
-/// for invalid input. Time O(n^2), space O(n).
+/// Returns `Some(dist)` where `dist` is a `FixedArray[Int]` of length `n`
+/// with `dist[i]` being the hop count from `src` to `i`, or `-1` when `i`
+/// is unreachable. Returns `None` for invalid input.
+///
+/// The `-1` sentinel for unreachable is safe because BFS hop counts are
+/// always non-negative. Time O(n^2), space O(n).
 pub fn bfs_distances(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
-) -> FixedArray[Int] {
+) -> FixedArray[Int]? {
   if invalid_input(graph, n, src) {
-    return FixedArray::make(0, -1)
+    return None
   }
   let dist = FixedArray::make(n, -1)
   let queue = FixedArray::make(n, 0)
@@ -90,7 +98,7 @@ pub fn bfs_distances(
       v = v + 1
     }
   }
-  dist
+  Some(dist)
 }
 
 /// Report whether `dst` is reachable from `src`.
@@ -229,7 +237,7 @@ test "bfs_distances: path graph" {
   graph[0 * n + 1] = 1
   graph[1 * n + 2] = 1
   graph[2 * n + 3] = 1
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   assert_eq(dist[0], 0)
   assert_eq(dist[1], 1)
   assert_eq(dist[2], 2)
@@ -241,7 +249,7 @@ test "bfs_distances: unreachable" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 1
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   assert_eq(dist[0], 0)
   assert_eq(dist[1], 1)
   assert_eq(dist[2], -1)
@@ -254,7 +262,7 @@ test "bfs_distances: star graph" {
   graph[0 * n + 1] = 1
   graph[0 * n + 2] = 1
   graph[0 * n + 3] = 1
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   assert_eq(dist[0], 0)
   assert_eq(dist[1], 1)
   assert_eq(dist[2], 1)
@@ -268,7 +276,7 @@ test "bfs_distances: cycle distances" {
   graph[0 * n + 1] = 1
   graph[1 * n + 2] = 1
   graph[2 * n + 0] = 1
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   assert_eq(dist[0], 0)
   assert_eq(dist[1], 1)
   assert_eq(dist[2], 2)
@@ -301,7 +309,7 @@ test "has_path: consistent with bfs_distances" {
   graph[0 * n + 1] = 1
   graph[1 * n + 2] = 1
   graph[3 * n + 4] = 1
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   for k = 0; k < n; k = k + 1 {
     assert_eq(has_path(graph, n, 0, k), dist[k] != -1)
   }
@@ -351,16 +359,16 @@ test "bfs_count: invalid input returns 0" {
   assert_eq(bfs_count(FixedArray::make(4, 0), n, 0), 0)
 }
 
-test "bfs_distances: invalid input returns empty" {
+test "bfs_distances: invalid input returns None" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   // out-of-bounds src
-  assert_eq(bfs_distances(graph, n, -1).length(), 0)
-  assert_eq(bfs_distances(graph, n, n).length(), 0)
+  assert_true(bfs_distances(graph, n, -1) is None)
+  assert_true(bfs_distances(graph, n, n) is None)
   // n == 0
-  assert_eq(bfs_distances(FixedArray::make(0, 0), 0, 0).length(), 0)
+  assert_true(bfs_distances(FixedArray::make(0, 0), 0, 0) is None)
   // graph too small for n
-  assert_eq(bfs_distances(FixedArray::make(4, 0), n, 0).length(), 0)
+  assert_true(bfs_distances(FixedArray::make(4, 0), n, 0) is None)
 }
 
 test "dfs_count: invalid input returns 0" {
@@ -427,7 +435,7 @@ test "has_path: src==dst valid returns true" {
 
 test "bfs_distances: single node" {
   let graph = FixedArray::make(1, 0)
-  let dist = bfs_distances(graph, 1, 0)
+  let dist = bfs_distances(graph, 1, 0).unwrap()
   assert_eq(dist[0], 0)
 }
 
@@ -452,7 +460,7 @@ test "bfs_distances: self-loop keeps distance 0" {
   let n = 1
   let graph = FixedArray::make(n * n, 0)
   graph[0] = 1 // self-loop
-  let dist = bfs_distances(graph, n, 0)
+  let dist = bfs_distances(graph, n, 0).unwrap()
   assert_eq(dist[0], 0)
 }
 
