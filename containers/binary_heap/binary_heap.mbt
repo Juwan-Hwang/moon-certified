@@ -12,6 +12,84 @@
 /// Not formally verified (while loops with mutable state).
 /// Correctness ensured by comprehensive tests including permutation checks.
 
+/// ---------------------------------------------------------------------------
+/// Encapsulated heap API
+///
+/// `Heap` bundles the backing `FixedArray[Int]` together with the current
+/// `size`, so callers no longer have to track the size manually.  Every
+/// method delegates to the low-level free functions below, which remain
+/// available for backward compatibility.
+/// ---------------------------------------------------------------------------
+
+/// A min-heap backed by a fixed-capacity array.
+///
+/// - `data` holds the elements in heap order (0-indexed binary tree).
+/// - `size` is the number of live elements; slots `>= size` are unused.
+pub struct Heap {
+  data : FixedArray[Int]
+  mut size : Int
+}
+
+/// Create an empty `Heap` with the given fixed `capacity`.
+/// All slots are zero-initialised; `size` starts at 0.
+pub fn heap_new(capacity : Int) -> Heap {
+  { data: FixedArray::make(capacity, 0), size: 0 }
+}
+
+/// Push `val` onto the heap.
+/// If the backing array is full the push is silently ignored, leaving the
+/// heap unchanged.
+pub fn Heap::heap_push(self : Heap, val : Int) -> Unit {
+  match heap_push(self.data, self.size, val) {
+    Some(new_size) => self.size = new_size
+    None => ()
+  }
+}
+
+/// Pop and return the minimum element.
+/// Returns `Some(min)` on success, `None` when the heap is empty.
+pub fn Heap::heap_pop(self : Heap) -> Int? {
+  let (result, new_size) = heap_pop(self.data, self.size)
+  match result {
+    Some(_) => {
+      self.size = new_size
+      result
+    }
+    None => None
+  }
+}
+
+/// Heapify the backing array in place.
+/// `size` is set to the heapified length reported by `build_heap`.
+pub fn Heap::heap_build(self : Heap) -> Unit {
+  self.size = build_heap(self.data)
+}
+
+/// Number of elements currently in the heap.
+pub fn Heap::heap_size(self : Heap) -> Int {
+  self.size
+}
+
+/// Maximum number of elements the heap can hold.
+pub fn Heap::heap_capacity(self : Heap) -> Int {
+  self.data.length()
+}
+
+/// `true` when the heap holds no elements.
+pub fn Heap::heap_is_empty(self : Heap) -> Bool {
+  self.size == 0
+}
+
+/// Peek at the minimum element without removing it.
+/// Returns `None` when the heap is empty.
+pub fn Heap::heap_peek(self : Heap) -> Int? {
+  if self.size == 0 {
+    None
+  } else {
+    Some(self.data[0])
+  }
+}
+
 /// Swap two elements in an array.
 fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -286,4 +364,50 @@ test "heap_sort: permutation check" {
   for k = 0; k < 31; k = k + 1 {
     assert_eq(orig_freq[k], sorted_freq[k])
   }
+}
+
+test "Heap: encapsulated push and pop" {
+  let h = heap_new(10)
+  assert_true(h.heap_is_empty())
+  h.heap_push(5)
+  h.heap_push(3)
+  h.heap_push(7)
+  assert_eq(h.heap_size(), 3)
+  assert_eq(h.heap_peek(), Some(3))
+  assert_eq(h.heap_pop(), Some(3))
+  assert_eq(h.heap_pop(), Some(5))
+  assert_eq(h.heap_pop(), Some(7))
+  assert_true(h.heap_is_empty())
+}
+
+test "Heap: build from array" {
+  let h = heap_new(6)
+  // Copy values into heap
+  let vals = [6, 5, 4, 3, 2, 1]
+  for k = 0; k < 6; k = k + 1 {
+    h.data[k] = vals[k]
+  }
+  h.size = 6
+  h.heap_build()
+  assert_eq(h.heap_peek(), Some(1))
+  assert_eq(h.heap_pop(), Some(1))
+  assert_eq(h.heap_pop(), Some(2))
+}
+
+test "Heap: interleave operations" {
+  let h = heap_new(20)
+  h.heap_push(5)
+  h.heap_push(3)
+  h.heap_push(8)
+  h.heap_push(1)
+  h.heap_push(9)
+  assert_eq(h.heap_pop(), Some(1))
+  h.heap_push(2)
+  assert_eq(h.heap_pop(), Some(2))
+  assert_eq(h.heap_pop(), Some(3))
+  assert_eq(h.heap_pop(), Some(5))
+  assert_eq(h.heap_pop(), Some(8))
+  assert_eq(h.heap_pop(), Some(9))
+  assert_true(h.heap_is_empty())
+  assert_true(h.heap_pop() is None)
 }

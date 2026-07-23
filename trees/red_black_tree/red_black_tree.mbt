@@ -1,9 +1,15 @@
-/// Red-Black Tree using Okasaki's functional insertion algorithm.
+/// Red-Black Tree using Okasaki's functional insertion and Kahrs' deletion.
 ///
 /// Generic: works with any type T given a comparator function.
-/// Insertion maintains all RB properties. Deletion uses BST deletion
-/// (RB fixup for functional deletion is not implemented).
-/// Not formally verified. Correctness ensured by comprehensive tests.
+/// Both insertion and deletion maintain all RB properties:
+/// 1. Every node is Red or Black.
+/// 2. The root is Black.
+/// 3. All leaves (Empty) are Black.
+/// 4. A Red node has two Black children (no consecutive Red nodes).
+/// 5. Every path from root to leaf has the same number of Black nodes (black-height).
+///
+/// Not formally verified. Correctness ensured by comprehensive tests including
+/// is_valid_rb checks after every deletion.
 
 pub enum Color {
   Red
@@ -56,6 +62,10 @@ fn[T] is_red(node : RBNode[T]) -> Bool {
   }
 }
 
+fn[T] is_black(node : RBNode[T]) -> Bool {
+  !is_red(node)
+}
+
 /// Okasaki's balance: handles all 4 red-red violation cases in one function.
 /// Called bottom-up during insertion.
 fn[T] balance(
@@ -65,19 +75,14 @@ fn[T] balance(
   right : RBNode[T],
 ) -> RBNode[T] {
   match (color, left, val, right) {
-    // LL: Black parent, Red left child with Red left-left grandchild
     (Black, Node(Node(a, x, b, Red), y, c, Red), z, d) =>
       Node(Node(a, x, b, Black), y, Node(c, z, d, Black), Red)
-    // LR: Black parent, Red left child with Red left-right grandchild
     (Black, Node(a, x, Node(b, y, c, Red), Red), z, d) =>
       Node(Node(a, x, b, Black), y, Node(c, z, d, Black), Red)
-    // RL: Black parent, Red right child with Red right-left grandchild
     (Black, a, x, Node(Node(b, y, c, Red), z, d, Red)) =>
       Node(Node(a, x, b, Black), y, Node(c, z, d, Black), Red)
-    // RR: Black parent, Red right child with Red right-right grandchild
     (Black, a, x, Node(b, y, Node(c, z, d, Red), Red)) =>
       Node(Node(a, x, b, Black), y, Node(c, z, d, Black), Red)
-    // No violation: reconstruct as-is
     (color, left, val, right) =>
       Node(left, val, right, color)
   }
@@ -90,12 +95,11 @@ pub fn[T] insert(
   cmp : (T, T) -> Int,
 ) -> RBNode[T] {
   match ins(root, val, cmp) {
-    Node(l, v, r, _) => Node(l, v, r, Black)  // root always black
+    Node(l, v, r, _) => Node(l, v, r, Black)
     other => other
   }
 }
 
-/// Internal insert helper that calls balance on the way up.
 fn[T] ins(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
   match root {
     Empty => Node(Empty, val, Empty, Red)
@@ -106,7 +110,7 @@ fn[T] ins(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
       } else if order > 0 {
         balance(color, l, v, ins(r, val, cmp))
       } else {
-        root  // duplicate, ignore
+        root
       }
     }
   }
@@ -121,29 +125,74 @@ pub fn[T] find_min(root : RBNode[T]) -> T? {
   }
 }
 
-/// Delete a value. Uses BST deletion (RB fixup not implemented for
-/// functional deletion). BST ordering is preserved.
+// ===========================================================================
+// Deletion (Kahrs algorithm with "lost black" tracking)
+//
+// When a Black node is removed, the black-height property is violated.
+// We track this as a "lost black" flag and fix it on the way back up
+// using bal_left / bal_right, which handle three cases:
+//
+// 1. Sibling is Red: rotate to bring it up, then recurse (resolves to case 2 or 3).
+// 2. Sibling is Black with Black children: recolor sibling Red.
+//    - Parent Red: absorb deficit (parent → Black). Done.
+//    - Parent Black: propagate deficit upward.
+// 3. Sibling is Black with a Red child: rotate to resolve. Done.
+// ===========================================================================
+
+/// Delete a value. Maintains all RB properties.
 pub fn[T] delete(
   root : RBNode[T],
   val : T,
   cmp : (T, T) -> Int,
 ) -> RBNode[T] {
+  let (tree, _lost) = del(root, val, cmp)
+  match tree {
+    Node(l, v, r, _) => Node(l, v, r, Black)
+    other => other
+  }
+}
+
+/// Internal delete: returns (new_tree, lost_black).
+fn[T] del(
+  root : RBNode[T],
+  val : T,
+  cmp : (T, T) -> Int,
+) -> (RBNode[T], Bool) {
   match root {
-    Empty => Empty
+    Empty => (Empty, false)
     Node(l, v, r, c) => {
-      let d = cmp(val, v)
-      if d < 0 {
-        Node(delete(l, val, cmp), v, r, c)
-      } else if d > 0 {
-        Node(l, v, delete(r, val, cmp), c)
+      let order = cmp(val, v)
+      if order < 0 {
+        let (new_l, lost) = del(l, val, cmp)
+        if lost {
+          bal_left(c, new_l, v, r)
+        } else {
+          (Node(new_l, v, r, c), false)
+        }
+      } else if order > 0 {
+        let (new_r, lost) = del(r, val, cmp)
+        if lost {
+          bal_right(c, l, v, new_r)
+        } else {
+          (Node(l, v, new_r, c), false)
+        }
       } else {
         match (l, r) {
-          (Empty, _) => r
-          (_, Empty) => l
+          (Empty, Empty) =>
+            match c {
+              Red => (Empty, false)
+              Black => (Empty, true)
+            }
+          (Empty, Node(rl, rv, rr, Red)) =>
+            (Node(rl, rv, rr, Black), false)
+          (Node(ll, lv, lr, Red), Empty) =>
+            (Node(ll, lv, lr, Black), false)
           (_, _) => {
-            match find_min(r) {
-              Some(succ) => Node(l, succ, delete(r, succ, cmp), c)
-              None => Node(l, v, r, c)
+            let (min_val, new_r, lost) = del_min(r)
+            if lost {
+              bal_right(c, l, min_val, new_r)
+            } else {
+              (Node(l, min_val, new_r, c), false)
             }
           }
         }
@@ -152,7 +201,174 @@ pub fn[T] delete(
   }
 }
 
-/// In-order traversal via callback (avoids needing default value for generics).
+/// Delete the minimum node from a subtree.
+/// Returns (min_value, new_subtree, lost_black).
+fn[T] del_min(root : RBNode[T]) -> (T, RBNode[T], Bool) {
+  match root {
+    Node(Empty, v, r, c) =>
+      match c {
+        Red => (v, r, false)
+        Black =>
+          match r {
+            Node(rl, rv, rr, Red) => (v, Node(rl, rv, rr, Black), false)
+            _ => (v, r, true)
+          }
+      }
+    Node(l, v, r, c) => {
+      let (min_val, new_l, lost) = del_min(l)
+      if lost {
+        let (new_tree, still_lost) = bal_left(c, new_l, v, r)
+        (min_val, new_tree, still_lost)
+      } else {
+        (min_val, Node(new_l, v, r, c), false)
+      }
+    }
+    Empty => abort("del_min on empty tree")
+  }
+}
+
+/// Fix the tree after the left subtree lost a black.
+/// Returns (new_tree, still_lost).
+fn[T] bal_left(
+  color : Color,
+  left : RBNode[T],
+  val : T,
+  right : RBNode[T],
+) -> (RBNode[T], Bool) {
+  match (color, left, val, right) {
+    // Case 1: Black parent, Red right sibling.
+    // Rotate left, then recurse on the new left subtree.
+    (Black, l, x, Node(rl, rv, rr, Red)) => {
+      // rl and rr are Black (RB property).
+      // After rotation: rv becomes root (Black), x goes left (Red).
+      // Recurse to fix l's deficit with parent=Red, sibling=rl(Black).
+      let (fixed, lost) = bal_left(Red, l, x, rl)
+      (Node(fixed, rv, rr, Black), lost)
+    }
+
+    // Case 2: Black parent, Black sibling with Black children.
+    // Recolor sibling Red, propagate deficit up.
+    (Black, l, x, Node(rl, rv, rr, Black)) => {
+      if is_black(rl) && is_black(rr) {
+        (Node(l, x, Node(rl, rv, rr, Red), Black), true)
+      } else {
+        bal_left_rotate(l, x, Black, rl, rv, rr)
+      }
+    }
+
+    // Case 2: Red parent, Black sibling with Black children.
+    // Recolor sibling Red, parent Black: deficit absorbed.
+    (Red, l, x, Node(rl, rv, rr, Black)) => {
+      if is_black(rl) && is_black(rr) {
+        (Node(l, x, Node(rl, rv, rr, Red), Black), false)
+      } else {
+        bal_left_rotate(l, x, Red, rl, rv, rr)
+      }
+    }
+
+    // Fallback: shouldn't reach for valid RB trees.
+    (c, l, x, r) => (Node(l, x, r, c), true)
+  }
+}
+
+/// Rotation helper for bal_left when sibling is Black with a Red nephew.
+/// Sub-case 3a: rr (right-right) is Red → single left rotation.
+/// Sub-case 3b: rl (right-left) is Red → right-left double rotation.
+fn[T] bal_left_rotate(
+  l : RBNode[T],
+  x : T,
+  parent_color : Color,
+  rl : RBNode[T],
+  rv : T,
+  rr : RBNode[T],
+) -> (RBNode[T], Bool) {
+  if is_red(rr) {
+    // Left rotation: rv becomes new root (parent_color), x → Black left child,
+    // rr → Black right child. Deficit resolved.
+    match rr {
+      Node(rrl, rrv, rrr, _) =>
+        (Node(Node(l, x, rl, Black), rv, Node(rrl, rrv, rrr, Black), parent_color), false)
+      Empty => abort("unreachable: is_red(rr) was true")
+    }
+  } else if is_red(rl) {
+    // Right-left double rotation: rlv becomes new root (parent_color).
+    match rl {
+      Node(rll, rlv, rlr, _) =>
+        (Node(Node(l, x, rll, Black), rlv, Node(rlr, rv, rr, Black), parent_color), false)
+      Empty => abort("unreachable: is_red(rl) was true")
+    }
+  } else {
+    // Shouldn't reach: at least one nephew must be Red.
+    (Node(l, x, Node(rl, rv, rr, Black), parent_color), false)
+  }
+}
+
+/// Fix the tree after the right subtree lost a black.
+/// Mirror of bal_left.
+fn[T] bal_right(
+  color : Color,
+  left : RBNode[T],
+  val : T,
+  right : RBNode[T],
+) -> (RBNode[T], Bool) {
+  match (color, left, val, right) {
+    // Case 1: Black parent, Red left sibling.
+    (Black, Node(ll, lv, lr, Red), x, r) => {
+      let (fixed, lost) = bal_right(Red, lr, x, r)
+      (Node(ll, lv, fixed, Black), lost)
+    }
+
+    // Case 2: Black parent, Black sibling with Black children.
+    (Black, Node(ll, lv, lr, Black), x, r) => {
+      if is_black(ll) && is_black(lr) {
+        (Node(Node(ll, lv, lr, Red), x, r, Black), true)
+      } else {
+        bal_right_rotate(ll, lv, lr, x, r, Black)
+      }
+    }
+
+    // Case 2: Red parent, Black sibling with Black children.
+    (Red, Node(ll, lv, lr, Black), x, r) => {
+      if is_black(ll) && is_black(lr) {
+        (Node(Node(ll, lv, lr, Red), x, r, Black), false)
+      } else {
+        bal_right_rotate(ll, lv, lr, x, r, Red)
+      }
+    }
+
+    (c, l, x, r) => (Node(l, x, r, c), true)
+  }
+}
+
+/// Rotation helper for bal_right when sibling is Black with a Red nephew.
+fn[T] bal_right_rotate(
+  ll : RBNode[T],
+  lv : T,
+  lr : RBNode[T],
+  x : T,
+  r : RBNode[T],
+  parent_color : Color,
+) -> (RBNode[T], Bool) {
+  if is_red(ll) {
+    // Right rotation: lv becomes new root, ll → Black, right subtree → Black.
+    match ll {
+      Node(lll, llv, llr, _) =>
+        (Node(Node(lll, llv, llr, Black), lv, Node(lr, x, r, Black), parent_color), false)
+      Empty => abort("unreachable: is_red(ll) was true")
+    }
+  } else if is_red(lr) {
+    // Left-right double rotation: lrv becomes new root.
+    match lr {
+      Node(lrl, lrv, lrr, _) =>
+        (Node(Node(ll, lv, lrl, Black), lrv, Node(lrr, x, r, Black), parent_color), false)
+      Empty => abort("unreachable: is_red(lr) was true")
+    }
+  } else {
+    (Node(Node(ll, lv, lr, Black), x, r, parent_color), false)
+  }
+}
+
+/// In-order traversal via callback.
 pub fn[T] inorder(root : RBNode[T], f : (T) -> Unit) -> Unit {
   match root {
     Empty => ()
@@ -249,6 +465,7 @@ test "rbtree: delete leaf" {
   assert_false(search(t2, 7, fn(a, b) { a - b }))
   assert_true(search(t2, 5, fn(a, b) { a - b }))
   assert_eq(size(t2), 2)
+  assert_true(is_valid_rb(t2))
 }
 
 test "rbtree: delete node with two children" {
@@ -259,6 +476,7 @@ test "rbtree: delete node with two children" {
   let t2 = delete(tree, 4, fn(a, b) { a - b })
   assert_false(search(t2, 4, fn(a, b) { a - b }))
   assert_eq(size(t2), 6)
+  assert_true(is_valid_rb(t2))
 }
 
 test "rbtree: delete root" {
@@ -268,6 +486,7 @@ test "rbtree: delete root" {
   }
   let t2 = delete(tree, 3, fn(a, b) { a - b })
   assert_false(search(t2, 3, fn(a, b) { a - b }))
+  assert_true(is_valid_rb(t2))
 }
 
 test "rbtree: inorder produces sorted output" {
@@ -322,7 +541,6 @@ test "rbtree: delete preserves BST ordering" {
 test "rbtree: generic with String" {
   let mut tree : RBNode[String] = empty()
   let words = ["banana", "apple", "cherry", "date"]
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
   let str_cmp = fn(a : String, b : String) -> Int {
     let la = a.length()
     let lb = b.length()
@@ -359,4 +577,113 @@ test "rbtree: find_min" {
   assert_eq(find_min(tree).unwrap(), 1)
   let empty_tree : RBNode[Int] = empty()
   assert_true(find_min(empty_tree) is None)
+}
+
+test "rbtree: delete maintains RB properties - sequential delete" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 20; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  for k = 1; k <= 20; k = k + 1 {
+    tree = delete(tree, k, fn(a, b) { a - b })
+    assert_true(is_valid_rb(tree))
+  }
+  assert_eq(size(tree), 0)
+}
+
+test "rbtree: delete maintains RB properties - reverse delete" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 20; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  for k = 20; k >= 1; k = k - 1 {
+    tree = delete(tree, k, fn(a, b) { a - b })
+    assert_true(is_valid_rb(tree))
+  }
+  assert_eq(size(tree), 0)
+}
+
+test "rbtree: delete maintains RB properties - random delete order" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 50; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  for k = 2; k <= 50; k = k + 2 {
+    tree = delete(tree, k, fn(a, b) { a - b })
+    assert_true(is_valid_rb(tree))
+  }
+  for k = 1; k <= 49; k = k + 2 {
+    tree = delete(tree, k, fn(a, b) { a - b })
+    assert_true(is_valid_rb(tree))
+  }
+  assert_eq(size(tree), 0)
+}
+
+test "rbtree: delete maintains RB properties - 100 elements" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 100; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  assert_true(is_valid_rb(tree))
+  for k = 2; k <= 100; k = k + 2 {
+    tree = delete(tree, k, fn(a, b) { a - b })
+  }
+  assert_true(is_valid_rb(tree))
+  assert_eq(size(tree), 50)
+  for k = 1; k <= 99; k = k + 2 {
+    assert_true(search(tree, k, fn(a, b) { a - b }))
+  }
+}
+
+test "rbtree: delete non-existent value" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 10; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  let t2 = delete(tree, 99, fn(a, b) { a - b })
+  assert_eq(size(t2), 10)
+  assert_true(is_valid_rb(t2))
+}
+
+test "rbtree: delete from single node tree" {
+  let tree0 : RBNode[Int] = empty()
+  let tree = insert(tree0, 42, fn(a, b) { a - b })
+  let t2 = delete(tree, 42, fn(a, b) { a - b })
+  assert_eq(size(t2), 0)
+  assert_true(is_valid_rb(t2))
+}
+
+test "rbtree: interleave insert and delete" {
+  let mut tree : RBNode[Int] = empty()
+  tree = insert(tree, 5, fn(a, b) { a - b })
+  tree = insert(tree, 3, fn(a, b) { a - b })
+  tree = insert(tree, 7, fn(a, b) { a - b })
+  tree = delete(tree, 3, fn(a, b) { a - b })
+  assert_true(is_valid_rb(tree))
+  tree = insert(tree, 1, fn(a, b) { a - b })
+  tree = insert(tree, 9, fn(a, b) { a - b })
+  assert_true(is_valid_rb(tree))
+  tree = delete(tree, 7, fn(a, b) { a - b })
+  assert_true(is_valid_rb(tree))
+  tree = delete(tree, 5, fn(a, b) { a - b })
+  assert_true(is_valid_rb(tree))
+  assert_eq(size(tree), 2)
+  assert_true(search(tree, 1, fn(a, b) { a - b }))
+  assert_true(search(tree, 9, fn(a, b) { a - b }))
+}
+
+test "rbtree: inorder sorted after deletions" {
+  let mut tree : RBNode[Int] = empty()
+  for k = 1; k <= 15; k = k + 1 {
+    tree = insert(tree, k, fn(a, b) { a - b })
+  }
+  tree = delete(tree, 3, fn(a, b) { a - b })
+  tree = delete(tree, 7, fn(a, b) { a - b })
+  tree = delete(tree, 11, fn(a, b) { a - b })
+  let result = FixedArray::make(12, 0)
+  let idx = FixedArray::make(1, 0)
+  inorder(tree, fn(v) { result[idx[0]] = v; idx[0] = idx[0] + 1 })
+  for k = 0; k < 11; k = k + 1 {
+    assert_true(result[k] < result[k + 1])
+  }
 }

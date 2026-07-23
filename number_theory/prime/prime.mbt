@@ -14,7 +14,9 @@
 /// therefore not prime. The outer bound is written `p <= n / p` rather than
 /// `p * p <= n` so it never overflows for large `n`.
 pub fn sieve(n : Int) -> FixedArray[Int] {
-  if n < 2 {
+  // Guard against n+1 overflow when n is near Int::MAX.
+  // Also reject unreasonably large inputs (would require >2GB memory).
+  if n < 2 || n > 1000000000 {
     return FixedArray::make(0, 0)
   }
   let is_composite = FixedArray::make(n + 1, false)
@@ -108,24 +110,24 @@ pub fn ext_gcd(a : Int, b : Int) -> (Int, Int, Int) {
 
 /// Modular inverse of `a` modulo `m`.
 ///
-/// Returns the unique `x` in `[0, m)` with `a * x ≡ 1 (mod m)`, or `-1` if no
-/// inverse exists (i.e. `gcd(a, m) != 1`, or `m <= 1`).
+/// Returns `Some(x)` for the unique `x` in `[0, m)` with `a * x ≡ 1 (mod m)`,
+/// or `None` if no inverse exists (i.e. `gcd(a, m) != 1`, or `m <= 1`).
 ///
 /// Reduces `a` into `[0, m)` first so the extended Euclidean algorithm always
 /// receives non-negative operands; this guarantees a positive gcd and makes
 /// the final sign normalisation trivial.
-pub fn mod_inverse(a : Int, m : Int) -> Int {
+pub fn mod_inverse(a : Int, m : Int) -> Int? {
   if m <= 1 {
-    return -1
+    return None
   }
   let a_mod = a % m
   let a_norm = if a_mod < 0 { a_mod + m } else { a_mod }
   let (g, x, _) = ext_gcd(a_norm, m)
   if g != 1 {
-    return -1
+    return None
   }
   let inv = x % m
-  if inv < 0 { inv + m } else { inv }
+  Some(if inv < 0 { inv + m } else { inv })
 }
 
 // ---------------------------------------------------------------------------
@@ -257,10 +259,10 @@ test "ext_gcd: negative inputs" {
 }
 
 test "mod_inverse: basic" {
-  assert_eq(mod_inverse(3, 7), 5) // 3*5 = 15 = 1 (mod 7)
-  assert_eq(mod_inverse(10, 17), 12) // 10*12 = 120 = 1 (mod 17)
-  assert_eq(mod_inverse(1, 5), 1)
-  assert_eq(mod_inverse(2, 5), 3) // 2*3 = 6 = 1 (mod 5)
+  assert_eq(mod_inverse(3, 7), Some(5)) // 3*5 = 15 = 1 (mod 7)
+  assert_eq(mod_inverse(10, 17), Some(12)) // 10*12 = 120 = 1 (mod 17)
+  assert_eq(mod_inverse(1, 5), Some(1))
+  assert_eq(mod_inverse(2, 5), Some(3)) // 2*3 = 6 = 1 (mod 5)
 }
 
 test "mod_inverse: product is congruent to 1" {
@@ -268,7 +270,7 @@ test "mod_inverse: product is congruent to 1" {
   let cases = [(3, 7), (10, 17), (2, 5), (11, 26), (7, 100), (123, 997)]
   for i = 0; i < cases.length(); i = i + 1 {
     let (a, m) = cases[i]
-    let inv = mod_inverse(a, m)
+    let inv = mod_inverse(a, m).unwrap()
     assert_true(inv >= 0)
     let prod = (a % m) * inv
     let residue = prod % m
@@ -278,21 +280,21 @@ test "mod_inverse: product is congruent to 1" {
 }
 
 test "mod_inverse: no inverse when not coprime" {
-  assert_eq(mod_inverse(2, 4), -1) // gcd 2
-  assert_eq(mod_inverse(6, 9), -1) // gcd 3
-  assert_eq(mod_inverse(0, 7), -1) // a ≡ 0
-  assert_eq(mod_inverse(7, 7), -1) // a ≡ 0 (mod m)
+  assert_true(mod_inverse(2, 4) is None) // gcd 2
+  assert_true(mod_inverse(6, 9) is None) // gcd 3
+  assert_true(mod_inverse(0, 7) is None) // a ≡ 0
+  assert_true(mod_inverse(7, 7) is None) // a ≡ 0 (mod m)
 }
 
 test "mod_inverse: invalid modulus" {
-  assert_eq(mod_inverse(3, 1), -1)
-  assert_eq(mod_inverse(3, 0), -1)
-  assert_eq(mod_inverse(3, -5), -1)
+  assert_true(mod_inverse(3, 1) is None)
+  assert_true(mod_inverse(3, 0) is None)
+  assert_true(mod_inverse(3, -5) is None)
 }
 
 test "mod_inverse: negative operand" {
   // -3 ≡ 4 (mod 7); inverse of 4 mod 7 is 2, since 4*2 = 8 ≡ 1.
-  assert_eq(mod_inverse(-3, 7), 2)
+  assert_eq(mod_inverse(-3, 7), Some(2))
   // 17 ≡ 3 (mod 7); inverse of 3 mod 7 is 5.
-  assert_eq(mod_inverse(17, 7), 5)
+  assert_eq(mod_inverse(17, 7), Some(5))
 }

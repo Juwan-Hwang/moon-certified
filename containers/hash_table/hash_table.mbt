@@ -241,6 +241,87 @@ pub fn[K, V] size(ht : HashTable[K, V]) -> Int {
 }
 
 // ---------------------------------------------------------------------------
+// Encapsulated HashTable (String -> Int)
+// ---------------------------------------------------------------------------
+//
+// The free functions above require every `insert` / `get` / `remove` call to
+// pass `hash_fn` and `eq_fn` explicitly.  A caller that accidentally uses
+// different functions across operations will silently corrupt the table.
+//
+// `StringHashTable` stores the hash and equality functions once, at
+// construction time, and exposes `hashtable_*` operations that supply them
+// automatically.  This eliminates the risk of inconsistent hash functions.
+// It delegates to the existing, well-tested generic `HashTable[String, Int]`,
+// so the open-addressing / linear-probing / resize behaviour is reused
+// rather than duplicated.
+
+/// An encapsulated hash table mapping `String` keys to `Int` values.
+///
+/// The `hash_fn` and `eq_fn` are bound at construction and reused for every
+/// operation, so callers can never accidentally mix mismatched functions.
+pub struct StringHashTable {
+  inner : HashTable[String, Int]
+  hash_fn : (String) -> Int
+  eq_fn : (String, String) -> Bool
+}
+
+/// Create a new `StringHashTable` with the given capacity, hash function,
+/// and equality function.
+///
+/// The hash and equality functions are stored in the struct, so callers
+/// never need to pass them again.  This eliminates the risk of using
+/// inconsistent hash functions across operations.
+pub fn hashtable_new(
+  capacity : Int,
+  hash_fn : (String) -> Int,
+  eq_fn : (String, String) -> Bool,
+) -> StringHashTable {
+  { inner: new(capacity), hash_fn, eq_fn }
+}
+
+/// Convenience constructor with a default polynomial string hash and
+/// structural string equality.
+pub fn hashtable_new_default(capacity : Int) -> StringHashTable {
+  hashtable_new(
+    capacity,
+    fn(s) {
+      let mut h = 0
+      for i = 0; i < s.length(); i = i + 1 {
+        h = h * 31 + s[i].to_int()
+      }
+      h
+    },
+    fn(a, b) { a == b },
+  )
+}
+
+/// Insert or update a key-value pair, using the bound hash/eq functions.
+pub fn hashtable_insert(ht : StringHashTable, key : String, value : Int) -> Unit {
+  insert(ht.inner, key, value, ht.hash_fn, ht.eq_fn)
+}
+
+/// Look up the value associated with `key`, using the bound hash/eq functions.
+pub fn hashtable_get(ht : StringHashTable, key : String) -> Int? {
+  get(ht.inner, key, ht.hash_fn, ht.eq_fn)
+}
+
+/// Remove the entry for `key`, using the bound hash/eq functions.
+/// Returns `true` if the key was found and removed, `false` otherwise.
+pub fn hashtable_remove(ht : StringHashTable, key : String) -> Bool {
+  remove(ht.inner, key, ht.hash_fn, ht.eq_fn)
+}
+
+/// Return the number of live entries.
+pub fn hashtable_size(ht : StringHashTable) -> Int {
+  size(ht.inner)
+}
+
+/// Check whether `key` is present, using the bound hash/eq functions.
+pub fn hashtable_contains(ht : StringHashTable, key : String) -> Bool {
+  contains(ht.inner, key, ht.hash_fn, ht.eq_fn)
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -516,4 +597,42 @@ test "single entry edge case" {
   assert_eq(remove(ht, 42, h, e), true)
   assert_true(get(ht, 42, h, e) is None)
   assert_eq(size(ht), 0)
+}
+
+test "HashTable: encapsulated insert and get" {
+  let ht = hashtable_new_default(16)
+  hashtable_insert(ht, "apple", 1)
+  hashtable_insert(ht, "banana", 2)
+  hashtable_insert(ht, "cherry", 3)
+  assert_eq(hashtable_get(ht, "apple"), Some(1))
+  assert_eq(hashtable_get(ht, "banana"), Some(2))
+  assert_eq(hashtable_get(ht, "cherry"), Some(3))
+  assert_true(hashtable_get(ht, "grape") is None)
+  assert_eq(hashtable_size(ht), 3)
+}
+
+test "HashTable: encapsulated contains" {
+  let ht = hashtable_new_default(8)
+  hashtable_insert(ht, "key", 42)
+  assert_true(hashtable_contains(ht, "key"))
+  assert_false(hashtable_contains(ht, "missing"))
+}
+
+test "HashTable: encapsulated remove" {
+  let ht = hashtable_new_default(8)
+  hashtable_insert(ht, "a", 1)
+  hashtable_insert(ht, "b", 2)
+  assert_true(hashtable_remove(ht, "a"))
+  assert_false(hashtable_contains(ht, "a"))
+  assert_true(hashtable_contains(ht, "b"))
+  assert_eq(hashtable_size(ht), 1)
+}
+
+test "HashTable: custom hash function" {
+  // Use a simple identity hash for testing
+  let ht = hashtable_new(16, fn(s) { s.length() }, fn(a, b) { a == b })
+  hashtable_insert(ht, "ab", 10)
+  hashtable_insert(ht, "cd", 20)
+  assert_eq(hashtable_get(ht, "ab"), Some(10))
+  assert_eq(hashtable_get(ht, "cd"), Some(20))
 }

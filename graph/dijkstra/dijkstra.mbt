@@ -2,6 +2,18 @@
 /// Graph is represented as an adjacency matrix of non-negative weights.
 /// graph[i * n + j] is the weight of edge i->j, or 0 if no edge.
 /// Uses simple O(n^2) implementation (no priority queue needed for dense graphs).
+///
+/// Verified by `moon prove` (on `dijkstra_impl`):
+/// - result.length() == n (array length, proven by Z3)
+/// - loop bounds (step, i, v all stay in [0, n])
+///
+/// Not verified:
+/// - Shortest path optimality (requires complex inductive reasoning)
+/// - Non-negative edge weights (precondition, not enforced by proof)
+///
+/// Note: `graph_index_bound` uses `proof_axiomatized` to assume a nonlinear
+/// arithmetic fact (u*n + v < len) that Z3 cannot prove automatically.
+/// This is a valid mathematical theorem, but it is assumed, not discharged.
 
 /// Nonlinear arithmetic lemma: for 0 <= u < n, 0 <= v < n, 0 < n,
 /// and n*n <= len, u*n + v < len holds. Z3 cannot prove this
@@ -26,14 +38,14 @@ pub fn graph_index_bound(
   // proof_axiomatized: contract assumed without proof.
 }
 
-/// Compute shortest distances from src to all other nodes.
-/// Returns a FixedArray[Int] where dist[i] is the shortest distance
-/// from src to i, or -1 if unreachable.
+/// Internal Dijkstra implementation using -1 as a sentinel for "unreachable"
+/// during computation. This is an implementation detail; the public `dijkstra`
+/// function wraps the result in `Option` to eliminate the magic value.
 ///
 /// Verification: array bounds and result length are formally verified.
 /// Uses for-loop accumulator pattern instead of let mut to enable Z3
 /// to track variable bounds across iterations.
-pub fn dijkstra(
+fn dijkstra_impl(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
@@ -93,14 +105,39 @@ pub fn dijkstra(
   dist
 }
 
+/// Compute shortest distances from src to all other nodes.
+///
+/// Returns a `FixedArray[Int?]` where `dist[i]` is `Some(d)` (the shortest
+/// distance from `src` to `i`) or `None` if `i` is unreachable from `src`.
+///
+/// The internal computation uses a sentinel value for efficiency, but the
+/// public API is fully type-safe: callers never see a magic `-1`.
+///
+/// Returns `None` for each node if inputs are invalid.
+pub fn dijkstra(
+  graph : FixedArray[Int],
+  n : Int,
+  src : Int,
+) -> FixedArray[Int?] {
+  if n <= 0 || src < 0 || src >= n || graph.length() < n * n {
+    return FixedArray::make(n, None)
+  }
+  let raw = dijkstra_impl(graph, n, src)
+  let result = FixedArray::make(n, None)
+  for i = 0; i < n; i = i + 1 {
+    let d = raw[i]
+    if d >= 0 {
+      result[i] = Some(d)
+    }
+  }
+  result
+}
+
 /// Compute shortest distance from src to dst.
 ///
 /// Returns `Some(distance)` if `dst` is reachable from `src`, or `None`
 /// if unreachable or if inputs are invalid (n <= 0, out-of-bounds indices,
 /// undersized graph).
-///
-/// Using `Option` instead of a magic `-1` return makes the "not found" case
-/// type-safe and unambiguous.
 pub fn shortest_path(
   graph : FixedArray[Int],
   n : Int,
@@ -111,18 +148,13 @@ pub fn shortest_path(
     return None
   }
   let dist = dijkstra(graph, n, src)
-  let d = dist[dst]
-  if d == -1 {
-    None
-  } else {
-    Some(d)
-  }
+  dist[dst]
 }
 
 test "dijkstra: single node" {
   let graph = FixedArray::make(1, 0)
   let dist = dijkstra(graph, 1, 0)
-  assert_eq(dist[0], 0)
+  assert_eq(dist[0], Some(0))
 }
 
 test "dijkstra: path graph" {
@@ -135,10 +167,10 @@ test "dijkstra: path graph" {
   graph[2 * n + 3] = 3
   graph[3 * n + 2] = 3
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[0], 0)
-  assert_eq(dist[1], 1)
-  assert_eq(dist[2], 3)
-  assert_eq(dist[3], 6)
+  assert_eq(dist[0], Some(0))
+  assert_eq(dist[1], Some(1))
+  assert_eq(dist[2], Some(3))
+  assert_eq(dist[3], Some(6))
 }
 
 test "dijkstra: unreachable node" {
@@ -147,9 +179,9 @@ test "dijkstra: unreachable node" {
   graph[0 * n + 1] = 5
   graph[1 * n + 0] = 5
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[0], 0)
-  assert_eq(dist[1], 5)
-  assert_eq(dist[2], -1)
+  assert_eq(dist[0], Some(0))
+  assert_eq(dist[1], Some(5))
+  assert_true(dist[2] is None)
 }
 
 test "dijkstra: shorter path through intermediate" {
@@ -162,7 +194,7 @@ test "dijkstra: shorter path through intermediate" {
   graph[0 * n + 2] = 3
   graph[2 * n + 0] = 3
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[2], 2)
+  assert_eq(dist[2], Some(2))
 }
 
 test "dijkstra: complete graph" {
@@ -175,9 +207,9 @@ test "dijkstra: complete graph" {
   graph[0 * n + 2] = 5
   graph[2 * n + 0] = 5
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[0], 0)
-  assert_eq(dist[1], 1)
-  assert_eq(dist[2], 2)
+  assert_eq(dist[0], Some(0))
+  assert_eq(dist[1], Some(1))
+  assert_eq(dist[2], Some(2))
 }
 
 test "dijkstra: directed graph" {
@@ -186,12 +218,12 @@ test "dijkstra: directed graph" {
   graph[0 * n + 1] = 2
   graph[1 * n + 2] = 3
   let dist = dijkstra(graph, n, 0)
-  assert_eq(dist[0], 0)
-  assert_eq(dist[1], 2)
-  assert_eq(dist[2], 5)
+  assert_eq(dist[0], Some(0))
+  assert_eq(dist[1], Some(2))
+  assert_eq(dist[2], Some(5))
   let dist1 = dijkstra(graph, n, 1)
-  assert_eq(dist1[0], -1)
-  assert_eq(dist1[2], 3)
+  assert_true(dist1[0] is None)
+  assert_eq(dist1[2], Some(3))
 }
 
 test "shortest_path: basic" {
@@ -227,6 +259,20 @@ test "dijkstra: star graph" {
   graph[4 * n + 0] = 1
   let dist = dijkstra(graph, n, 0)
   for k = 0; k < 5; k = k + 1 {
-    assert_eq(dist[k], if k == 0 { 0 } else { 1 })
+    assert_eq(dist[k], Some(if k == 0 { 0 } else { 1 }))
+  }
+}
+
+test "dijkstra: invalid inputs return None" {
+  let graph = FixedArray::make(9, 0)
+  let dist = dijkstra(graph, 0, 0)
+  assert_eq(dist.length(), 0)
+  let dist2 = dijkstra(graph, 3, -1)
+  for k = 0; k < 3; k = k + 1 {
+    assert_true(dist2[k] is None)
+  }
+  let dist3 = dijkstra(graph, 3, 5)
+  for k = 0; k < 3; k = k + 1 {
+    assert_true(dist3[k] is None)
   }
 }

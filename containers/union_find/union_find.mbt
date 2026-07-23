@@ -3,7 +3,7 @@
 /// Both optimizations together yield inverse-Ackermann amortized complexity,
 /// which is effectively constant for all practical input sizes.
 
-struct UnionFind {
+pub struct UnionFind {
   parent : FixedArray[Int]
   rank : FixedArray[Int]
   mut count : Int
@@ -25,11 +25,11 @@ pub fn new(n : Int) -> UnionFind {
 /// Find the root (representative) of the set containing x.
 /// Applies path compression: every node on the path to root is re-pointed
 /// directly at the root, flattening the tree for future queries.
-/// Returns the root if 0 <= x < n; returns -1 for out-of-range input.
-pub fn find(uf : UnionFind, x : Int) -> Int {
+/// Returns `Some(root)` if 0 <= x < n; returns `None` for out-of-range input.
+pub fn find(uf : UnionFind, x : Int) -> Int? {
   let n = uf.parent.length()
   if x < 0 || x >= n {
-    return -1
+    return None
   }
   // Find root by following parent pointers
   let mut root = x
@@ -43,7 +43,7 @@ pub fn find(uf : UnionFind, x : Int) -> Int {
     uf.parent[curr] = root
     curr = next
   }
-  root
+  return Some(root)
 }
 
 /// Union the sets containing x and y, using union by rank.
@@ -55,19 +55,21 @@ pub fn find(uf : UnionFind, x : Int) -> Int {
 pub fn union(uf : UnionFind, x : Int, y : Int) -> Bool {
   let rx = find(uf, x)
   let ry = find(uf, y)
-  if rx == -1 || ry == -1 {
+  if rx is None || ry is None {
     return false
   }
-  if rx == ry {
+  let rx_val = rx.unwrap()
+  let ry_val = ry.unwrap()
+  if rx_val == ry_val {
     return false
   }
-  if uf.rank[rx] < uf.rank[ry] {
-    uf.parent[rx] = ry
-  } else if uf.rank[rx] > uf.rank[ry] {
-    uf.parent[ry] = rx
+  if uf.rank[rx_val] < uf.rank[ry_val] {
+    uf.parent[rx_val] = ry_val
+  } else if uf.rank[rx_val] > uf.rank[ry_val] {
+    uf.parent[ry_val] = rx_val
   } else {
-    uf.parent[ry] = rx
-    uf.rank[rx] = uf.rank[rx] + 1
+    uf.parent[ry_val] = rx_val
+    uf.rank[rx_val] = uf.rank[rx_val] + 1
   }
   uf.count = uf.count - 1
   true
@@ -78,10 +80,10 @@ pub fn union(uf : UnionFind, x : Int, y : Int) -> Bool {
 pub fn connected(uf : UnionFind, x : Int, y : Int) -> Bool {
   let rx = find(uf, x)
   let ry = find(uf, y)
-  if rx == -1 || ry == -1 {
+  if rx is None || ry is None {
     return false
   }
-  rx == ry
+  rx.unwrap() == ry.unwrap()
 }
 
 /// Return the number of disjoint sets.
@@ -93,7 +95,7 @@ test "new: creates n singleton sets" {
   let uf = new(10)
   assert_eq(count(uf), 10)
   for i = 0; i < 10; i = i + 1 {
-    assert_eq(find(uf, i), i)
+    assert_eq(find(uf, i), Some(i))
   }
 }
 
@@ -104,9 +106,9 @@ test "new: zero elements" {
 
 test "find: invalid index returns -1" {
   let uf = new(5)
-  assert_eq(find(uf, -1), -1)
-  assert_eq(find(uf, 5), -1)
-  assert_eq(find(uf, 100), -1)
+  assert_true(find(uf, -1) is None)
+  assert_true(find(uf, 5) is None)
+  assert_true(find(uf, 100) is None)
 }
 
 test "union: basic merge" {
@@ -178,7 +180,7 @@ test "path compression: deep node points to root" {
   // Before find(3), parent[3] is still 2
   assert_eq(uf.parent[3], 2)
   // find(3) compresses path: 3->2->0 becomes 3->0
-  let root = find(uf, 3)
+  let root = find(uf, 3).unwrap()
   assert_eq(root, 0)
   // After path compression, parent[3] should point directly to root
   assert_eq(uf.parent[3], 0)
@@ -251,8 +253,8 @@ test "large sets: random-like unions" {
   assert_eq(count(uf) < 50, true)
   // find should return a valid root in [0, 50) that is self-parenting
   for i = 0; i < 50; i = i + 1 {
-    let r = find(uf, i)
+    let r = find(uf, i).unwrap()
     assert_eq(r >= 0 && r < 50, true)
-    assert_eq(find(uf, r), r)
+    assert_eq(find(uf, r), Some(r))
   }
 }
