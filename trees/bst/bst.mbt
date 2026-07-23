@@ -1,4 +1,11 @@
-/// Binary Search Tree (BST) implementation.
+/// Binary Search Tree (BST) — **Teaching Example**.
+///
+/// ⚠️ This is a basic, unbalanced BST intended for educational purposes.
+/// It does NOT self-balance, so inserting sorted data produces a degenerate
+/// O(n) linked list. For production use, prefer the red-black tree
+/// (`@red_black_tree`) or AVL tree (`@avl`) which guarantee O(log n)
+/// operations regardless of insertion order.
+///
 /// Supports insert, search, delete, and in-order traversal.
 /// No duplicate values are stored.
 

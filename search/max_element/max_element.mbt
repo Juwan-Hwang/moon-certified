@@ -35,16 +35,18 @@ pub fn max_element(
   }
 }
 
-/// Generic max element. Returns index of the maximum element.
+/// Generic max element. Returns index of the maximum element, or None if empty.
 /// Not formally verified (opaque comparator).
 ///
-/// Requires: xs is non-empty.
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
 pub fn[T] max_element_generic(
   xs : FixedArray[T],
   cmp : (T, T) -> Int,
-) -> Int {
+) -> Int? {
+  if xs.length() == 0 {
+    return None
+  }
   for i = 1, best = 0; i < xs.length(); {
     if cmp(xs[i], xs[best]) > 0 {
       continue i + 1, i
@@ -52,7 +54,7 @@ pub fn[T] max_element_generic(
       continue i + 1, best
     }
   } nobreak {
-    best
+    Some(best)
   }
 }
 
@@ -79,9 +81,9 @@ test "max_element: negative values" {
 
 test "max_element_generic: Int" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
-  assert_eq(max_element_generic(xs, fn(a, b) { a - b }), 4)
+  assert_eq(max_element_generic(xs, fn(a, b) { a - b }).unwrap(), 4)
   let xs2 = FixedArray::makei(4, fn(i) { 10 - i }) // [10, 9, 8, 7]
-  assert_eq(max_element_generic(xs2, fn(a, b) { a - b }), 0)
+  assert_eq(max_element_generic(xs2, fn(a, b) { a - b }).unwrap(), 0)
 }
 
 test "max_element_generic: String" {
@@ -102,5 +104,10 @@ test "max_element_generic: String" {
     }
     la - lb
   }
-  assert_eq(max_element_generic(xs, str_cmp), 1)
+  assert_eq(max_element_generic(xs, str_cmp).unwrap(), 1)
+}
+
+test "max_element_generic: empty array returns None" {
+  let xs : FixedArray[Int] = FixedArray::make(0, 0)
+  assert_true(max_element_generic(xs, fn(a, b) { a - b }) is None)
 }

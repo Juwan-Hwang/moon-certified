@@ -7,19 +7,32 @@
 /// - result.length() == n (array length, proven by Z3)
 /// - loop bounds (step, i, v all stay in [0, n])
 ///
-/// Not verified:
+/// NOT verified:
 /// - Shortest path optimality (requires complex inductive reasoning)
 /// - Non-negative edge weights (precondition, not enforced by proof)
+/// - The sentinel value -1 for "unreachable" (representation detail, not
+///   exposed in the public API which uses Option)
 ///
-/// Note: `graph_index_bound` uses `proof_axiomatized` to assume a nonlinear
-/// arithmetic fact (u*n + v < len) that Z3 cannot prove automatically.
-/// This is a valid mathematical theorem, but it is assumed, not discharged.
+/// **About `proof_axiomatized`**: The `graph_index_bound` lemma assumes
+/// the fact `u * n + v < len` given the preconditions `0 <= u < n`,
+/// `0 <= v < n`, `0 < n`, `n * n <= len`. This involves multiplication of
+/// two variables (u * n), which is nonlinear arithmetic. Z3's default
+/// linear arithmetic solver cannot discharge this automatically. The fact
+/// is mathematically true: `u * n + v < n * n <= len`. We keep it as an
+/// axiom rather than removing the proof annotation entirely, because the
+/// alternative (no proof contract at all) would lose the array-length
+/// verification that Z3 *can* discharge.
 
 /// Nonlinear arithmetic lemma: for 0 <= u < n, 0 <= v < n, 0 < n,
-/// and n*n <= len, u*n + v < len holds. Z3 cannot prove this
-/// automatically because it involves variable multiplication.
-/// Declared as proof_axiomatized so the verifier assumes the
-/// contract without discharging it.
+/// and n*n <= len, u*n + v < len holds.
+///
+/// **This is an AXIOM, not a proof.** Z3 cannot prove this because it
+/// involves multiplying two unknown variables (u * n). The fact is
+/// mathematically true (u*n + v < n*n <= len), but we assume it rather
+/// than discharge it. Declared as `proof_axiomatized` so the verifier
+/// assumes the contract without proof. The benefit: keeping this axiom
+/// allows Z3 to verify the array-length property (`result.length() == n`),
+/// which it CAN prove.
 pub fn graph_index_bound(
   u : Int,
   n : Int,
@@ -120,7 +133,7 @@ pub fn dijkstra(
   src : Int,
 ) -> FixedArray[Int?] {
   if n <= 0 || src < 0 || src >= n || graph.length() < n * n {
-    return FixedArray::make(n, None)
+    return FixedArray::make(if n > 0 { n } else { 0 }, None)
   }
   let raw = dijkstra_impl(graph, n, src)
   let result = FixedArray::make(n, None)
@@ -275,4 +288,10 @@ test "dijkstra: invalid inputs return None" {
   for k = 0; k < 3; k = k + 1 {
     assert_true(dist3[k] is None)
   }
+}
+
+test "dijkstra: negative n returns empty array" {
+  let graph = FixedArray::make(9, 0)
+  let dist = dijkstra(graph, -5, 0)
+  assert_eq(dist.length(), 0)
 }

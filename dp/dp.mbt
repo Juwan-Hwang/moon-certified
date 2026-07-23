@@ -101,6 +101,9 @@ pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
 /// the first `i` items under capacity `w`; row 0 (no items) is all zero.
 /// Returns 0 for invalid inputs: mismatched lengths, negative weights or
 /// values, or negative capacity.
+///
+/// **Memory**: allocates `(n+1) * (capacity+1)` Int values. To prevent OOM,
+/// rejects inputs where `n * capacity > 10^7` (≈40MB for Int32).
 pub fn knapsack(
   weights : FixedArray[Int],
   values : FixedArray[Int],
@@ -116,8 +119,14 @@ pub fn knapsack(
       return 0
     }
   }
+  // OOM protection: reject inputs that would allocate > 10^7 Int cells.
+  // (n+1) * (capacity+1) > 10^7 means ~40MB+ of Int32 values.
+  let dp_size = (n + 1) * (capacity + 1)
+  if dp_size > 10000000 || dp_size < 0 {
+    return 0
+  }
   let cols = capacity + 1
-  let dp = FixedArray::make((n + 1) * cols, 0)
+  let dp = FixedArray::make(dp_size, 0)
   for i = 1; i <= n; i = i + 1 {
     let wi = weights[i - 1]
     let vi = values[i - 1]
@@ -318,4 +327,11 @@ test "knapsack: invalid inputs" {
   let w4 = FixedArray::make(2, 1)
   let v4 = FixedArray::make(2, 1)
   assert_eq(knapsack(w4, v4, -1), 0)
+}
+
+test "knapsack: OOM protection" {
+  // n * capacity > 10^7: should return 0 to prevent OOM.
+  let w = FixedArray::make(10000, 1)
+  let v = FixedArray::make(10000, 1)
+  assert_eq(knapsack(w, v, 1000000), 0) // 10^4 * 10^6 = 10^10 > 10^7
 }

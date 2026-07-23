@@ -36,42 +36,71 @@ fn new_state(graph : FixedArray[Int], n : Int) -> SccState {
   }
 }
 
-/// DFS core of Tarjan's algorithm.
-fn strongconnect(state : SccState, v : Int) -> Unit {
-  state.indices[v] = state.index_counter
-  state.lowlink[v] = state.index_counter
+/// Iterative DFS core of Tarjan's algorithm.
+/// Uses an explicit stack to avoid recursion depth limits.
+fn strongconnect(state : SccState, start : Int) -> Unit {
+  // Stack of (vertex, next_neighbor_index) pairs.
+  let dfs_stack : Array[(Int, Int)] = [(start, 0)]
+
+  state.indices[start] = state.index_counter
+  state.lowlink[start] = state.index_counter
   state.index_counter = state.index_counter + 1
-  state.stack[state.stack_top] = v
+  state.stack[state.stack_top] = start
   state.stack_top = state.stack_top + 1
-  state.on_stack[v] = true
-  // Explore every successor w of v.
-  for w = 0; w < state.n; w = w + 1 {
-    if state.graph[v * state.n + w] != 0 {
-      if state.indices[w] == -1 {
-        // Tree edge: recurse and propagate lowlink.
-        strongconnect(state, w)
-        if state.lowlink[w] < state.lowlink[v] {
-          state.lowlink[v] = state.lowlink[w]
-        }
-      } else if state.on_stack[w] {
-        // Back edge or cross edge to a node still on the stack.
-        if state.indices[w] < state.lowlink[v] {
-          state.lowlink[v] = state.indices[w]
+  state.on_stack[start] = true
+
+  while dfs_stack.length() > 0 {
+    let top_idx = dfs_stack.length() - 1
+    let (v, next_w) = dfs_stack[top_idx]
+    if next_w < state.n {
+      // Try neighbor next_w
+      let w = next_w
+      // Update the next neighbor to try
+      dfs_stack[top_idx] = (v, next_w + 1)
+
+      if state.graph[v * state.n + w] != 0 {
+        if state.indices[w] == -1 {
+          // Tree edge: push w onto DFS stack
+          state.indices[w] = state.index_counter
+          state.lowlink[w] = state.index_counter
+          state.index_counter = state.index_counter + 1
+          state.stack[state.stack_top] = w
+          state.stack_top = state.stack_top + 1
+          state.on_stack[w] = true
+          dfs_stack.push((w, 0))
+        } else if state.on_stack[w] {
+          // Back/cross edge to node on stack
+          if state.indices[w] < state.lowlink[v] {
+            state.lowlink[v] = state.indices[w]
+          }
         }
       }
+    } else {
+      // All neighbors of v explored: check if v is SCC root
+      ignore(dfs_stack.pop())
+
+      // If v has a parent in DFS tree, update parent's lowlink
+      if dfs_stack.length() > 0 {
+        let parent_idx = dfs_stack.length() - 1
+        let (parent, _) = dfs_stack[parent_idx]
+        if state.lowlink[v] < state.lowlink[parent] {
+          state.lowlink[parent] = state.lowlink[v]
+        }
+      }
+
+      // If v is the root of an SCC, pop the stack to collect the component.
+      if state.lowlink[v] == state.indices[v] {
+        let scc : Array[Int] = []
+        let mut w = -1
+        while w != v {
+          state.stack_top = state.stack_top - 1
+          w = state.stack[state.stack_top]
+          state.on_stack[w] = false
+          scc.push(w)
+        }
+        state.result.push(FixedArray::makei(scc.length(), fn(i) { scc[i] }))
+      }
     }
-  }
-  // If v is the root of an SCC, pop the stack to collect the component.
-  if state.lowlink[v] == state.indices[v] {
-    let scc : Array[Int] = []
-    let mut w = -1
-    while w != v {
-      state.stack_top = state.stack_top - 1
-      w = state.stack[state.stack_top]
-      state.on_stack[w] = false
-      scc.push(w)
-    }
-    state.result.push(FixedArray::makei(scc.length(), fn(i) { scc[i] }))
   }
 }
 

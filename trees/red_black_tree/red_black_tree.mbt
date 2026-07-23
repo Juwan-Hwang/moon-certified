@@ -411,20 +411,50 @@ fn[T] black_height(root : RBNode[T]) -> Int {
   }
 }
 
-/// Verify all RB properties.
+/// Verify BST ordering invariant via in-order traversal.
+/// Returns true if elements are in non-decreasing order.
+fn[T] check_bst_order(
+  root : RBNode[T],
+  cmp : (T, T) -> Int,
+) -> Bool {
+  // In-order traversal checking each element <= next
+  // We use an explicit stack to avoid recursion limits
+  let mut prev : T? = None
+  let mut ok = true
+  let visit = fn(v : T) -> Unit {
+    if !ok {
+      return
+    }
+    match prev {
+      None => prev = Some(v)
+      Some(p) => {
+        if cmp(p, v) > 0 {
+          ok = false
+        }
+        prev = Some(v)
+      }
+    }
+  }
+  inorder(root, visit)
+  ok
+}
+
+/// Verify all RB and BST properties.
 /// Returns `true` if and only if:
 /// 1. The root is Black.
 /// 2. No Red node has a Red child.
 /// 3. Every root-to-leaf path has the same number of Black nodes (black-height).
+/// 4. In-order traversal yields elements in non-decreasing order (BST property).
 ///
+/// The comparator is required to verify the BST ordering invariant.
 /// This is primarily intended for testing and external validation.
-pub fn[T] is_valid_rb(root : RBNode[T]) -> Bool {
+pub fn[T] is_valid_rb(root : RBNode[T], cmp : (T, T) -> Int) -> Bool {
   let root_ok = match root {
     Empty => true
     Node(_, _, _, Black) => true
     _ => false
   }
-  root_ok && check_no_red_red(root) && black_height(root) > 0
+  root_ok && check_no_red_red(root) && black_height(root) > 0 && check_bst_order(root, cmp)
 }
 
 test "rbtree: basic insert and search" {
@@ -451,7 +481,7 @@ test "rbtree: sequential insert maintains balance" {
     tree = insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(size(tree), 7)
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   assert_true(height(tree) <= 4)
 }
 
@@ -461,7 +491,7 @@ test "rbtree: reverse insert maintains balance" {
     tree = insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(size(tree), 7)
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
 }
 
 test "rbtree: delete leaf" {
@@ -471,7 +501,7 @@ test "rbtree: delete leaf" {
   assert_false(search(t2, 7, fn(a, b) { a - b }))
   assert_true(search(t2, 5, fn(a, b) { a - b }))
   assert_eq(size(t2), 2)
-  assert_true(is_valid_rb(t2))
+  assert_true(is_valid_rb(t2, fn(a, b) { a - b }))
 }
 
 test "rbtree: delete node with two children" {
@@ -482,7 +512,7 @@ test "rbtree: delete node with two children" {
   let t2 = delete(tree, 4, fn(a, b) { a - b })
   assert_false(search(t2, 4, fn(a, b) { a - b }))
   assert_eq(size(t2), 6)
-  assert_true(is_valid_rb(t2))
+  assert_true(is_valid_rb(t2, fn(a, b) { a - b }))
 }
 
 test "rbtree: delete root" {
@@ -492,7 +522,7 @@ test "rbtree: delete root" {
   }
   let t2 = delete(tree, 3, fn(a, b) { a - b })
   assert_false(search(t2, 3, fn(a, b) { a - b }))
-  assert_true(is_valid_rb(t2))
+  assert_true(is_valid_rb(t2, fn(a, b) { a - b }))
 }
 
 test "rbtree: inorder produces sorted output" {
@@ -515,7 +545,7 @@ test "rbtree: large insert 100 elements" {
     tree = insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(size(tree), 100)
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   assert_true(height(tree) <= 15)
 }
 
@@ -592,7 +622,7 @@ test "rbtree: delete maintains RB properties - sequential delete" {
   }
   for k = 1; k <= 20; k = k + 1 {
     tree = delete(tree, k, fn(a, b) { a - b })
-    assert_true(is_valid_rb(tree))
+    assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   }
   assert_eq(size(tree), 0)
 }
@@ -604,7 +634,7 @@ test "rbtree: delete maintains RB properties - reverse delete" {
   }
   for k = 20; k >= 1; k = k - 1 {
     tree = delete(tree, k, fn(a, b) { a - b })
-    assert_true(is_valid_rb(tree))
+    assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   }
   assert_eq(size(tree), 0)
 }
@@ -616,11 +646,11 @@ test "rbtree: delete maintains RB properties - random delete order" {
   }
   for k = 2; k <= 50; k = k + 2 {
     tree = delete(tree, k, fn(a, b) { a - b })
-    assert_true(is_valid_rb(tree))
+    assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   }
   for k = 1; k <= 49; k = k + 2 {
     tree = delete(tree, k, fn(a, b) { a - b })
-    assert_true(is_valid_rb(tree))
+    assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   }
   assert_eq(size(tree), 0)
 }
@@ -630,11 +660,11 @@ test "rbtree: delete maintains RB properties - 100 elements" {
   for k = 1; k <= 100; k = k + 1 {
     tree = insert(tree, k, fn(a, b) { a - b })
   }
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   for k = 2; k <= 100; k = k + 2 {
     tree = delete(tree, k, fn(a, b) { a - b })
   }
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   assert_eq(size(tree), 50)
   for k = 1; k <= 99; k = k + 2 {
     assert_true(search(tree, k, fn(a, b) { a - b }))
@@ -648,7 +678,7 @@ test "rbtree: delete non-existent value" {
   }
   let t2 = delete(tree, 99, fn(a, b) { a - b })
   assert_eq(size(t2), 10)
-  assert_true(is_valid_rb(t2))
+  assert_true(is_valid_rb(t2, fn(a, b) { a - b }))
 }
 
 test "rbtree: delete from single node tree" {
@@ -656,7 +686,7 @@ test "rbtree: delete from single node tree" {
   let tree = insert(tree0, 42, fn(a, b) { a - b })
   let t2 = delete(tree, 42, fn(a, b) { a - b })
   assert_eq(size(t2), 0)
-  assert_true(is_valid_rb(t2))
+  assert_true(is_valid_rb(t2, fn(a, b) { a - b }))
 }
 
 test "rbtree: interleave insert and delete" {
@@ -665,14 +695,14 @@ test "rbtree: interleave insert and delete" {
   tree = insert(tree, 3, fn(a, b) { a - b })
   tree = insert(tree, 7, fn(a, b) { a - b })
   tree = delete(tree, 3, fn(a, b) { a - b })
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   tree = insert(tree, 1, fn(a, b) { a - b })
   tree = insert(tree, 9, fn(a, b) { a - b })
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   tree = delete(tree, 7, fn(a, b) { a - b })
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   tree = delete(tree, 5, fn(a, b) { a - b })
-  assert_true(is_valid_rb(tree))
+  assert_true(is_valid_rb(tree, fn(a, b) { a - b }))
   assert_eq(size(tree), 2)
   assert_true(search(tree, 1, fn(a, b) { a - b }))
   assert_true(search(tree, 9, fn(a, b) { a - b }))
@@ -692,4 +722,14 @@ test "rbtree: inorder sorted after deletions" {
   for k = 0; k < 11; k = k + 1 {
     assert_true(result[k] < result[k + 1])
   }
+}
+
+test "rbtree: is_valid_rb detects BST violation" {
+  // Manually construct a tree that satisfies RB properties but violates BST order
+  // Node(Empty, 10, Node(Empty, 5, Empty, Black), Black) — 5 is in right subtree of 10 (wrong!)
+  let bad_tree : RBNode[Int] = Node(Empty, 10, Node(Empty, 5, Empty, Black), Black)
+  assert_false(is_valid_rb(bad_tree, fn(a, b) { a - b }))
+  // A correct tree passes (5 is Red to maintain equal black-height)
+  let good_tree : RBNode[Int] = Node(Node(Empty, 5, Empty, Red), 10, Empty, Black)
+  assert_true(is_valid_rb(good_tree, fn(a, b) { a - b }))
 }

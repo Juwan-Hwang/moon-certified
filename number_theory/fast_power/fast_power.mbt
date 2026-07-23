@@ -49,6 +49,13 @@ pub fn fast_power(
 ///
 /// Uses 64-bit arithmetic internally to detect overflow before it happens.
 /// Rejects negative `base` or `exp` (returns `None`).
+///
+/// **Overflow safety**: The intermediate variable `b` is squared each
+/// iteration. When `b` already exceeds `Int::max_value`, squaring it
+/// would overflow `Int64`. Instead of squaring, we set `b` to a sentinel
+/// value (`max_int + 1`) that will trigger the overflow check when
+/// multiplied into `result`. This avoids `Int64` overflow entirely
+/// while still correctly detecting `Int32` overflow.
 pub fn fast_power_checked(base : Int, exp : Int) -> Int? {
   if base < 0 || exp < 0 {
     return None
@@ -65,15 +72,18 @@ pub fn fast_power_checked(base : Int, exp : Int) -> Int? {
         return None
       }
     }
-    b = b * b
-    if b > max_int && e > 1 {
-      // b will be used in future iterations; if it already overflows,
-      // and we have more bits to process, the result will overflow.
-      // But we can only be sure if the remaining exponent is > 0.
-      // Actually, b might not be used if all remaining bits are 0.
-      // So we continue the loop and only fail if result overflows.
-    }
     e = e / 2
+    if e > 0 {
+      // Only square b if it will be used again.
+      // If b already exceeds Int32 range, squaring it would either
+      // overflow Int64 or produce a value far beyond Int32 range.
+      // Set a sentinel > max_int so any future result*b triggers None.
+      if b > max_int {
+        b = max_int + 1L
+      } else {
+        b = b * b
+      }
+    }
   }
   Some(result.to_int())
 }
@@ -134,4 +144,24 @@ test "fast_power_checked: boundary cases" {
   // negative inputs rejected
   assert_true(fast_power_checked(-2, 3) is None)
   assert_true(fast_power_checked(2, -1) is None)
+}
+
+test "fast_power_checked: 65536^4 overflow detected" {
+  // This was the original bug: b*b overflowed Int64, producing garbage.
+  // The fix detects that b exceeds Int32 range before squaring.
+  assert_true(fast_power_checked(65536, 4) is None)
+}
+
+test "fast_power_checked: large base with small exp" {
+  // 2147483647^1 = 2147483647, fits exactly
+  assert_eq(fast_power_checked(2147483647, 1), Some(2147483647))
+  // 2147483647^2 overflows
+  assert_true(fast_power_checked(2147483647, 2) is None)
+}
+
+test "fast_power_checked: base just below sqrt(Int32::MAX)" {
+  // 46340^2 = 2147395600 < Int::MAX (2147483647)
+  assert_eq(fast_power_checked(46340, 2), Some(2147395600))
+  // 46341^2 = 2147488281 > Int::MAX
+  assert_true(fast_power_checked(46341, 2) is None)
 }

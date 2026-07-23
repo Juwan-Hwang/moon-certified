@@ -39,7 +39,7 @@ test "stress: red_black_tree 1000 insert + 1000 delete" {
     tree = @red_black_tree.insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(@red_black_tree.size(tree), 1000)
-  assert_true(@red_black_tree.is_valid_rb(tree))
+  assert_true(@red_black_tree.is_valid_rb(tree, fn(a, b) { a - b }))
   for k = 1; k <= 1000; k = k + 1 {
     tree = @red_black_tree.delete(tree, k, fn(a, b) { a - b })
   }
@@ -185,5 +185,237 @@ test "stress: convex_hull 1000 random points" {
     let p2 = hull[(i + 2) % h]
     let cross = (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x)
     assert_true(cross >= 0)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// New v0.5.0 algorithm stress tests
+// ---------------------------------------------------------------------------
+
+test "stress: heap_sort 10000 elements" {
+  let n = 10000
+  let xs = FixedArray::makei(n, fn(i) { (i * 11 + 7) % 1000 })
+  @heap_sort.heap_sort(xs, fn(a, b) { a - b })
+  for k = 0; k < n - 1; k = k + 1 {
+    assert_true(xs[k] <= xs[k + 1])
+  }
+}
+
+test "stress: counting_sort 10000 elements" {
+  let n = 10000
+  let xs = FixedArray::makei(n, fn(i) { (i * 13 + 3) % 500 })
+  let sorted = @counting_sort.counting_sort(xs)
+  for k = 0; k < n - 1; k = k + 1 {
+    assert_true(sorted[k] <= sorted[k + 1])
+  }
+}
+
+test "stress: radix_sort 10000 elements" {
+  let n = 10000
+  let xs = FixedArray::makei(n, fn(i) { (i * 17 + 5) % 1000000 })
+  let sorted = @radix_sort.radix_sort(xs)
+  for k = 0; k < n - 1; k = k + 1 {
+    assert_true(sorted[k] <= sorted[k + 1])
+  }
+}
+
+test "stress: avl 1000 insert + delete with balance" {
+  let mut tree = @avl.empty()
+  for k = 1; k <= 1000; k = k + 1 {
+    tree = @avl.insert(tree, k)
+  }
+  assert_eq(@avl.size(tree), 1000)
+  assert_true(@avl.height(tree) <= 20)
+  for k = 1; k <= 500; k = k + 1 {
+    tree = @avl.delete(tree, k)
+  }
+  assert_eq(@avl.size(tree), 500)
+  assert_true(@avl.height(tree) <= 20)
+}
+
+test "stress: skip_list 1000 insert + search + delete" {
+  let sl = @skip_list.SkipList::new()
+  for k = 1; k <= 1000; k = k + 1 {
+    sl.insert(k, k * 10)
+  }
+  assert_eq(sl.size(), 1000)
+  for k = 1; k <= 1000; k = k + 1 {
+    assert_eq(sl.search(k), Some(k * 10))
+  }
+  for k = 1; k <= 500; k = k + 1 {
+    assert_eq(sl.delete(k), true)
+  }
+  assert_eq(sl.size(), 500)
+}
+
+test "stress: treap 1000 insert + search + delete" {
+  let mut tree = @treap.empty()
+  for k = 1; k <= 1000; k = k + 1 {
+    tree = @treap.insert(tree, k)
+  }
+  assert_eq(@treap.size(tree), 1000)
+  for k = 1; k <= 1000; k = k + 1 {
+    assert_true(@treap.search(tree, k))
+  }
+  for k = 1; k <= 500; k = k + 1 {
+    tree = @treap.delete(tree, k)
+  }
+  assert_eq(@treap.size(tree), 500)
+}
+
+test "stress: miller_rabin primality check 1..10000" {
+  // Cross-check Miller-Rabin against trial division for all n in [1, 10000].
+  let is_prime_trial = fn(n : Int) -> Bool {
+    if n < 2 { return false }
+    if n < 4 { return true }
+    if n % 2 == 0 { return false }
+    let mut i = 3
+    while i * i <= n {
+      if n % i == 0 { return false }
+      i = i + 2
+    }
+    true
+  }
+  for n = 1; n <= 10000; n = n + 1 {
+    assert_eq(@miller_rabin.is_prime(n), is_prime_trial(n))
+  }
+}
+
+test "stress: z_function search in 2000-char text" {
+  let mut text = ""
+  for i = 0; i < 500; i = i + 1 {
+    text = text + "ab"
+  }
+  // 1000-char text of alternating "ab"
+  let positions = @z_function.z_search("abab", text)
+  assert_true(positions.length() > 0)
+}
+
+test "stress: manacher on 1000-char palindrome" {
+  let mut s = ""
+  for i = 0; i < 500; i = i + 1 {
+    s = s + "a"
+  }
+  // 500-char all-a string: longest palindrome is the whole string
+  match @manacher.longest_palindrome(s) {
+    Some(p) => assert_eq(p.length(), 500)
+    None => abort("expected palindrome")
+  }
+  // Count should be n*(n+1)/2 for all-same string
+  assert_eq(@manacher.count_palindromes(s), 500 * 501 / 2)
+}
+
+test "stress: scc 1000-node chain (iterative, no stack overflow)" {
+  let n = 1000
+  let graph = FixedArray::make(n * n, 0)
+  // Chain: 0 -> 1 -> 2 -> ... -> 999
+  for i = 0; i < n - 1; i = i + 1 {
+    graph[i * n + (i + 1)] = 1
+  }
+  let sccs = @scc.tarjan_scc(graph, n)
+  // A chain has n SCCs (each node is its own SCC)
+  assert_eq(sccs.length(), n)
+}
+
+test "stress: johnson cross-check with dijkstra_heap" {
+  let n = 50
+  let graph : Array[Array[(Int, Int)]] = []
+  for i = 0; i < n; i = i + 1 {
+    let edges : Array[(Int, Int)] = []
+    for j = 0; j < n; j = j + 1 {
+      if i != j && (i * 7 + j * 3) % 3 == 0 {
+        edges.push((j, (i + j) % 20 + 1))
+      }
+    }
+    graph.push(edges)
+  }
+  let dist_j = @johnson.johnson(graph, n)
+  let dist_d = @dijkstra_heap.dijkstra(graph, n, 0)
+  // Johnson's result for vertex 0 should match Dijkstra's
+  for j = 0; j < n; j = j + 1 {
+    assert_eq(dist_j[0][j], dist_d[j])
+  }
+}
+
+test "stress: bidirectional_bfs 1000-node chain" {
+  let n = 1000
+  let graph : Array[Array[(Int, Int)]] = []
+  for i = 0; i < n; i = i + 1 {
+    let edges : Array[(Int, Int)] = []
+    if i + 1 < n {
+      edges.push((i + 1, 1))
+    }
+    if i > 0 {
+      edges.push((i - 1, 1))
+    }
+    graph.push(edges)
+  }
+  let dist = @bidirectional_bfs.bidirectional_bfs(graph, n, 0, 999)
+  assert_eq(dist, Some(999))
+}
+
+test "stress: topo_sort_adj 1000-node chain DAG" {
+  let n = 1000
+  let graph : Array[Array[(Int, Int)]] = []
+  for i = 0; i < n; i = i + 1 {
+    let edges : Array[(Int, Int)] = []
+    if i + 1 < n {
+      edges.push((i + 1, 1))
+    }
+    graph.push(edges)
+  }
+  match @topological_sort_adj.topo_sort(graph, n) {
+    Some(order) => {
+      assert_eq(order.length(), n)
+      assert_eq(order[0], 0)
+      assert_eq(order[n - 1], n - 1)
+    }
+    None => abort("expected topo sort to succeed")
+  }
+  assert_false(@topological_sort_adj.has_cycle(graph, n))
+}
+
+test "stress: andrew_hull 1000 random points" {
+  let n = 1000
+  let points = FixedArray::make(n, (0, 0))
+  for i = 0; i < n; i = i + 1 {
+    points[i] = ((i * 7 + 3) % 200, (i * 13 + 5) % 200)
+  }
+  let hull = @andrew_hull.convex_hull(points)
+  assert_true(hull.length() >= 3)
+}
+
+test "stress: segment_tree lazy 1000 range updates + queries" {
+  let n = 1000
+  let arr = FixedArray::make(n, 0)
+  let st = @segment_tree.lazy_build(arr)
+  // Add 5 to range [0, 500)
+  @segment_tree.lazy_update(st, 0, 500, 5)
+  assert_eq(@segment_tree.lazy_query(st, 0, 500), 500 * 5)
+  assert_eq(@segment_tree.lazy_query(st, 500, 1000), 0)
+  // Add 3 to range [200, 800)
+  @segment_tree.lazy_update(st, 200, 800, 3)
+  // [0, 200) = 5, [200, 500) = 8, [500, 800) = 3, [800, 1000) = 0
+  assert_eq(@segment_tree.lazy_query(st, 0, 200), 200 * 5)
+  assert_eq(@segment_tree.lazy_query(st, 200, 500), 300 * 8)
+  assert_eq(@segment_tree.lazy_query(st, 500, 800), 300 * 3)
+  assert_eq(@segment_tree.lazy_query(st, 800, 1000), 0)
+}
+
+test "stress: interpolation_search 10000 uniform array" {
+  let n = 10000
+  let arr = FixedArray::makei(n, fn(i) { i * 2 })
+  match @interpolation_search.interpolation_search(arr, 10000) {
+    Some(idx) => assert_eq(arr[idx], 10000)
+    None => abort("expected to find target")
+  }
+}
+
+test "stress: exponential_search 10000 sorted array" {
+  let n = 10000
+  let arr = FixedArray::makei(n, fn(i) { i })
+  match @exponential_search.exponential_search(arr, 7777) {
+    Some(idx) => assert_eq(arr[idx], 7777)
+    None => abort("expected to find target")
   }
 }

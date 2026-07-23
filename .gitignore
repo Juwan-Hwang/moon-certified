@@ -22,3 +22,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Fix log (internal, not for GitHub)
+FIX_LOG.md

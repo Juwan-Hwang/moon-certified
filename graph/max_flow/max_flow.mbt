@@ -17,6 +17,13 @@
 ///
 /// Time complexity: O(VE²)
 
+/// Sentinel value representing "infinite capacity" for the bottleneck search.
+/// Using `Int::max_value` means the bottleneck is bounded by the largest
+/// single edge capacity. Total flow accumulation in `total_flow` may
+/// overflow if the sum of all augmenting path flows exceeds `Int::max_value`.
+/// For typical graphs this is not a concern; for extreme cases, use Int64.
+let int_max : Int = 2147483647
+
 /// BFS to find an augmenting path from `src` to `sink` in the residual graph.
 ///
 /// `residual` is an `n × n` matrix of residual capacities.
@@ -62,6 +69,11 @@ fn bfs_augmenting_path(
 /// capacity of the edge `i → j`. Capacity 0 means no edge.
 ///
 /// Returns the maximum flow value. Returns 0 for invalid inputs.
+///
+/// **Overflow note**: `total_flow` is accumulated as 32-bit `Int`. If the
+/// sum of all augmenting path flows exceeds `Int::max_value` (2³¹−1),
+/// the result will be incorrect due to integer overflow. For networks
+/// with extremely large total flow, consider using 64-bit arithmetic.
 pub fn max_flow(
   graph : FixedArray[Int],
   n : Int,
@@ -85,7 +97,7 @@ pub fn max_flow(
   // Repeatedly find the shortest augmenting path (BFS) and push flow.
   while bfs_augmenting_path(residual, n, src, sink, parent) {
     // Find the bottleneck (minimum residual capacity) along the path.
-    let mut path_flow = 2147483647
+    let mut path_flow = int_max
     let mut v = sink
     while v != src {
       let u = parent[v]

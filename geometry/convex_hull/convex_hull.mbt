@@ -38,15 +38,35 @@ pub fn point(x : Int, y : Int) -> Point {
 
 /// 2D cross product of vectors `o->a` and `o->b`.
 /// Positive => `b` is counterclockwise from `a`; negative => clockwise; 0 => collinear.
+///
+/// Uses Int64 internally to prevent overflow for large coordinates.
+/// Coordinates up to ~3037000499 per axis are safe (product < Int64::max).
 fn cross(o : Point, a : Point, b : Point) -> Int {
-  (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
+  let ax = (a.x.to_int64() - o.x.to_int64())
+  let ay = (a.y.to_int64() - o.y.to_int64())
+  let bx = (b.x.to_int64() - o.x.to_int64())
+  let by = (b.y.to_int64() - o.y.to_int64())
+  let result = ax * by - ay * bx
+  if result > 2147483647L {
+    1  // Definitely CCW
+  } else if result < -2147483648L {
+    -1  // Definitely CW
+  } else {
+    result.to_int()
+  }
 }
 
 /// Squared Euclidean distance between two points (avoids floating point).
+/// Uses Int64 internally to prevent overflow for large coordinates.
 fn dist2(a : Point, b : Point) -> Int {
-  let dx = a.x - b.x
-  let dy = a.y - b.y
-  dx * dx + dy * dy
+  let dx = (a.x.to_int64() - b.x.to_int64())
+  let dy = (a.y.to_int64() - b.y.to_int64())
+  let result = dx * dx + dy * dy
+  if result > 2147483647L {
+    2147483647  // Clamp to Int::max
+  } else {
+    result.to_int()
+  }
 }
 
 fn min2(a : Int, b : Int) -> Int {

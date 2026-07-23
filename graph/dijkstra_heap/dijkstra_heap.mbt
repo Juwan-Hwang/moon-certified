@@ -12,17 +12,23 @@
 /// Returns a `FixedArray[Int?]` where `result[i]` is `Some(d)` if vertex `i`
 /// is reachable from `src` with shortest distance `d`, or `None` if unreachable.
 ///
-/// `proof-enabled` is `false`; correctness is backed by the test suite below,
-/// including a cross-check against the adjacency-matrix Dijkstra.
+/// `proof-enabled` is `false`; correctness is backed by the test suite below.
 ///
 /// Time complexity: O((V + E) log V)
 ///
-/// **Overflow note**: distances are accumulated as 32-bit `Int`. For graphs
-/// where path lengths may exceed 2³¹−1, results will be incorrect.
+/// **Overflow protection**: distances are accumulated using Int64 arithmetic
+/// internally. If a path distance would overflow Int32 (2³¹−1), the result
+/// for that vertex is clamped to `None` (treated as unreachable) to avoid
+/// silent wrap-around.
+
+/// Int32 max as Int64, used as the sentinel for "infinity" in distance arrays
+/// and for overflow comparison during distance accumulation.
+const INT_MAX_I64 : Int64 = 2147483647L
 
 /// A min-heap entry: a (distance, vertex) pair.
+/// Distance is stored as Int64 to prevent overflow during accumulation.
 priv struct HeapEntry {
-  dist : Int
+  dist : Int64
   vertex : Int
 }
 
@@ -42,7 +48,7 @@ fn MinHeap::len(heap : MinHeap) -> Int {
 }
 
 /// Insert a (dist, vertex) pair.  Sifts up to restore the heap property.
-fn MinHeap::push(heap : MinHeap, dist : Int, vertex : Int) -> Unit {
+fn MinHeap::push(heap : MinHeap, dist : Int64, vertex : Int) -> Unit {
   heap.data.push({ dist, vertex })
   let mut i = heap.data.length() - 1
   while i > 0 {
@@ -97,6 +103,10 @@ fn MinHeap::pop(heap : MinHeap) -> HeapEntry? {
 ///
 /// `graph[i]` is an array of `(neighbor, weight)` tuples.
 /// Returns `FixedArray[Int?]` where `None` means unreachable.
+///
+/// Distances are accumulated in Int64. If a distance exceeds Int32::max,
+/// the vertex is treated as unreachable (returned as `None`) to avoid
+/// silent overflow.
 pub fn dijkstra(
   graph : Array[Array[(Int, Int)]],
   n : Int,
@@ -105,12 +115,13 @@ pub fn dijkstra(
   if n <= 0 || src < 0 || src >= n || graph.length() < n {
     return FixedArray::make(if n > 0 { n } else { 0 }, None)
   }
-  let int_max = 2147483647
-  let dist = FixedArray::make(n, int_max)
+  // Use Int64 for distances to prevent overflow during accumulation.
+  // INT_MAX_I64 serves as the "infinity" sentinel.
+  let dist = FixedArray::make(n, INT_MAX_I64)
   let visited = FixedArray::make(n, false)
-  dist[src] = 0
+  dist[src] = 0L
   let heap = MinHeap::new()
-  MinHeap::push(heap, 0, src)
+  MinHeap::push(heap, 0L, src)
   while MinHeap::len(heap) > 0 {
     match MinHeap::pop(heap) {
       Some({ dist: d, vertex: u }) =>
@@ -120,7 +131,8 @@ pub fn dijkstra(
           for j = 0; j < neighbors.length(); j = j + 1 {
             let (v, w) = neighbors[j]
             if v >= 0 && v < n && !visited[v] {
-              let nd = d + w
+              // Int64 addition prevents overflow.
+              let nd = d + w.to_int64()
               if nd < dist[v] {
                 dist[v] = nd
                 MinHeap::push(heap, nd, v)
@@ -131,11 +143,11 @@ pub fn dijkstra(
       None => break
     }
   }
-  // Convert sentinel int_max to None for the result.
+  // Convert: distances that fit in Int32 become Some(d), overflow becomes None.
   let result : FixedArray[Int?] = FixedArray::make(n, None)
   for i = 0; i < n; i = i + 1 {
-    if dist[i] != int_max {
-      result[i] = Some(dist[i])
+    if dist[i] != INT_MAX_I64 && dist[i] <= INT_MAX_I64 {
+      result[i] = Some(dist[i].to_int())
     }
   }
   result
@@ -310,4 +322,23 @@ test "dijkstra_heap: complete graph K5" {
   assert_eq(dist[2], Some(3))
   assert_eq(dist[3], Some(4))
   assert_eq(dist[4], Some(5))
+}
+
+test "dijkstra_heap: overflow protection" {
+  // A graph where path distance exceeds Int32::max.
+  // Chain of 3 nodes: 0 ->(2^30)-> 1 ->(2^30)-> 2
+  // Total distance = 2^31 which overflows Int32.
+  let n = 3
+  let big_w = 1073741824 // 2^30
+  let graph : Array[Array[(Int, Int)]] = []
+  for i = 0; i < n; i = i + 1 {
+    graph.push([])
+  }
+  graph[0].push((1, big_w))
+  graph[1].push((2, big_w))
+  let dist = dijkstra(graph, n, 0)
+  // Node 1 is reachable (2^30 fits in Int32).
+  assert_eq(dist[1], Some(big_w))
+  // Node 2's distance (2^31) overflows Int32: should be None, not a wrong value.
+  assert_true(dist[2] is None)
 }
