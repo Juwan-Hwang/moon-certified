@@ -41,6 +41,10 @@ pub enum SPResult {
 /// legitimate negative shortest distance. Relaxation runs for at most
 /// `n - 1` passes with an early exit once a pass makes no change; one
 /// further pass detects any negative cycle reachable from the source.
+///
+/// **Overflow limit**: distances are accumulated as `Int` sums of edge
+/// weights. If `|w| × n` approaches `Int::max_value` (≈ 2.1×10⁹), the
+/// caller should ensure edge weights are bounded accordingly.
 pub fn bellman_ford(
   graph : FixedArray[Int],
   n : Int,
@@ -112,10 +116,16 @@ pub fn bellman_ford(
 ///   `dist[i * n + j]` being `Some(d)` for the shortest distance from `i`
 ///   to `j`, or `None` if `j` is unreachable from `i`.
 ///
-/// A large sentinel is used internally for "no path yet". The diagonal is
-/// initialised to `0` (the cost of the empty walk); a negative self-loop is
-/// seeded onto the diagonal so that, after relaxation, any negative value on
-/// the diagonal signals a negative cycle.
+/// A sentinel `INF = 5×10⁸` is used internally for "no path yet". It is chosen
+/// so that `INF + INF = 10⁹` stays well within 32-bit `Int` range
+/// (max ≈ 2.147×10⁹), preventing overflow during relaxation. The diagonal
+/// is initialised to `0` (the cost of the empty walk); a negative self-loop
+/// is seeded onto the diagonal so that, after relaxation, any negative value
+/// on the diagonal signals a negative cycle.
+///
+/// **Overflow limit**: edge weights must satisfy `|w| < INF / n` to
+/// guarantee no overflow over a path of `n` edges. For typical graphs this
+/// is not a concern.
 pub fn floyd_warshall(
   graph : FixedArray[Int],
   n : Int,
@@ -123,7 +133,7 @@ pub fn floyd_warshall(
   if n <= 0 || graph.length() < n * n {
     return None
   }
-  let inf = 1000000000
+  let inf = 500_000_000
   let dist = FixedArray::make(n * n, inf)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
