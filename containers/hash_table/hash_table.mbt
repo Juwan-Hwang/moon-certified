@@ -143,8 +143,11 @@ fn[K, V] _resize(
 /// Insert or update a key-value pair.
 ///
 /// If `key` already exists, its value is replaced.  Otherwise a new entry
-/// is created.  The table automatically resizes (doubles capacity) when the
-/// load factor would exceed 0.7, or when the table fills with tombstones.
+/// is created.  When the load factor would exceed 0.7, the table first
+/// tries to compact (rehash to the same capacity, discarding tombstones).
+/// If compaction alone doesn't bring the load factor below 0.7, the table
+/// doubles in capacity. This avoids unnecessary memory growth when the
+/// table has many deleted entries.
 pub fn[K, V] insert(
   ht : HashTable[K, V],
   key : K,
@@ -152,15 +155,26 @@ pub fn[K, V] insert(
   hash_fn : (K) -> Int,
   eq_fn : (K, K) -> Bool,
 ) -> Unit {
-  // Resize if adding a new entry would push load factor above 0.7.
+  // If adding a new entry would push load factor above 0.7, first try
+  // compacting (rehash to same capacity to clear tombstones).
   if (ht.count + 1) * 10 > ht.capacity * 7 {
-    _resize(ht, ht.capacity * 2, hash_fn, eq_fn)
+    // Compact first: rehash to same capacity, clearing tombstones.
+    _resize(ht, ht.capacity, hash_fn, eq_fn)
+    // If still above threshold after compaction, double capacity.
+    if (ht.count + 1) * 10 > ht.capacity * 7 {
+      _resize(ht, ht.capacity * 2, hash_fn, eq_fn)
+    }
   }
   let ok = _put(ht, key, value, hash_fn, eq_fn)
   if !ok {
-    // Table full of tombstones — resize to compact, then retry.
-    _resize(ht, ht.capacity * 2, hash_fn, eq_fn)
-    let _ = _put(ht, key, value, hash_fn, eq_fn)
+    // Table was full of tombstones: compact to same capacity, then retry.
+    _resize(ht, ht.capacity, hash_fn, eq_fn)
+    let ok2 = _put(ht, key, value, hash_fn, eq_fn)
+    if !ok2 {
+      // Still full after compaction: double capacity and retry.
+      _resize(ht, ht.capacity * 2, hash_fn, eq_fn)
+      let _ = _put(ht, key, value, hash_fn, eq_fn)
+    }
   }
 }
 

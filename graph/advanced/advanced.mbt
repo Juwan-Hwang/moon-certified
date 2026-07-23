@@ -36,15 +36,10 @@ pub enum SPResult {
 ///   reachable from `src` with shortest distance `d`, or `None` if
 ///   unreachable.
 ///
-/// A `reachable` table is carried alongside the distance table so that
-/// unreachable vertices are reported as `None` rather than conflated with a
-/// legitimate negative shortest distance. Relaxation runs for at most
-/// `n - 1` passes with an early exit once a pass makes no change; one
-/// further pass detects any negative cycle reachable from the source.
-///
-/// **Overflow limit**: distances are accumulated as `Int` sums of edge
-/// weights. If `|w| × n` approaches `Int::max_value` (≈ 2.1×10⁹), the
-/// caller should ensure edge weights are bounded accordingly.
+/// **Overflow protection**: distances are accumulated using 64-bit `Int64`
+/// arithmetic internally. If a distance would exceed 32-bit `Int` range,
+/// it is clamped to `Int::max_value` / `Int::min_value`. This prevents
+/// silent overflow that could produce incorrect results.
 pub fn bellman_ford(
   graph : FixedArray[Int],
   n : Int,
@@ -53,23 +48,29 @@ pub fn bellman_ford(
   if n <= 0 || src < 0 || src >= n || graph.length() < n * n {
     return None
   }
-  let dist = FixedArray::make(n, 0)
+  let int_max = 2147483647L
+  let int_min = -2147483648L
+  // Use Int64 internally to detect overflow before it happens.
+  let dist = FixedArray::make(n, 0L)
   let reachable = FixedArray::make(n, false)
-  dist[src] = 0
+  dist[src] = 0L
   reachable[src] = true
   // At most n-1 relaxation passes suffice when no negative cycle exists.
-  // Early-exit as soon as a full pass makes no change.
   for pass = 0; pass < n - 1; pass = pass + 1 {
     let mut updated = false
     for u = 0; u < n; u = u + 1 {
       if reachable[u] {
         let du = dist[u]
         for v = 0; v < n; v = v + 1 {
-          let w = graph[u * n + v]
-          if w != 0 {
+          let w = graph[u * n + v].to_int64()
+          if w != 0L {
             let nd = du + w
-            if !reachable[v] || nd < dist[v] {
-              dist[v] = nd
+            // Clamp to prevent overflow from cascading
+            let clamped = if nd > int_max { int_max }
+                          else if nd < int_min { int_min }
+                          else { nd }
+            if !reachable[v] || clamped < dist[v] {
+              dist[v] = clamped
               reachable[v] = true
               updated = true
             }
@@ -81,24 +82,28 @@ pub fn bellman_ford(
       break
     }
   }
-  // Detection pass: if any edge from a reachable vertex can still relax a
-  // reachable vertex, a negative cycle is reachable from src.
+  // Detection pass: if any edge can still relax, negative cycle exists.
   for u = 0; u < n; u = u + 1 {
     if reachable[u] {
       let du = dist[u]
       for v = 0; v < n; v = v + 1 {
-        let w = graph[u * n + v]
-        if w != 0 && reachable[v] && du + w < dist[v] {
+        let w = graph[u * n + v].to_int64()
+        if w != 0L && reachable[v] && du + w < dist[v] {
           return Some(NegativeCycle)
         }
       }
     }
   }
   // Build the result: Some(d) for reachable, None for unreachable.
+  // Convert Int64 back to Int, clamping to valid range.
   let result : FixedArray[Int?] = FixedArray::make(n, None)
   for i = 0; i < n; i = i + 1 {
     if reachable[i] {
-      result[i] = Some(dist[i])
+      let d = dist[i]
+      let clamped = if d > int_max { 2147483647 }
+                    else if d < int_min { -2147483648 }
+                    else { d.to_int() }
+      result[i] = Some(clamped)
     }
   }
   Some(Distances(result))

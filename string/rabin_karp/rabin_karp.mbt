@@ -75,36 +75,36 @@ fn rk_verify(text : String, pattern : String, start : Int, m : Int) -> Bool {
 }
 
 /// Search for `pattern` in `text` using the Rabin-Karp algorithm.
-/// Returns the starting index of the first occurrence, or -1 if not found.
+/// Returns `Some(index)` of the first occurrence, or `None` if not found.
 ///
-/// Edge cases (matching the KMP convention):
-/// - empty pattern → 0  (the empty string is a prefix of every string)
-/// - empty text (and non-empty pattern) → -1
-/// - pattern longer than text → -1
-pub fn rk_search(text : String, pattern : String) -> Int {
+/// Edge cases (consistent with KMP):
+/// - empty pattern → `None` (no meaningful search)
+/// - empty text (and non-empty pattern) → `None`
+/// - pattern longer than text → `None`
+pub fn rk_search(text : String, pattern : String) -> Int? {
   let n = text.length()
   let m = pattern.length()
   if m == 0 {
-    return 0
+    return None
   }
   if n < m {
-    return -1
+    return None
   }
   let hash_p = rk_hash(pattern, 0, m)
   let mut hash_t = rk_hash(text, 0, m)
   let power = rk_pow(RK_BASE, m - 1)
   // Check the first window
   if hash_t == hash_p && rk_verify(text, pattern, 0, m) {
-    return 0
+    return Some(0)
   }
   // Slide the window across the text
   for i = 1; i <= n - m; i = i + 1 {
     hash_t = rk_roll(hash_t, text[i - 1].to_int(), text[i + m - 1].to_int(), power)
     if hash_t == hash_p && rk_verify(text, pattern, i, m) {
-      return i
+      return Some(i)
     }
   }
-  -1
+  None
 }
 
 /// Search for all occurrences of `pattern` in `text`.
@@ -142,78 +142,70 @@ pub fn rk_search_all(text : String, pattern : String) -> FixedArray[Int] {
 // ---------------------------------------------------------------------------
 
 test "rk_search: basic match" {
-  assert_eq(rk_search("hello world", "world"), 6)
-  assert_eq(rk_search("hello world", "hello"), 0)
+  assert_eq(rk_search("hello world", "world"), Some(6))
+  assert_eq(rk_search("hello world", "hello"), Some(0))
 }
 
 test "rk_search: no match" {
-  assert_eq(rk_search("hello world", "xyz"), -1)
+  assert_true(rk_search("hello world", "xyz") is None)
 }
 
 test "rk_search: empty pattern" {
-  assert_eq(rk_search("hello", ""), 0)
-  assert_eq(rk_search("", ""), 0)
+  assert_true(rk_search("hello", "") is None)
+  assert_true(rk_search("", "") is None)
 }
 
 test "rk_search: empty text" {
-  assert_eq(rk_search("", "abc"), -1)
+  assert_true(rk_search("", "abc") is None)
 }
 
 test "rk_search: pattern longer than text" {
-  assert_eq(rk_search("hi", "hello"), -1)
-  assert_eq(rk_search("abc", "abcdef"), -1)
+  assert_true(rk_search("hi", "hello") is None)
+  assert_true(rk_search("abc", "abcdef") is None)
 }
 
 test "rk_search: multiple matches returns first" {
-  assert_eq(rk_search("abababab", "abab"), 0)
-  assert_eq(rk_search("abcabcabc", "abc"), 0)
+  assert_eq(rk_search("abababab", "abab"), Some(0))
+  assert_eq(rk_search("abcabcabc", "abc"), Some(0))
 }
 
 test "rk_search: overlapping matches" {
-  assert_eq(rk_search("AAAAAA", "AAAA"), 0)
-  assert_eq(rk_search("aabaaaabaa", "aabaa"), 0)
+  assert_eq(rk_search("AAAAAA", "AAAA"), Some(0))
+  assert_eq(rk_search("aabaaaabaa", "aabaa"), Some(0))
 }
 
 test "rk_search: single char pattern" {
-  assert_eq(rk_search("abcdef", "d"), 3)
-  assert_eq(rk_search("abcdef", "z"), -1)
-  assert_eq(rk_search("a", "a"), 0)
+  assert_eq(rk_search("abcdef", "d"), Some(3))
+  assert_true(rk_search("abcdef", "z") is None)
+  assert_eq(rk_search("a", "a"), Some(0))
 }
 
 test "rk_search: full string match" {
-  assert_eq(rk_search("hello", "hello"), 0)
+  assert_eq(rk_search("hello", "hello"), Some(0))
 }
 
 test "rk_search: match at end" {
-  assert_eq(rk_search("abcdefghij", "hij"), 7)
-  assert_eq(rk_search("abcdefghij", "ij"), 8)
-  assert_eq(rk_search("abcdefghij", "j"), 9)
+  assert_eq(rk_search("abcdefghij", "hij"), Some(7))
+  assert_eq(rk_search("abcdefghij", "ij"), Some(8))
+  assert_eq(rk_search("abcdefghij", "j"), Some(9))
 }
 
 test "rk_search: large text" {
-  // Build a 200-char text: "abcabc...abc" + "XYZ" suffix
   let mut text = ""
   for i = 0; i < 67; i = i + 1 {
     text = text + "abc"
   }
   text = text + "XYZ"
-  assert_eq(rk_search(text, "XYZ"), 201)
-  assert_eq(rk_search(text, "abc"), 0)
-  // Last "abc" before XYZ starts at 198
-  assert_eq(rk_search(text, "abcXYZ"), 198)
+  assert_eq(rk_search(text, "XYZ"), Some(201))
+  assert_eq(rk_search(text, "abc"), Some(0))
+  assert_eq(rk_search(text, "abcXYZ"), Some(198))
 }
 
 test "rk_search: hash collision verification" {
-  // The polynomial hash can collide for different strings.  rk_search
-  // always calls rk_verify on a hash match, so false positives are
-  // impossible.  This test exercises that path with a dense, repetitive
-  // text where many substrings share the same rolling-hash value.
-  // 30 'a' bytes followed by "ab": the only true "ab" match is at the end.
   let prefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   let text = prefix + "ab"
   let pattern = "ab"
-  // The match is at the position where "ab" starts, i.e. prefix.length().
-  assert_eq(rk_search(text, pattern), prefix.length())
+  assert_eq(rk_search(text, pattern), Some(prefix.length()))
 }
 
 test "rk_search_all: basic multiple matches" {
