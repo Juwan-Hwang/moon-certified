@@ -1,6 +1,6 @@
 {
   "name": "moon-certified",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Formally verified core algorithms and data structures for MoonBit",
   "repository": "https://github.com/Juwan-Hwang/moon-certified",
   "license": "Apache-2.0",
