@@ -16,6 +16,13 @@
 ///
 /// Time complexity: O((V + E) log V)
 ///
+/// **Precondition**: All edge weights must be non-negative. Dijkstra's
+/// algorithm does not produce correct results with negative weights.
+/// Unlike the adjacency-matrix version, negative weights in the adjacency
+/// list are processed (not skipped), which can produce incorrect shortest
+/// paths. For graphs with negative weights, use Bellman-Ford
+/// (`graph/advanced`) or Johnson's algorithm (`graph/johnson`) instead.
+///
 /// **Overflow protection**: distances are accumulated using Int64 arithmetic
 /// internally. If a path distance would overflow Int32 (2³¹−1), the result
 /// for that vertex is clamped to `None` (treated as unreachable) to avoid

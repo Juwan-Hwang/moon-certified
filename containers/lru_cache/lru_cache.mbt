@@ -1,19 +1,14 @@
-/// LRU (Least Recently Used) Cache.
+/// LRU (Least Recently Used) Cache with O(1) amortized operations.
 ///
 /// Stores key-value pairs with a fixed capacity. On access (get or put),
 /// the accessed entry is moved to the most-recently-used position. When
 /// capacity is exceeded, the least-recently-used entry is evicted.
 ///
-/// Implementation: doubly linked list + flat array (linear scan).
+/// Implementation: hash map + doubly linked list.
 /// - The doubly linked list maintains recency order (head = LRU, tail = MRU).
-/// - A flat array stores (key, value) entries for O(n) lookup by key.
-/// - List operations (move-to-tail, remove-head) are O(1).
-/// - Key lookup is O(n) in the worst case, but the doubly linked list
-///   ensures that list manipulation is always O(1) regardless of capacity.
-///
-/// For small to medium capacities (≤ 10⁴), this is efficient in practice.
-/// For very large caches, a true hash map would be needed, but MoonBit's
-/// standard library `Map` requires `Hash` trait which limits generic use.
+/// - A hash map (`@hash_table.HashTable[K, Int]`) maps keys to node indices,
+///   providing O(1) amortized key lookup.
+/// - All operations (get, put) are O(1) amortized.
 ///
 /// Not formally verified. Correctness ensured by comprehensive tests.
 
@@ -31,6 +26,8 @@ pub struct LruNode[K, V] {
 pub struct LRUCache[K, V] {
   /// Flat array of all allocated nodes (indices used as pointers).
   nodes : Array[LruNode[K, V]]
+  /// Hash map: key → node index, for O(1) amortized key lookup.
+  index : @hash_table.HashTable[K, Int]
   /// Index of the head (LRU) node, -1 if empty.
   mut head : Int
   /// Index of the tail (MRU) node, -1 if empty.
@@ -39,31 +36,38 @@ pub struct LRUCache[K, V] {
   mut count : Int
   /// Maximum number of entries.
   capacity : Int
+  /// Hash function for key lookup.
+  hash_fn : (K) -> Int
+  /// Equality function for key comparison.
+  eq_fn : (K, K) -> Bool
 }
 
 /// Create an empty LRU cache with the given capacity.
+///
+/// `hash_fn` maps keys to integers for hash table indexing.
+/// `eq_fn` checks key equality.
 /// A capacity of 0 means no entries can be stored.
-pub fn[K, V] new(capacity : Int) -> LRUCache[K, V] {
-  { nodes: [], head: -1, tail: -1, count: 0, capacity }
+pub fn[K, V] new(
+  capacity : Int,
+  hash_fn : (K) -> Int,
+  eq_fn : (K, K) -> Bool,
+) -> LRUCache[K, V] {
+  let cap = if capacity > 0 { capacity } else { 1 }
+  {
+    nodes: [],
+    index: @hash_table.new(cap * 2 + 1),
+    head: -1,
+    tail: -1,
+    count: 0,
+    capacity,
+    hash_fn,
+    eq_fn,
+  }
 }
 
 /// Number of entries currently in the cache.
 pub fn[K, V] size(cache : LRUCache[K, V]) -> Int {
   cache.count
-}
-
-/// Find the index of the node with the given key. O(n) scan.
-fn[K, V] find_index(
-  cache : LRUCache[K, V],
-  key : K,
-  eq_fn : (K, K) -> Bool,
-) -> Int {
-  for i = 0; i < cache.nodes.length(); i = i + 1 {
-    if eq_fn(cache.nodes[i].key, key) {
-      return i
-    }
-  }
-  -1
 }
 
 /// Detach a node from the doubly linked list.
@@ -109,54 +113,66 @@ fn[K, V] move_to_tail(cache : LRUCache[K, V], idx : Int) -> Unit {
 }
 
 /// Look up a key. On hit, moves the entry to MRU position and returns
-/// the value. On miss, returns None. O(n) for key lookup, O(1) for list update.
+/// the value. On miss, returns None. O(1) amortized.
 pub fn[K, V] get(
   cache : LRUCache[K, V],
   key : K,
-  eq_fn : (K, K) -> Bool,
 ) -> V? {
-  let idx = find_index(cache, key, eq_fn)
-  if idx < 0 {
-    return None
+  match @hash_table.get(cache.index, key, cache.hash_fn, cache.eq_fn) {
+    None => None
+    Some(idx) => {
+      move_to_tail(cache, idx)
+      Some(cache.nodes[idx].val)
+    }
   }
-  move_to_tail(cache, idx)
-  Some(cache.nodes[idx].val)
 }
 
 /// Insert or update a key-value pair. On update, moves the entry to MRU.
 /// On insert when at capacity, evicts the LRU entry first.
-/// O(n) for key lookup, O(1) for list manipulation.
+/// O(1) amortized.
 pub fn[K, V] put(
   cache : LRUCache[K, V],
   key : K,
   value : V,
-  eq_fn : (K, K) -> Bool,
 ) -> Unit {
   if cache.capacity <= 0 {
     return
   }
-  let idx = find_index(cache, key, eq_fn)
-  if idx >= 0 {
-    // Key exists: update value and move to tail.
-    cache.nodes[idx].val = value
-    move_to_tail(cache, idx)
-    return
-  }
-  // New key
-  if cache.count >= cache.capacity {
-    // Evict LRU (head): reuse the head node's slot.
-    let head_idx = cache.head
-    detach(cache, head_idx)
-    // Reuse the slot for the new entry
-    cache.nodes[head_idx].key = key
-    cache.nodes[head_idx].val = value
-    attach_tail(cache, head_idx)
-  } else {
-    // Append a new node
-    let new_idx = cache.nodes.length()
-    cache.nodes.push({ key, val: value, prev: -1, next: -1 })
-    attach_tail(cache, new_idx)
-    cache.count = cache.count + 1
+  match @hash_table.get(cache.index, key, cache.hash_fn, cache.eq_fn) {
+    Some(idx) => {
+      // Key exists: update value and move to tail.
+      cache.nodes[idx].val = value
+      move_to_tail(cache, idx)
+    }
+    None => {
+      // New key
+      if cache.count >= cache.capacity {
+        // Evict LRU (head): reuse the head node's slot.
+        let head_idx = cache.head
+        // Remove old key from hash map.
+        let _ = @hash_table.remove(
+          cache.index, cache.nodes[head_idx].key, cache.hash_fn, cache.eq_fn,
+        )
+        detach(cache, head_idx)
+        // Reuse the slot for the new entry
+        cache.nodes[head_idx].key = key
+        cache.nodes[head_idx].val = value
+        attach_tail(cache, head_idx)
+        // Insert new key→index mapping.
+        @hash_table.insert(
+          cache.index, key, head_idx, cache.hash_fn, cache.eq_fn,
+        )
+      } else {
+        // Append a new node
+        let new_idx = cache.nodes.length()
+        cache.nodes.push({ key, val: value, prev: -1, next: -1 })
+        attach_tail(cache, new_idx)
+        cache.count = cache.count + 1
+        @hash_table.insert(
+          cache.index, key, new_idx, cache.hash_fn, cache.eq_fn,
+        )
+      }
+    }
   }
 }
 
@@ -164,97 +180,125 @@ pub fn[K, V] put(
 // Tests
 // ---------------------------------------------------------------------------
 
+/// Simple identity hash for Int keys.
+fn int_hash(k : Int) -> Int {
+  k
+}
+
+fn int_eq(a : Int, b : Int) -> Bool {
+  a == b
+}
+
 test "lru: basic get and put" {
-  let cache : LRUCache[Int, String] = new(3)
-  put(cache, 1, "one", fn(a, b) { a == b })
-  put(cache, 2, "two", fn(a, b) { a == b })
-  put(cache, 3, "three", fn(a, b) { a == b })
-  assert_eq(get(cache, 1, fn(a, b) { a == b }), Some("one"))
-  assert_eq(get(cache, 2, fn(a, b) { a == b }), Some("two"))
-  assert_eq(get(cache, 3, fn(a, b) { a == b }), Some("three"))
+  let cache : LRUCache[Int, String] = new(3, int_hash, int_eq)
+  put(cache, 1, "one")
+  put(cache, 2, "two")
+  put(cache, 3, "three")
+  assert_eq(get(cache, 1), Some("one"))
+  assert_eq(get(cache, 2), Some("two"))
+  assert_eq(get(cache, 3), Some("three"))
   assert_eq(size(cache), 3)
 }
 
 test "lru: eviction order" {
-  let cache : LRUCache[Int, Int] = new(2)
-  put(cache, 1, 10, fn(a, b) { a == b })
-  put(cache, 2, 20, fn(a, b) { a == b })
-  put(cache, 3, 30, fn(a, b) { a == b }) // evicts 1 (LRU)
-  assert_true(get(cache, 1, fn(a, b) { a == b }) is None)
-  assert_eq(get(cache, 2, fn(a, b) { a == b }), Some(20))
-  assert_eq(get(cache, 3, fn(a, b) { a == b }), Some(30))
+  let cache : LRUCache[Int, Int] = new(2, int_hash, int_eq)
+  put(cache, 1, 10)
+  put(cache, 2, 20)
+  put(cache, 3, 30) // evicts 1 (LRU)
+  assert_true(get(cache, 1) is None)
+  assert_eq(get(cache, 2), Some(20))
+  assert_eq(get(cache, 3), Some(30))
   assert_eq(size(cache), 2)
 }
 
 test "lru: update existing key" {
-  let cache : LRUCache[Int, String] = new(2)
-  put(cache, 1, "old", fn(a, b) { a == b })
-  put(cache, 2, "two", fn(a, b) { a == b })
-  put(cache, 1, "new", fn(a, b) { a == b }) // update, not evict
+  let cache : LRUCache[Int, String] = new(2, int_hash, int_eq)
+  put(cache, 1, "old")
+  put(cache, 2, "two")
+  put(cache, 1, "new") // update, not evict
   assert_eq(size(cache), 2)
   // 1 is now MRU (updated), 2 is LRU; adding 3 evicts 2.
-  put(cache, 3, "three", fn(a, b) { a == b })
-  assert_true(get(cache, 2, fn(a, b) { a == b }) is None)
-  assert_eq(get(cache, 1, fn(a, b) { a == b }), Some("new"))
-  assert_eq(get(cache, 3, fn(a, b) { a == b }), Some("three"))
+  put(cache, 3, "three")
+  assert_true(get(cache, 2) is None)
+  assert_eq(get(cache, 1), Some("new"))
+  assert_eq(get(cache, 3), Some("three"))
 }
 
 test "lru: capacity 1" {
-  let cache : LRUCache[Int, Int] = new(1)
-  put(cache, 1, 100, fn(a, b) { a == b })
-  assert_eq(get(cache, 1, fn(a, b) { a == b }), Some(100))
-  put(cache, 2, 200, fn(a, b) { a == b }) // evicts 1
-  assert_true(get(cache, 1, fn(a, b) { a == b }) is None)
-  assert_eq(get(cache, 2, fn(a, b) { a == b }), Some(200))
+  let cache : LRUCache[Int, Int] = new(1, int_hash, int_eq)
+  put(cache, 1, 100)
+  assert_eq(get(cache, 1), Some(100))
+  put(cache, 2, 200) // evicts 1
+  assert_true(get(cache, 1) is None)
+  assert_eq(get(cache, 2), Some(200))
   assert_eq(size(cache), 1)
 }
 
 test "lru: capacity 0" {
-  let cache : LRUCache[Int, Int] = new(0)
-  put(cache, 1, 100, fn(a, b) { a == b })
+  let cache : LRUCache[Int, Int] = new(0, int_hash, int_eq)
+  put(cache, 1, 100)
   assert_eq(size(cache), 0)
-  assert_true(get(cache, 1, fn(a, b) { a == b }) is None)
+  assert_true(get(cache, 1) is None)
 }
 
 test "lru: non-existent key" {
-  let cache : LRUCache[Int, Int] = new(3)
-  put(cache, 1, 10, fn(a, b) { a == b })
-  put(cache, 2, 20, fn(a, b) { a == b })
-  assert_true(get(cache, 99, fn(a, b) { a == b }) is None)
+  let cache : LRUCache[Int, Int] = new(3, int_hash, int_eq)
+  put(cache, 1, 10)
+  put(cache, 2, 20)
+  assert_true(get(cache, 99) is None)
   assert_eq(size(cache), 2)
 }
 
 test "lru: ordering after multiple gets" {
-  let cache : LRUCache[Int, Int] = new(3)
-  put(cache, 1, 10, fn(a, b) { a == b })
-  put(cache, 2, 20, fn(a, b) { a == b })
-  put(cache, 3, 30, fn(a, b) { a == b })
-  let _ = get(cache, 1, fn(a, b) { a == b }) // order: 2, 3, 1
-  let _ = get(cache, 2, fn(a, b) { a == b }) // order: 3, 1, 2
-  put(cache, 4, 40, fn(a, b) { a == b })    // evicts 3 (LRU)
-  assert_true(get(cache, 3, fn(a, b) { a == b }) is None)
-  assert_eq(get(cache, 1, fn(a, b) { a == b }), Some(10))
-  assert_eq(get(cache, 2, fn(a, b) { a == b }), Some(20))
-  assert_eq(get(cache, 4, fn(a, b) { a == b }), Some(40))
+  let cache : LRUCache[Int, Int] = new(3, int_hash, int_eq)
+  put(cache, 1, 10)
+  put(cache, 2, 20)
+  put(cache, 3, 30)
+  let _ = get(cache, 1) // order: 2, 3, 1
+  let _ = get(cache, 2) // order: 3, 1, 2
+  put(cache, 4, 40)    // evicts 3 (LRU)
+  assert_true(get(cache, 3) is None)
+  assert_eq(get(cache, 1), Some(10))
+  assert_eq(get(cache, 2), Some(20))
+  assert_eq(get(cache, 4), Some(40))
 }
 
 test "lru: stress test 100 operations" {
-  let cache : LRUCache[Int, Int] = new(10)
+  let cache : LRUCache[Int, Int] = new(10, int_hash, int_eq)
   for i = 0; i < 10; i = i + 1 {
-    put(cache, i, i * 10, fn(a, b) { a == b })
+    put(cache, i, i * 10)
   }
   assert_eq(size(cache), 10)
   for i = 0; i < 10; i = i + 2 {
-    let _ = get(cache, i, fn(a, b) { a == b })
+    let _ = get(cache, i)
   }
   for i = 10; i < 20; i = i + 1 {
-    put(cache, i, i * 10, fn(a, b) { a == b })
+    put(cache, i, i * 10)
   }
   assert_eq(size(cache), 10)
   for i = 10; i < 20; i = i + 1 {
-    assert_eq(get(cache, i, fn(a, b) { a == b }), Some(i * 10))
+    assert_eq(get(cache, i), Some(i * 10))
   }
   for i = 0; i < 10; i = i + 1 {
-    assert_true(get(cache, i, fn(a, b) { a == b }) is None)
+    assert_true(get(cache, i) is None)
   }
+}
+
+test "lru: string keys with custom hash" {
+  let str_hash = fn(s : String) -> Int {
+    let mut h = 0
+    for i = 0; i < s.length(); i = i + 1 {
+      h = h * 31 + s[i].to_int()
+    }
+    h
+  }
+  let str_eq = fn(a : String, b : String) -> Bool { a == b }
+  let cache : LRUCache[String, Int] = new(3, str_hash, str_eq)
+  put(cache, "apple", 1)
+  put(cache, "banana", 2)
+  put(cache, "cherry", 3)
+  assert_eq(get(cache, "banana"), Some(2))
+  put(cache, "date", 4) // evicts "apple" (LRU)
+  assert_true(get(cache, "apple") is None)
+  assert_eq(get(cache, "date"), Some(4))
 }
