@@ -10,6 +10,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below,
 /// including brute-force cross-checks on large arrays.
+///
+/// **Overflow**: All sums are accumulated as 32-bit `Int`. If a prefix sum
+/// exceeds `Int::max_value` (2³¹−1), the result will silently wrap to a
+/// negative value. Callers should ensure values and their cumulative sums
+/// fit in 32-bit `Int` range.
 
 /// 1-indexed Fenwick tree. `tree` has length `n + 1`; index 0 is unused.
 pub struct Fenwick {

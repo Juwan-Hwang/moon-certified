@@ -3,6 +3,13 @@
 /// graph[i * n + j] is the weight of edge i->j, or 0 if no edge.
 /// Uses simple O(n^2) implementation (no priority queue needed for dense graphs).
 ///
+/// **Precondition**: All edge weights must be non-negative. Dijkstra's
+/// algorithm does not produce correct results with negative weights.
+/// In this adjacency-matrix implementation, edges with weight ≤ 0 are
+/// treated as non-existent (skipped), so negative weights are silently
+/// ignored rather than causing incorrect results. For graphs with negative
+/// weights, use Bellman-Ford (`graph/advanced`) instead.
+///
 /// Verified by `moon prove` (on `dijkstra_impl`):
 /// - result.length() == n (array length, proven by Z3)
 /// - loop bounds (step, i, v all stay in [0, n])

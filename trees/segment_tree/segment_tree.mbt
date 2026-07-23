@@ -12,6 +12,11 @@
 /// - query returns 0 for invalid or out-of-bounds ranges
 /// - update is a no-op for out-of-bounds indices
 ///
+/// **Overflow**: All sums are accumulated as 32-bit `Int`. If a range sum
+/// exceeds `Int::max_value` (2³¹−1), the result will silently wrap to a
+/// negative value. Callers should ensure values and their sums fit in
+/// 32-bit `Int` range, or use Int64 values externally.
+///
 /// Not formally verified. Correctness ensured by comprehensive tests
 /// including brute-force cross-checks on large arrays.
 pub struct SegmentTree {

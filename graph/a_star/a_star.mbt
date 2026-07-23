@@ -12,6 +12,12 @@
 /// Lazy deletion is used: stale entries (with f > current best) are skipped.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
+///
+/// **Overflow**: `f_score = g_score + manhattan_distance` is accumulated as
+/// 32-bit `Int`. Since each step costs 1 and the grid is at most
+/// `width * height` cells, `g_score` is bounded by `width + height`.
+/// For grids where `width + height > Int::max_value` (extremely unlikely),
+/// overflow could occur. In practice, grid sizes are far below this limit.
 
 /// Manhattan distance between two grid points `(x1, y1)` and `(x2, y2)`.
 fn manhattan(x1 : Int, y1 : Int, x2 : Int, y2 : Int) -> Int {

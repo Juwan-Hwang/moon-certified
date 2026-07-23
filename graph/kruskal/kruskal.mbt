@@ -7,6 +7,11 @@
 ///
 /// Edges are sorted with O(E log E) merge sort.
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
+///
+/// **Overflow**: `total_weight` is accumulated as 32-bit `Int`. If the sum
+/// of all selected edge weights exceeds `Int::max_value` (2³¹−1), the result
+/// will be incorrect due to integer overflow. Callers should ensure the
+/// total MST weight fits in 32-bit `Int` range.
 
 /// A weighted undirected edge between vertex `from` and vertex `to`.
 ///

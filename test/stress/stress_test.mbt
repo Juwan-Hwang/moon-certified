@@ -111,10 +111,17 @@ test "stress: bloom_filter 10000 elements no false negatives" {
 // ---------------------------------------------------------------------------
 
 test "stress: lru_cache 10000 operations" {
-  let eq = fn(a : String, b : String) -> Bool { a == b }
-  let cache : @lru_cache.LRUCache[String, Int] = @lru_cache.new(100)
+  let str_hash = fn(s : String) -> Int {
+    let mut h = 0
+    for i = 0; i < s.length(); i = i + 1 {
+      h = h * 31 + s[i].to_int()
+    }
+    h
+  }
+  let str_eq = fn(a : String, b : String) -> Bool { a == b }
+  let cache : @lru_cache.LRUCache[String, Int] = @lru_cache.new(100, str_hash, str_eq)
   for i = 0; i < 10000; i = i + 1 {
-    @lru_cache.put(cache, "key_\{i % 200}", i, eq)
+    @lru_cache.put(cache, "key_\{i % 200}", i)
   }
   // Capacity is 100: at most 100 entries should remain.
   assert_true(@lru_cache.size(cache) <= 100)

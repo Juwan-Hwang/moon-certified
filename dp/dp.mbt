@@ -34,11 +34,19 @@ fn min2(a : Int, b : Int) -> Int {
 /// Standard O(n*m) time and space DP. `dp[i][j]` is the LCS length of
 /// `a[0..i)` and `b[0..j)`; row 0 and column 0 (empty prefix) stay zero.
 /// Empty arrays yield 0.
+///
+/// **Memory**: allocates `(n+1) * (m+1)` Int values. To prevent OOM,
+/// rejects inputs where `n * m > 10^7` (≈40 MB for Int32), returning 0.
 pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
   let n = a.length()
   let m = b.length()
   let cols = m + 1
-  let dp = FixedArray::make((n + 1) * cols, 0)
+  let dp_size = (n + 1) * cols
+  // OOM protection: reject inputs that would allocate > 10^7 Int cells.
+  if dp_size > 10000000 || dp_size < 0 {
+    return 0
+  }
+  let dp = FixedArray::make(dp_size, 0)
   for i = 1; i <= n; i = i + 1 {
     for j = 1; j <= m; j = j + 1 {
       if a[i - 1] == b[j - 1] {
@@ -61,11 +69,21 @@ pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
 /// Standard O(n*m) DP. `dp[i][j]` is the edit distance between `a[0..i)` and
 /// `b[0..j)`. Transforming to/from an empty prefix costs its own length
 /// (pure inserts/deletes), so an empty array yields the length of the other.
+///
+/// **Memory**: allocates `(n+1) * (m+1)` Int values. To prevent OOM,
+/// rejects inputs where `n * m > 10^7` (≈40 MB for Int32), returning
+/// `max(n, m)` (worst-case distance) as a safe fallback.
 pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
   let n = a.length()
   let m = b.length()
   let cols = m + 1
-  let dp = FixedArray::make((n + 1) * cols, 0)
+  let dp_size = (n + 1) * cols
+  // OOM protection: reject inputs that would allocate > 10^7 Int cells.
+  // Return max(n, m) as a safe upper bound (worst-case edit distance).
+  if dp_size > 10000000 || dp_size < 0 {
+    return max2(n, m)
+  }
+  let dp = FixedArray::make(dp_size, 0)
   // Base cases: aligning against an empty prefix costs its length.
   for i = 0; i <= n; i = i + 1 {
     dp[i * cols + 0] = i

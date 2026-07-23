@@ -15,8 +15,10 @@
 /// `p * p <= n` so it never overflows for large `n`.
 pub fn sieve(n : Int) -> FixedArray[Int] {
   // Guard against n+1 overflow when n is near Int::MAX.
-  // Also reject unreasonably large inputs (would require >2GB memory).
-  if n < 2 || n > 1000000000 {
+  // Reject unreasonably large inputs to prevent OOM:
+  // n = 10^7 allocates ~10^7 booleans (~10–40 MB depending on runtime).
+  // n = 10^9 would need ~1 GB and is rejected.
+  if n < 2 || n > 10000000 {
     return FixedArray::make(0, 0)
   }
   let is_composite = FixedArray::make(n + 1, false)
