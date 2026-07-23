@@ -175,7 +175,11 @@ pub fn delete(root : AvlNode, val : Int) -> AvlNode {
           (Empty, _) => r
           (_, Empty) => l
           (_, _) => {
-            let succ = find_min(r).unwrap_or(0)
+            // Both children non-empty, so find_min(r) always returns Some.
+            let succ = match find_min(r) {
+              Some(v) => v
+              None => abort("unreachable: find_min on non-empty tree")
+            }
             rebalance(Node(l, succ, delete(r, succ), 0))
           }
         }

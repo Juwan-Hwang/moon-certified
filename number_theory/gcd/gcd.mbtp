@@ -1,4 +1,9 @@
-// Helper: result is non-negative
 predicate gcd_nonneg(result : Int) {
+  0 <= result
+}
+
+predicate gcd_divides(a : Int, b : Int, result : Int) {
+  (result > 0 → a % result == 0) &&
+  (result > 0 → b % result == 0) &&
   0 <= result
 }

@@ -1,4 +1,3 @@
-// Result is non-negative when base and exponent are non-negative
 predicate power_nonneg(result : Int) {
   0 <= result
 }

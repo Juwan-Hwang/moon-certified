@@ -71,18 +71,21 @@ fn kmp_step(
 }
 
 /// Search for pattern in text using KMP algorithm.
-/// Returns the starting index of the first occurrence, or -1 if not found.
+///
+/// Returns `Some(index)` for the first match, or `None` if not found.
+/// Empty pattern returns `None` (no meaningful search), consistent with
+/// `kmp_search_all` returning an empty array for empty pattern.
 pub fn kmp_search(
   text : String,
   pattern : String,
-) -> Int {
+) -> Int? {
   let n = text.length()
   let m = pattern.length()
   if m == 0 {
-    return 0
+    return None
   }
   if n < m {
-    return -1
+    return None
   }
   let lps = build_lps(pattern)
   let mut i = 0
@@ -92,10 +95,10 @@ pub fn kmp_search(
     i = ni
     j = nj
     if match_pos is Some(_) {
-      return match_pos.unwrap()
+      return match_pos
     }
   }
-  -1
+  None
 }
 
 /// Search for all occurrences of pattern in text.
@@ -140,45 +143,45 @@ pub fn kmp_search_all(
 }
 
 test "kmp_search: basic match" {
-  assert_eq(kmp_search("hello world", "world"), 6)
-  assert_eq(kmp_search("hello world", "hello"), 0)
+  assert_eq(kmp_search("hello world", "world"), Some(6))
+  assert_eq(kmp_search("hello world", "hello"), Some(0))
 }
 
 test "kmp_search: no match" {
-  assert_eq(kmp_search("hello world", "xyz"), -1)
+  assert_true(kmp_search("hello world", "xyz") is None)
 }
 
-test "kmp_search: empty pattern" {
-  assert_eq(kmp_search("hello", ""), 0)
+test "kmp_search: empty pattern returns None" {
+  assert_true(kmp_search("hello", "") is None)
 }
 
 test "kmp_search: empty text" {
-  assert_eq(kmp_search("", "abc"), -1)
+  assert_true(kmp_search("", "abc") is None)
 }
 
 test "kmp_search: pattern longer than text" {
-  assert_eq(kmp_search("hi", "hello"), -1)
+  assert_true(kmp_search("hi", "hello") is None)
 }
 
 test "kmp_search: overlapping matches" {
-  assert_eq(kmp_search("AAAAAA", "AAAA"), 0)
+  assert_eq(kmp_search("AAAAAA", "AAAA"), Some(0))
 }
 
 test "kmp_search: single char" {
-  assert_eq(kmp_search("abcdef", "d"), 3)
-  assert_eq(kmp_search("abcdef", "z"), -1)
+  assert_eq(kmp_search("abcdef", "d"), Some(3))
+  assert_true(kmp_search("abcdef", "z") is None)
 }
 
 test "kmp_search: repeated pattern" {
-  assert_eq(kmp_search("abababab", "abab"), 0)
+  assert_eq(kmp_search("abababab", "abab"), Some(0))
 }
 
 test "kmp_search: at end" {
-  assert_eq(kmp_search("abcdefghij", "hij"), 7)
+  assert_eq(kmp_search("abcdefghij", "hij"), Some(7))
 }
 
 test "kmp_search: full match" {
-  assert_eq(kmp_search("hello", "hello"), 0)
+  assert_eq(kmp_search("hello", "hello"), Some(0))
 }
 
 test "kmp_search_all: basic" {
