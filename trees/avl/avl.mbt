@@ -151,11 +151,11 @@ pub fn search(root : AvlNode, val : Int) -> Bool {
   }
 }
 
-/// Find the minimum value in a non-empty tree.
-fn find_min(root : AvlNode) -> Int {
+/// Find the minimum value in an AVL tree. Returns None if the tree is empty.
+pub fn find_min(root : AvlNode) -> Int? {
   match root {
-    Empty => abort("find_min on empty tree")
-    Node(Empty, v, _, _) => v
+    Empty => None
+    Node(Empty, v, _, _) => Some(v)
     Node(l, _, _, _) => find_min(l)
   }
 }
@@ -175,7 +175,7 @@ pub fn delete(root : AvlNode, val : Int) -> AvlNode {
           (Empty, _) => r
           (_, Empty) => l
           (_, _) => {
-            let succ = find_min(r)
+            let succ = find_min(r).unwrap_or(0)
             rebalance(Node(l, succ, delete(r, succ), 0))
           }
         }

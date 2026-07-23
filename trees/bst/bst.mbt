@@ -39,11 +39,11 @@ pub fn search(root : Node, val : Int) -> Bool {
   }
 }
 
-/// Find the minimum value in a non-empty BST (leftmost node).
-fn find_min(root : Node) -> Int {
+/// Find the minimum value in a BST. Returns None if the tree is empty.
+pub fn find_min(root : Node) -> Int? {
   match root {
-    Empty => abort("find_min on empty tree")
-    Node(Empty, v, _) => v
+    Empty => None
+    Node(Empty, v, _) => Some(v)
     Node(l, _, _) => find_min(l)
   }
 }
@@ -59,7 +59,7 @@ fn remove_node(left : Node, right : Node) -> Node {
       match right {
         Empty => left
         _ => {
-          let succ = find_min(right)
+          let succ = find_min(right).unwrap_or(0)
           Node(left, succ, delete(right, succ))
         }
       }

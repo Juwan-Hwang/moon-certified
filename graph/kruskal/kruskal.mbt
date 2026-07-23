@@ -5,9 +5,8 @@
 /// endpoints already belong to the same connected component. Cycle detection
 /// is delegated to the Union-Find data structure from `containers/union_find`.
 ///
-/// Edges are sorted in place with a simple selection sort, keeping this package
-/// free of any comparator-based sorting dependency. `proof-enabled` is `false`;
-/// correctness is backed by the test suite below.
+/// Edges are sorted with O(E log E) merge sort.
+/// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
 /// A weighted undirected edge between vertex `from` and vertex `to`.
 ///
@@ -27,25 +26,66 @@ pub fn edge(from : Int, to : Int, weight : Int) -> Edge {
   { from, to, weight }
 }
 
-/// In-place selection sort of edges by ascending weight.
-///
-/// O(E²) comparisons. Chosen for its trivial correctness and zero extra
-/// allocations; for the input sizes this package targets the simplicity is
-/// worth the cost relative to a comparator-based sort.
+/// Merge sort for edges by ascending weight. O(E log E).
+/// Uses a temporary buffer for merging.
 fn sort_edges(edges : FixedArray[Edge]) -> Unit {
   let n = edges.length()
-  for i = 0; i < n; i = i + 1 {
-    let mut min_idx = i
-    for j = i + 1; j < n; j = j + 1 {
-      if edges[j].weight < edges[min_idx].weight {
-        min_idx = j
-      }
+  if n <= 1 {
+    return
+  }
+  let buf = FixedArray::make(n, edge(0, 0, 0))
+  merge_sort_edges(edges, buf, 0, n)
+}
+
+fn merge_sort_edges(
+  edges : FixedArray[Edge],
+  buf : FixedArray[Edge],
+  lo : Int,
+  hi : Int,
+) -> Unit {
+  if hi - lo <= 1 {
+    return
+  }
+  let mid = lo + (hi - lo) / 2
+  merge_sort_edges(edges, buf, lo, mid)
+  merge_sort_edges(edges, buf, mid, hi)
+  merge_edges(edges, buf, lo, mid, hi)
+}
+
+fn merge_edges(
+  edges : FixedArray[Edge],
+  buf : FixedArray[Edge],
+  lo : Int,
+  mid : Int,
+  hi : Int,
+) -> Unit {
+  let mut i = lo
+  let mut j = mid
+  let mut k = lo
+  while i < mid && j < hi {
+    if edges[i].weight <= edges[j].weight {
+      buf[k] = edges[i]
+      i = i + 1
+    } else {
+      buf[k] = edges[j]
+      j = j + 1
     }
-    if min_idx != i {
-      let tmp = edges[i]
-      edges[i] = edges[min_idx]
-      edges[min_idx] = tmp
-    }
+    k = k + 1
+  }
+  while i < mid {
+    buf[k] = edges[i]
+    i = i + 1
+    k = k + 1
+  }
+  while j < hi {
+    buf[k] = edges[j]
+    j = j + 1
+    k = k + 1
+  }
+  let mut m = lo
+  while m < hi {
+    edges[m] = buf[m]
+    m = m + 1
   }
 }
 

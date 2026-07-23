@@ -87,19 +87,19 @@ pub fn build_heap(xs : FixedArray[Int]) -> Int {
   n
 }
 
-/// Push a value onto the min-heap. Returns new size on success, or -1 if full.
+/// Push a value onto the min-heap. Returns Some(new_size) on success, None if full.
 pub fn heap_push(
   xs : FixedArray[Int],
   size : Int,
   val : Int,
-) -> Int {
+) -> Int? {
   let capacity = xs.length()
   if size < 0 || size >= capacity {
-    return -1
+    return None
   }
   xs[size] = val
   sift_up_cmp(xs, size + 1, size, fn(a, b) { a < b })
-  size + 1
+  Some(size + 1)
 }
 
 /// Pop the minimum element from the heap.
@@ -164,11 +164,11 @@ test "heap_push: basic" {
   let xs = FixedArray::make(10, 0)
   xs[0] = 5
   let mut size = 1
-  size = heap_push(xs, size, 3)
+  size = heap_push(xs, size, 3).unwrap()
   assert_eq(xs[0], 3)
-  size = heap_push(xs, size, 1)
+  size = heap_push(xs, size, 1).unwrap()
   assert_eq(xs[0], 1)
-  size = heap_push(xs, size, 7)
+  size = heap_push(xs, size, 7).unwrap()
   assert_eq(xs[0], 1)
 }
 
@@ -176,9 +176,9 @@ test "heap_push: overflow" {
   let xs = FixedArray::make(2, 0)
   xs[0] = 5
   let size = heap_push(xs, 1, 3)  // fills capacity
-  assert_eq(size, 2)
+  assert_eq(size.unwrap(), 2)
   let overflow = heap_push(xs, 2, 99)  // full!
-  assert_eq(overflow, -1)
+  assert_true(overflow is None)
 }
 
 test "heap_pop: basic" {
@@ -204,15 +204,15 @@ test "heap_pop: empty" {
 test "heap_pop: interleave push" {
   let xs = FixedArray::make(20, 0)
   let mut size = 0
-  size = heap_push(xs, size, 5)
-  size = heap_push(xs, size, 3)
-  size = heap_push(xs, size, 8)
-  size = heap_push(xs, size, 1)
-  size = heap_push(xs, size, 9)
+  size = heap_push(xs, size, 5).unwrap()
+  size = heap_push(xs, size, 3).unwrap()
+  size = heap_push(xs, size, 8).unwrap()
+  size = heap_push(xs, size, 1).unwrap()
+  size = heap_push(xs, size, 9).unwrap()
   let (r1, s1) = heap_pop(xs, size)
   assert_eq(r1.unwrap(), 1)
   size = s1
-  size = heap_push(xs, size, 2)
+  size = heap_push(xs, size, 2).unwrap()
   let (r2, s2) = heap_pop(xs, size)
   assert_eq(r2.unwrap(), 2)
   size = s2

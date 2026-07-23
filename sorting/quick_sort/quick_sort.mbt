@@ -1,32 +1,59 @@
-/// Quick sort with Lomuto partition scheme.
-/// In-place sorting. Not formally verified (recursive helpers + mutable state).
-/// Correctness ensured by comprehensive tests including permutation checks.
+/// Quick sort with median-of-three pivot selection.
+///
+/// Uses Lomuto partition scheme but selects the median of the first, middle,
+/// and last elements as the pivot. This prevents O(n²) degradation on already
+/// sorted or reverse-sorted inputs.
+///
+/// Not formally verified. Correctness ensured by comprehensive tests
+/// including permutation checks.
 
-/// Partition subroutine: selects last element as pivot,
-/// places it at correct position, with smaller elements to left
+/// Swap two elements in an array.
+fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
+  let tmp = xs[i]
+  xs[i] = xs[j]
+  xs[j] = tmp
+}
+
+/// Select the median of xs[lo], xs[mid], xs[hi] and place it at xs[hi]
+/// as the pivot for Lomuto partition.
+fn median_of_three(xs : FixedArray[Int], lo : Int, hi : Int) -> Unit {
+  let mid = lo + (hi - lo) / 2
+  // Sort lo, mid, hi so that xs[lo] <= xs[mid] <= xs[hi]
+  if xs[mid] < xs[lo] {
+    swap(xs, lo, mid)
+  }
+  if xs[hi] < xs[lo] {
+    swap(xs, lo, hi)
+  }
+  if xs[hi] < xs[mid] {
+    swap(xs, mid, hi)
+  }
+  // Now xs[mid] is the median; move it to xs[hi] as the pivot
+  swap(xs, mid, hi)
+}
+
+/// Partition subroutine: uses median-of-three pivot selection,
+/// places pivot at correct position, with smaller elements to left
 /// and larger to right. Returns the pivot's final index.
 fn partition(
   xs : FixedArray[Int],
   lo : Int,
   hi : Int,
 ) -> Int {
+  median_of_three(xs, lo, hi)
   let pivot = xs[hi]
   let mut i = lo - 1
   for j = lo; j < hi; {
     if xs[j] <= pivot {
       i = i + 1
-      let tmp = xs[i]
-      xs[i] = xs[j]
-      xs[j] = tmp
+      swap(xs, i, j)
     }
     continue j + 1
   } nobreak {
     ()
   }
   // Place pivot at position i+1
-  let tmp = xs[i + 1]
-  xs[i + 1] = xs[hi]
-  xs[hi] = tmp
+  swap(xs, i + 1, hi)
   i + 1
 }
 
@@ -158,5 +185,25 @@ test "quick_sort: permutation check" {
   }
   for k = 0; k < 31; k = k + 1 {
     assert_eq(orig_freq[k], sorted_freq[k])
+  }
+}
+
+test "quick_sort: sorted 100 elements (no O(n²) degradation)" {
+  // This test specifically catches the old vulnerability where sorted
+  // input caused O(n²) behavior. With median-of-three it stays O(n log n).
+  let n = 100
+  let xs = FixedArray::makei(n, fn(i) { i })
+  quick_sort(xs)
+  for k = 0; k < n; k = k + 1 {
+    assert_eq(xs[k], k)
+  }
+}
+
+test "quick_sort: reverse sorted 100 elements" {
+  let n = 100
+  let xs = FixedArray::makei(n, fn(i) { n - 1 - i })
+  quick_sort(xs)
+  for k = 0; k < n; k = k + 1 {
+    assert_eq(xs[k], k)
   }
 }
