@@ -1,0 +1,17 @@
+{
+  "proof-enabled": false,
+  "import": [
+    "moon-certified/sorting/quick_sort",
+    "moon-certified/sorting/merge_sort",
+    "moon-certified/trees/red_black_tree",
+    "moon-certified/trees/btree",
+    "moon-certified/containers/union_find",
+    "moon-certified/graph/dijkstra_heap",
+    "moon-certified/containers/bloom_filter",
+    "moon-certified/containers/lru_cache",
+    "moon-certified/graph/max_flow",
+    "moon-certified/dp/lis",
+    "moon-certified/string/suffix_array",
+    "moon-certified/geometry/convex_hull"
+  ]
+}

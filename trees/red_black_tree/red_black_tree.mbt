@@ -411,8 +411,14 @@ fn[T] black_height(root : RBNode[T]) -> Int {
   }
 }
 
-/// Verify all RB properties (for testing).
-fn[T] is_valid_rb(root : RBNode[T]) -> Bool {
+/// Verify all RB properties.
+/// Returns `true` if and only if:
+/// 1. The root is Black.
+/// 2. No Red node has a Red child.
+/// 3. Every root-to-leaf path has the same number of Black nodes (black-height).
+///
+/// This is primarily intended for testing and external validation.
+pub fn[T] is_valid_rb(root : RBNode[T]) -> Bool {
   let root_ok = match root {
     Empty => true
     Node(_, _, _, Black) => true
