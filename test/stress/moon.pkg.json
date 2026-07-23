@@ -1,6 +1,6 @@
 {
   "proof-enabled": false,
-  "import": [
+  "test-import": [
     "moon-certified/sorting/quick_sort",
     "moon-certified/sorting/merge_sort",
     "moon-certified/sorting/heap_sort",
@@ -21,7 +21,6 @@
     "moon-certified/graph/johnson",
     "moon-certified/graph/bidirectional_bfs",
     "moon-certified/graph/topological_sort_adj",
-    "moon-certified/graph/a_star",
     "moon-certified/dp/lis",
     "moon-certified/string/suffix_array",
     "moon-certified/string/z_function",

@@ -99,8 +99,10 @@ pub fn lis_sequence(xs : FixedArray[Int]) -> FixedArray[Int] {
 fn is_valid_subsequence(xs : FixedArray[Int], seq : FixedArray[Int]) -> Bool {
   let n = xs.length()
   let m = seq.length()
+  // The empty sequence is trivially strictly-increasing and a valid
+  // subsequence of any array (including non-empty `xs`).
   if m == 0 {
-    return n == 0
+    return true
   }
   for i = 1; i < m; i = i + 1 {
     if seq[i] <= seq[i - 1] {

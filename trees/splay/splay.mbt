@@ -28,9 +28,10 @@
 /// ## Implementation
 ///
 /// This is a **bottom-up** splay tree: the key is searched first (descending
-/// to the leaf), then splayed back to the root on the way up. The tree is
-/// represented as an immutable, recursive `enum`, so every operation returns
-/// a new tree (functional style, no mutation).
+/// to the leaf), then splayed back to the root on the way up via recursive
+/// zig, zig-zig, and zig-zag rotations. The tree is represented as an
+/// immutable, recursive `enum`, so every operation returns a new tree
+/// (functional style, no mutation).
 ///
 /// Complexity (amortized):
 /// - `insert`  — O(log n) amortized
@@ -75,56 +76,18 @@ fn node_size(t : SplayNode) -> Int {
   }
 }
 
-/// Right rotation: rotate the left child of `t` upward.
-/// The left child becomes the new root; `t` becomes its right child.
-fn rotate_right(t : SplayNode) -> SplayNode {
-  match t {
-    Node(l, key, r, _) =>
-      match l {
-        Node(ll, lk, lr, _) => {
-          let new_right_size = 1 + node_size(lr) + node_size(r)
-          Node(ll, lk, Node(lr, key, r, new_right_size), new_right_size + 1 + node_size(ll))
-        }
-        _ => t // cannot rotate if left child is Empty
-      }
-    _ => t
-  }
-}
-
-/// Left rotation: rotate the right child of `t` upward.
-/// The right child becomes the new root; `t` becomes its left child.
-fn rotate_left(t : SplayNode) -> SplayNode {
-  match t {
-    Node(l, key, r, _) =>
-      match r {
-        Node(rl, rk, rr, _) => {
-          let new_left_size = 1 + node_size(l) + node_size(rl)
-          Node(Node(l, key, rl, new_left_size), rk, rr, new_left_size + 1 + node_size(rr))
-        }
-        _ => t
-      }
-    _ => t
-  }
-}
-
 /// Splay the node with key `k` to the root of tree `t`.
 ///
 /// After splaying, if `k` is in the tree, it will be at the root.
 /// If `k` is not in the tree, the last node on the search path (the node that
 /// would be `k`'s parent) is brought to the root.
 ///
-/// This is the top-down splay implementation (Sleator & Tarjan style).
+/// This is the bottom-up splay implementation: the search descends to the
+/// target depth, then rotations are applied on the way back up.
 fn splay(t : SplayNode, k : Int) -> SplayNode {
-  // Top-down splay using two auxiliary subtrees (left and right "paths").
-  // `left` accumulates nodes < k, `right` accumulates nodes > k.
-  // This avoids recursion and guarantees O(log n) stack depth.
   match t {
     Empty => Empty
-    _ => {
-      // We use a simpler recursive bottom-up splay for clarity.
-      // MoonBit's recursion handles up to ~10^4 depth.
-      splay_bottom_up(t, k)
-    }
+    _ => splay_bottom_up(t, k)
   }
 }
 
@@ -408,7 +371,7 @@ test "splay: delete leaf" {
   tree = insert(tree, 7)
   tree = delete(tree, 7)
   assert_eq(size(tree), 2)
-  let (t, found) = search(tree, 7)
+  let (_, found) = search(tree, 7)
   assert_false(found)
 }
 

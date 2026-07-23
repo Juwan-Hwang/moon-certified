@@ -144,14 +144,21 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
 /// Find one non-trivial factor of `n`.
 ///
 /// `n` must be a composite number greater than 1 (check with `is_prime64`
-/// before calling). Returns a factor d with 1 < d < n. If all attempts fail
-/// (extremely unlikely for composite n), returns n.
-pub fn pollard_rho(n : Int) -> Int {
+/// before calling). Returns `Some(d)` with a factor `d` satisfying
+/// `1 < d < n`. Returns `None` when `n <= 1`, when `n` is prime (it has no
+/// non-trivial factor), or if all attempts fail (extremely unlikely for
+/// composite `n`).
+pub fn pollard_rho(n : Int) -> Int? {
   if n <= 1 {
-    return n
+    return None
   }
+  // 2 is prime: no non-trivial factor exists.
+  if n == 2 {
+    return None
+  }
+  // Any even n > 2 has 2 as a non-trivial factor.
   if n % 2 == 0 {
-    return 2
+    return Some(2)
   }
   let n64 = n.to_int64()
   // Try several values of c and x0. Using a fixed list avoids dependence on
@@ -160,15 +167,15 @@ pub fn pollard_rho(n : Int) -> Int {
   for i = 0; i < constants.length(); i = i + 1 {
     let d = prho_find(n64, constants[i], 2L)
     if d != 1L && d != n64 {
-      return d.to_int()
+      return Some(d.to_int())
     }
     // Retry with a different starting value for this c.
     let d2 = prho_find(n64, constants[i], 3L)
     if d2 != 1L && d2 != n64 {
-      return d2.to_int()
+      return Some(d2.to_int())
     }
   }
-  n // Should not happen for genuine composites
+  None // Should not happen for genuine composites
 }
 
 /// Factorize `n` into its prime factors (with multiplicity), in ascending order.
@@ -228,9 +235,13 @@ fn factor_rec(m : Int, result : Array[Int]) -> Unit {
     return
   }
   // m is composite; find a factor with Pollard-Rho.
-  let d = pollard_rho(m)
-  factor_rec(d, result)
-  factor_rec(m / d, result)
+  match pollard_rho(m) {
+    Some(d) => {
+      factor_rec(d, result)
+      factor_rec(m / d, result)
+    }
+    None => result.push(m)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -238,26 +249,26 @@ fn factor_rec(m : Int, result : Array[Int]) -> Unit {
 // ---------------------------------------------------------------------------
 
 test "pollard_rho: even number returns 2" {
-  assert_eq(pollard_rho(100), 2)
-  assert_eq(pollard_rho(6), 2)
-  assert_eq(pollard_rho(2147483646), 2)
+  assert_eq(pollard_rho(100), Some(2))
+  assert_eq(pollard_rho(6), Some(2))
+  assert_eq(pollard_rho(2147483646), Some(2))
 }
 
 test "pollard_rho: semiprime 15 = 3 * 5" {
-  let d = pollard_rho(15)
+  let d = pollard_rho(15).unwrap()
   assert_true(d == 3 || d == 5)
   assert_eq(15 / d * d, 15) // d divides 15
 }
 
 test "pollard_rho: semiprime 49 = 7 * 7" {
-  let d = pollard_rho(49)
+  let d = pollard_rho(49).unwrap()
   assert_eq(d, 7)
 }
 
 test "pollard_rho: large semiprime" {
   // 10007 * 10009 = 100160063
   let n = 100160063
-  let d = pollard_rho(n)
+  let d = pollard_rho(n).unwrap()
   assert_true(d != 1 && d != n)
   assert_eq(n % d, 0)
   assert_true(d == 10007 || d == 10009)
@@ -266,15 +277,31 @@ test "pollard_rho: large semiprime" {
 test "pollard_rho: product of two large primes" {
   // 46337 * 46327 = 2146654199 (< 2^31)
   let n = 2146654199
-  let d = pollard_rho(n)
+  let d = pollard_rho(n).unwrap()
   assert_true(d != 1 && d != n)
   assert_eq(n % d, 0)
 }
 
 test "pollard_rho: Carmichael number 561 = 3 * 11 * 17" {
-  let d = pollard_rho(561)
+  let d = pollard_rho(561).unwrap()
   assert_true(d != 1 && d != 561)
   assert_eq(561 % d, 0)
+}
+
+test "pollard_rho: n <= 1 returns None" {
+  assert_true(pollard_rho(0) is None)
+  assert_true(pollard_rho(1) is None)
+  assert_true(pollard_rho(-5) is None)
+}
+
+test "pollard_rho: prime returns None (no non-trivial factor)" {
+  // A prime has no non-trivial factor; the result must be None rather than
+  // a value indistinguishable from a real factor.
+  assert_true(pollard_rho(2) is None)
+  assert_true(pollard_rho(3) is None)
+  assert_true(pollard_rho(7) is None)
+  assert_true(pollard_rho(13) is None)
+  assert_true(pollard_rho(97) is None)
 }
 
 test "is_prime64: small primes" {

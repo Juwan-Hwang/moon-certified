@@ -154,9 +154,29 @@ pub fn SkipList::insert(self : SkipList, key : Int, value : Int) -> Unit {
 
 /// Look up the value associated with `key`. Returns `Some(v)` if present,
 /// `None` otherwise. Expected O(log n).
+///
+/// Unlike `insert`/`delete`, a pure lookup needs no predecessor path, so it
+/// walks the list directly without allocating an `update` array — only the
+/// traversal cursor is touched.
 pub fn SkipList::search(self : SkipList, key : Int) -> Int? {
-  let update = FixedArray::make(MAX_LEVEL, self.header)
-  match self.find_path(key, update) {
+  let mut current = self.header
+  for i = self.level - 1; i >= 0; i = i - 1 {
+    let mut advancing = true
+    while advancing {
+      match current.forward[i] {
+        Some(node) =>
+          if node.key < key {
+            current = node
+          } else {
+            advancing = false
+          }
+        None => advancing = false
+      }
+    }
+  }
+  // After dropping to level 0, `current.forward[0]` is the first node with
+  // key >= `key`; it is a hit iff that key is exactly `key`.
+  match current.forward[0] {
     Some(node) => if node.key == key { Some(node.value) } else { None }
     None => None
   }

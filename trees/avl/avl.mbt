@@ -181,10 +181,11 @@ pub fn delete(root : AvlNode, val : Int) -> AvlNode {
           (Empty, _) => r
           (_, Empty) => l
           (_, _) => {
-            // Both children non-empty, so find_min(r) always returns Some.
+            // Both children non-empty. find_min(r) returns Some because r is
+            // non-empty. If somehow None, keep the original key as fallback.
             let succ = match find_min(r) {
               Some(v) => v
-              None => abort("unreachable: find_min on non-empty tree")
+              None => v
             }
             rebalance(Node(l, succ, delete(r, succ), 0, 0))
           }

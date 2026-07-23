@@ -13,9 +13,9 @@
 /// IMPORTANT: MoonBit's String indexing is byte-level, not Unicode codepoint.
 /// For multi-byte UTF-8 strings the trie operates on raw bytes, which is
 /// correct for ASCII keys and for exact byte-sequence matching of any string.
-/// However, `longest_prefix` returns a byte-slice of the input string, which
-/// may split a multi-byte UTF-8 character at a byte boundary. Callers should
-/// validate UTF-8 boundaries if working with non-ASCII strings.
+/// `longest_prefix` returns a prefix of the input string that ends at a
+/// complete stored word, so its end always lands on a UTF-8 code-point
+/// boundary and never splits a multi-byte character.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
@@ -176,26 +176,30 @@ pub fn size(root : TrieNode) -> Int {
   root.count
 }
 
-/// Rebuild the one-character string for a child index (a byte value 0..255).
-fn unit_string(idx : Int) -> String {
-  String::make(1, idx.to_char().unwrap())
-}
-
 /// Depth-first helper for `enumerate`. Pushes every word-ending under `node`
-/// into `out`, prefixed by `prefix`. Children are visited in ascending byte
-/// value order (because they're stored sorted), so words come out
-/// lexicographically sorted by code-unit sequence.
+/// into `out`, building each word from the byte path accumulated in `path`.
+/// Children are visited in ascending byte value order (because they're
+/// stored sorted), so words come out lexicographically sorted by code-unit
+/// sequence.
+///
+/// `path` is shared across the recursion: traversing an edge pushes the
+/// child's byte (as a `Char`) and returning pops it. A word is materialised
+/// only at a word-ending node, with a single `String::from_array` call. This
+/// is O(m) per word instead of the O(m^2) cost of concatenating one
+/// character at a time onto a growing prefix string.
 fn enumerate_into(
   node : TrieNode,
-  prefix : String,
+  path : Array[Char],
   out : Array[String]
 ) -> Unit {
   if node.is_end {
-    out.push(prefix)
+    out.push(String::from_array(path.view()))
   }
   for i = 0; i < node.children.length(); i = i + 1 {
     let (byte_val, child) = node.children[i]
-    enumerate_into(child, prefix + unit_string(byte_val), out)
+    path.push(byte_val.to_char().unwrap())
+    enumerate_into(child, path, out)
+    let _ = path.pop()
   }
 }
 
@@ -204,17 +208,28 @@ fn enumerate_into(
 /// trie yields an empty array.
 pub fn enumerate(root : TrieNode) -> FixedArray[String] {
   let out : Array[String] = []
-  enumerate_into(root, "", out)
+  let path : Array[Char] = []
+  enumerate_into(root, path, out)
   FixedArray::from_array(out.view())
+}
+
+/// Return the byte-prefix `s[0..end]` as an owned `String`.
+///
+/// `end` must be a byte offset of `s` that falls on a UTF-8 code-point
+/// boundary. Bounds are checked by the `StringView` slice, unlike
+/// `String::unsafe_substring` which performs no validation.
+fn byte_prefix(s : String, end : Int) -> String {
+  s[:end].to_owned()
 }
 
 /// Return the longest stored string that is a prefix of `s`, or `None` if no
 /// stored string is a prefix of `s`. Walks `s` down the trie, remembering the
 /// deepest word-end seen along the way.
 ///
-/// **Warning**: The returned substring is a byte-slice of `s`. For multi-byte
-/// UTF-8 strings, this may end in the middle of a character. Callers should
-/// validate UTF-8 boundaries if working with non-ASCII strings.
+/// The returned prefix ends at a complete stored word. Because stored words
+/// are themselves valid UTF-8 `String`s, that end always lands on a UTF-8
+/// code-point boundary of `s`, so the result never splits a multi-byte
+/// character.
 pub fn longest_prefix(root : TrieNode, s : String) -> String? {
   let mut node = root
   // `best` is the length (in bytes) of the longest stored prefix found
@@ -236,10 +251,10 @@ pub fn longest_prefix(root : TrieNode, s : String) -> String? {
   if best < 0 {
     None
   } else {
-    // `best` is always a valid byte boundary of `s` that was walked
-    // through the trie, so this slice is safe at the byte level.
-    // For UTF-8 strings, the byte boundary may split a character.
-    Some(s.unsafe_substring(start=0, end=best))
+    // `best` is the byte length of a stored word whose trie path matches a
+    // prefix of `s`. That word is a valid UTF-8 `String`, so `best` is a
+    // UTF-8 code-point boundary of `s`; `byte_prefix` bounds-checks the slice.
+    Some(byte_prefix(s, best))
   }
 }
 

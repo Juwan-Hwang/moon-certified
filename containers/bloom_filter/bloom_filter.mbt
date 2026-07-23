@@ -17,6 +17,10 @@ pub struct BloomFilter {
   num_hashes : Int
 }
 
+/// ln(2), shared by `bf_ln` (range reduction) and `new` (parameter sizing).
+/// Defined once to avoid duplicating the literal across call sites.
+const BF_LN2 : Double = 0.6931471805599453
+
 /// Natural logarithm via range reduction + the atanh series.
 ///
 /// We first reduce `x` to `val` in [0.5, 1.0) by multiplying/dividing by 2,
@@ -32,7 +36,6 @@ fn bf_ln(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
   }
-  let ln2 = 0.6931471805599453
   let mut val = x
   let mut k = 0
   // Reduce to [0.5, 1.0) so |y| <= 1/3.
@@ -56,7 +59,7 @@ fn bf_ln(x : Double) -> Double {
     denom = denom + 2.0
     i = i + 1
   }
-  sum * 2.0 - k.to_double() * ln2
+  sum * 2.0 - k.to_double() * BF_LN2
 }
 
 /// Create a Bloom filter sized for `expected_items` at the given
@@ -68,14 +71,13 @@ pub fn new(expected_items : Int, false_positive_rate : Double) -> BloomFilter {
   } else {
     0.01
   }
-  let ln2 = 0.6931471805599453
   let ln_p = bf_ln(p) // negative since p < 1
   // m = -n * ln(p) / (ln(2))^2
-  let m_d = n.to_double() * (-ln_p) / (ln2 * ln2)
+  let m_d = n.to_double() * (-ln_p) / (BF_LN2 * BF_LN2)
   let m = m_d.to_int()
   let num_bits = if m > 64 { m } else { 64 }
   // k = (m / n) * ln(2)
-  let k_d = num_bits.to_double() / n.to_double() * ln2
+  let k_d = num_bits.to_double() / n.to_double() * BF_LN2
   let k_raw = k_d.to_int()
   let num_hashes = if k_raw > 1 { k_raw } else { 1 }
   let num_words = (num_bits + 63) / 64
@@ -105,8 +107,20 @@ fn bit_pos(h : Int, num_bits : Int) -> Int {
 }
 
 /// Set the bit at position `pos` in the word array.
+///
+/// **Bounds guard**: A negative `pos` or a `pos` falling outside the backing
+/// word array is silently ignored (no-op). This mirrors the defensive stance
+/// of `bf_ln`'s guard: callers (`add`) already constrain `pos` to
+/// `[0, num_bits)` via `bit_pos`, so this is a safety net against any future
+/// path that might feed in an out-of-range index, which would otherwise panic.
 fn set_bit(bits : FixedArray[UInt64], pos : Int) -> Unit {
+  if pos < 0 {
+    return
+  }
   let word = pos / 64
+  if word >= bits.length() {
+    return
+  }
   let bit = pos % 64
   bits[word] = bits[word] | (1UL << bit)
 }

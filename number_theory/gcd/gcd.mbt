@@ -10,7 +10,9 @@
 /// These properties are tested exhaustively instead.
 ///
 /// The public `gcd` function handles negative inputs by taking absolute
-/// values before calling the verified `gcd_impl`.
+/// values before calling the verified `gcd_impl`. For `Int::MIN`, whose
+/// absolute value (2³¹) overflows `Int`, the computation is performed in
+/// `Int64` to produce the mathematically correct result.
 
 /// Verified GCD implementation (requires non-negative inputs).
 /// Calling with negative `b` can cause infinite recursion because
@@ -34,23 +36,54 @@ fn gcd_impl(
   }
 }
 
+/// Int64 GCD for handling `Int::MIN` correctly.
+///
+/// `|Int::MIN|` = 2³¹ overflows `Int` (range [-2³¹, 2³¹-1]). By working in
+/// `Int64`, we can represent the full absolute value and compute the exact
+/// GCD. This is used exclusively when at least one input is `Int::MIN`.
+fn gcd64(a : Int64, b : Int64) -> Int64 {
+  let mut a = if a < 0L { -a } else { a }
+  let mut b = if b < 0L { -b } else { b }
+  while b != 0L {
+    let t = b
+    b = a % b
+    a = t
+  }
+  a
+}
+
 /// Compute the greatest common divisor of two integers.
 ///
-/// Handles negative inputs safely by taking absolute values before
-/// calling the verified `gcd_impl`. Returns 0 for `gcd(0, 0)`.
+/// Returns a non-negative result. `gcd(0, 0) = 0`.
 ///
-/// **Int::MIN safety**: On 32-bit `Int`, `|Int::MIN|` = 2³¹ which cannot
-/// be represented (Int range is [-2³¹, 2³¹-1]). We handle this by treating
-/// `Int::MIN` as having absolute value `Int::MAX` (= 2³¹-1). Since
-/// `gcd(2³¹, x) = gcd(2³¹ mod x, x)` and `2³¹ mod x = (2³¹-1+1) mod x =
-/// ((2³¹-1) mod x + 1 mod x) mod x`, using `Int::MAX` as the absolute value
-/// of `Int::MIN` introduces at most an off-by-one in the GCD, which is
-/// negligible for practical purposes. The alternative — using `Int64` —
-/// would break the verified `gcd_impl` interface.
+/// Handles negative inputs by taking absolute values. For inputs within
+/// the normal `Int` range, the verified `gcd_impl` is used. When either
+/// input is `Int::MIN` (whose absolute value 2³¹ overflows `Int`), the
+/// computation is performed in `Int64` to produce the exact result.
+///
+/// **Int::MIN edge case**: `gcd(Int::MIN, Int::MIN)` = 2³¹, which exceeds
+/// `Int::MAX`. In this sole case the result is clamped to `Int::MAX`.
+/// All other `Int::MIN` combinations produce results that fit in `Int`:
+/// - `gcd(Int::MIN, 2)` = 2
+/// - `gcd(Int::MIN, 4)` = 4
+/// - `gcd(Int::MIN, 1073741824)` = 1073741824
+/// - `gcd(Int::MIN, 5)` = 1
 pub fn gcd(a : Int, b : Int) -> Int {
-  let abs_a = if a == -2147483648 { 2147483647 } else if a >= 0 { a } else { -a }
-  let abs_b = if b == -2147483648 { 2147483647 } else if b >= 0 { b } else { -b }
-  gcd_impl(abs_a, abs_b)
+  // Fast path: neither input is Int::MIN, so |a| and |b| fit in Int.
+  if a != -2147483648 && b != -2147483648 {
+    let abs_a = if a >= 0 { a } else { -a }
+    let abs_b = if b >= 0 { b } else { -b }
+    gcd_impl(abs_a, abs_b)
+  } else {
+    // At least one input is Int::MIN: use Int64 for exact computation.
+    let result = gcd64(a.to_int64(), b.to_int64())
+    if result > 2147483647L {
+      // Only gcd(Int::MIN, Int::MIN) = 2^31 reaches here; clamp to Int::MAX.
+      2147483647
+    } else {
+      result.to_int()
+    }
+  }
 }
 
 test "gcd: basic" {
@@ -99,14 +132,40 @@ test "gcd: negative inputs handled safely" {
   assert_eq(gcd(0, -5), 5)
 }
 
-test "gcd: Int::MIN handled safely" {
-  // Int::MIN = -2147483648. |Int::MIN| overflows Int, so we use Int::MAX.
-  // gcd(Int::MIN, 5) should be 1 (gcd(2147483647, 5) = 1, since 2147483647 is prime)
+test "gcd: Int::MIN mathematically correct" {
+  // Int::MIN = -2147483648 = -2^31
+  // |Int::MIN| = 2^31, computed exactly via Int64.
+
+  // gcd(2^31, 2) = 2 — 2^31 is even, divisible by 2.
+  assert_eq(gcd(-2147483648, 2), 2)
+
+  // gcd(2^31, 4) = 4 — 2^31 is divisible by 4.
+  assert_eq(gcd(-2147483648, 4), 4)
+
+  // gcd(2^31, 8) = 8
+  assert_eq(gcd(-2147483648, 8), 8)
+
+  // gcd(2^31, 1073741824) = 1073741824 (since 1073741824 = 2^30 divides 2^31)
+  assert_eq(gcd(-2147483648, 1073741824), 1073741824)
+
+  // gcd(2^31, 5) = 1 — 2^31 is a power of 2, coprime with 5.
   assert_eq(gcd(-2147483648, 5), 1)
-  // gcd(Int::MIN, 2) should be 1 (2147483647 is odd)
-  assert_eq(gcd(-2147483648, 2), 1)
-  // gcd(Int::MIN, 1) should be 1
+
+  // gcd(2^31, 1) = 1
   assert_eq(gcd(-2147483648, 1), 1)
-  // gcd(Int::MIN, Int::MIN) should be Int::MAX
+
+  // gcd(2^31, 2^31) = 2^31 — overflows Int, clamped to Int::MAX.
   assert_eq(gcd(-2147483648, -2147483648), 2147483647)
+
+  // gcd(2^31, 3) = 1 — coprime
+  assert_eq(gcd(-2147483648, 3), 1)
+
+  // gcd(2^31, 6) = 2 — 6 = 2 * 3, gcd with 2^31 is 2
+  assert_eq(gcd(-2147483648, 6), 2)
+
+  // Verify divisibility for Int::MIN cases where g fits in Int.
+  let g = gcd(-2147483648, 6)
+  assert_eq(g, 2)
+  // 2^31 mod 2 = 0, verified via Int64
+  assert_eq(((2147483648L) % g.to_int64()), 0L)
 }
