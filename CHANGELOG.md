@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-24
+
+### Added — 8 new algorithm packages
+
+#### String
+- `aho_corasick` — Aho-Corasick multi-pattern string matching with failure links and output links. O(n + m + z) time.
+
+#### Graph
+- `min_cost_flow` — Minimum-cost maximum-flow using SPFA (Shortest Path Faster Algorithm). Linked-forward-star edge representation. O(F × V × E) worst-case.
+- `two_sat` — 2-SAT Boolean satisfiability via implication graphs and Tarjan's SCC. O(n + m) linear time.
+
+#### Trees
+- `splay` — Splay tree: self-adjusting BST with bottom-up splaying. Cached subtree sizes. Functional (immutable) node representation. Amortized O(log n) per operation.
+
+#### Number Theory
+- `bsgs` — Baby-step giant-step discrete logarithm. Solves a^x ≡ b (mod p) in O(√p) time and space. Handles edge cases (a≡0, p=1, gcd(a,p)≠1).
+- `pollard_rho` — Pollard-Rho integer factorization with Brent's improvement and Miller-Rabin primality test. Deterministic (no RNG dependency).
+
+#### Geometry
+- `kd_tree` — KD-Tree 2D spatial indexing with nearest-neighbor search (pruning via splitting-plane distance) and orthogonal range search. O(log n) average NN, O(√n + k) average range search.
+- `rotating_calipers` — Rotating calipers for convex polygon diameter and width. O(n) after convex hull. Supports both CCW and CW input orientations via signed-area detection.
+
+### Fixed
+- `rotating_calipers`: Fixed cross-product comparison that was inverted for CCW polygons. Added signed-area orientation detection (shoelace formula) to correctly handle both CCW and CW convex polygons.
+- `kd_tree`: Fixed test to verify minimum distance rather than asserting a specific point among ties.
+- `min_cost_flow`: Corrected test expectations for transport problem (flow=13, cost=71).
+- `dijkstra`: Added overflow documentation directing users to `dijkstra_heap` for Int64 protection.
+
+### Test Suite
+- Total tests: **958** (up from 830)
+- Total packages: **66** (up from 58)
+- 0 warnings, 0 errors
+
 ## [0.5.0] - 2026-07-23
 
 ### Added — 15 new algorithm packages

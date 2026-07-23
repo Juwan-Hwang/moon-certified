@@ -10,6 +10,12 @@
 /// ignored rather than causing incorrect results. For graphs with negative
 /// weights, use Bellman-Ford (`graph/advanced`) instead.
 ///
+/// **Overflow**: Distance accumulation uses 32-bit `Int`. If the shortest
+/// path distance exceeds `Int::max_value` (2³¹−1), the result will be
+/// incorrect due to integer overflow. For graphs with large cumulative
+/// weights, use `graph/dijkstra_heap` which uses Int64 internally and
+/// clamps overflowing distances to `None`.
+///
 /// Verified by `moon prove` (on `dijkstra_impl`):
 /// - result.length() == n (array length, proven by Z3)
 /// - loop bounds (step, i, v all stay in [0, n])
