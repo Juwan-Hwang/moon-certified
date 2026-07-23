@@ -9,7 +9,7 @@
 
 /// Lower bound: first index where xs[i] >= target.
 /// Returns xs.length() if all elements are smaller than target.
-/// Returns -1 for empty array.
+/// Returns 0 for empty array.
 pub fn[T] lower_bound(
   xs : FixedArray[T],
   target : T,
@@ -17,7 +17,7 @@ pub fn[T] lower_bound(
 ) -> Int {
   let n = xs.length()
   if n == 0 {
-    return -1
+    return 0
   }
   let mut lo = 0
   let mut hi = n
@@ -34,7 +34,7 @@ pub fn[T] lower_bound(
 
 /// Upper bound: first index where xs[i] > target.
 /// Returns xs.length() if all elements are <= target.
-/// Returns -1 for empty array.
+/// Returns 0 for empty array.
 pub fn[T] upper_bound(
   xs : FixedArray[T],
   target : T,
@@ -42,7 +42,7 @@ pub fn[T] upper_bound(
 ) -> Int {
   let n = xs.length()
   if n == 0 {
-    return -1
+    return 0
   }
   let mut lo = 0
   let mut hi = n
@@ -125,8 +125,8 @@ test "binary_search_generic: not found" {
 
 test "bound_search: empty array" {
   let xs = FixedArray::make(0, 0)
-  assert_eq(lower_bound(xs, 5, fn(a, b) { a - b }), -1)
-  assert_eq(upper_bound(xs, 5, fn(a, b) { a - b }), -1)
+  assert_eq(lower_bound(xs, 5, fn(a, b) { a - b }), 0)
+  assert_eq(upper_bound(xs, 5, fn(a, b) { a - b }), 0)
   assert_true(binary_search_generic(xs, 5, fn(a, b) { a - b }) is None)
 }
 

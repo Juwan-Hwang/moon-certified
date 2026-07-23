@@ -1,26 +1,19 @@
 /// Sum all elements of a non-negative array.
 ///
-/// Verified properties:
-/// 1. result >= 0 when all elements are non-negative (proven by Z3)
-/// 2. result == Σ xs[i] for all i (via axiomatized lemma — recursive sum)
+/// Verified by `moon prove`:
+/// - result >= 0 when all elements are non-negative (proven by Z3)
 ///
-/// Full correctness (result equals the exact mathematical sum) is
-/// established through `array_sum_correct_lemma` below, declared as
-/// `proof_axiomatized` because expressing the recursive sum requires
-/// inductive reasoning that Z3 cannot always discharge automatically.
-
-/// Axiomatized lemma: the loop result equals the mathematical sum
-/// of all elements in the array.
-pub fn array_sum_correct_lemma(
-  xs : FixedArray[Int],
-  result : Int,
-) -> Unit where {
-  proof_axiomatized: true,
-  proof_require: result == array_sum(xs),
-  proof_ensure: result >= 0,
-} {
-  // proof_axiomatized: contract assumed without proof.
-}
+/// Not verified (requires inductive reasoning about loop accumulation):
+/// - result == Σ xs[i] (full correctness)
+///
+/// Full correctness is tested exhaustively instead.
+///
+/// **Overflow**: The sum is computed using 32-bit `Int` arithmetic.
+/// If the true mathematical sum exceeds 2³¹−1, the result silently
+/// wraps to a negative value, invalidating the non-negativity guarantee.
+/// The proof models `Int` as mathematical integers, so it is correct
+/// in the mathematical model but not at runtime when overflow occurs.
+/// Callers must ensure the sum fits in 32-bit `Int`.
 
 pub fn array_sum(
   xs : FixedArray[Int],
@@ -41,9 +34,6 @@ pub fn array_sum(
       #| The loop accumulates the sum of elements.
       #| Since every element is non-negative (by precondition),
       #| the running sum stays non-negative throughout.
-      #|
-      #| The full correctness (result == Σ xs[i]) is established
-      #| by array_sum_correct_lemma as an axiomatized property.
     ),
   }
 }
