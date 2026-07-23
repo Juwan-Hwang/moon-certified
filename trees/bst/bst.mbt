@@ -59,7 +59,12 @@ fn remove_node(left : Node, right : Node) -> Node {
       match right {
         Empty => left
         _ => {
-          let succ = find_min(right).unwrap_or(0)
+          // right is non-empty here (previous match arm handles Empty),
+          // so find_min always returns Some. Use abort for the impossible case.
+          let succ = match find_min(right) {
+            Some(v) => v
+            None => abort("unreachable: find_min on non-empty tree")
+          }
           Node(left, succ, delete(right, succ))
         }
       }
