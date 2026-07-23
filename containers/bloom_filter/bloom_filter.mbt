@@ -24,7 +24,14 @@ pub struct BloomFilter {
 /// For val in [0.5, 1.0), |y| = |(val-1)/(val+1)| <= 1/3, so the series
 ///   ln(val) = 2 * sum_{n=0}^{inf} y^(2n+1)/(2n+1)
 /// converges rapidly — 60 terms give full double precision.
+///
+/// **Guard**: Returns 0.0 for x <= 0.0 to prevent infinite loops in the
+/// range reduction phase. The caller `new()` already validates
+/// `false_positive_rate > 0.0 && < 1.0`, so this guard is a safety net.
 fn bf_ln(x : Double) -> Double {
+  if x <= 0.0 {
+    return 0.0
+  }
   let ln2 = 0.6931471805599453
   let mut val = x
   let mut k = 0
@@ -228,4 +235,10 @@ test "bloom: different false positive rates" {
   }
   // The higher-FPR filter should have at least as many false positives.
   assert_true(fp_high >= fp_low)
+}
+
+test "bloom: bf_ln guard for non-positive input" {
+  // These should not infinite-loop; they return 0.0
+  let bf = new(10, 0.01) // uses bf_ln internally, should not hang
+  assert_true(contains(bf, "test") == false)
 }

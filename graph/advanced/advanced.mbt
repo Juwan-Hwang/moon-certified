@@ -138,8 +138,12 @@ pub fn floyd_warshall(
   if n <= 0 || graph.length() < n * n {
     return None
   }
-  let inf = 500_000_000
-  let dist = FixedArray::make(n * n, inf)
+  // Sentinel for "no path discovered yet". Chosen so that INF + INF = 10⁹
+  // stays well within Int32 range (max ≈ 2.147×10⁹), preventing overflow
+  // during relaxation. Edge weights must satisfy |w| < INF/n to guarantee
+  // no overflow over a path of n edges.
+  let inf_sentinel = 500_000_000
+  let dist = FixedArray::make(n * n, inf_sentinel)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
       if i == j {
@@ -162,10 +166,10 @@ pub fn floyd_warshall(
   for k = 0; k < n; k = k + 1 {
     for i = 0; i < n; i = i + 1 {
       let dik = dist[i * n + k]
-      if dik != inf {
+      if dik != inf_sentinel {
         for j = 0; j < n; j = j + 1 {
           let dkj = dist[k * n + j]
-          if dkj != inf {
+          if dkj != inf_sentinel {
             let nd = dik + dkj
             if nd < dist[i * n + j] {
               dist[i * n + j] = nd
@@ -187,7 +191,7 @@ pub fn floyd_warshall(
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
       let d = dist[i * n + j]
-      if d != inf {
+      if d != inf_sentinel {
         result[i * n + j] = Some(d)
       }
     }

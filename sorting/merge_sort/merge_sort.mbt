@@ -215,3 +215,52 @@ test "merge_sort: generic with String" {
   assert_eq(xs[3], "date")
   assert_eq(xs[4], "elderberry")
 }
+
+test "merge_sort: stability" {
+  // Stability: when two elements compare as equal, their relative order
+  // from the original array is preserved. We test this by sorting (key, tag)
+  // pairs using a comparator that only looks at the key, then checking that
+  // tags within each key group are in ascending order.
+  let xs = FixedArray::make(10, (0, 0))
+  // Keys: 3, 1, 3, 2, 1, 3, 2, 1, 2, 3 (3 groups of 3,1,2)
+  xs[0] = (3, 0)
+  xs[1] = (1, 1)
+  xs[2] = (3, 2)
+  xs[3] = (2, 3)
+  xs[4] = (1, 4)
+  xs[5] = (3, 5)
+  xs[6] = (2, 6)
+  xs[7] = (1, 7)
+  xs[8] = (2, 8)
+  xs[9] = (3, 9)
+  // Compare only by key (first element).
+  let key_cmp = fn(a : (Int, Int), b : (Int, Int)) -> Int {
+    a.0 - b.0
+  }
+  merge_sort(xs, key_cmp)
+  // Keys should be sorted: 1,1,1, 2,2,2, 3,3,3,3
+  assert_eq(xs[0].0, 1)
+  assert_eq(xs[1].0, 1)
+  assert_eq(xs[2].0, 1)
+  assert_eq(xs[3].0, 2)
+  assert_eq(xs[4].0, 2)
+  assert_eq(xs[5].0, 2)
+  assert_eq(xs[6].0, 3)
+  assert_eq(xs[7].0, 3)
+  assert_eq(xs[8].0, 3)
+  assert_eq(xs[9].0, 3)
+  // Tags within each key group must be in ascending order (stability).
+  // Key 1 group: tags should be 1, 4, 7 (original order)
+  assert_eq(xs[0].1, 1)
+  assert_eq(xs[1].1, 4)
+  assert_eq(xs[2].1, 7)
+  // Key 2 group: tags should be 3, 6, 8
+  assert_eq(xs[3].1, 3)
+  assert_eq(xs[4].1, 6)
+  assert_eq(xs[5].1, 8)
+  // Key 3 group: tags should be 0, 2, 5, 9
+  assert_eq(xs[6].1, 0)
+  assert_eq(xs[7].1, 2)
+  assert_eq(xs[8].1, 5)
+  assert_eq(xs[9].1, 9)
+}

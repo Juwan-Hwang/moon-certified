@@ -37,12 +37,14 @@ pub fn heap_new(capacity : Int) -> Heap {
 }
 
 /// Push `val` onto the heap.
-/// If the backing array is full the push is silently ignored, leaving the
-/// heap unchanged.
-pub fn Heap::heap_push(self : Heap, val : Int) -> Unit {
+/// Returns `Some(())` on success, `None` if the backing array is full.
+pub fn Heap::heap_push(self : Heap, val : Int) -> Unit? {
   match heap_push(self.data, self.size, val) {
-    Some(new_size) => self.size = new_size
-    None => ()
+    Some(new_size) => {
+      self.size = new_size
+      Some(())
+    }
+    None => None
   }
 }
 
@@ -369,9 +371,9 @@ test "heap_sort: permutation check" {
 test "Heap: encapsulated push and pop" {
   let h = heap_new(10)
   assert_true(h.heap_is_empty())
-  h.heap_push(5)
-  h.heap_push(3)
-  h.heap_push(7)
+  assert_true(h.heap_push(5) is Some(_))
+  assert_true(h.heap_push(3) is Some(_))
+  assert_true(h.heap_push(7) is Some(_))
   assert_eq(h.heap_size(), 3)
   assert_eq(h.heap_peek(), Some(3))
   assert_eq(h.heap_pop(), Some(3))
@@ -396,13 +398,13 @@ test "Heap: build from array" {
 
 test "Heap: interleave operations" {
   let h = heap_new(20)
-  h.heap_push(5)
-  h.heap_push(3)
-  h.heap_push(8)
-  h.heap_push(1)
-  h.heap_push(9)
+  let _ = h.heap_push(5)
+  let _ = h.heap_push(3)
+  let _ = h.heap_push(8)
+  let _ = h.heap_push(1)
+  let _ = h.heap_push(9)
   assert_eq(h.heap_pop(), Some(1))
-  h.heap_push(2)
+  let _ = h.heap_push(2)
   assert_eq(h.heap_pop(), Some(2))
   assert_eq(h.heap_pop(), Some(3))
   assert_eq(h.heap_pop(), Some(5))
@@ -410,4 +412,15 @@ test "Heap: interleave operations" {
   assert_eq(h.heap_pop(), Some(9))
   assert_true(h.heap_is_empty())
   assert_true(h.heap_pop() is None)
+}
+
+test "Heap: push to full returns None" {
+  let h = heap_new(2)
+  assert_true(h.heap_push(5) is Some(_))
+  assert_true(h.heap_push(3) is Some(_))
+  // Heap is now full
+  assert_true(h.heap_push(7) is None)
+  // Verify heap state unchanged
+  assert_eq(h.heap_size(), 2)
+  assert_eq(h.heap_peek(), Some(3))
 }

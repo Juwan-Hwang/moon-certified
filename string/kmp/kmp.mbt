@@ -38,38 +38,6 @@ pub fn build_lps(pattern : String) -> FixedArray[Int] {
   lps
 }
 
-/// Advance KMP state by one step.
-/// Returns (new_i, new_j, match_position) where match_position is
-/// Some(pos) if a match was found at position pos, None otherwise.
-fn kmp_step(
-  text : String,
-  pattern : String,
-  lps : FixedArray[Int],
-  i : Int,
-  j : Int,
-  m : Int,
-  n : Int,
-) -> (Int, Int, Int?) {
-  let mut ci = i
-  let mut cj = j
-  let mut match_pos : Int? = None
-  if ci < n && text[ci] == pattern[cj] {
-    ci = ci + 1
-    cj = cj + 1
-  }
-  if cj == m {
-    match_pos = Some(ci - m)
-    cj = lps[cj - 1]
-  } else if ci < n && text[ci] != pattern[cj] {
-    if cj != 0 {
-      cj = lps[cj - 1]
-    } else {
-      ci = ci + 1
-    }
-  }
-  (ci, cj, match_pos)
-}
-
 /// Search for pattern in text using KMP algorithm.
 ///
 /// Returns `Some(index)` for the first match, or `None` if not found.
@@ -91,11 +59,16 @@ pub fn kmp_search(
   let mut i = 0
   let mut j = 0
   while i < n {
-    let (ni, nj, match_pos) = kmp_step(text, pattern, lps, i, j, m, n)
-    i = ni
-    j = nj
-    if match_pos is Some(_) {
-      return match_pos
+    if text[i] == pattern[j] {
+      i = i + 1
+      j = j + 1
+      if j == m {
+        return Some(i - m)
+      }
+    } else if j != 0 {
+      j = lps[j - 1]
+    } else {
+      i = i + 1
     }
   }
   None
@@ -118,11 +91,17 @@ pub fn kmp_search_all(
   let mut i = 0
   let mut j = 0
   while i < n {
-    let (ni, nj, match_pos) = kmp_step(text, pattern, lps, i, j, m, n)
-    i = ni
-    j = nj
-    if match_pos is Some(_) {
-      count = count + 1
+    if text[i] == pattern[j] {
+      i = i + 1
+      j = j + 1
+      if j == m {
+        count = count + 1
+        j = lps[j - 1]
+      }
+    } else if j != 0 {
+      j = lps[j - 1]
+    } else {
+      i = i + 1
     }
   }
   // Second pass: collect match positions
@@ -131,12 +110,18 @@ pub fn kmp_search_all(
   i = 0
   j = 0
   while i < n {
-    let (ni, nj, match_pos) = kmp_step(text, pattern, lps, i, j, m, n)
-    i = ni
-    j = nj
-    if match_pos is Some(_) {
-      result[idx] = match_pos.unwrap()
-      idx = idx + 1
+    if text[i] == pattern[j] {
+      i = i + 1
+      j = j + 1
+      if j == m {
+        result[idx] = i - m
+        idx = idx + 1
+        j = lps[j - 1]
+      }
+    } else if j != 0 {
+      j = lps[j - 1]
+    } else {
+      i = i + 1
     }
   }
   result

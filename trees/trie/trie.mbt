@@ -1,32 +1,68 @@
 /// Trie (prefix tree) for byte-indexed string keys.
 ///
-/// Each node holds 256 child slots (one per byte value). Insertion, exact
-/// search, prefix lookup, and deletion all run in O(m) where m is the key
-/// length.
+/// Uses a sparse child representation: each node stores an `Array[(Int, TrieNode)]`
+/// of (byte_value, child) pairs instead of a dense 256-slot array. This reduces
+/// memory by ~90% for typical text inputs where most nodes have only 1-2 children.
+/// Trade-off: child lookup is O(k) per node (k = number of children) instead of
+/// O(1), but k is typically very small (1-10).
+///
+/// Insertion, exact search, prefix lookup, and deletion all run in O(m * k)
+/// where m is the key length and k is the average branching factor (typically
+/// small for text data).
 ///
 /// IMPORTANT: MoonBit's String indexing is byte-level, not Unicode codepoint.
 /// For multi-byte UTF-8 strings the trie operates on raw bytes, which is
 /// correct for ASCII keys and for exact byte-sequence matching of any string.
+/// However, `longest_prefix` returns a byte-slice of the input string, which
+/// may split a multi-byte UTF-8 character at a byte boundary. Callers should
+/// validate UTF-8 boundaries if working with non-ASCII strings.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
 /// A trie node.
 ///
-/// `children` is a 256-entry array indexed by byte value; each slot is `None`
-/// or `Some(child)`. The FixedArray contents are mutated in place, so the
-/// field does not need `mut`. `is_end` is reassigned during insert/remove and
-/// therefore requires `mut`. `count` is the number of words stored under this
-/// node; it is maintained only at the root (by `insert`/`remove`) and read by
-/// `size`.
+/// `children` is a sparse array of (byte_value, child_node) pairs, kept sorted
+/// by byte value for deterministic enumeration order. `is_end` marks a complete
+/// word at this node. `count` tracks the total number of words (maintained at
+/// the root only).
 pub struct TrieNode {
-  children : FixedArray[TrieNode?]
+  children : Array[(Int, TrieNode)]
   mut is_end : Bool
   mut count : Int
 }
 
 /// Create an empty trie (a root node with no children, not a word end).
 pub fn empty() -> TrieNode {
-  { children: FixedArray::make(256, None), is_end: false, count: 0 }
+  { children: [], is_end: false, count: 0 }
+}
+
+/// Find a child by byte value. Returns the child node or None.
+fn find_child(node : TrieNode, byte_val : Int) -> TrieNode? {
+  let mut i = 0
+  while i < node.children.length() {
+    let (b, child) = node.children[i]
+    if b == byte_val {
+      return Some(child)
+    }
+    if b > byte_val {
+      return None // children are sorted, so no match possible
+    }
+    i = i + 1
+  }
+  None
+}
+
+/// Insert a child at the correct sorted position.
+fn insert_child(node : TrieNode, byte_val : Int, child : TrieNode) -> Unit {
+  let mut i = 0
+  while i < node.children.length() {
+    let (b, _) = node.children[i]
+    if b > byte_val {
+      break
+    }
+    i = i + 1
+  }
+  node.children.insert(i, (byte_val, child))
 }
 
 /// Follow the path of `word` through the trie. Returns the terminal node, or
@@ -35,11 +71,10 @@ fn find_node(root : TrieNode, word : String) -> TrieNode? {
   let mut node = root
   for i = 0; i < word.length(); i = i + 1 {
     let idx = word[i].to_int()
-    let child = node.children[idx]
-    if child is None {
-      return None
+    match find_child(node, idx) {
+      None => return None
+      Some(child) => node = child
     }
-    node = child.unwrap()
   }
   Some(node)
 }
@@ -50,13 +85,13 @@ pub fn insert(root : TrieNode, word : String) -> Unit {
   let mut node = root
   for i = 0; i < word.length(); i = i + 1 {
     let idx = word[i].to_int()
-    let child = node.children[idx]
-    if child is None {
-      let new_child = empty()
-      node.children[idx] = Some(new_child)
-      node = new_child
-    } else {
-      node = child.unwrap()
+    match find_child(node, idx) {
+      None => {
+        let new_child = empty()
+        insert_child(node, idx, new_child)
+        node = new_child
+      }
+      Some(child) => node = child
     }
   }
   // Only tally a genuinely new word so `count` tracks distinct insertions.
@@ -82,12 +117,7 @@ pub fn starts_with(root : TrieNode, prefix : String) -> Bool {
 
 /// True iff `node` has at least one child.
 fn has_children(node : TrieNode) -> Bool {
-  for i = 0; i < 256; i = i + 1 {
-    if node.children[i] is Some(_) {
-      return true
-    }
-  }
-  false
+  node.children.length() > 0
 }
 
 /// Recursive removal helper.
@@ -104,19 +134,27 @@ fn remove_helper(node : TrieNode, word : String, depth : Int) -> Bool {
     return true
   }
   let idx = word[depth].to_int()
-  let child = node.children[idx]
-  if child is None {
-    return false // path does not exist
-  }
-  let found = remove_helper(child.unwrap(), word, depth + 1)
-  if found {
-    // Prune: if the child is now a dead end, detach it.
-    let c = child.unwrap()
-    if !c.is_end && !has_children(c) {
-      node.children[idx] = None
+  match find_child(node, idx) {
+    None => return false // path does not exist
+    Some(child) => {
+      let found = remove_helper(child, word, depth + 1)
+      if found {
+        // Prune: if the child is now a dead end, detach it.
+        if !child.is_end && !has_children(child) {
+          let mut i = 0
+          while i < node.children.length() {
+            let (b, _) = node.children[i]
+            if b == idx {
+              let _ = node.children.remove(i)
+              break
+            }
+            i = i + 1
+          }
+        }
+      }
+      found
     }
   }
-  found
 }
 
 /// Remove a word from the trie. Returns true if the word was found and
@@ -138,15 +176,15 @@ pub fn size(root : TrieNode) -> Int {
   root.count
 }
 
-/// Rebuild the one-character string for a child index (a UTF-16 code-unit
-/// value in 0..255). Used to reconstruct keys while walking the trie.
+/// Rebuild the one-character string for a child index (a byte value 0..255).
 fn unit_string(idx : Int) -> String {
   String::make(1, idx.to_char().unwrap())
 }
 
 /// Depth-first helper for `enumerate`. Pushes every word-ending under `node`
-/// into `out`, prefixed by `prefix`. Children are visited in ascending index
-/// order, so words come out lexicographically sorted by code-unit sequence.
+/// into `out`, prefixed by `prefix`. Children are visited in ascending byte
+/// value order (because they're stored sorted), so words come out
+/// lexicographically sorted by code-unit sequence.
 fn enumerate_into(
   node : TrieNode,
   prefix : String,
@@ -155,11 +193,9 @@ fn enumerate_into(
   if node.is_end {
     out.push(prefix)
   }
-  for i = 0; i < 256; i = i + 1 {
-    let child = node.children[i]
-    if child is Some(c) {
-      enumerate_into(c, prefix + unit_string(i), out)
-    }
+  for i = 0; i < node.children.length(); i = i + 1 {
+    let (byte_val, child) = node.children[i]
+    enumerate_into(child, prefix + unit_string(byte_val), out)
   }
 }
 
@@ -175,27 +211,34 @@ pub fn enumerate(root : TrieNode) -> FixedArray[String] {
 /// Return the longest stored string that is a prefix of `s`, or `None` if no
 /// stored string is a prefix of `s`. Walks `s` down the trie, remembering the
 /// deepest word-end seen along the way.
+///
+/// **Warning**: The returned substring is a byte-slice of `s`. For multi-byte
+/// UTF-8 strings, this may end in the middle of a character. Callers should
+/// validate UTF-8 boundaries if working with non-ASCII strings.
 pub fn longest_prefix(root : TrieNode, s : String) -> String? {
   let mut node = root
-  // `best` is the length (in code units) of the longest stored prefix found
+  // `best` is the length (in bytes) of the longest stored prefix found
   // so far, or -1 when none has been found. `0` means the empty string is
   // stored and is therefore a prefix of any input.
   let mut best = if root.is_end { 0 } else { -1 }
   for i = 0; i < s.length(); i = i + 1 {
     let idx = s[i].to_int()
-    let child = node.children[idx]
-    if child is None {
-      break
-    }
-    node = child.unwrap()
-    if node.is_end {
-      best = i + 1
+    match find_child(node, idx) {
+      None => break
+      Some(child) => {
+        node = child
+        if node.is_end {
+          best = i + 1
+        }
+      }
     }
   }
   if best < 0 {
     None
   } else {
-    // `best` is always a valid code-unit boundary of `s`, so this slice is safe.
+    // `best` is always a valid byte boundary of `s` that was walked
+    // through the trie, so this slice is safe at the byte level.
+    // For UTF-8 strings, the byte boundary may split a character.
     Some(s.unsafe_substring(start=0, end=best))
   }
 }

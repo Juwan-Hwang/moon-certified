@@ -11,6 +11,15 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
 /// Sentinel value meaning "no connecting edge known yet".
+///
+/// Chosen as 10⁹ (well below Int::max_value ≈ 2.147×10⁹) so that
+/// arithmetic on `key` values does not overflow.
+///
+/// **Design limitation**: In the adjacency matrix convention, a weight of
+/// `0` means "no edge". This means zero-weight edges cannot be
+/// represented. For applications requiring zero-weight edges, use a
+/// different graph representation (e.g., adjacency list) or shift all
+/// weights by +1.
 let inf : Int = 1000000000
 
 /// Compute a minimum spanning tree (or forest) rooted at vertex 0.
