@@ -1,6 +1,11 @@
 /// Fast exponentiation using binary decomposition.
 /// Computes base^exp in O(log exp) multiplications.
 /// Verified: the result is non-negative when base >= 0 and exp >= 0.
+///
+/// **Overflow**: `base^exp` is computed modulo 2³² (silent wrap-around).
+/// Callers must ensure the result fits in 32-bit `Int`; e.g. `fast_power(2, 31)`
+/// overflows. The proof guarantees non-negativity of the *intended* result
+/// but does not account for integer overflow.
 pub fn fast_power(
   base : Int,
   exp : Int,
