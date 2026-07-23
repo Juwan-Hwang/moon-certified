@@ -1,12 +1,13 @@
-/// Min-heap operations on a FixedArray[Int].
+/// Binary heap operations on a FixedArray[Int].
 ///
 /// The heap uses 0-indexed binary tree:
 ///   parent(i) = (i-1)/2, left(i) = 2*i+1, right(i) = 2*i+2.
 ///
+/// Min-heap by default. heap_sort uses max-heap internally.
 /// All public functions validate inputs and return safe values on error:
 /// - heap_push returns -1 if the array is full (size >= capacity)
-/// - heap_pop returns None if the heap is empty (size <= 0)
-/// - sift_up / sift_down are no-ops on invalid indices
+/// - heap_pop returns (None, size) if the heap is empty, (Some(val), new_size) on success
+/// - build_heap and heap_sort handle empty/single-element arrays
 ///
 /// Not formally verified (while loops with mutable state).
 /// Correctness ensured by comprehensive tests including permutation checks.
@@ -18,27 +19,15 @@ fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
-/// Sift up from position idx to restore min-heap property.
-/// No-op if idx is out of bounds. Internal helper.
-fn sift_up(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
-  if idx < 0 || idx >= size {
-    return
-  }
-  let mut i = idx
-  while i > 0 {
-    let parent = (i - 1) / 2
-    if xs[i] < xs[parent] {
-      swap(xs, i, parent)
-      i = parent
-    } else {
-      break
-    }
-  }
-}
-
-/// Sift down from position idx within heap of given size.
-/// No-op if idx is out of bounds or size <= 0. Internal helper.
-fn sift_down(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
+/// Sift down with a custom comparison function.
+/// `should_swap(a, b)` returns true if a should be above b in the heap.
+/// This unifies min-heap (a < b) and max-heap (a > b) into one function.
+fn sift_down_cmp(
+  xs : FixedArray[Int],
+  size : Int,
+  idx : Int,
+  should_swap : (Int, Int) -> Bool,
+) -> Unit {
   if idx < 0 || size <= 0 || idx >= size {
     return
   }
@@ -46,18 +35,40 @@ fn sift_down(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
   while true {
     let left = 2 * i + 1
     let right = 2 * i + 2
-    let mut smallest = i
-    if left < size && xs[left] < xs[smallest] {
-      smallest = left
+    let mut target = i
+    if left < size && should_swap(xs[left], xs[target]) {
+      target = left
     }
-    if right < size && xs[right] < xs[smallest] {
-      smallest = right
+    if right < size && should_swap(xs[right], xs[target]) {
+      target = right
     }
-    if smallest == i {
+    if target == i {
       break
     }
-    swap(xs, i, smallest)
-    i = smallest
+    swap(xs, i, target)
+    i = target
+  }
+}
+
+/// Sift up with a custom comparison function.
+fn sift_up_cmp(
+  xs : FixedArray[Int],
+  size : Int,
+  idx : Int,
+  should_swap : (Int, Int) -> Bool,
+) -> Unit {
+  if idx < 0 || idx >= size {
+    return
+  }
+  let mut i = idx
+  while i > 0 {
+    let parent = (i - 1) / 2
+    if should_swap(xs[i], xs[parent]) {
+      swap(xs, i, parent)
+      i = parent
+    } else {
+      break
+    }
   }
 }
 
@@ -70,13 +81,13 @@ pub fn build_heap(xs : FixedArray[Int]) -> Int {
   }
   let mut i = n / 2 - 1
   while i >= 0 {
-    sift_down(xs, n, i)
+    sift_down_cmp(xs, n, i, fn(a, b) { a < b })
     i = i - 1
   }
   n
 }
 
-/// Push a value onto the heap. Returns new size on success, or -1 if full.
+/// Push a value onto the min-heap. Returns new size on success, or -1 if full.
 pub fn heap_push(
   xs : FixedArray[Int],
   size : Int,
@@ -87,23 +98,24 @@ pub fn heap_push(
     return -1
   }
   xs[size] = val
-  sift_up(xs, size + 1, size)
+  sift_up_cmp(xs, size + 1, size, fn(a, b) { a < b })
   size + 1
 }
 
 /// Pop the minimum element from the heap.
-/// Returns Some(min_val) on success, None if heap is empty.
+/// Returns (Some(min_val), new_size) on success, (None, size) if heap is empty.
+/// The new_size is always returned so callers don't need to manually track it.
 pub fn heap_pop(
   xs : FixedArray[Int],
   size : Int,
-) -> Int? {
+) -> (Int?, Int) {
   if size <= 0 {
-    return None
+    return (None, 0)
   }
   let min_val = xs[0]
   xs[0] = xs[size - 1]
-  sift_down(xs, size - 1, 0)
-  Some(min_val)
+  sift_down_cmp(xs, size - 1, 0, fn(a, b) { a < b })
+  (Some(min_val), size - 1)
 }
 
 /// Heap sort: sorts the array in ascending order using a max-heap.
@@ -118,36 +130,15 @@ pub fn heap_sort(xs : FixedArray[Int]) -> Unit {
   // Build max-heap: sift each non-leaf node down using > comparison
   let mut i = n / 2 - 1
   while i >= 0 {
-    sift_down_max(xs, n, i)
+    sift_down_cmp(xs, n, i, fn(a, b) { a > b })
     i = i - 1
   }
   // Extract max to end, shrink heap
   let mut end = n - 1
   while end > 0 {
     swap(xs, 0, end)
-    sift_down_max(xs, end, 0)
+    sift_down_cmp(xs, end, 0, fn(a, b) { a > b })
     end = end - 1
-  }
-}
-
-/// Sift down for max-heap (internal helper for heap_sort).
-fn sift_down_max(xs : FixedArray[Int], size : Int, idx : Int) -> Unit {
-  let mut i = idx
-  while true {
-    let left = 2 * i + 1
-    let right = 2 * i + 2
-    let mut largest = i
-    if left < size && xs[left] > xs[largest] {
-      largest = left
-    }
-    if right < size && xs[right] > xs[largest] {
-      largest = right
-    }
-    if largest == i {
-      break
-    }
-    swap(xs, i, largest)
-    i = largest
   }
 }
 
@@ -197,15 +188,17 @@ test "heap_pop: basic" {
   xs[2] = 2
   xs[3] = 5
   xs[4] = 4
-  let result = heap_pop(xs, 5)
+  let (result, new_size) = heap_pop(xs, 5)
   assert_true(result is Some(_))
   assert_eq(result.unwrap(), 1)
+  assert_eq(new_size, 4)
 }
 
 test "heap_pop: empty" {
   let xs = FixedArray::make(5, 0)
-  let result = heap_pop(xs, 0)
+  let (result, new_size) = heap_pop(xs, 0)
   assert_true(result is None)
+  assert_eq(new_size, 0)
 }
 
 test "heap_pop: interleave push" {
@@ -216,18 +209,24 @@ test "heap_pop: interleave push" {
   size = heap_push(xs, size, 8)
   size = heap_push(xs, size, 1)
   size = heap_push(xs, size, 9)
-  assert_eq(heap_pop(xs, size).unwrap(), 1)
-  size = size - 1
+  let (r1, s1) = heap_pop(xs, size)
+  assert_eq(r1.unwrap(), 1)
+  size = s1
   size = heap_push(xs, size, 2)
-  assert_eq(heap_pop(xs, size).unwrap(), 2)
-  size = size - 1
-  assert_eq(heap_pop(xs, size).unwrap(), 3)
-  size = size - 1
-  assert_eq(heap_pop(xs, size).unwrap(), 5)
-  size = size - 1
-  assert_eq(heap_pop(xs, size).unwrap(), 8)
-  size = size - 1
-  assert_eq(heap_pop(xs, size).unwrap(), 9)
+  let (r2, s2) = heap_pop(xs, size)
+  assert_eq(r2.unwrap(), 2)
+  size = s2
+  let (r3, s3) = heap_pop(xs, size)
+  assert_eq(r3.unwrap(), 3)
+  size = s3
+  let (r4, s4) = heap_pop(xs, size)
+  assert_eq(r4.unwrap(), 5)
+  size = s4
+  let (r5, s5) = heap_pop(xs, size)
+  assert_eq(r5.unwrap(), 8)
+  size = s5
+  let (r6, _) = heap_pop(xs, size)
+  assert_eq(r6.unwrap(), 9)
 }
 
 test "heap_sort: basic" {
@@ -270,21 +269,16 @@ test "heap_sort: single" {
 }
 
 test "heap_sort: permutation check" {
-  // Verify that sorted output is a permutation of input,
-  // not just that it's sorted.
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
-  // Count original frequencies
   let orig_freq = FixedArray::make(31, 0)
   for k = 0; k < n; k = k + 1 {
     orig_freq[xs[k]] = orig_freq[xs[k]] + 1
   }
   heap_sort(xs)
-  // Verify sorted
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(xs[k] <= xs[k + 1])
   }
-  // Verify permutation: same frequencies
   let sorted_freq = FixedArray::make(31, 0)
   for k = 0; k < n; k = k + 1 {
     sorted_freq[xs[k]] = sorted_freq[xs[k]] + 1
