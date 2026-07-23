@@ -30,13 +30,32 @@ pub fn is_sorted(
   }
 }
 
+/// Generic version: check whether an array is sorted according to
+/// the provided comparator. Not formally verified (opaque comparator).
+///
+/// Comparator convention: cmp(a, b) returns negative if a < b,
+/// zero if a == b, positive if a > b.
+pub fn[T] is_sorted_generic(
+  xs : FixedArray[T],
+  cmp : (T, T) -> Int,
+) -> Bool {
+  for i = 0; i < xs.length() - 1; {
+    if cmp(xs[i], xs[i + 1]) > 0 {
+      break false
+    }
+    continue i + 1
+  } nobreak {
+    true
+  }
+}
+
 test "is_sorted: sorted array" {
-  let xs = FixedArray::makei(5, fn(i) { i })  // [0, 1, 2, 3, 4]
+  let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   assert_eq(is_sorted(xs), true)
 }
 
 test "is_sorted: unsorted array" {
-  let xs = FixedArray::makei(5, fn(i) { 4 - i })  // [4, 3, 2, 1, 0]
+  let xs = FixedArray::makei(5, fn(i) { 4 - i }) // [4, 3, 2, 1, 0]
   assert_eq(is_sorted(xs), false)
 }
 
@@ -51,6 +70,65 @@ test "is_sorted: single element" {
 }
 
 test "is_sorted: with duplicates" {
-  let xs = FixedArray::makei(6, fn(i) { i / 2 })  // [0, 0, 1, 1, 2, 2]
+  let xs = FixedArray::makei(6, fn(i) { i / 2 }) // [0, 0, 1, 1, 2, 2]
   assert_eq(is_sorted(xs), true)
+}
+
+test "is_sorted_generic: Int sorted" {
+  let xs = FixedArray::makei(5, fn(i) { i })
+  assert_eq(is_sorted_generic(xs, fn(a, b) { a - b }), true)
+}
+
+test "is_sorted_generic: Int unsorted" {
+  let xs = FixedArray::makei(5, fn(i) { 4 - i })
+  assert_eq(is_sorted_generic(xs, fn(a, b) { a - b }), false)
+}
+
+test "is_sorted_generic: String sorted" {
+  let xs = FixedArray::make(3, "")
+  xs[0] = "apple"
+  xs[1] = "banana"
+  xs[2] = "cherry"
+  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
+  let str_cmp = fn(a : String, b : String) -> Int {
+    let la = a.length()
+    let lb = b.length()
+    let min = if la < lb { la } else { lb }
+    for k = 0; k < min; k = k + 1 {
+      let ca = a[k].to_int()
+      let cb = b[k].to_int()
+      if ca < cb { return -1 }
+      if ca > cb { return 1 }
+    }
+    la - lb
+  }
+  assert_eq(is_sorted_generic(xs, str_cmp), true)
+}
+
+test "is_sorted_generic: String unsorted" {
+  let xs = FixedArray::make(3, "")
+  xs[0] = "cherry"
+  xs[1] = "banana"
+  xs[2] = "apple"
+  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
+  let str_cmp = fn(a : String, b : String) -> Int {
+    let la = a.length()
+    let lb = b.length()
+    let min = if la < lb { la } else { lb }
+    for k = 0; k < min; k = k + 1 {
+      let ca = a[k].to_int()
+      let cb = b[k].to_int()
+      if ca < cb { return -1 }
+      if ca > cb { return 1 }
+    }
+    la - lb
+  }
+  assert_eq(is_sorted_generic(xs, str_cmp), false)
+}
+
+test "is_sorted_generic: empty and single" {
+  let empty : FixedArray[Int] = FixedArray::make(0, 0)
+  assert_eq(is_sorted_generic(empty, fn(a, b) { a - b }), true)
+  let single = FixedArray::make(1, 42)
+  assert_eq(is_sorted_generic(single, fn(a, b) { a - b }), true)
 }

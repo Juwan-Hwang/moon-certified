@@ -94,18 +94,29 @@ pub fn dijkstra(
 }
 
 /// Compute shortest distance from src to dst.
-/// Returns the distance, or -1 if unreachable or inputs are invalid.
+///
+/// Returns `Some(distance)` if `dst` is reachable from `src`, or `None`
+/// if unreachable or if inputs are invalid (n <= 0, out-of-bounds indices,
+/// undersized graph).
+///
+/// Using `Option` instead of a magic `-1` return makes the "not found" case
+/// type-safe and unambiguous.
 pub fn shortest_path(
   graph : FixedArray[Int],
   n : Int,
   src : Int,
   dst : Int,
-) -> Int {
+) -> Int? {
   if n <= 0 || src < 0 || src >= n || dst < 0 || dst >= n || graph.length() < n * n {
-    return -1
+    return None
   }
   let dist = dijkstra(graph, n, src)
-  dist[dst]
+  let d = dist[dst]
+  if d == -1 {
+    None
+  } else {
+    Some(d)
+  }
 }
 
 test "dijkstra: single node" {
@@ -192,15 +203,15 @@ test "shortest_path: basic" {
   graph[1 * n + 0] = 1
   graph[2 * n + 1] = 2
   graph[3 * n + 2] = 3
-  assert_eq(shortest_path(graph, n, 0, 3), 6)
-  assert_eq(shortest_path(graph, n, 0, 0), 0)
+  assert_eq(shortest_path(graph, n, 0, 3), Some(6))
+  assert_eq(shortest_path(graph, n, 0, 0), Some(0))
 }
 
 test "shortest_path: unreachable" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 5
-  assert_eq(shortest_path(graph, n, 0, 2), -1)
+  assert_true(shortest_path(graph, n, 0, 2) is None)
 }
 
 test "dijkstra: star graph" {
