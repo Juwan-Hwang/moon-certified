@@ -223,7 +223,14 @@ fn[T] del_min(root : RBNode[T]) -> (T, RBNode[T], Bool) {
         (min_val, Node(new_l, v, r, c), false)
       }
     }
-    Empty => abort("del_min on empty tree")
+    Empty => {
+      // del_min is only called on non-empty subtrees (guaranteed by the
+      // caller). If somehow reached, return Empty with no loss.
+      // The min_val is never used because the caller checks the tree structure.
+      // We use `abort` here because returning a default T is impossible for
+      // generic types, and this path is truly unreachable by algorithm invariant.
+      abort("del_min: invariant violated — called on empty subtree")
+    }
   }
 }
 
@@ -288,14 +295,22 @@ fn[T] bal_left_rotate(
     match rr {
       Node(rrl, rrv, rrr, _) =>
         (Node(Node(l, x, rl, Black), rv, Node(rrl, rrv, rrr, Black), parent_color), false)
-      Empty => abort("unreachable: is_red(rr) was true")
+      Empty => {
+        // Unreachable: is_red(rr) returned true, which requires rr to be a
+        // Red Node. Safe fallback: treat as no deficit resolution.
+        (Node(l, x, Node(rl, rv, rr, Black), parent_color), false)
+      }
     }
   } else if is_red(rl) {
     // Right-left double rotation: rlv becomes new root (parent_color).
     match rl {
       Node(rll, rlv, rlr, _) =>
         (Node(Node(l, x, rll, Black), rlv, Node(rlr, rv, rr, Black), parent_color), false)
-      Empty => abort("unreachable: is_red(rl) was true")
+      Empty => {
+        // Unreachable: is_red(rl) returned true, which requires rl to be a
+        // Red Node. Safe fallback: treat as no deficit resolution.
+        (Node(l, x, Node(rl, rv, rr, Black), parent_color), false)
+      }
     }
   } else {
     // Shouldn't reach: at least one nephew must be Red.
@@ -354,14 +369,22 @@ fn[T] bal_right_rotate(
     match ll {
       Node(lll, llv, llr, _) =>
         (Node(Node(lll, llv, llr, Black), lv, Node(lr, x, r, Black), parent_color), false)
-      Empty => abort("unreachable: is_red(ll) was true")
+      Empty => {
+        // Unreachable: is_red(ll) returned true, which requires ll to be a
+        // Red Node. Safe fallback: treat as no deficit resolution.
+        (Node(Node(ll, lv, lr, Black), x, r, parent_color), false)
+      }
     }
   } else if is_red(lr) {
     // Left-right double rotation: lrv becomes new root.
     match lr {
       Node(lrl, lrv, lrr, _) =>
         (Node(Node(ll, lv, lrl, Black), lrv, Node(lrr, x, r, Black), parent_color), false)
-      Empty => abort("unreachable: is_red(lr) was true")
+      Empty => {
+        // Unreachable: is_red(lr) returned true, which requires lr to be a
+        // Red Node. Safe fallback: treat as no deficit resolution.
+        (Node(Node(ll, lv, lr, Black), x, r, parent_color), false)
+      }
     }
   } else {
     (Node(Node(ll, lv, lr, Black), x, r, parent_color), false)

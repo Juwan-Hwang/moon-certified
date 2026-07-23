@@ -6,20 +6,26 @@
 
 /// Sieve of Eratosthenes: find all primes up to `n` (inclusive).
 ///
-/// Returns a `FixedArray[Int]` of primes in ascending order.
-/// Returns an empty array for `n < 2`.
+/// Returns `Some` of a `FixedArray[Int]` of primes in ascending order.
+/// `n < 2` yields `Some` of an empty array (a valid result: no primes
+/// exist). Returns `None` when `n > 10^7` to prevent out-of-memory — this
+/// lets the caller distinguish a rejected (too large) input from a
+/// legitimately empty result.
 ///
 /// Uses an O(n log log n) sieve over a compact boolean composite table:
 /// `is_composite[k]` is `true` exactly when `k` has a proper divisor and is
 /// therefore not prime. The outer bound is written `p <= n / p` rather than
 /// `p * p <= n` so it never overflows for large `n`.
-pub fn sieve(n : Int) -> FixedArray[Int] {
-  // Guard against n+1 overflow when n is near Int::MAX.
+pub fn sieve(n : Int) -> FixedArray[Int]? {
   // Reject unreasonably large inputs to prevent OOM:
   // n = 10^7 allocates ~10^7 booleans (~10–40 MB depending on runtime).
   // n = 10^9 would need ~1 GB and is rejected.
-  if n < 2 || n > 10000000 {
-    return FixedArray::make(0, 0)
+  if n > 10000000 {
+    return None
+  }
+  // n < 2: no primes exist; an empty array is a valid result, not a failure.
+  if n < 2 {
+    return Some(FixedArray::make(0, 0))
   }
   let is_composite = FixedArray::make(n + 1, false)
   // Mark multiples of each prime p, starting from p*p. Smaller multiples of
@@ -50,7 +56,7 @@ pub fn sieve(n : Int) -> FixedArray[Int] {
       idx = idx + 1
     }
   }
-  primes
+  Some(primes)
 }
 
 /// Check if `n` is prime. Returns `false` for `n < 2`.
@@ -137,7 +143,7 @@ pub fn mod_inverse(a : Int, m : Int) -> Int? {
 // ---------------------------------------------------------------------------
 
 test "sieve: basic n=10" {
-  let primes = sieve(10)
+  let primes = sieve(10).unwrap()
   assert_eq(primes.length(), 4)
   assert_eq(primes[0], 2)
   assert_eq(primes[1], 3)
@@ -146,13 +152,13 @@ test "sieve: basic n=10" {
 }
 
 test "sieve: n=2 yields a single prime" {
-  let primes = sieve(2)
+  let primes = sieve(2).unwrap()
   assert_eq(primes.length(), 1)
   assert_eq(primes[0], 2)
 }
 
 test "sieve: n=100 has 25 primes" {
-  let primes = sieve(100)
+  let primes = sieve(100).unwrap()
   assert_eq(primes.length(), 25)
   assert_eq(primes[0], 2)
   assert_eq(primes[24], 97)
@@ -163,13 +169,19 @@ test "sieve: n=100 has 25 primes" {
 }
 
 test "sieve: n<2 returns empty" {
-  assert_eq(sieve(1).length(), 0)
-  assert_eq(sieve(0).length(), 0)
-  assert_eq(sieve(-5).length(), 0)
+  assert_eq(sieve(1).unwrap().length(), 0)
+  assert_eq(sieve(0).unwrap().length(), 0)
+  assert_eq(sieve(-5).unwrap().length(), 0)
+}
+
+test "sieve: n > 10^7 rejected (OOM protection)" {
+  // A too-large input is rejected with `None` rather than silently returning
+  // an empty array indistinguishable from the n<2 case.
+  assert_true(sieve(10000001) is None)
 }
 
 test "sieve: agrees with is_prime up to 50" {
-  let primes = sieve(50)
+  let primes = sieve(50).unwrap()
   let mut count = 0
   for k = 0; k <= 50; k = k + 1 {
     if is_prime(k) {

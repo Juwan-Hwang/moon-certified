@@ -15,8 +15,9 @@
 ///
 /// Each node caches its subtree `size`, so `size` is O(1). Priorities come
 /// from a tiny inline LCG (`state = state * 1103515245 + 12345 (mod 2^31)`)
-/// held in a single module-level cell — no standard-library random source is
-/// needed, and the sequence is deterministic across runs.
+/// held inside each `Treap` instance — no standard-library random source is
+/// needed, and every tree's sequence is deterministic and independent of other
+/// trees or of test execution order.
 ///
 /// Complexity (expected, with high probability):
 /// - `insert`  — O(log n)
@@ -31,9 +32,10 @@
 /// - The LCG is not cryptographically secure; it only needs to assign
 ///   well-spread priorities. Worst-case (adversarial priorities) behaviour is
 ///   O(n), but this never happens with the fixed LCG sequence.
-/// - Insertion is a pure function that consumes from the shared LCG, so the
-///   resulting priorities depend on prior calls. Structural correctness (BST +
-///   heap) never depends on the specific values drawn.
+/// - Insertion is a pure function: it returns a new `Treap` whose `rng` field
+///   is the advanced LCG state, so each tree lineage threads its own priority
+///   sequence. Structural correctness (BST + heap) never depends on the
+///   specific values drawn.
 ///
 /// Not formally verified. Correctness is ensured by the comprehensive test
 /// suite below, which checks the BST and heap invariants, size consistency,
@@ -49,33 +51,48 @@ pub enum TreapNode {
   Node(TreapNode, Int, Int, TreapNode, Int) // (left, key, priority, right, size)
 }
 
-/// Public constructor for an empty treap.
-pub fn empty() -> TreapNode {
-  Empty
+/// A treap handle: the root node together with this instance's own LCG state.
+///
+/// Because the RNG state is carried per-instance and threaded purely through
+/// `insert`, every `Treap` draws an independent, deterministic priority
+/// sequence. Two trees built from separate `empty()` calls never share state,
+/// so test execution order cannot perturb the results. The fields are
+/// immutable; `insert` returns a fresh `Treap` carrying the advanced state.
+pub struct Treap {
+  root : TreapNode
+  rng : Int
+}
+
+// ---------------------------------------------------------------------------
+// Construction
+// ---------------------------------------------------------------------------
+
+/// Public constructor for an empty treap. Each call yields a fresh `Treap`
+/// with the LCG seeded to a fixed value, so the priority sequence is
+/// deterministic yet local to the returned instance.
+pub fn empty() -> Treap {
+  { root: Empty, rng: rng_seed }
 }
 
 // ---------------------------------------------------------------------------
 // Random priority source
 //
-// MoonBit has no top-level mutable bindings, so the LCG state lives in a
-// mutable field of a struct bound by an ordinary (immutable) top-level `let`.
-// The binding cannot be reassigned, but the struct's field can, which is all
-// we need for a mutable counter.
+// The LCG state lives in the immutable `rng` field of each `Treap`. `insert`
+// advances the state by one step, uses the new value as the new leaf's
+// priority, and returns a `Treap` carrying the advanced state. Because the
+// state is per-instance and threaded purely, two independent trees never
+// interfere with each other's sequences and tests are deterministic
+// regardless of execution order.
 // ---------------------------------------------------------------------------
 
-/// Mutable cell holding the LCG state for priority generation.
-priv struct Rng {
-  mut state : Int
-}
+/// Seed for every fresh `Treap`. Any fixed non-zero value makes the priority
+/// sequence — and therefore every test — deterministic.
+let rng_seed : Int = 0x1A2B3C4D
 
-/// The single global LCG state. Seeded with a fixed non-zero value so the
-/// priority sequence — and therefore every test — is deterministic.
-let rng : Rng = { state: 0x1A2B3C4D }
-
-/// Advance the LCG one step and return the next non-negative priority.
-fn next_priority() -> Int {
-  rng.state = (rng.state * 1103515245 + 12345) & 0x7FFFFFFF
-  rng.state
+/// Advance the LCG one step from `state` and return the new non-negative
+/// state, which doubles as the next node's priority.
+fn next_priority(state : Int) -> Int {
+  (state * 1103515245 + 12345) & 0x7FFFFFFF
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +100,12 @@ fn next_priority() -> Int {
 // ---------------------------------------------------------------------------
 
 /// Number of nodes in the tree. O(1) via the cached size field.
-pub fn size(root : TreapNode) -> Int {
+pub fn size(t : Treap) -> Int {
+  size_node(t.root)
+}
+
+/// Number of nodes in a subtree. O(1) via the cached size field.
+fn size_node(root : TreapNode) -> Int {
   match root {
     Empty => 0
     Node(_, _, _, _, s) => s
@@ -91,12 +113,16 @@ pub fn size(root : TreapNode) -> Int {
 }
 
 /// Height of the tree. `Empty` = -1, a leaf = 0. O(n). Used by tests.
-pub fn height(root : TreapNode) -> Int {
+pub fn height(t : Treap) -> Int {
+  height_node(t.root)
+}
+
+fn height_node(root : TreapNode) -> Int {
   match root {
     Empty => -1
     Node(l, _, _, r, _) => {
-      let lh = height(l)
-      let rh = height(r)
+      let lh = height_node(l)
+      let rh = height_node(r)
       (if lh >= rh { lh } else { rh }) + 1
     }
   }
@@ -104,7 +130,7 @@ pub fn height(root : TreapNode) -> Int {
 
 /// Construct a node, computing the cached subtree size from its children. O(1).
 fn mknode(l : TreapNode, k : Int, p : Int, r : TreapNode) -> TreapNode {
-  Node(l, k, p, r, size(l) + 1 + size(r))
+  Node(l, k, p, r, size_node(l) + 1 + size_node(r))
 }
 
 // ---------------------------------------------------------------------------
@@ -112,37 +138,49 @@ fn mknode(l : TreapNode, k : Int, p : Int, r : TreapNode) -> TreapNode {
 // ---------------------------------------------------------------------------
 
 /// Insert `key` into the treap. Duplicate keys are ignored (the original node
-/// and its priority are kept). Returns the new root. Expected O(log n).
-pub fn insert(root : TreapNode, key : Int) -> TreapNode {
+/// and its priority are kept). Returns a new `Treap` whose root has `key`
+/// inserted and whose `rng` is advanced one step. Expected O(log n).
+pub fn insert(t : Treap, key : Int) -> Treap {
+  let p = next_priority(t.rng)
+  { root: insert_node(t.root, key, p), rng: p }
+}
+
+/// Recursive insertion that assigns the fixed priority `p` to the single new
+/// leaf. Exactly one priority is drawn per top-level `insert`, so this mirrors
+/// the original single-draw-per-insert behaviour. Expected O(log n).
+fn insert_node(root : TreapNode, key : Int, p : Int) -> TreapNode {
   match root {
-    Empty => Node(Empty, key, next_priority(), Empty, 1)
-    Node(l, k, p, r, _) =>
+    Empty => Node(Empty, key, p, Empty, 1)
+    Node(l, k, cp, r, _) =>
       if key < k {
-        let new_l = insert(l, key)
+        let new_l = insert_node(l, key, p)
         match new_l {
           Node(ll, lk, lp, lr, _) =>
-            if lp > p {
+            if lp > cp {
               // Left child now outranks the parent: rotate right so `lk`
               // rises and `k` sinks into the right subtree.
-              mknode(ll, lk, lp, mknode(lr, k, p, r))
+              mknode(ll, lk, lp, mknode(lr, k, cp, r))
             } else {
-              mknode(new_l, k, p, r)
+              mknode(new_l, k, cp, r)
             }
-          // `insert` always returns a `Node`, so this is unreachable.
-          Empty => abort("unreachable: insert never returns Empty")
+          // `insert_node` always returns a `Node`; this arm is unreachable.
+          // Safe fallback: return original node unchanged.
+          Empty => root
         }
       } else if key > k {
-        let new_r = insert(r, key)
+        let new_r = insert_node(r, key, p)
         match new_r {
           Node(rl, rk, rp, rr, _) =>
-            if rp > p {
+            if rp > cp {
               // Right child now outranks the parent: rotate left so `rk`
               // rises and `k` sinks into the left subtree.
-              mknode(mknode(l, k, p, rl), rk, rp, rr)
+              mknode(mknode(l, k, cp, rl), rk, rp, rr)
             } else {
-              mknode(l, k, p, new_r)
+              mknode(l, k, cp, new_r)
             }
-          Empty => abort("unreachable: insert never returns Empty")
+          // `insert_node` always returns a `Node`; this arm is unreachable.
+          // Safe fallback: return original node unchanged.
+          Empty => root
         }
       } else {
         root // Duplicate key: ignore, keep existing node untouched.
@@ -155,14 +193,18 @@ pub fn insert(root : TreapNode, key : Int) -> TreapNode {
 // ---------------------------------------------------------------------------
 
 /// Return `true` if `key` is present in the treap. Expected O(log n).
-pub fn search(root : TreapNode, key : Int) -> Bool {
+pub fn search(t : Treap, key : Int) -> Bool {
+  search_node(t.root, key)
+}
+
+fn search_node(root : TreapNode, key : Int) -> Bool {
   match root {
     Empty => false
     Node(l, k, _, r, _) =>
       if key < k {
-        search(l, key)
+        search_node(l, key)
       } else if key > k {
-        search(r, key)
+        search_node(r, key)
       } else {
         true
       }
@@ -174,20 +216,25 @@ pub fn search(root : TreapNode, key : Int) -> Bool {
 // ---------------------------------------------------------------------------
 
 /// Delete `key` from the treap. If the key is absent the tree is unchanged.
-/// Returns the new root. Expected O(log n).
+/// Returns a new `Treap` (the LCG state is carried over untouched, since
+/// deletion draws no priorities). Expected O(log n).
 ///
 /// The target node is rotated downward — always promoting the child with the
 /// larger priority to preserve the heap property — until it reaches a leaf and
 /// can be removed. Each recursive step sinks the target by one level, so the
 /// recursion always terminates.
-pub fn delete(root : TreapNode, key : Int) -> TreapNode {
+pub fn delete(t : Treap, key : Int) -> Treap {
+  { root: delete_node(t.root, key), rng: t.rng }
+}
+
+fn delete_node(root : TreapNode, key : Int) -> TreapNode {
   match root {
     Empty => Empty
     Node(l, k, p, r, _) =>
       if key < k {
-        mknode(delete(l, key), k, p, r)
+        mknode(delete_node(l, key), k, p, r)
       } else if key > k {
-        mknode(l, k, p, delete(r, key))
+        mknode(l, k, p, delete_node(r, key))
       } else {
         // Found the node to delete.
         match (l, r) {
@@ -197,12 +244,12 @@ pub fn delete(root : TreapNode, key : Int) -> TreapNode {
             if lp > rp {
               // Left child outranks right: right rotation lifts `lk`.
               // `k` descends into the right subtree; delete it from there.
-              let new_r = delete(mknode(lr, k, p, r), key)
+              let new_r = delete_node(mknode(lr, k, p, r), key)
               mknode(ll, lk, lp, new_r)
             } else {
               // Right child outranks (or ties): left rotation lifts `rk`.
               // `k` descends into the left subtree; delete it from there.
-              let new_l = delete(mknode(l, k, p, rl), key)
+              let new_l = delete_node(mknode(l, k, p, rl), key)
               mknode(new_l, rk, rp, rr)
             }
         }
@@ -215,8 +262,12 @@ pub fn delete(root : TreapNode, key : Int) -> TreapNode {
 // ---------------------------------------------------------------------------
 
 /// Return all keys in ascending order as a `FixedArray[Int]`. O(n).
-pub fn inorder(root : TreapNode) -> FixedArray[Int] {
-  let n = size(root)
+pub fn inorder(t : Treap) -> FixedArray[Int] {
+  inorder_node(t.root)
+}
+
+fn inorder_node(root : TreapNode) -> FixedArray[Int] {
+  let n = size_node(root)
   let result = FixedArray::make(n, 0)
   let _ = inorder_fill(root, result, 0)
   result
@@ -243,8 +294,8 @@ fn inorder_fill(
 // ---------------------------------------------------------------------------
 
 /// True iff the in-order traversal is strictly ascending (BST property).
-fn is_bst(root : TreapNode) -> Bool {
-  let arr = inorder(root)
+fn is_bst(t : Treap) -> Bool {
+  let arr = inorder(t)
   let n = arr.length()
   let mut ok = true
   let mut i = 1
@@ -258,11 +309,15 @@ fn is_bst(root : TreapNode) -> Bool {
 }
 
 /// True iff every node's priority is >= its children's (max-heap property).
-fn is_heap(root : TreapNode) -> Bool {
+fn is_heap(t : Treap) -> Bool {
+  is_heap_node(t.root)
+}
+
+fn is_heap_node(root : TreapNode) -> Bool {
   match root {
     Empty => true
     Node(l, _, p, r, _) =>
-      priority_le(l, p) && priority_le(r, p) && is_heap(l) && is_heap(r)
+      priority_le(l, p) && priority_le(r, p) && is_heap_node(l) && is_heap_node(r)
   }
 }
 
@@ -275,13 +330,17 @@ fn priority_le(node : TreapNode, p : Int) -> Bool {
 }
 
 /// Recompute the true subtree size and verify it matches the cached field.
-fn verify_sizes(root : TreapNode) -> Bool {
+fn verify_sizes(t : Treap) -> Bool {
+  verify_sizes_node(t.root)
+}
+
+fn verify_sizes_node(root : TreapNode) -> Bool {
   match root {
     Empty => true
     Node(l, _, _, r, s) =>
       s == real_count(l) + 1 + real_count(r) &&
-      verify_sizes(l) &&
-      verify_sizes(r)
+      verify_sizes_node(l) &&
+      verify_sizes_node(r)
   }
 }
 
@@ -362,7 +421,7 @@ test "treap: delete root" {
     tree = insert(tree, k)
   }
   // Deleting the current root key still yields a valid treap.
-  let root_key = match tree {
+  let root_key = match tree.root {
     Node(_, k, _, _, _) => k
     Empty => abort("unreachable: non-empty tree")
   }

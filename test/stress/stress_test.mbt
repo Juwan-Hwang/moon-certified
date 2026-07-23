@@ -211,7 +211,7 @@ test "stress: heap_sort 10000 elements" {
 test "stress: counting_sort 10000 elements" {
   let n = 10000
   let xs = FixedArray::makei(n, fn(i) { (i * 13 + 3) % 500 })
-  let sorted = @counting_sort.counting_sort(xs)
+  let sorted = @counting_sort.counting_sort(xs).unwrap()
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(sorted[k] <= sorted[k + 1])
   }

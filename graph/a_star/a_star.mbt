@@ -95,89 +95,32 @@ fn PriorityQueue::pop(pq : PriorityQueue) -> PQEntry? {
   Some(result)
 }
 
-/// Compute the shortest path length from `(start_x, start_y)` to
-/// `(goal_x, goal_y)` on the grid using A* search.
+/// Outcome of an A* search.
 ///
-/// Returns `Some(length)` where `length` is the number of steps, or `None`
-/// if no path exists or the input is invalid.
-pub fn a_star(
-  grid : FixedArray[Int],
-  width : Int,
-  height : Int,
-  start_x : Int,
-  start_y : Int,
-  goal_x : Int,
-  goal_y : Int,
-) -> Int? {
-  if width <= 0 || height <= 0 {
-    return None
-  }
-  if start_x < 0 || start_x >= width || start_y < 0 || start_y >= height {
-    return None
-  }
-  if goal_x < 0 || goal_x >= width || goal_y < 0 || goal_y >= height {
-    return None
-  }
-  if grid.length() < width * height {
-    return None
-  }
-  let start_idx = start_y * width + start_x
-  let goal_idx = goal_y * width + goal_x
-  if grid[start_idx] != 0 || grid[goal_idx] != 0 {
-    return None
-  }
-  if start_idx == goal_idx {
-    return Some(0)
-  }
-  let total = width * height
-  let g_score = FixedArray::make(total, -1)
-  let closed = FixedArray::make(total, false)
-  let pq = PriorityQueue::new()
-  g_score[start_idx] = 0
-  PriorityQueue::push(pq, manhattan(start_x, start_y, goal_x, goal_y), start_idx)
-  let dx = [1, -1, 0, 0]
-  let dy = [0, 0, 1, -1]
-  while PriorityQueue::len(pq) > 0 {
-    match PriorityQueue::pop(pq) {
-      Some({ f: _, node: current }) => {
-        if closed[current] {
-          continue  // Skip stale entries (lazy deletion)
-        }
-        let current_g = g_score[current]
-        if current == goal_idx {
-          return Some(current_g)
-        }
-        closed[current] = true
-        let cur_x = current % width
-        let cur_y = current / width
-        for d = 0; d < 4; d = d + 1 {
-          let nx = cur_x + dx[d]
-          let ny = cur_y + dy[d]
-          if nx >= 0 && nx < width && ny >= 0 && ny < height {
-            let nidx = ny * width + nx
-            if grid[nidx] == 0 && !closed[nidx] {
-              let tentative_g = current_g + 1
-              if g_score[nidx] == -1 || tentative_g < g_score[nidx] {
-                g_score[nidx] = tentative_g
-                let f = tentative_g + manhattan(nx, ny, goal_x, goal_y)
-                PriorityQueue::push(pq, f, nidx)
-              }
-            }
-          }
-        }
-      }
-      None => break
-    }
-  }
-  None
+/// `goal_g` is `Some(g)` when the goal was reached in `g` steps, or `None`
+/// when the input is invalid or no path exists. `came_from` is the
+/// predecessor map populated during the search (`came_from[n]` is the node
+/// from which `n` was first reached on the optimal path); it is only
+/// meaningful when `goal_g` is `Some`.
+priv struct AStarResult {
+  goal_g : Int?
+  came_from : FixedArray[Int]
 }
 
-/// Compute the shortest path from `(start_x, start_y)` to
-/// `(goal_x, goal_y)` on the grid, returning the actual path.
+/// Sentinel result for searches that do not reach the goal (invalid input or
+/// no path). The `came_from` array is empty and never indexed by callers.
+fn no_path() -> AStarResult {
+  { goal_g: None, came_from: FixedArray::make(0, 0) }
+}
+
+/// Core A* search shared by `a_star` and `a_star_path`.
 ///
-/// Returns `Some(path)` where `path` is a `FixedArray[Int]` of grid indices
-/// from start to goal (inclusive), or `None` if no path exists.
-pub fn a_star_path(
+/// Validates the input, runs the heap-driven A* loop, and returns the goal's
+/// g-score together with the `came_from` predecessor map. The two public
+/// entry points differ only in how they turn this result into their return
+/// value: `a_star` discards `came_from`; `a_star_path` reconstructs the
+/// actual path from it.
+fn a_star_search(
   grid : FixedArray[Int],
   width : Int,
   height : Int,
@@ -185,26 +128,26 @@ pub fn a_star_path(
   start_y : Int,
   goal_x : Int,
   goal_y : Int,
-) -> FixedArray[Int]? {
+) -> AStarResult {
   if width <= 0 || height <= 0 {
-    return None
+    return no_path()
   }
   if start_x < 0 || start_x >= width || start_y < 0 || start_y >= height {
-    return None
+    return no_path()
   }
   if goal_x < 0 || goal_x >= width || goal_y < 0 || goal_y >= height {
-    return None
+    return no_path()
   }
   if grid.length() < width * height {
-    return None
+    return no_path()
   }
   let start_idx = start_y * width + start_x
   let goal_idx = goal_y * width + goal_x
   if grid[start_idx] != 0 || grid[goal_idx] != 0 {
-    return None
+    return no_path()
   }
   if start_idx == goal_idx {
-    return Some(FixedArray::makei(1, fn(_) { start_idx }))
+    return { goal_g: Some(0), came_from: FixedArray::make(0, 0) }
   }
   let total = width * height
   let g_score = FixedArray::make(total, -1)
@@ -219,21 +162,11 @@ pub fn a_star_path(
     match PriorityQueue::pop(pq) {
       Some({ f: _, node: current }) => {
         if closed[current] {
-          continue
+          continue  // Skip stale entries (lazy deletion)
         }
         let current_g = g_score[current]
         if current == goal_idx {
-          // Reconstruct path
-          let path_len = current_g + 1
-          let path = FixedArray::make(path_len, 0)
-          let mut node = current
-          for i = path_len - 1; i >= 0; i = i - 1 {
-            path[i] = node
-            if i > 0 {
-              node = came_from[node]
-            }
-          }
-          return Some(path)
+          return { goal_g: Some(current_g), came_from }
         }
         closed[current] = true
         let cur_x = current % width
@@ -258,7 +191,59 @@ pub fn a_star_path(
       None => break
     }
   }
-  None
+  no_path()
+}
+
+/// Compute the shortest path length from `(start_x, start_y)` to
+/// `(goal_x, goal_y)` on the grid using A* search.
+///
+/// Returns `Some(length)` where `length` is the number of steps, or `None`
+/// if no path exists or the input is invalid.
+pub fn a_star(
+  grid : FixedArray[Int],
+  width : Int,
+  height : Int,
+  start_x : Int,
+  start_y : Int,
+  goal_x : Int,
+  goal_y : Int,
+) -> Int? {
+  a_star_search(grid, width, height, start_x, start_y, goal_x, goal_y).goal_g
+}
+
+/// Compute the shortest path from `(start_x, start_y)` to
+/// `(goal_x, goal_y)` on the grid, returning the actual path.
+///
+/// Returns `Some(path)` where `path` is a `FixedArray[Int]` of grid indices
+/// from start to goal (inclusive), or `None` if no path exists.
+pub fn a_star_path(
+  grid : FixedArray[Int],
+  width : Int,
+  height : Int,
+  start_x : Int,
+  start_y : Int,
+  goal_x : Int,
+  goal_y : Int,
+) -> FixedArray[Int]? {
+  let r = a_star_search(grid, width, height, start_x, start_y, goal_x, goal_y)
+  match r.goal_g {
+    None => None
+    Some(g) => {
+      let goal_idx = goal_y * width + goal_x
+      let path_len = g + 1
+      let path = FixedArray::make(path_len, 0)
+      let mut node = goal_idx
+      for i = path_len - 1; i >= 0; i = i - 1 {
+        path[i] = node
+        // For the trivial `start == goal` case `g == 0`, the loop runs once
+        // with `i == 0`, so `came_from` is never indexed (it is empty).
+        if i > 0 {
+          node = r.came_from[node]
+        }
+      }
+      Some(path)
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

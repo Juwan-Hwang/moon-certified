@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-07-24
+
+### Added — 8 new algorithm packages
+
+#### Number Theory
+- `euler_sieve` — Euler's linear sieve: O(n) prime generation with smallest-prime-factor (spf) table. Supports O(log n) factorization and primality testing within the sieved range.
+
+#### Trees
+- `sparse_table` — Sparse Table for O(1) idempotent range queries (min, max, gcd). Generic `SparseTable[T]` with custom combine function. O(n log n) preprocessing.
+
+#### Graph
+- `lca` — Lowest Common Ancestor via binary lifting. O(n log n) preprocessing, O(log n) per query. Supports ancestor queries and distance computation.
+- `dinic` — Dinic's maximum flow algorithm with level graphs and blocking flows. O(V²E) worst-case, O(E√V) for bipartite matching.
+
+#### Geometry
+- `closest_pair` — Closest pair of points via divide-and-conquer. O(n log n) with merge step optimization.
+- `segment_ops` — Segment intersection (orientation-based), point-in-polygon (ray casting), point-on-segment, polygon area (shoelace), and convexity test. All arithmetic uses Int64 cross products for exact integer results.
+
+#### Math
+- `combinatorics` — Factorial, permutation, binomial coefficient (multiplicative formula), Catalan numbers, and Stirling numbers of the second kind. Int64 overflow protection throughout.
+- `matrix` — Matrix operations including multiplication, Gaussian elimination, and determinant computation.
+
+### Fixed
+- Eliminated remaining compiler warnings in combinatorics tests (unused variables, deprecated `not()` function).
+- Fixed ray-casting algorithm sign handling in point-in-polygon (cross product direction depends on edge orientation).
+
+## [0.7.0] - 2026-07-24
+
+### Fixed — Production-grade quality improvements
+
+- **P0**: gcd Int::MIN math error (uses Int64 for exact computation)
+- **P0**: Eliminated all 35 compiler warnings (0 warnings)
+- **P0**: Splay tree documentation matches implementation (bottom-up)
+- **P0**: Aho-Corasick CJK safety (sparse children replacing dense 256-slot array)
+- **P0**: Treap eliminates global mutable state (per-instance RNG)
+- **P0**: CI pins MoonBit version for reproducibility
+- **P1**: Silent failures converted to Option/Result returns
+- **P1**: BST converted to iterative implementation (O(1) stack depth)
+- **P1**: LCS/edit_distance optimized to rolling array O(min(n,m)) space
+- **P1**: Bloom filter bounds checking
+- **P1**: Trie enumerate optimized to O(n) string construction
+- **P1**: Skip list removes unnecessary update array
+- **P1**: A* eliminates code duplication
+
 ## [0.6.0] - 2026-07-24
 
 ### Added — 8 new algorithm packages

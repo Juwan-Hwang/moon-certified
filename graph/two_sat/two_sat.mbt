@@ -27,7 +27,6 @@
 /// Mutable state for iterative Tarjan's SCC algorithm.
 priv struct TSState {
   adj : Array[Array[Int]] // implication graph adjacency list
-  n : Int // number of nodes = 2 * num_variables
   mut index_counter : Int
   indices : FixedArray[Int] // -1 = unvisited
   lowlink : FixedArray[Int]
@@ -45,7 +44,6 @@ fn ts_new_state(n : Int) -> TSState {
   }
   {
     adj,
-    n,
     index_counter: 0,
     indices: FixedArray::make(n, -1),
     lowlink: FixedArray::make(n, 0),
@@ -165,7 +163,6 @@ pub fn two_sat(n : Int, clauses : Array[(Int, Int)]) -> FixedArray[Bool]? {
 
 /// Verify that an assignment satisfies all clauses.
 fn check_assignment(
-  n : Int,
   clauses : Array[(Int, Int)],
   assign : FixedArray[Bool],
 ) -> Bool {
@@ -193,7 +190,7 @@ test "two_sat: trivially satisfiable (x_0 ∨ x_1)" {
   let clauses = [(0, 2)] // literal 0 = x_0, literal 2 = x_1
   let result = two_sat(2, clauses)
   assert_true(result is Some(_))
-  assert_true(check_assignment(2, clauses, result.unwrap()))
+  assert_true(check_assignment(clauses, result.unwrap()))
 }
 
 test "two_sat: force x_0 = true" {
@@ -203,7 +200,7 @@ test "two_sat: force x_0 = true" {
   assert_true(result is Some(_))
   let assign = result.unwrap()
   assert_eq(assign[0], true)
-  assert_true(check_assignment(2, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: unsatisfiable (x_0 ∧ ¬x_0)" {
@@ -221,7 +218,7 @@ test "two_sat: x_0 = x_1" {
   let assign = result.unwrap()
   // Either x_0 = true, x_1 = false, or x_0 = false, x_1 = true.
   assert_true(assign[0] != assign[1])
-  assert_true(check_assignment(2, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: implication chain" {
@@ -239,7 +236,7 @@ test "two_sat: implication chain" {
   assert_eq(assign[0], true)
   assert_eq(assign[1], true)
   assert_eq(assign[2], true)
-  assert_true(check_assignment(3, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: empty clauses" {
@@ -275,7 +272,7 @@ test "two_sat: complex satisfiable" {
   ]
   let result = two_sat(4, clauses)
   assert_true(result is Some(_))
-  assert_true(check_assignment(4, clauses, result.unwrap()))
+  assert_true(check_assignment(clauses, result.unwrap()))
 }
 
 test "two_sat: complex unsatisfiable" {
@@ -320,7 +317,7 @@ test "two_sat: large satisfiable" {
       assert_eq(assign[i], false)
     }
   }
-  assert_true(check_assignment(n, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: all variables unconstrained except one" {
@@ -331,7 +328,7 @@ test "two_sat: all variables unconstrained except one" {
   assert_true(result is Some(_))
   let assign = result.unwrap()
   assert_eq(assign[0], true)
-  assert_true(check_assignment(n, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: XOR constraint" {
@@ -342,7 +339,7 @@ test "two_sat: XOR constraint" {
   assert_true(result is Some(_))
   let assign = result.unwrap()
   assert_true(assign[0] != assign[1])
-  assert_true(check_assignment(2, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }
 
 test "two_sat: implication cycle" {
@@ -358,5 +355,5 @@ test "two_sat: implication cycle" {
   let assign = result.unwrap()
   assert_eq(assign[0], true)
   assert_eq(assign[1], true)
-  assert_true(check_assignment(2, clauses, assign))
+  assert_true(check_assignment(clauses, assign))
 }

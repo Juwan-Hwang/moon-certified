@@ -31,32 +31,47 @@ fn min2(a : Int, b : Int) -> Int {
 
 /// Compute the length of the longest common subsequence of two arrays.
 ///
-/// Standard O(n*m) time and space DP. `dp[i][j]` is the LCS length of
-/// `a[0..i)` and `b[0..j)`; row 0 and column 0 (empty prefix) stay zero.
-/// Empty arrays yield 0.
+/// O(n*m) time, O(min(n,m)) space DP using a rolling array. Conceptually
+/// `dp[i][j]` is the LCS length of `a[0..i)` and `b[0..j)`; row 0 and
+/// column 0 (empty prefix) stay zero. Only a single row is kept, with the
+/// shorter array as the inner dimension and one scalar holding the
+/// diagonal `dp[i-1][j-1]`. Empty arrays yield `Some(0)`.
 ///
-/// **Memory**: allocates `(n+1) * (m+1)` Int values. To prevent OOM,
-/// rejects inputs where `n * m > 10^7` (≈40 MB for Int32), returning 0.
-pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
+/// **Guard**: the DP still performs O(n*m) work, so inputs whose
+/// `(n+1)*(m+1)` bound exceeds 10^7 are rejected, returning `None`. The
+/// caller can distinguish a genuine zero-length LCS (`Some(0)`) from a
+/// rejected input (`None`).
+pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int? {
   let n = a.length()
   let m = b.length()
-  let cols = m + 1
-  let dp_size = (n + 1) * cols
-  // OOM protection: reject inputs that would allocate > 10^7 Int cells.
-  if dp_size > 10000000 || dp_size < 0 {
-    return 0
+  // Work guard: the DP runs in O(n*m) time. Reject inputs whose
+  // (n+1)*(m+1) work bound exceeds 10^7, returning None so the caller can
+  // distinguish rejection from a genuine zero-length LCS.
+  let work = (n + 1) * (m + 1)
+  if work > 10000000 || work < 0 {
+    return None
   }
-  let dp = FixedArray::make(dp_size, 0)
-  for i = 1; i <= n; i = i + 1 {
-    for j = 1; j <= m; j = j + 1 {
-      if a[i - 1] == b[j - 1] {
-        dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
+  // Rolling array: outer loop over the longer array, inner loop over the
+  // shorter one so the DP row has size min(n,m)+1.
+  let (outer, inner) = if m <= n { (a, b) } else { (b, a) }
+  let ni = outer.length()
+  let nj = inner.length()
+  let dp = FixedArray::make(nj + 1, 0) // row 0: all zeros (empty prefix)
+  for i = 1; i <= ni; i = i + 1 {
+    // diag = dp[i-1][j-1]; dp[0] stays 0 (empty prefix of inner).
+    let mut diag = dp[0]
+    for j = 1; j <= nj; j = j + 1 {
+      let above = dp[j] // dp[i-1][j], saved before overwrite
+      if outer[i - 1] == inner[j - 1] {
+        dp[j] = diag + 1
       } else {
-        dp[i * cols + j] = max2(dp[(i - 1) * cols + j], dp[i * cols + (j - 1)])
+        // above = dp[i-1][j], dp[j-1] = dp[i][j-1] (already updated)
+        dp[j] = max2(above, dp[j - 1])
       }
+      diag = above
     }
   }
-  dp[n * cols + m]
+  Some(dp[nj])
 }
 
 // ---------------------------------------------------------------------------
@@ -66,46 +81,54 @@ pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
 /// Compute the minimum edit distance between two arrays.
 /// Operations: insert, delete, replace (each costs 1).
 ///
-/// Standard O(n*m) DP. `dp[i][j]` is the edit distance between `a[0..i)` and
-/// `b[0..j)`. Transforming to/from an empty prefix costs its own length
-/// (pure inserts/deletes), so an empty array yields the length of the other.
+/// O(n*m) time, O(min(n,m)) space DP using a rolling array. Conceptually
+/// `dp[i][j]` is the edit distance between `a[0..i)` and `b[0..j)`.
+/// Transforming to/from an empty prefix costs its own length (pure
+/// inserts/deletes), so an empty array yields `Some` of the length of
+/// the other. Only a single row is kept, with the shorter array as the
+/// inner dimension and one scalar holding the diagonal `dp[i-1][j-1]`.
 ///
-/// **Memory**: allocates `(n+1) * (m+1)` Int values. To prevent OOM,
-/// rejects inputs where `n * m > 10^7` (≈40 MB for Int32), returning
-/// `max(n, m)` (worst-case distance) as a safe fallback.
-pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int {
+/// **Guard**: the DP still performs O(n*m) work, so inputs whose
+/// `(n+1)*(m+1)` bound exceeds 10^7 are rejected, returning `None`. The
+/// caller can distinguish a rejected input from a valid worst-case
+/// distance by handling the `None` explicitly.
+pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int? {
   let n = a.length()
   let m = b.length()
-  let cols = m + 1
-  let dp_size = (n + 1) * cols
-  // OOM protection: reject inputs that would allocate > 10^7 Int cells.
-  // Return max(n, m) as a safe upper bound (worst-case edit distance).
-  if dp_size > 10000000 || dp_size < 0 {
-    return max2(n, m)
+  // Work guard: the DP runs in O(n*m) time. Reject inputs whose
+  // (n+1)*(m+1) work bound exceeds 10^7, returning None so the caller can
+  // distinguish rejection from a valid worst-case distance.
+  let work = (n + 1) * (m + 1)
+  if work > 10000000 || work < 0 {
+    return None
   }
-  let dp = FixedArray::make(dp_size, 0)
-  // Base cases: aligning against an empty prefix costs its length.
-  for i = 0; i <= n; i = i + 1 {
-    dp[i * cols + 0] = i
+  // Rolling array: outer loop over the longer array, inner loop over the
+  // shorter one so the DP row has size min(n,m)+1.
+  let (outer, inner) = if m <= n { (a, b) } else { (b, a) }
+  let ni = outer.length()
+  let nj = inner.length()
+  let dp = FixedArray::make(nj + 1, 0)
+  // Base row: dp[0][j] = j (edit distance from empty to inner[0..j)).
+  for j = 0; j <= nj; j = j + 1 {
+    dp[j] = j
   }
-  for j = 0; j <= m; j = j + 1 {
-    dp[0 * cols + j] = j
-  }
-  for i = 1; i <= n; i = i + 1 {
-    for j = 1; j <= m; j = j + 1 {
-      if a[i - 1] == b[j - 1] {
+  for i = 1; i <= ni; i = i + 1 {
+    // diag = dp[i-1][0]; then dp[0] = i (dp[i][0] = i: pure deletes).
+    let mut diag = dp[0]
+    dp[0] = i
+    for j = 1; j <= nj; j = j + 1 {
+      let above = dp[j] // dp[i-1][j], saved before overwrite
+      if outer[i - 1] == inner[j - 1] {
         // Last characters match: no extra cost beyond the prefixes.
-        dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)]
+        dp[j] = diag
       } else {
-        // delete a[i-1], insert b[j-1], or replace a[i-1] with b[j-1].
-        let del = dp[(i - 1) * cols + j] + 1
-        let ins = dp[i * cols + (j - 1)] + 1
-        let rep = dp[(i - 1) * cols + (j - 1)] + 1
-        dp[i * cols + j] = min2(min2(del, ins), rep)
+        // del = above + 1, ins = dp[j-1] + 1 (left), rep = diag + 1
+        dp[j] = min2(min2(above + 1, dp[j - 1] + 1), diag + 1)
       }
+      diag = above
     }
   }
-  dp[n * cols + m]
+  Some(dp[nj])
 }
 
 // ---------------------------------------------------------------------------
@@ -174,32 +197,32 @@ test "lcs: basic match" {
   b[0] = 2
   b[1] = 4
   b[2] = 5 // [2,4,5]
-  assert_eq(lcs(a, b), 3)
+  assert_eq(lcs(a, b), Some(3))
 }
 
 test "lcs: no match" {
   let a = FixedArray::makei(3, fn(i) { i + 1 }) // [1,2,3]
   let b = FixedArray::makei(3, fn(i) { i + 4 }) // [4,5,6]
-  assert_eq(lcs(a, b), 0)
+  assert_eq(lcs(a, b), Some(0))
 }
 
 test "lcs: one empty" {
   let a = FixedArray::make(0, 0)
   let b = FixedArray::makei(3, fn(i) { i + 1 })
-  assert_eq(lcs(a, b), 0)
-  assert_eq(lcs(b, a), 0)
+  assert_eq(lcs(a, b), Some(0))
+  assert_eq(lcs(b, a), Some(0))
 }
 
 test "lcs: both empty" {
   let a = FixedArray::make(0, 0)
   let b = FixedArray::make(0, 0)
-  assert_eq(lcs(a, b), 0)
+  assert_eq(lcs(a, b), Some(0))
 }
 
 test "lcs: full match" {
   let a = FixedArray::makei(3, fn(i) { i + 1 })
   let b = FixedArray::makei(3, fn(i) { i + 1 })
-  assert_eq(lcs(a, b), 3)
+  assert_eq(lcs(a, b), Some(3))
 }
 
 test "lcs: partial match" {
@@ -209,7 +232,7 @@ test "lcs: partial match" {
   b[1] = 3
   b[2] = 4
   b[3] = 5 // [1,3,4,5]
-  assert_eq(lcs(a, b), 3) // [1,3,4]
+  assert_eq(lcs(a, b), Some(3)) // [1,3,4]
 }
 
 test "lcs: duplicates" {
@@ -224,7 +247,14 @@ test "lcs: duplicates" {
   b[1] = 2
   b[2] = 2
   b[3] = 3 // [1,2,2,3]
-  assert_eq(lcs(a, b), 4) // [1,2,2,3]
+  assert_eq(lcs(a, b), Some(4)) // [1,2,2,3]
+}
+
+test "lcs: OOM protection" {
+  // (n+1)*(m+1) > 10^7: should return None to prevent OOM.
+  let a = FixedArray::make(4000, 1)
+  let b = FixedArray::make(4000, 1)
+  assert_true(lcs(a, b) is None) // 4001 * 4001 > 10^7
 }
 
 // --- Edit distance ----------------------------------------------------------
@@ -232,25 +262,25 @@ test "lcs: duplicates" {
 test "edit_distance: identical arrays" {
   let a = FixedArray::makei(3, fn(i) { i + 1 })
   let b = FixedArray::makei(3, fn(i) { i + 1 })
-  assert_eq(edit_distance(a, b), 0)
+  assert_eq(edit_distance(a, b), Some(0))
 }
 
 test "edit_distance: one empty" {
   let empty = FixedArray::make(0, 0)
   let other = FixedArray::makei(3, fn(i) { i + 1 })
-  assert_eq(edit_distance(empty, other), 3)
-  assert_eq(edit_distance(other, empty), 3)
+  assert_eq(edit_distance(empty, other), Some(3))
+  assert_eq(edit_distance(other, empty), Some(3))
 }
 
 test "edit_distance: both empty" {
   let empty = FixedArray::make(0, 0)
-  assert_eq(edit_distance(empty, empty), 0)
+  assert_eq(edit_distance(empty, empty), Some(0))
 }
 
 test "edit_distance: completely different" {
   let a = FixedArray::makei(3, fn(i) { i + 1 }) // [1,2,3]
   let b = FixedArray::makei(3, fn(i) { i + 4 }) // [4,5,6]
-  assert_eq(edit_distance(a, b), 3)
+  assert_eq(edit_distance(a, b), Some(3))
 }
 
 test "edit_distance: partial similarity" {
@@ -259,7 +289,7 @@ test "edit_distance: partial similarity" {
   b[0] = 1
   b[1] = 2
   b[2] = 4 // [1,2,4]
-  assert_eq(edit_distance(a, b), 1) // delete the 3
+  assert_eq(edit_distance(a, b), Some(1)) // delete the 3
 }
 
 test "edit_distance: single element" {
@@ -267,9 +297,16 @@ test "edit_distance: single element" {
   one[0] = 1
   let two = FixedArray::make(1, 0)
   two[0] = 2
-  assert_eq(edit_distance(one, two), 1) // replace
-  assert_eq(edit_distance(one, one), 0) // match
-  assert_eq(edit_distance(one, FixedArray::make(0, 0)), 1) // delete
+  assert_eq(edit_distance(one, two), Some(1)) // replace
+  assert_eq(edit_distance(one, one), Some(0)) // match
+  assert_eq(edit_distance(one, FixedArray::make(0, 0)), Some(1)) // delete
+}
+
+test "edit_distance: OOM protection" {
+  // (n+1)*(m+1) > 10^7: should return None to prevent OOM.
+  let a = FixedArray::make(4000, 1)
+  let b = FixedArray::make(4000, 1)
+  assert_true(edit_distance(a, b) is None) // 4001 * 4001 > 10^7
 }
 
 // --- Knapsack ---------------------------------------------------------------
