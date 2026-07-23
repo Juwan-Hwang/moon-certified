@@ -1,6 +1,13 @@
 /// KMP string matching algorithm.
 /// Implements the Knuth-Morris-Pratt algorithm for efficient
 /// pattern matching with O(n+m) time complexity.
+///
+/// IMPORTANT: MoonBit's String indexing is byte-level, not Unicode codepoint.
+/// For multi-byte UTF-8 strings (e.g., Chinese, emoji), matching operates on
+/// raw bytes and may match in the middle of a multi-byte character. This is
+/// correct for ASCII-only inputs. For Unicode-aware matching, convert to
+/// FixedArray[Int] of codepoints first.
+///
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
 
