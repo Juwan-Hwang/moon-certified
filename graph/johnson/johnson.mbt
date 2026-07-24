@@ -44,18 +44,18 @@
 ///
 /// - Negative-weight cycles cause an empty result (they are detected, not
 ///   solved).
-/// - Distance accumulation uses 32-bit `Int` arithmetic. Graphs whose path
-///   distances overflow `Int` (beyond `2^31 - 1` in magnitude) may produce
-///   incorrect results.
+/// - Distance accumulation uses 64-bit `Int64` arithmetic internally to
+///   prevent overflow. Final results are converted back to 32-bit `Int`:
+///   if a distance exceeds `Int` range, `None` is returned for that pair.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// Sentinel for "infinity" in distance arrays.
-const J_INF : Int = 2147483647
+/// Sentinel for "infinity" in distance arrays (Int64).
+const J_INF : Int64 = 9223372036854775807L
 
 /// A min-heap entry: (reweighted distance, vertex).
 priv struct JHeapEntry {
-  dist : Int
+  dist : Int64
   vertex : Int
 }
 
@@ -74,7 +74,7 @@ fn JMinHeap::len(heap : JMinHeap) -> Int {
 }
 
 /// Insert a (dist, vertex) pair; sifts up to restore the heap property. O(log n).
-fn JMinHeap::push(heap : JMinHeap, dist : Int, vertex : Int) -> Unit {
+fn JMinHeap::push(heap : JMinHeap, dist : Int64, vertex : Int) -> Unit {
   heap.data.push({ dist, vertex })
   let mut i = heap.data.length() - 1
   while i > 0 {
@@ -134,7 +134,7 @@ fn JMinHeap::pop(heap : JMinHeap) -> JHeapEntry? {
 fn bellman_ford_potentials(
   graph : Array[Array[(Int, Int)]],
   n : Int,
-  h : FixedArray[Int],
+  h : FixedArray[Int64],
 ) -> Bool {
   // n relaxation passes (|V| - 1 with the virtual vertex).
   for iter = 0; iter < n; iter = iter + 1 {
@@ -144,8 +144,9 @@ fn bellman_ford_potentials(
         let (v, w) = neighbors[j]
         if v >= 0 && v < n {
           // h[u] is always finite: it starts at 0 and only ever decreases.
-          if h[u] + w < h[v] {
-            h[v] = h[u] + w
+          let nd = h[u] + w.to_int64()
+          if nd < h[v] {
+            h[v] = nd
           }
         }
       }
@@ -157,7 +158,7 @@ fn bellman_ford_potentials(
     for j = 0; j < neighbors.length(); j = j + 1 {
       let (v, w) = neighbors[j]
       if v >= 0 && v < n {
-        if h[u] + w < h[v] {
+        if h[u] + w.to_int64() < h[v] {
           return true
         }
       }
@@ -176,13 +177,13 @@ fn dijkstra_reweighted(
   graph : Array[Array[(Int, Int)]],
   n : Int,
   src : Int,
-  h : FixedArray[Int],
+  h : FixedArray[Int64],
 ) -> FixedArray[Int?] {
-  let dist = FixedArray::make(n, J_INF) // reweighted distances
+  let dist = FixedArray::make(n, J_INF) // reweighted distances (Int64)
   let visited = FixedArray::make(n, false)
-  dist[src] = 0
+  dist[src] = 0L
   let heap = JMinHeap::new()
-  JMinHeap::push(heap, 0, src)
+  JMinHeap::push(heap, 0L, src)
   while JMinHeap::len(heap) > 0 {
     match JMinHeap::pop(heap) {
       Some({ dist: d, vertex: u }) =>
@@ -193,7 +194,7 @@ fn dijkstra_reweighted(
             let (v, w) = neighbors[j]
             if v >= 0 && v < n && !visited[v] {
               // Reweighted cost: w + h[u] - h[v] >= 0.
-              let rw = w + h[u] - h[v]
+              let rw = w.to_int64() + h[u] - h[v]
               let nd = d + rw
               if nd < dist[v] {
                 dist[v] = nd
@@ -206,10 +207,16 @@ fn dijkstra_reweighted(
     }
   }
   // Undo the reweighting: d(u, v) = d'(u, v) - h[u] + h[v].
+  // Convert Int64 back to Int, returning None for overflow.
   let result : FixedArray[Int?] = FixedArray::make(n, None)
   for v = 0; v < n; v = v + 1 {
     if dist[v] != J_INF {
-      result[v] = Some(dist[v] - h[src] + h[v])
+      let real_dist = dist[v] - h[src] + h[v]
+      if real_dist > 2147483647L || real_dist < -2147483648L {
+        result[v] = None // overflow: distance exceeds Int range
+      } else {
+        result[v] = Some(real_dist.to_int())
+      }
     }
   }
   result
@@ -235,7 +242,7 @@ pub fn johnson(
     return empty_matrix()
   }
   // Step 1: Bellman-Ford potentials (init-to-0 stands in for the virtual source).
-  let h = FixedArray::make(n, 0)
+  let h = FixedArray::make(n, 0L)
   if bellman_ford_potentials(graph, n, h) {
     return empty_matrix() // negative-weight cycle detected
   }

@@ -71,21 +71,35 @@ fn counting_pass(
 
 /// LSD radix sort for non-negative integers.
 ///
-/// Returns a new, ascendingly-sorted `FixedArray[Int]`. The input array is
-/// not modified. Requires non-negative input.
-pub fn radix_sort(xs : FixedArray[Int]) -> FixedArray[Int] {
+/// Returns `Some` of a new, ascendingly-sorted `FixedArray[Int]`. Returns
+/// `None` when the input contains a negative value (LSD radix sort on
+/// two's-complement byte ordering would produce silently incorrect results
+/// for negatives). An empty input yields `Some` of an empty array.
+/// The input array is never modified.
+pub fn radix_sort(xs : FixedArray[Int]) -> FixedArray[Int]? {
   let n = xs.length()
   if n <= 1 {
     // Return a fresh copy so the input is never aliased.
     let out = FixedArray::make(n, 0)
     for i = 0; i < n; i = i + 1 {
+      if xs[i] < 0 {
+        return None
+      }
       out[i] = xs[i]
     }
-    return out
+    return Some(out)
   }
+  // Validate: reject negative values (two's-complement byte ordering would
+  // sort negatives after positives, producing silently wrong results).
   // Determine how many base-256 digits the maximum value needs.
   let mut max_val = xs[0]
+  if max_val < 0 {
+    return None
+  }
   for i = 1; i < n; i = i + 1 {
+    if xs[i] < 0 {
+      return None
+    }
     if xs[i] > max_val {
       max_val = xs[i]
     }
@@ -112,12 +126,12 @@ pub fn radix_sort(xs : FixedArray[Int]) -> FixedArray[Int] {
     a = b
     b = tmp
   }
-  a
+  Some(a)
 }
 
 test "radix_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   for k = 0; k < 5; k = k + 1 {
     assert_eq(out[k], k + 1)
   }
@@ -125,7 +139,7 @@ test "radix_sort: basic" {
 
 test "radix_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i }) // [0, 1, ..., 9]
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   for k = 0; k < 10; k = k + 1 {
     assert_eq(out[k], k)
   }
@@ -133,7 +147,7 @@ test "radix_sort: already sorted" {
 
 test "radix_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   for k = 0; k < 10; k = k + 1 {
     assert_eq(out[k], k)
   }
@@ -141,20 +155,20 @@ test "radix_sort: reverse sorted" {
 
 test "radix_sort: single element" {
   let xs = FixedArray::make(1, 42)
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   assert_eq(out.length(), 1)
   assert_eq(out[0], 42)
 }
 
 test "radix_sort: empty array" {
   let xs = FixedArray::make(0, 0)
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   assert_eq(out.length(), 0)
 }
 
 test "radix_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   assert_eq(out[0], 0)
   assert_eq(out[1], 0)
   assert_eq(out[2], 0)
@@ -176,7 +190,7 @@ test "radix_sort: large values" {
   xs[5] = 2147483646 // 0x7FFFFFFE
   xs[6] = 1
   xs[7] = 16777215 // 0x00FFFFFF
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   assert_eq(out[0], 0)
   assert_eq(out[1], 1)
   assert_eq(out[2], 256)
@@ -189,7 +203,7 @@ test "radix_sort: large values" {
 
 test "radix_sort: all same value" {
   let xs = FixedArray::make(6, 123456)
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   for k = 0; k < 6; k = k + 1 {
     assert_eq(out[k], 123456)
   }
@@ -202,7 +216,7 @@ test "radix_sort: input is not modified" {
   xs[2] = 0
   xs[3] = 999
   xs[4] = 1
-  let _ = radix_sort(xs)
+  let _ = radix_sort(xs).unwrap()
   // The original array must remain untouched.
   assert_eq(xs[0], 300)
   assert_eq(xs[1], 50)
@@ -219,7 +233,7 @@ test "radix_sort: permutation check" {
   for k = 0; k < n; k = k + 1 {
     orig_freq[xs[k]] = orig_freq[xs[k]] + 1
   }
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(out[k] <= out[k + 1])
   }
@@ -252,7 +266,7 @@ test "radix_sort: stability" {
   for k = 0; k < n; k = k + 1 {
     xs[k] = keys[k] * 10000 + k
   }
-  let out = radix_sort(xs)
+  let out = radix_sort(xs).unwrap()
   // Keys must be sorted ascending.
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(out[k] / 10000 <= out[k + 1] / 10000)
@@ -268,4 +282,17 @@ test "radix_sort: stability" {
     }
     i = j
   }
+}
+
+test "radix_sort: negative values rejected" {
+  let xs = FixedArray::make(5, 0)
+  xs[0] = 3
+  xs[1] = 1
+  xs[2] = -4
+  xs[3] = 2
+  xs[4] = 5
+  assert_true(radix_sort(xs) is None)
+  // All-negative array also rejected.
+  let xs2 = FixedArray::make(3, -1)
+  assert_true(radix_sort(xs2) is None)
 }

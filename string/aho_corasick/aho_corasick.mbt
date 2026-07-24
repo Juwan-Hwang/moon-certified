@@ -170,6 +170,12 @@ pub fn build(patterns : Array[String]) -> AcAutomaton {
   // ---- Phase 1: insert each pattern into the trie ----------------------
   for pat_idx = 0; pat_idx < patterns.length(); pat_idx = pat_idx + 1 {
     let pattern = patterns[pat_idx]
+    // Skip empty patterns: they have no code units to insert and would
+    // match at every position (added to root's output), producing false
+    // positives at every text index.
+    if pattern.length() == 0 {
+      continue
+    }
     let mut curr = 0 // root
     for i = 0; i < pattern.length(); i = i + 1 {
       let c = pattern[i].to_int()

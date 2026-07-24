@@ -1,13 +1,24 @@
-/// Bidirectional BFS for unweighted shortest paths.
+/// Bidirectional BFS for unweighted shortest paths in directed or undirected
+/// graphs.
 ///
-/// Finds the shortest path length (number of hops) between two vertices in an
-/// unweighted graph by running two breadth-first searches simultaneously — one
-/// forward from `src` and one backward from `dst` — and stopping as soon as the
-/// two search frontiers meet.
+/// Finds the shortest path length (number of hops) between two vertices by
+/// running two breadth-first searches simultaneously — one forward from `src`
+/// following outgoing edges, and one backward from `dst` following **incoming**
+/// edges (i.e. on the transposed graph) — and stopping as soon as the two
+/// search frontiers meet.
 ///
 /// The graph is an adjacency list: `graph[i]` is an `Array` of `(neighbor,
 /// weight)` pairs. The weight component is **ignored**; every edge is treated
 /// as a single hop. For undirected graphs, add each edge in both directions.
+///
+/// ## Directed graph support
+///
+/// The forward BFS explores `graph[i]` (outgoing edges from `i`). The backward
+/// BFS explores the **transposed** graph (incoming edges to each vertex). This
+/// ensures correct results for both directed and undirected graphs. Without
+/// transposition, a directed graph could produce false "meetings" at vertices
+/// that are reachable from both `src` and `dst` via outgoing edges but do not
+/// lie on any `src`-to-`dst` path.
 ///
 /// ## Why it is faster
 ///
@@ -37,9 +48,31 @@
 ///
 /// ## Complexity
 ///
-/// Time `O(b^(d/2))` in practice (worst case `O(V + E)`), space `O(V)`.
+/// Time `O(b^(d/2))` in practice (worst case `O(V + E)`), space `O(V + E)`
+/// (the transposed graph is built in O(E) time and space).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
+
+/// Build the transposed graph: `tgraph[i]` contains `(j, w)` for every edge
+/// `j -> i` with weight `w` in the original `graph`.
+fn build_transpose(
+  graph : Array[Array[(Int, Int)]],
+  n : Int
+) -> Array[Array[(Int, Int)]] {
+  let tgraph : Array[Array[(Int, Int)]] = []
+  for _i = 0; _i < n; _i = _i + 1 {
+    tgraph.push([])
+  }
+  for u = 0; u < n; u = u + 1 {
+    for j = 0; j < graph[u].length(); j = j + 1 {
+      let (v, w) = graph[u][j]
+      if v >= 0 && v < n {
+        tgraph[v].push((u, w))
+      }
+    }
+  }
+  tgraph
+}
 
 /// Expand one BFS level from the side whose queue is `q` (indexed by `head`),
 /// recording distances in `dist_this` and checking the opposite side's
@@ -52,7 +85,7 @@
 /// `dist` arrays use `-1` for "unvisited"; hop counts are always `>= 0`, so
 /// `-1` is an unambiguous sentinel.
 fn expand_level(
-  graph : Array[Array[(Int, Int)]],
+  adj : Array[Array[(Int, Int)]],
   n : Int,
   q : Array[Int],
   head : Int,
@@ -65,7 +98,7 @@ fn expand_level(
   for _k = 0; _k < level_size; _k = _k + 1 {
     let u = q[pos]
     pos = pos + 1
-    let neighbors = graph[u]
+    let neighbors = adj[u]
     for j = 0; j < neighbors.length(); j = j + 1 {
       let (v, _) = neighbors[j]
       if v >= 0 && v < n {
@@ -110,8 +143,13 @@ pub fn bidirectional_bfs(
   if src == dst {
     return Some(0)
   }
-  let dist_a = FixedArray::make(n, -1) // distances from src
-  let dist_b = FixedArray::make(n, -1) // distances from dst
+  // Build the transposed graph for the backward search. The forward search
+  // follows outgoing edges (graph); the backward search follows incoming
+  // edges (tgraph). This makes the algorithm correct for both directed and
+  // undirected graphs.
+  let tgraph = build_transpose(graph, n)
+  let dist_a = FixedArray::make(n, -1) // distances from src (forward)
+  let dist_b = FixedArray::make(n, -1) // distances from dst (backward)
   dist_a[src] = 0
   dist_b[dst] = 0
   // Index-based queues: `head` advances as nodes are consumed, `push` appends.
@@ -131,7 +169,8 @@ pub fn bidirectional_bfs(
         None => ()
       }
     } else {
-      let (result, new_head) = expand_level(graph, n, qb, head_b, dist_b, dist_a)
+      // Backward search uses the transposed graph.
+      let (result, new_head) = expand_level(tgraph, n, qb, head_b, dist_b, dist_a)
       head_b = new_head
       match result {
         Some(d) => return Some(d)
@@ -243,6 +282,22 @@ test "bidirectional_bfs: directed graph" {
   assert_eq(bidirectional_bfs(graph, n, 0, 3), Some(3))
   // Reverse direction: no path.
   assert_true(bidirectional_bfs(graph, n, 3, 0) is None)
+}
+
+test "bidirectional_bfs: directed graph no false meeting" {
+  // Edges: 0->1, 2->1, 1->3. Query 0->2 must return None because 0 cannot
+  // reach 2 in this directed graph. Previously the backward search followed
+  // outgoing edges (not incoming), causing a false "meeting" at node 1.
+  let n = 4
+  let graph : Array[Array[(Int, Int)]] = [[], [], [], []]
+  graph[0].push((1, 1))
+  graph[2].push((1, 1))
+  graph[1].push((3, 1))
+  assert_true(bidirectional_bfs(graph, n, 0, 2) is None)
+  // 0 -> 1 -> 3 is a valid path of length 2.
+  assert_eq(bidirectional_bfs(graph, n, 0, 3), Some(2))
+  // 2 -> 1 -> 3 is also valid.
+  assert_eq(bidirectional_bfs(graph, n, 2, 3), Some(2))
 }
 
 test "bidirectional_bfs: complete graph K4" {

@@ -21,54 +21,16 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
 // ---------------------------------------------------------------------------
-// Int64 helpers (self-contained, no cross-package dependency)
+// Int64 helpers: mod64, pow_mod64, gcd64 are imported from @int64_utils.
+// Only package-specific helpers are defined here.
 // ---------------------------------------------------------------------------
-
-/// Int64 modulo that always returns a result in [0, m) for m > 0.
-fn mod64(a : Int64, m : Int64) -> Int64 {
-  let r = a % m
-  if r < 0L {
-    r + m
-  } else {
-    r
-  }
-}
-
-/// Modular exponentiation in `Int64`: returns (base^exp) mod m.
-/// Requires m > 0, exp >= 0. Uses binary exponentiation; for 32-bit moduli
-/// every intermediate product stays below m^2 < 2^62.
-fn pow_mod64(base : Int64, exp : Int64, m : Int64) -> Int64 {
-  let mut result = 1L
-  let mut b = mod64(base, m)
-  let mut e = exp
-  while e > 0L {
-    if e % 2L == 1L {
-      result = result * b % m
-    }
-    e = e / 2L
-    b = b * b % m
-  }
-  result
-}
-
-/// Int64 GCD (Euclidean algorithm).
-fn gcd64(a : Int64, b : Int64) -> Int64 {
-  let mut x = a
-  let mut y = b
-  while y != 0L {
-    let t = x % y
-    x = y
-    y = t
-  }
-  x
-}
 
 /// Int64 modular inverse via the extended Euclidean algorithm.
 ///
 /// Returns `Some(inv)` with a · inv ≡ 1 (mod m), or `None` when
 /// gcd(a, m) ≠ 1. The result lies in [0, m).
 fn mod_inv64(a : Int64, m : Int64) -> Int64? {
-  let a_n = mod64(a, m)
+  let a_n = @int64_utils.mod64(a, m)
   let mut old_r = a_n
   let mut r = m
   let mut old_s = 1L
@@ -85,7 +47,7 @@ fn mod_inv64(a : Int64, m : Int64) -> Int64? {
   if old_r != 1L {
     None
   } else {
-    Some(mod64(old_s, m))
+    Some(@int64_utils.mod64(old_s, m))
   }
 }
 
@@ -192,8 +154,8 @@ pub fn discrete_log(a : Int, b : Int, p : Int) -> Int? {
     return Some(0)
   }
   let p64 = p.to_int64()
-  let a64 = mod64(a.to_int64(), p64)
-  let b64 = mod64(b.to_int64(), p64)
+  let a64 = @int64_utils.mod64(a.to_int64(), p64)
+  let b64 = @int64_utils.mod64(b.to_int64(), p64)
 
   // a^0 = 1 ≡ b (mod p)
   if b64 == 1L {
@@ -209,7 +171,7 @@ pub fn discrete_log(a : Int, b : Int, p : Int) -> Int? {
   }
 
   // BSGS requires gcd(a, p) = 1 to compute the modular inverse.
-  if gcd64(a64, p64) != 1L {
+  if @int64_utils.gcd64(a64, p64) != 1L {
     return None
   }
 
@@ -243,7 +205,7 @@ pub fn discrete_log(a : Int, b : Int, p : Int) -> Int? {
 
   // --- Giant step: search for b · (a^{-m})^i in the baby-step table ---
   // a^m mod p
-  let am = pow_mod64(a64, m64, p64)
+  let am = @int64_utils.pow_mod64(a64, m64, p64)
   // a^{-m} mod p (safe: gcd(a, p) = 1 implies gcd(a^m, p) = 1)
   let inv_am = match mod_inv64(am, p64) {
     None => return None // unreachable given gcd(a, p) = 1

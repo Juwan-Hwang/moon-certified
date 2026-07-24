@@ -76,6 +76,17 @@ fn node_size(t : SplayNode) -> Int {
   }
 }
 
+/// Construct a `Node` with the size automatically computed from its children.
+///
+/// This centralises the size-update logic so every rotation produces a
+/// correctly-sized node without repeating `1 + node_size(…) + node_size(…)`
+/// at each call site. All six rotation cases (Zig, Zig-Zig, Zig-Zag and their
+/// mirrors) now delegate to this helper, eliminating the copy-pasted size
+/// arithmetic that was error-prone and hard to maintain.
+fn mk_node(l : SplayNode, key : Int, r : SplayNode) -> SplayNode {
+  Node(l, key, r, 1 + node_size(l) + node_size(r))
+}
+
 /// Splay the node with key `k` to the root of tree `t`.
 ///
 /// After splaying, if `k` is in the tree, it will be at the root.
@@ -92,38 +103,37 @@ fn splay(t : SplayNode, k : Int) -> SplayNode {
 }
 
 /// Bottom-up splay: search for k, then splay on the way up.
+///
+/// All six rotation cases (Zig, Zig-Zig, Zig-Zag and their mirror Zags) use
+/// [`mk_node`] to construct nodes, so size maintenance is centralised in one
+/// place rather than copy-pasted across every case.
 fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
   match t {
     Empty => Empty
     Node(l, key, r, _) => {
       if k == key {
-        Node(l, key, r, 1 + node_size(l) + node_size(r))
+        mk_node(l, key, r)
       } else if k < key {
         // k is in the left subtree
         match l {
-          Empty => Node(l, key, r, 1 + node_size(l) + node_size(r))
+          Empty => mk_node(l, key, r)
           Node(ll, lk, lr, _) => {
             if k == lk {
               // Zig: one right rotation
-              let new_right = Node(lr, key, r, 1 + node_size(lr) + node_size(r))
-              Node(ll, lk, new_right, 1 + node_size(ll) + node_size(new_right))
+              mk_node(ll, lk, mk_node(lr, key, r))
             } else if k < lk {
               // Zig-Zig: k is in the left subtree of ll
               match ll {
                 Empty => {
                   // Just zig
-                  let new_right = Node(lr, key, r, 1 + node_size(lr) + node_size(r))
-                  Node(ll, lk, new_right, 1 + node_size(ll) + node_size(new_right))
+                  mk_node(ll, lk, mk_node(lr, key, r))
                 }
                 _ => {
                   // Splay k to the root of ll, then double right rotation.
                   let splayed_ll = splay_bottom_up(ll, k)
                   match splayed_ll {
-                    Node(lll, slk, llr, _) => {
-                      let inner_right = Node(lr, key, r, 1 + node_size(lr) + node_size(r))
-                      let mid = Node(llr, lk, inner_right, 1 + node_size(llr) + node_size(inner_right))
-                      Node(lll, slk, mid, 1 + node_size(lll) + node_size(mid))
-                    }
+                    Node(lll, slk, llr, _) =>
+                      mk_node(lll, slk, mk_node(llr, lk, mk_node(lr, key, r)))
                     _ => t
                   }
                 }
@@ -131,18 +141,13 @@ fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
             } else {
               // Zig-Zag: k is in the right subtree of lk
               match lr {
-                Empty => {
-                  let new_right = Node(lr, key, r, 1 + node_size(lr) + node_size(r))
-                  Node(ll, lk, new_right, 1 + node_size(ll) + node_size(new_right))
-                }
+                Empty =>
+                  mk_node(ll, lk, mk_node(lr, key, r))
                 _ => {
                   let splayed_lr = splay_bottom_up(lr, k)
                   match splayed_lr {
-                    Node(lrl, slk, lrr, _) => {
-                      let new_right = Node(lrr, key, r, 1 + node_size(lrr) + node_size(r))
-                      let new_left = Node(ll, lk, lrl, 1 + node_size(ll) + node_size(lrl))
-                      Node(new_left, slk, new_right, 1 + node_size(new_left) + node_size(new_right))
-                    }
+                    Node(lrl, slk, lrr, _) =>
+                      mk_node(mk_node(ll, lk, lrl), slk, mk_node(lrr, key, r))
                     _ => t
                   }
                 }
@@ -153,28 +158,22 @@ fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
       } else {
         // k > key: mirror of the above
         match r {
-          Empty => Node(l, key, r, 1 + node_size(l) + node_size(r))
+          Empty => mk_node(l, key, r)
           Node(rl, rk, rr, _) => {
             if k == rk {
               // Zag: one left rotation
-              let new_left = Node(l, key, rl, 1 + node_size(l) + node_size(rl))
-              Node(new_left, rk, rr, 1 + node_size(new_left) + node_size(rr))
+              mk_node(mk_node(l, key, rl), rk, rr)
             } else if k > rk {
               // Zag-Zag: k is in the right subtree of rr
               match rr {
-                Empty => {
-                  let new_left = Node(l, key, rl, 1 + node_size(l) + node_size(rl))
-                  Node(new_left, rk, rr, 1 + node_size(new_left) + node_size(rr))
-                }
+                Empty =>
+                  mk_node(mk_node(l, key, rl), rk, rr)
                 _ => {
                   // Splay k to the root of rr, then double left rotation.
                   let splayed_rr = splay_bottom_up(rr, k)
                   match splayed_rr {
-                    Node(rl_, srk, rrr, _) => {
-                      let inner_left = Node(l, key, rl, 1 + node_size(l) + node_size(rl))
-                      let new_left = Node(inner_left, rk, rl_, 1 + node_size(inner_left) + node_size(rl_))
-                      Node(new_left, srk, rrr, 1 + node_size(new_left) + node_size(rrr))
-                    }
+                    Node(rl_, srk, rrr, _) =>
+                      mk_node(mk_node(mk_node(l, key, rl), rk, rl_), srk, rrr)
                     _ => t
                   }
                 }
@@ -182,18 +181,13 @@ fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
             } else {
               // Zag-Zig: k is in the left subtree of rk
               match rl {
-                Empty => {
-                  let new_left = Node(l, key, rl, 1 + node_size(l) + node_size(rl))
-                  Node(new_left, rk, rr, 1 + node_size(new_left) + node_size(rr))
-                }
+                Empty =>
+                  mk_node(mk_node(l, key, rl), rk, rr)
                 _ => {
                   let splayed_rl = splay_bottom_up(rl, k)
                   match splayed_rl {
-                    Node(rll, slk, rlr, _) => {
-                      let new_left = Node(l, key, rll, 1 + node_size(l) + node_size(rll))
-                      let new_right = Node(rlr, rk, rr, 1 + node_size(rlr) + node_size(rr))
-                      Node(new_left, slk, new_right, 1 + node_size(new_left) + node_size(new_right))
-                    }
+                    Node(rll, slk, rlr, _) =>
+                      mk_node(mk_node(l, key, rll), slk, mk_node(rlr, rk, rr))
                     _ => t
                   }
                 }
@@ -212,15 +206,15 @@ fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
 /// splayed to the root). If new, a node is created and splayed to the root.
 pub fn insert(tree : SplayNode, key : Int) -> SplayNode {
   match splay(tree, key) {
-    Empty => Node(Empty, key, Empty, 1)
+    Empty => mk_node(Empty, key, Empty)
     Node(l, k, r, _) as t => {
       if key == k {
         t // key already present, no change
       } else if key < k {
         // Split: l < key < k < r (after splay, root is closest to key)
-        Node(l, key, Node(Empty, k, r, 1 + node_size(r)), 2 + node_size(l) + node_size(r))
+        mk_node(l, key, mk_node(Empty, k, r))
       } else {
-        Node(Node(l, k, Empty, 1 + node_size(l)), key, r, 2 + node_size(l) + node_size(r))
+        mk_node(mk_node(l, k, Empty), key, r)
       }
     }
   }
@@ -271,7 +265,7 @@ fn join(l : SplayNode, r : SplayNode) -> SplayNode {
   // The maximum key is the rightmost node; we splay a very large value.
   let splayed = splay_max(l)
   match splayed {
-    Node(sl, sk, Empty, _) => Node(sl, sk, r, 1 + node_size(sl) + node_size(r))
+    Node(sl, sk, Empty, _) => mk_node(sl, sk, r)
     _ => splayed // Should not happen: splay_max brings max to root.
   }
 }
@@ -283,22 +277,23 @@ fn splay_max(t : SplayNode) -> SplayNode {
     Empty => Empty
     Node(l, key, r, _) => {
       match r {
-        Empty => Node(l, key, Empty, 1 + node_size(l))
+        Empty => mk_node(l, key, Empty)
         Node(rl, rk, rr, _) => {
           match rr {
             Empty => {
               // rk is the max: rotate left to bring rk to root
-              let new_left = Node(l, key, rl, 1 + node_size(l) + node_size(rl))
-              Node(new_left, rk, Empty, 1 + node_size(new_left))
+              mk_node(mk_node(l, key, rl), rk, Empty)
             }
             _ => {
               // Splay max of rr, then rotate
               let splayed_rr = splay_max(rr)
               match splayed_rr {
-                Node(rrl, srk, rrr, _) => {
-                  let new_left = Node(l, key, Node(rl, rk, rrl, 1 + node_size(rl) + node_size(rrl)), 1 + node_size(l) + 1 + node_size(rl) + node_size(rrl))
-                  Node(new_left, srk, rrr, 1 + node_size(new_left) + node_size(rrr))
-                }
+                Node(rrl, srk, rrr, _) =>
+                  mk_node(
+                    mk_node(l, key, mk_node(rl, rk, rrl)),
+                    srk,
+                    rrr,
+                  )
                 _ => t
               }
             }

@@ -1,7 +1,14 @@
 /// Bloom filter for probabilistic set membership testing.
 ///
-/// Uses k hash functions (polynomial rolling hash with different seeds) and
-/// a bit array stored as 64-bit words. False positives are possible but
+/// Uses **double hashing**: two base hash functions h₁ and h₂ are computed
+/// (each a polynomial rolling hash with a different seed, followed by
+/// avalanche mixing). The k bit positions for an element are derived as
+///   pos_i = (h₁ + i · h₂) mod m   for i = 0 .. k-1
+/// This is O(n + k) per operation instead of O(k·n) for k independent hashes,
+/// and the k positions are provably distinct when h₂ is odd and m is a power
+/// of two (or at least well-distributed otherwise).
+///
+/// The bit array is stored as 64-bit words. False positives are possible but
 /// false negatives are impossible.
 ///
 /// Optimal parameters:
@@ -88,17 +95,36 @@ pub fn new(expected_items : Int, false_positive_rate : Double) -> BloomFilter {
 ///   h = seed; for each byte b: h = h * 31 + b
 /// The final avalanche step (xor-shift-multiply) breaks the linear
 /// relationship between hashes that share the same polynomial but use
-/// different seeds, so the k hash functions are effectively independent.
+/// different seeds, so the two base hashes are effectively independent.
+///
+/// Uses **unsigned** right shift in the avalanche step (via
+/// `reinterpret_as_uint`) to avoid sign-extension when `h` is negative.
+/// With arithmetic `>>`, a negative hash would fill the upper bits with
+/// 1s, degrading the mixing quality and correlating different seeds.
 pub fn hash(data : String, seed : Int) -> Int {
   let mut h = seed
   for i = 0; i < data.length(); i = i + 1 {
     h = h * 31 + data[i].to_int()
   }
   // Avalanche mixing: decorrelates different seeds.
-  h = h ^ (h >> 16)
+  // Unsigned right shift: reinterpret as UInt, shift, reinterpret back.
+  // This is equivalent to Java's >>> operator.
+  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
   h = h * 0x45d9f3b
-  h = h ^ (h >> 16)
+  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
   h
+}
+
+/// Compute two base hashes for double hashing.
+///
+/// Returns `(h1, h2)` where `h1` and `h2` are derived from the same data
+/// with different seeds. `h2` is forced odd (`| 1`) so that when `num_bits`
+/// is a power of two, the sequence `(h1 + i·h2) mod m` visits all residues
+/// before repeating — guaranteeing k distinct positions for k ≤ m.
+fn double_hash(data : String) -> (Int, Int) {
+  let h1 = hash(data, 17)
+  let h2 = hash(data, 31) | 1 // force odd for full-period double hashing
+  (h1, h2)
 }
 
 /// Map a hash value to a non-negative bit position in [0, num_bits).
@@ -132,21 +158,27 @@ fn get_bit(bits : FixedArray[UInt64], pos : Int) -> Bool {
   (bits[word] & (1UL << bit)) != 0UL
 }
 
-/// Add a byte string to the filter. Sets k bits using k independent hashes.
+/// Add a byte string to the filter. Sets k bits using double hashing:
+///   pos_i = (h1 + i * h2) mod num_bits   for i = 0 .. k-1
+/// This requires only 2 hash computations (O(n) total) instead of k (O(k·n)).
 pub fn add(bf : BloomFilter, data : String) -> Unit {
+  let (h1, h2) = double_hash(data)
   for i = 0; i < bf.num_hashes; i = i + 1 {
-    let h = hash(data, i * 31 + 17)
-    let pos = bit_pos(h, bf.num_bits)
+    let combined = h1 + i * h2
+    let pos = bit_pos(combined, bf.num_bits)
     set_bit(bf.bits, pos)
   }
 }
 
 /// Check if data *might* be in the set. False positives are possible;
 /// false negatives are impossible.
+///
+/// Uses the same double-hashing scheme as `add` to check k bit positions.
 pub fn contains(bf : BloomFilter, data : String) -> Bool {
+  let (h1, h2) = double_hash(data)
   for i = 0; i < bf.num_hashes; i = i + 1 {
-    let h = hash(data, i * 31 + 17)
-    let pos = bit_pos(h, bf.num_bits)
+    let combined = h1 + i * h2
+    let pos = bit_pos(combined, bf.num_bits)
     if !get_bit(bf.bits, pos) {
       return false
     }

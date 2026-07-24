@@ -96,14 +96,13 @@ fn spfa(
     in_queue[i] = false
   }
   dist[src] = 0
-  // Index-based FIFO queue (avoids Array::shift which doesn't exist).
-  let queue = FixedArray::make(g.n, 0)
+  // Unbounded FIFO queue: SPFA may enqueue a node multiple times (after
+  // dequeue, in_queue is cleared, allowing re-enqueue). A FixedArray of
+  // size n would overflow; Array grows as needed.
+  let queue : Array[Int] = [src]
   let mut head = 0
-  let mut tail = 0
-  queue[tail] = src
-  tail = tail + 1
   in_queue[src] = true
-  while head < tail {
+  while head < queue.length() {
     let u = queue[head]
     head = head + 1
     in_queue[u] = false
@@ -115,8 +114,7 @@ fn spfa(
         prev_edge[e.to] = e_idx
         if !in_queue[e.to] {
           in_queue[e.to] = true
-          queue[tail] = e.to
-          tail = tail + 1
+          queue.push(e.to)
         }
       }
       e_idx = e.next

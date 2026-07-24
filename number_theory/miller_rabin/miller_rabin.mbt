@@ -22,82 +22,23 @@
 /// Since n < 2^31, every intermediate product is below 2^62 < 2^63, so no
 /// `Int64` overflow can occur.
 ///
+/// The core `is_prime64` and `pow_mod64` functions are shared via
+/// `@int64_utils` to avoid code duplication with `pollard_rho` and `bsgs`.
+///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below,
 /// which cross-checks against trial division and includes Carmichael numbers
 /// and the largest 32-bit prime.
-
-/// Modular exponentiation in `Int64`: returns (base^exp) mod m.
-///
-/// Requires m > 0, 0 <= base < m, exp >= 0. Uses binary exponentiation; for
-/// 32-bit moduli every intermediate product stays below m^2 < 2^62.
-fn pow_mod(base : Int64, exp : Int64, m : Int64) -> Int64 {
-  let mut result = 1L
-  let mut b = base
-  let mut e = exp
-  while e > 0L {
-    if e % 2L == 1L {
-      result = result * b % m
-    }
-    e = e / 2L
-    b = b * b % m
-  }
-  result
-}
-
-/// Single Miller-Rabin round for witness `a`.
-///
-/// `d` and `s` satisfy n - 1 = d * 2^s with d odd and n an odd integer >= 5.
-/// Returns `true` if `n` is not proven composite by witness `a`. A witness
-/// that is a multiple of `n` carries no information and trivially passes.
-fn witness_passes(a : Int, d : Int, s : Int, n : Int) -> Bool {
-  let n64 = n.to_int64()
-  let a_mod = a % n
-  if a_mod == 0 {
-    return true
-  }
-  let mut x = pow_mod(a_mod.to_int64(), d.to_int64(), n64)
-  if x == 1L || x == n64 - 1L {
-    return true
-  }
-  // Square up to s - 1 times. If any square hits n - 1, n passes.
-  for r = 0; r < s - 1; r = r + 1 {
-    x = x * x % n64
-    if x == n64 - 1L {
-      return true
-    }
-  }
-  false
-}
 
 /// Test whether `n` is prime.
 ///
 /// Returns `false` for `n < 2`, `true` for `n == 2` or `n == 3`, `false` for
 /// even `n > 2`, and otherwise applies the deterministic Miller-Rabin test
 /// with witnesses {2, 7, 61}, which is exact for all `n < 2^31`.
+///
+/// This delegates to `@int64_utils.is_prime64` to avoid duplicating the
+/// Miller-Rabin implementation across packages.
 pub fn is_prime(n : Int) -> Bool {
-  if n < 2 {
-    return false
-  }
-  if n == 2 || n == 3 {
-    return true
-  }
-  if n % 2 == 0 {
-    return false
-  }
-  // Write n - 1 = d * 2^s with d odd.
-  let mut d = n - 1
-  let mut s = 0
-  while d % 2 == 0 {
-    d = d / 2
-    s = s + 1
-  }
-  let witnesses = [2, 7, 61]
-  for i = 0; i < witnesses.length(); i = i + 1 {
-    if !witness_passes(witnesses[i], d, s, n) {
-      return false
-    }
-  }
-  true
+  @int64_utils.is_prime64(n.to_int64())
 }
 
 // ---------------------------------------------------------------------------
