@@ -24,7 +24,7 @@ pub struct HeapEntry {
 /// Stored in a flat `Array[HeapEntry]` using the standard 0-indexed layout:
 /// parent of `i` is `(i-1)/2`, children are `2i+1` and `2i+2`.
 pub struct MinHeap {
-  data : Array[HeapEntry]
+  priv data : Array[HeapEntry]
 }
 
 /// Create an empty min-heap.

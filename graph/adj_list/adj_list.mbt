@@ -12,8 +12,8 @@
 
 /// A directed weighted edge: `to` is the destination, `weight` the cost.
 pub struct Edge {
-  to : Int
-  weight : Int
+  priv to : Int
+  priv weight : Int
 }
 
 /// Adjacency-list graph. `adj[v]` holds all outgoing edges from vertex `v`.
@@ -21,8 +21,8 @@ pub struct Edge {
 /// Create with `new(n)` then add edges with `add_edge`. The number of
 /// vertices is fixed at construction; edges are mutable.
 pub struct Graph {
-  n : Int
-  adj : FixedArray[Array[Edge]]
+  priv n : Int
+  priv adj : FixedArray[Array[Edge]]
 }
 
 /// Create a new graph with `n` vertices and no edges.

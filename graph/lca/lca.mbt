@@ -25,10 +25,10 @@
 /// `up[k][v]` is the 2^k-th ancestor of node `v`, or `-1` if it doesn't exist.
 /// `depth[v]` is the distance (in edges) from `v` to the root.
 pub struct LCA {
-  up : Array[FixedArray[Int]] // up[k][v] = 2^k-th ancestor of v, -1 if none
-  depth : FixedArray[Int]
-  log_n : Int
-  n : Int
+  priv up : Array[FixedArray[Int]] // up[k][v] = 2^k-th ancestor of v, -1 if none
+  priv depth : FixedArray[Int]
+  priv log_n : Int
+  priv n : Int
 }
 
 /// Build the LCA structure for a tree with `n` nodes rooted at `root`.

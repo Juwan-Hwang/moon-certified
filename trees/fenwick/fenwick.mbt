@@ -18,8 +18,8 @@
 
 /// 1-indexed Fenwick tree. `tree` has length `n + 1`; index 0 is unused.
 pub struct Fenwick {
-  tree : FixedArray[Int]
-  n : Int
+  priv tree : FixedArray[Int]
+  priv n : Int
 }
 
 /// Build a Fenwick tree from a 0-indexed array in O(n).

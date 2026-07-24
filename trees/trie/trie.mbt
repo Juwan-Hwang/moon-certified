@@ -29,7 +29,7 @@ let max_int : Int = 2147483647
 /// word at this node. `count` tracks the total number of words (maintained at
 /// the root only).
 pub struct TrieNode {
-  children : Array[(Int, TrieNode)]
+  priv children : Array[(Int, TrieNode)]
   priv mut is_end : Bool
   priv mut count : Int
 }
