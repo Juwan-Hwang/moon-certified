@@ -29,10 +29,22 @@ pub struct EulerSieve {
 /// Run the Euler linear sieve up to `n` (inclusive).
 ///
 /// Returns a struct containing the sorted list of primes and the spf table.
-/// Panics if `n < 2` (nothing to sieve) — callers should guard with `n ≥ 2`.
+/// For `n < 2` an empty result is returned.
+///
+/// **Memory safety**: The sieve allocates arrays of size `n + 1` and an
+/// estimated prime buffer. To prevent out-of-memory panics on unreasonably
+/// large inputs, `n` is capped at `100_000_000` (100M). For larger ranges,
+/// use a segmented sieve.
 pub fn sieve(n : Int) -> EulerSieve {
   if n < 2 {
     return { primes: FixedArray::make(0, 0), spf: FixedArray::make(0, 0), limit: n }
+  }
+  // OOM protection: the sieve allocates an spf array of size n+1 and a prime
+  // buffer of size ~n/3+8. For n > 100M this exceeds typical available memory
+  // (>400 MB for Int32 arrays). Reject early instead of letting the runtime
+  // panic with an opaque allocation failure.
+  if n > 100_000_000 {
+    abort("euler_sieve: n={n} exceeds safe limit (100_000_000). Use a segmented sieve for larger ranges.")
   }
   let spf = FixedArray::make(n + 1, 0)
   // Upper bound on prime count: n / ln(n) * 1.26 ≈ n for small n; use n/3 + 8

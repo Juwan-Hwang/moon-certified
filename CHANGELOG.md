@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-07-24
+
+### Added — 12 new algorithm packages
+
+#### Containers
+- `priority_queue` — Generic binary heap-based priority queue with dynamic resizing, indexed access (handles survive relocation), O(log n) priority updates and removal. Floyd heapify for O(n) construction.
+- `monotonic` — Monotonic stack and deque for next greater/smaller element and sliding window min/max in O(n).
+
+#### Dynamic Programming
+- `interval_dp` — Interval DP framework: matrix chain multiplication, optimal BST, burst balloons, stone merging. All use Int64 for overflow-safe cost accumulation.
+- `tree_dp` — Tree DP template: maximum independent set, tree diameter, maximum matching, tree knapsack. All traversals are iterative (stack-safe).
+
+#### Graph
+- `bridge_articulation` — Tarjan's bridge and articulation point detection. Correctly handles multi-edges and self-loops via parent-edge skip tracking.
+- `euler_path` — Hierholzer's algorithm for Euler path and circuit detection. Iterative implementation for stack safety.
+- `hungarian` — Kuhn-Munkres (Hungarian) algorithm for optimal assignment. O(n³) min-cost and max-weight bipartite matching.
+
+#### Number Theory
+- `ntt` — Number Theoretic Transform for O(n log n) polynomial multiplication. Uses NTT-friendly prime 998244353 with full Int64 overflow-safe modular arithmetic.
+
+#### String
+- `boyer_moore` — Boyer-Moore string search with bad-character and good-suffix heuristics. O(n/m) best case.
+- `lcp_array` — Kasai's algorithm for LCP array construction in O(n) from a suffix array.
+- `suffix_automaton` — Suffix Automaton (SAM) for O(n) substring queries, distinct substring counting, occurrence counting, and longest repeated substring.
+
+#### Trees
+- `segment_tree_lazy` — Segment tree with lazy propagation for range add + range sum/min/max queries in O(log n).
+
+### Fixed — Production-grade quality improvements
+
+#### Overflow safety
+- `gcd64`: Fixed Int64::MIN handling — no longer overflows on absolute value conversion; runs Euclidean algorithm on signed inputs and normalises at end.
+- `is_prime64`: Expanded Miller-Rabin witness set from {2,7,61} (valid for n<2³²) to {2,3,5,7,11,13,17,19,23,29,31,37} (valid for full Int64 range).
+- `pollard_rho`: Replaced batched GCD with per-step GCD to prevent missing factors for small composites. Implemented Brent's cycle detection (matching documentation).
+- `combinatorics.binomial`: Fixed "divide-first" overflow logic — now uses Int64 intermediate with multiply-then-divide (exact since C(n,k) is always integer).
+- `combinatorics.stirling2`: Replaced post-hoc overflow detection with pre-check pattern (check before multiply/add).
+- `min_cost_flow`: SPFA negative cycle detection added (enqueue count > n → abort). Int32 cost accumulation upgraded to Int64. Returns Option to distinguish invalid input from valid zero-flow.
+- `max_flow` / `dinic`: Returns Int64? to distinguish invalid input (None) from valid zero flow (Some(0L)).
+- `dijkstra_heap`: Fixed redundant overflow check (was comparing against Int64::MAX instead of Int32::MAX).
+- `array_sum`: Added `array_sum_checked` returning Int? (None on overflow).
+- `matrix`: Added `matmul_int_checked` returning FixedArray[Int]? (None on overflow).
+- `interpolation_search`: Int32 subtraction overflow fixed — converts to Int64 before subtracting.
+- `euler_sieve`: Added OOM protection (abort for n > 100,000,000).
+- `union_find`: Added negative-n validation in constructor.
+
+#### Encapsulation
+- Made all struct fields private across `binary_heap`, `hash_table`, `bloom_filter`, `btree`, `treap`, `lru_cache`, `skip_list`, `trie`, `monotonic`, `priority_queue`, `segment_tree_lazy`, `suffix_automaton`.
+- `HeapG[T]` generic heap with dynamic resizing and `decrease_key` now fully implemented (was previously documented but missing).
+
+#### Algorithm correctness
+- `splay`: Converted from recursive to iterative bottom-up splay (stack-safe for degenerate trees).
+- `dinic`: Converted recursive DFS to iterative with explicit stack (stack-safe for deep graphs).
+- `hungarian`: Fixed min-cost/max-weight dual convention (was solving max instead of min).
+- `bridge_articulation`: Fixed multi-edge handling (parent-edge tracking instead of parent-vertex).
+- `aho_corasick`: Child lookup upgraded from O(k) linear scan to O(log k) binary search.
+- `red_black_tree`: Added O(1) cached size; iterative height calculation.
+
+#### Documentation
+- `fast_power`: Marked as deprecated, recommending `fast_power_checked`.
+- `pollard_rho`: Documentation updated to match implementation (Brent's cycle detection with per-step GCD).
+- README test count and package count updated to match reality.
+
 ## [0.8.0] - 2026-07-24
 
 ### Added — 8 new algorithm packages

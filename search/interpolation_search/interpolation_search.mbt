@@ -45,12 +45,15 @@ pub fn interpolation_search(arr : FixedArray[Int], target : Int) -> Int? {
     if arr[lo] == arr[hi] {
       return Some(lo)
     }
-    // Interpolated probe. Int64 arithmetic prevents overflow of the product
-    // `(target - arr[lo]) * (hi - lo)` for large arrays or large values.
-    // Both operands are non-negative under the loop guard, and the result is
-    // clamped to [lo, hi] by construction (see header), so `pos` is in range.
-    let range = (arr[hi] - arr[lo]).to_int64()
-    let numer = (target - arr[lo]).to_int64() * (hi - lo).to_int64()
+    // Interpolated probe. Convert to Int64 BEFORE subtracting to prevent
+    // Int32 overflow when arr[hi] and arr[lo] span a wide range (e.g.
+    // [-2147483648, ..., 2147483647]). The subtraction itself is the
+    // overflow risk, not the subsequent multiplication.
+    let arr_hi_i64 = arr[hi].to_int64()
+    let arr_lo_i64 = arr[lo].to_int64()
+    let target_i64 = target.to_int64()
+    let range = arr_hi_i64 - arr_lo_i64
+    let numer = (target_i64 - arr_lo_i64) * (hi - lo).to_int64()
     let pos = lo + (numer / range).to_int()
     if arr[pos] == target {
       return Some(pos)
@@ -153,4 +156,20 @@ test "interpolation_search: negative values" {
   assert_eq(interpolation_search(xs, 3), Some(6))
   assert_eq(interpolation_search(xs, -4), None)
   assert_eq(interpolation_search(xs, 4), None)
+}
+
+test "interpolation_search: wide value range (Int32 overflow regression)" {
+  // Array spanning nearly the full Int32 range. The subtraction
+  // arr[hi] - arr[lo] = 2147483646 - (-2147483648) = 4294967294 which
+  // overflows Int32 but fits in Int64. This test verifies the fix.
+  let xs : FixedArray[Int] = FixedArray::make(4, 0)
+  xs[0] = -2147483648
+  xs[1] = -715827882
+  xs[2] = 715827883
+  xs[3] = 2147483647
+  assert_eq(interpolation_search(xs, -2147483648), Some(0))
+  assert_eq(interpolation_search(xs, 2147483647), Some(3))
+  assert_eq(interpolation_search(xs, -715827882), Some(1))
+  assert_eq(interpolation_search(xs, 715827883), Some(2))
+  assert_eq(interpolation_search(xs, 0), None)
 }

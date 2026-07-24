@@ -19,6 +19,9 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+/// Maximum Int value, used as "unlimited" for autocomplete limits.
+let max_int : Int = 2147483647
+
 /// A trie node.
 ///
 /// `children` is a sparse array of (byte_value, child_node) pairs, kept sorted
@@ -27,8 +30,8 @@
 /// the root only).
 pub struct TrieNode {
   children : Array[(Int, TrieNode)]
-  mut is_end : Bool
-  mut count : Int
+  priv mut is_end : Bool
+  priv mut count : Int
 }
 
 /// Create an empty trie (a root node with no children, not a word end).
@@ -256,6 +259,148 @@ pub fn longest_prefix(root : TrieNode, s : String) -> String? {
     // UTF-8 code-point boundary of `s`; `byte_prefix` bounds-checks the slice.
     Some(byte_prefix(s, best))
   }
+}
+
+// ---------------------------------------------------------------------------
+// Autocomplete / prefix-based search API
+// ---------------------------------------------------------------------------
+
+/// Collect all words under `node` into `out`, building each word by prepending
+/// `prefix` to the byte path. Uses an explicit stack for stack safety.
+fn collect_words_iter(
+  start : TrieNode,
+  prefix : Array[Char],
+  out : Array[String],
+  limit : Int,
+) -> Unit {
+  // Iterative DFS using an explicit stack.
+  // Each stack entry is (node, depth) where `depth` is the number of bytes
+  // added to `prefix` by the path from `start` to `node`.
+  let stack : Array[(TrieNode, Int)] = [(start, 0)]
+  while stack.length() > 0 {
+    if out.length() >= limit {
+      break
+    }
+    let (node, depth) = stack.pop().unwrap()
+    if node.is_end {
+      out.push(String::from_array(prefix.view()))
+    }
+    // Push children in reverse order so they're processed in ascending byte order.
+    let n = node.children.length()
+    let mut i = n
+    while i > 0 {
+      i = i - 1
+      let (byte_val, child) = node.children[i]
+      prefix.push(byte_val.to_char().unwrap())
+      stack.push((child, depth + 1))
+      let _ = prefix.pop()
+    }
+  }
+}
+
+/// Return up to `limit` words that start with `prefix`.
+///
+/// Walks down the trie to the node for `prefix`, then collects all complete
+/// words in that subtree. Results are in ascending code-unit (lexicographic)
+/// order. An empty `prefix` matches all stored words.
+///
+/// If the prefix path does not exist, returns an empty array.
+/// If `limit <= 0`, all matching words are returned.
+pub fn autocomplete(root : TrieNode, prefix : String, limit : Int) -> FixedArray[String] {
+  // Navigate to the prefix node.
+  match find_node(root, prefix) {
+    None => FixedArray::make(0, "")
+    Some(node) => {
+      let out : Array[String] = []
+      let path : Array[Char] = []
+      // Prepend prefix bytes into the path.
+      for i = 0; i < prefix.length(); i = i + 1 {
+        path.push(prefix[i].to_char().unwrap())
+      }
+      collect_words_iter(node, path, out, if limit <= 0 { max_int } else { limit })
+      FixedArray::from_array(out.view())
+    }
+  }
+}
+
+/// Match a single path component against a pattern byte.
+/// Returns true if `pattern_byte` matches `text_byte`.
+/// `'*'` matches any single byte (wildcard).
+fn match_byte(pattern_byte : Int, text_byte : Int) -> Bool {
+  pattern_byte == 42 || pattern_byte == text_byte // 42 = '*' ASCII
+}
+
+/// Search for stored words matching a wildcard pattern.
+///
+/// `'*'` in the pattern matches any single byte. All other bytes must match
+/// exactly. For example, `"h*ll*"` matches `"hello"` and `"hll"` (if stored).
+///
+/// Returns all matching words in lexicographic order.
+pub fn wildcard_search(root : TrieNode, pattern : String) -> FixedArray[String] {
+  let out : Array[String] = []
+  let path : Array[Char] = []
+  // Iterative DFS with backtracking for wildcard matching.
+  // Stack entry: (node, depth) where depth is the pattern index to match next.
+  let stack : Array[(TrieNode, Int)] = [(root, 0)]
+  while stack.length() > 0 {
+    let (node, depth) = stack.pop().unwrap()
+    if depth == pattern.length() {
+      if node.is_end {
+        out.push(String::from_array(path.view()))
+      }
+      continue
+    }
+    let pat_byte = pattern[depth].to_int()
+    // If pattern byte is wildcard, try all children.
+    // Otherwise, only try the matching child.
+    let n = node.children.length()
+    let mut i = n
+    while i > 0 {
+      i = i - 1
+      let (byte_val, child) = node.children[i]
+      if match_byte(pat_byte, byte_val) {
+        path.push(byte_val.to_char().unwrap())
+        stack.push((child, depth + 1))
+        let _ = path.pop()
+      }
+    }
+    // Also check if pattern byte is wildcard and we're at a word end at this depth
+    if pat_byte == 42 && depth + 1 == pattern.length() && node.is_end { // 42 = '*' ASCII
+      out.push(String::from_array(path.view()))
+    }
+  }
+  // Sort results lexicographically (they may be out of order due to stack LIFO).
+  // Simple insertion sort for small result sets.
+  let arr = out
+  for i = 1; i < arr.length(); i = i + 1 {
+    let key = arr[i]
+    let mut j = i
+    while j > 0 {
+      let prev = arr[j - 1]
+      if str_lt(key, prev) {
+        arr[j] = prev
+        j = j - 1
+      } else {
+        break
+      }
+    }
+    arr[j] = key
+  }
+  FixedArray::from_array(arr.view())
+}
+
+/// Lexicographic comparison: returns true if a < b.
+fn str_lt(a : String, b : String) -> Bool {
+  let la = a.length()
+  let lb = b.length()
+  let min = if la < lb { la } else { lb }
+  for k = 0; k < min; k = k + 1 {
+    let ca = a[k].to_int()
+    let cb = b[k].to_int()
+    if ca < cb { return true }
+    if ca > cb { return false }
+  }
+  la < lb
 }
 
 // ---------------------------------------------------------------------------

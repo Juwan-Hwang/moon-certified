@@ -19,9 +19,9 @@
 /// Not formally verified. Correctness ensured by comprehensive tests.
 
 pub struct BloomFilter {
-  bits : FixedArray[UInt64] // bit array stored as 64-bit words
-  num_bits : Int
-  num_hashes : Int
+  priv bits : FixedArray[UInt64] // bit array stored as 64-bit words
+  priv num_bits : Int
+  priv num_hashes : Int
 }
 
 /// ln(2), shared by `bf_ln` (range reduction) and `new` (parameter sizing).

@@ -139,7 +139,7 @@ test "stress: max_flow 100 node network" {
     graph[i * n + (i + 1)] = 10
   }
   let flow = @max_flow.max_flow(graph, n, 0, n - 1)
-  assert_eq(flow, 10)
+  assert_eq(flow, Some(10L))
 }
 
 // ---------------------------------------------------------------------------

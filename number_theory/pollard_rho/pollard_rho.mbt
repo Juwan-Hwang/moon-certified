@@ -4,10 +4,19 @@
 /// a primality test (Miller-Rabin via `@int64_utils.is_prime64`), it provides
 /// a complete integer factorization routine.
 ///
-/// **Algorithm.** Uses Floyd's cycle detection on the polynomial sequence
+/// **Algorithm.** Uses Brent's cycle detection on the polynomial sequence
 ///   x₀ = 2, x_{i+1} = (xᵢ² + c) mod n.
+///
+/// Brent's improvement over Floyd's classic tortoise-and-hare: only the hare
+/// (fast pointer) advances each step; the tortoise is teleported to the hare's
+/// position at power-of-2 boundaries. This reduces the number of function
+/// evaluations by ~25% compared to Floyd's, where both pointers advance every
+/// step.
+///
 /// At each step, compute d = gcd(|x − y|, n). If 1 < d < n, d is a factor.
-/// If d == n, the attempt failed; retry with a different constant c.
+/// If d == n, the attempt failed; retry with a different constant c. If
+/// `diff == 0` (the sequence entered a cycle without finding a factor), the
+/// attempt fails and a new constant `c` is tried.
 ///
 /// **Complexity.** Expected O(√p) iterations where p is the smallest prime
 /// factor of n, i.e. O(n^{1/4}) in the worst case.
@@ -26,18 +35,32 @@ fn prho_f(x : Int64, c : Int64, n : Int64) -> Int64 {
   (x * x + c) % n
 }
 
-/// Attempt to find a non-trivial factor of n using Pollard-Rho with the
-/// given constants c (polynomial offset) and x0 (starting value).
+/// Attempt to find a non-trivial factor of n using Pollard-Rho with Brent's
+/// cycle detection.
 ///
-/// Uses Floyd's cycle detection: tortoise advances 1 step, hare 2 steps.
-/// Returns a factor d with 1 < d < n, or n if the attempt failed.
+/// Parameters:
+/// - `n`: the number to factor (must be composite, > 1).
+/// - `c`: polynomial offset (must not be 0 or n-2 to avoid trivial cycles).
+/// - `x0`: starting value for the sequence.
+///
+/// Returns a factor `d` with `1 < d < n`, or `n` if the attempt failed
+/// (cycle found without a factor, or gcd yielded n).
 fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
   let mut tortoise = x0
   let mut hare = x0
-  let mut d = 1L
-  while d == 1L {
-    tortoise = prho_f(tortoise, c, n)
-    hare = prho_f(prho_f(hare, c, n), c, n)
+  // Brent's: track the step count within the current power-of-2 window.
+  let mut power = 1L
+  let mut lam = 1L
+  hare = prho_f(hare, c, n)
+  while true {
+    // Teleport the tortoise to the hare at power-of-2 boundaries.
+    if lam == power {
+      tortoise = hare
+      power = power * 2L
+      lam = 0L
+    }
+    hare = prho_f(hare, c, n)
+    lam = lam + 1L
     let diff = if tortoise > hare {
       tortoise - hare
     } else {
@@ -47,9 +70,17 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
       // Cycle found without a factor; this attempt failed.
       return n
     }
-    d = @int64_utils.gcd64(diff, n)
+    let d = @int64_utils.gcd64(diff, n)
+    if d > 1L && d < n {
+      return d
+    }
+    // d == 1: continue; d == n: retry with a different c (caller handles).
+    if d == n {
+      return n
+    }
   }
-  d
+  // Unreachable, but MoonBit needs a return.
+  n
 }
 
 /// Find one non-trivial factor of `n`.
@@ -97,6 +128,11 @@ pub fn pollard_rho(n : Int) -> Int? {
 /// **Algorithm.** Trial division for small primes (≤ 100), then Pollard-Rho
 /// with Miller-Rabin primality checking for large factors. Recursively
 /// factors any composite cofactors found by Pollard-Rho.
+///
+/// **Fallback.** If Pollard-Rho fails to find a factor for a composite
+/// cofactor (extremely unlikely), the function falls back to trial division
+/// up to √m. This guarantees correctness: no composite number is ever pushed
+/// as a prime factor.
 pub fn factorize(n : Int) -> Array[Int] {
   let result : Array[Int] = []
   if n < 2 {
@@ -137,6 +173,15 @@ pub fn factorize(n : Int) -> Array[Int] {
 }
 
 /// Recursively factor a cofactor `m` (all factors > 97) into `result`.
+///
+/// If `m` is prime, it is pushed directly. Otherwise, Pollard-Rho is used
+/// to find a non-trivial factor `d`, and both `d` and `m/d` are recursively
+/// factored.
+///
+/// **Fallback.** If Pollard-Rho returns `None` (failure), the function falls
+/// back to trial division starting from 101 up to √m. This guarantees that
+/// no composite number is ever pushed as a prime factor, even in the
+/// pathological case where Pollard-Rho fails.
 fn factor_rec(m : Int, result : Array[Int]) -> Unit {
   if m == 1 {
     return
@@ -151,8 +196,44 @@ fn factor_rec(m : Int, result : Array[Int]) -> Unit {
       factor_rec(d, result)
       factor_rec(m / d, result)
     }
-    None => result.push(m)
+    None => {
+      // Pollard-Rho failed (extremely unlikely). Fall back to trial division
+      // from 101 upward to guarantee correct factorization. This ensures no
+      // composite number is ever silently pushed as a prime factor.
+      let mut remaining = m
+      let mut p = 101
+      let limit = isqrt(m)
+      while p <= limit && remaining > 1 {
+        while remaining % p == 0 {
+          result.push(p)
+          remaining = remaining / p
+        }
+        p = p + 2 // Skip even numbers (m is odd at this point)
+      }
+      // If remaining > 1 after trial division, it must be prime.
+      if remaining > 1 {
+        result.push(remaining)
+      }
+    }
   }
+}
+
+/// Integer square root: floor(sqrt(n)) for n >= 0.
+fn isqrt(n : Int) -> Int {
+  if n <= 0 {
+    return 0
+  }
+  if n < 4 {
+    return 1
+  }
+  // Newton's method with Int64 to prevent overflow.
+  let mut x = n.to_int64()
+  let mut y = (x + 1L) / 2L
+  while y < x {
+    x = y
+    y = (x + n.to_int64() / x) / 2L
+  }
+  x.to_int()
 }
 
 // ---------------------------------------------------------------------------
@@ -335,5 +416,46 @@ test "factorize: product verified for various n" {
     for j = 0; j < f.length(); j = j + 1 {
       assert_eq(@int64_utils.is_prime64(f[j].to_int64()), true)
     }
+  }
+}
+
+test "factorize: all factors verified as prime (regression for composite push)" {
+  // This test verifies the fix for factor_rec pushing composite numbers
+  // when pollard_rho returns None. We factorize many numbers and verify
+  // that every factor in the result is genuinely prime.
+  let cases = [
+    121, 169, 289, 361, 529, 841, 961, 1369, 1681, 1849,
+    2209, 2809, 3481, 3721, 4489, 5041, 5329, 6241, 6889, 7921,
+    9409, 10201, 10609, 11449, 11881, 12769, 16129, 17161, 18769, 22201,
+  ]
+  for i = 0; i < cases.length(); i = i + 1 {
+    let n = cases[i]
+    let f = factorize(n)
+    let mut product = 1
+    for j = 0; j < f.length(); j = j + 1 {
+      product = product * f[j]
+      // Every factor must be prime (not composite).
+      assert_eq(@int64_utils.is_prime64(f[j].to_int64()), true)
+    }
+    assert_eq(product, n)
+  }
+}
+
+test "factorize: product of three large primes" {
+  // 101 * 103 * 107 = 1113121
+  let n = 1113121
+  let f = factorize(n)
+  assert_eq(f.length(), 3)
+  assert_eq(f[0], 101)
+  assert_eq(f[1], 103)
+  assert_eq(f[2], 107)
+}
+
+test "factorize: perfect cube of prime" {
+  // 101^3 = 1030301
+  let f = factorize(1030301)
+  assert_eq(f.length(), 3)
+  for i = 0; i < 3; i = i + 1 {
+    assert_eq(f[i], 101)
   }
 }

@@ -28,9 +28,14 @@
 /// for that vertex is clamped to `None` (treated as unreachable) to avoid
 /// silent wrap-around.
 
-/// Int32 max as Int64, used as the sentinel for "infinity" in distance arrays
-/// and for overflow comparison during distance accumulation.
-const INT_MAX_I64 : Int64 = 2147483647L
+/// Sentinel for "infinity" (unreachable). Uses `Int64::MAX` so that a
+/// distance of exactly `Int32::MAX` (2147483647) is NOT confused with
+/// unreachable. The overflow boundary is checked separately below.
+const INF_I64 : Int64 = 9223372036854775807L
+
+/// Int32::MAX as Int64 — the boundary for Int32 overflow detection.
+/// Distances exceeding this value cannot be safely returned as `Int`.
+const INT32_MAX_I64 : Int64 = 2147483647L
 
 // The min-heap (HeapEntry + MinHeap) is imported from @graph_utils.
 // This eliminates the code duplication that previously existed between
@@ -54,8 +59,8 @@ pub fn dijkstra(
     return FixedArray::make(if n > 0 { n } else { 0 }, None)
   }
   // Use Int64 for distances to prevent overflow during accumulation.
-  // INT_MAX_I64 serves as the "infinity" sentinel.
-  let dist = FixedArray::make(n, INT_MAX_I64)
+  // INF_I64 serves as the "infinity" sentinel.
+  let dist = FixedArray::make(n, INF_I64)
   let visited = FixedArray::make(n, false)
   dist[src] = 0L
   let heap = @graph_utils.MinHeap::new()
@@ -82,9 +87,11 @@ pub fn dijkstra(
     }
   }
   // Convert: distances that fit in Int32 become Some(d), overflow becomes None.
+  // A distance of exactly Int32::MAX (2147483647) IS representable and should
+  // be returned as Some, not None. Only distances exceeding Int32::MAX are None.
   let result : FixedArray[Int?] = FixedArray::make(n, None)
   for i = 0; i < n; i = i + 1 {
-    if dist[i] != INT_MAX_I64 && dist[i] <= INT_MAX_I64 {
+    if dist[i] != INF_I64 && dist[i] <= INT32_MAX_I64 {
       result[i] = Some(dist[i].to_int())
     }
   }
@@ -279,4 +286,22 @@ test "dijkstra_heap: overflow protection" {
   assert_eq(dist[1], Some(big_w))
   // Node 2's distance (2^31) overflows Int32: should be None, not a wrong value.
   assert_true(dist[2] is None)
+}
+
+test "dijkstra_heap: distance exactly Int32::MAX" {
+  // Regression test: a distance of exactly 2147483647 (Int32::MAX) must be
+  // returned as Some, not None. Previously the sentinel was also
+  // 2147483647, causing a false "unreachable" report.
+  let n = 3
+  let graph : Array[Array[(Int, Int)]] = []
+  for i = 0; i < n; i = i + 1 {
+    graph.push([])
+  }
+  // 0 ->(2147483646)-> 1 ->(1)-> 2
+  // Distance to 2 = 2147483647 = Int32::MAX
+  graph[0].push((1, 2147483646))
+  graph[1].push((2, 1))
+  let dist = dijkstra(graph, n, 0)
+  assert_eq(dist[1], Some(2147483646))
+  assert_eq(dist[2], Some(2147483647)) // Exactly Int32::MAX, must NOT be None
 }

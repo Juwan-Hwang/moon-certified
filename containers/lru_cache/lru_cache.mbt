@@ -17,10 +17,10 @@
 /// Public so that `LRUCache` (a public type) may reference it; the fields
 /// remain package-private, so the type is opaque to external users.
 pub struct LruNode[K, V] {
-  mut key : K
-  mut val : V
-  mut prev : Int  // index of previous node, -1 for head
-  mut next : Int  // index of next node, -1 for tail
+  priv mut key : K
+  priv mut val : V
+  priv mut prev : Int  // index of previous node, -1 for head
+  priv mut next : Int  // index of next node, -1 for tail
 }
 
 pub struct LRUCache[K, V] {
@@ -29,11 +29,11 @@ pub struct LRUCache[K, V] {
   /// Hash map: key → node index, for O(1) amortized key lookup.
   index : @hash_table.HashTable[K, Int]
   /// Index of the head (LRU) node, -1 if empty.
-  mut head : Int
+  priv mut head : Int
   /// Index of the tail (MRU) node, -1 if empty.
-  mut tail : Int
+  priv mut tail : Int
   /// Number of entries currently in the cache.
-  mut count : Int
+  priv mut count : Int
   /// Maximum number of entries.
   capacity : Int
   /// Hash function for key lookup.

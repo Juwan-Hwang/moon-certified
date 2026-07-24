@@ -46,7 +46,7 @@ const MAX_LEVEL : Int = 32
 /// full `MAX_LEVEL`-slot `forward` array so that every level has an entry point.
 pub struct SkipNode {
   key : Int
-  mut value : Int
+  priv mut value : Int
   forward : FixedArray[SkipNode?]
 }
 
@@ -58,9 +58,9 @@ pub struct SkipNode {
 /// state used to draw random node heights.
 pub struct SkipList {
   header : SkipNode
-  mut level : Int
-  mut count : Int
-  mut rng : Int
+  priv mut level : Int
+  priv mut count : Int
+  priv mut rng : Int
 }
 
 /// Create an empty skip list.

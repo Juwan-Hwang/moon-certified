@@ -35,13 +35,13 @@
 ///   A previously live slot that was deleted.  Probing continues past it;
 ///   it can be reused by a future `insert`.
 pub struct HashTable[K, V] {
-  mut keys : FixedArray[K?]
-  mut vals : FixedArray[V?]
-  mut occupied : FixedArray[Bool]
-  mut tombstone : FixedArray[Bool]
-  mut count : Int
-  mut tombstones : Int
-  mut capacity : Int
+  priv mut keys : FixedArray[K?]
+  priv mut vals : FixedArray[V?]
+  priv mut occupied : FixedArray[Bool]
+  priv mut tombstone : FixedArray[Bool]
+  priv mut count : Int
+  priv mut tombstones : Int
+  priv mut capacity : Int
 }
 
 /// Map a hash value into `[0, capacity)` handling negative results.
@@ -286,9 +286,9 @@ pub fn[K, V] size(ht : HashTable[K, V]) -> Int {
 /// The `hash_fn` and `eq_fn` are bound at construction and reused for every
 /// operation, so callers can never accidentally mix mismatched functions.
 pub struct StringHashTable {
-  inner : HashTable[String, Int]
-  hash_fn : (String) -> Int
-  eq_fn : (String, String) -> Bool
+  priv inner : HashTable[String, Int]
+  priv hash_fn : (String) -> Int
+  priv eq_fn : (String, String) -> Bool
 }
 
 /// Create a new `StringHashTable` with the given capacity, hash function,
