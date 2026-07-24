@@ -103,17 +103,17 @@
 /// into) this node, in the order: own patterns first (insertion order),
 /// then patterns inherited from the fail chain.
 pub struct AcNode {
-  children : Array[(Int, Int)]
-  mut fail : Int
-  output : Array[Int]
+  priv children : Array[(Int, Int)]
+  priv mut fail : Int
+  priv output : Array[Int]
 }
 
 /// An Aho-Corasick automaton built from a set of pattern strings.
 ///
 /// Build with `build`, search with `search` or `search_first`.
 pub struct AcAutomaton {
-  nodes : Array[AcNode]
-  pattern_count : Int
+  priv nodes : Array[AcNode]
+  priv pattern_count : Int
 }
 
 /// Create a fresh node: no children, fail = 0, empty output.
@@ -236,6 +236,11 @@ pub fn build(patterns : Array[String]) -> AcAutomaton {
   }
 
   { nodes, pattern_count: patterns.length() }
+}
+
+/// Number of patterns compiled into this automaton.
+pub fn pattern_count(automaton : AcAutomaton) -> Int {
+  automaton.pattern_count
 }
 
 /// Search for all pattern occurrences in `text`.

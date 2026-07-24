@@ -25,9 +25,9 @@ pub struct LruNode[K, V] {
 
 pub struct LRUCache[K, V] {
   /// Flat array of all allocated nodes (indices used as pointers).
-  nodes : Array[LruNode[K, V]]
+  priv nodes : Array[LruNode[K, V]]
   /// Hash map: key → node index, for O(1) amortized key lookup.
-  index : @hash_table.HashTable[K, Int]
+  priv index : @hash_table.HashTable[K, Int]
   /// Index of the head (LRU) node, -1 if empty.
   priv mut head : Int
   /// Index of the tail (MRU) node, -1 if empty.
@@ -35,11 +35,11 @@ pub struct LRUCache[K, V] {
   /// Number of entries currently in the cache.
   priv mut count : Int
   /// Maximum number of entries.
-  capacity : Int
+  priv capacity : Int
   /// Hash function for key lookup.
-  hash_fn : (K) -> Int
+  priv hash_fn : (K) -> Int
   /// Equality function for key comparison.
-  eq_fn : (K, K) -> Bool
+  priv eq_fn : (K, K) -> Bool
 }
 
 /// Create an empty LRU cache with the given capacity.

@@ -21,9 +21,9 @@
 /// `spf[1]` are `0` (sentinel, never used). `primes` is the ascending list of
 /// all primes ≤ n.
 pub struct EulerSieve {
-  primes : FixedArray[Int]
-  spf : FixedArray[Int] // smallest prime factor, 0 for 0 and 1
-  limit : Int
+  priv primes : FixedArray[Int]
+  priv spf : FixedArray[Int] // smallest prime factor, 0 for 0 and 1
+  priv limit : Int
 }
 
 /// Run the Euler linear sieve up to `n` (inclusive).

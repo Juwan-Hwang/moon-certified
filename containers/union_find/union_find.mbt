@@ -4,9 +4,9 @@
 /// which is effectively constant for all practical input sizes.
 
 pub struct UnionFind {
-  parent : FixedArray[Int]
-  rank : FixedArray[Int]
-  mut count : Int
+  priv parent : FixedArray[Int]
+  priv rank : FixedArray[Int]
+  priv mut count : Int
 }
 
 /// Create a UnionFind with n singleton sets: {0}, {1}, ..., {n-1}.

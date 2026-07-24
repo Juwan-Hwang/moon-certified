@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.9.0** — 87 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 1321 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
+**v0.9.0** — 86 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 1321 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
 
 ### v0.9.0 变更亮点（代码质量提升 + 消除重复）
 
@@ -87,7 +87,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | `sieve` | n > 10⁷ 时返回 `None`（OOM 保护） | 返回 `FixedArray[Int]?` |
 | `dijkstra_heap` | 距离使用 Int64 累积，溢出时返回 `None` | 已添加溢出防护 |
 | `convex_hull` | 叉积使用 Int64 计算 | 已添加溢出防护 |
-| `max_flow` | `total_flow` 可能溢出 Int32 | 文档已标注，调用者需注意 |
+| `max_flow` | `total_flow` 使用 Int64 累积，返回 `Int64?` 区分无效输入 | 已添加溢出防护 |
 | `knapsack` | n × capacity > 10⁷ 时返回 `None` | 已添加 OOM 保护 |
 | `lcs` | n × m > 10⁷ 时返回 `None` | 返回 `Int?`，滚动数组优化 O(min(n,m)) 空间 |
 | `edit_distance` | n × m > 10⁷ 时返回 `None` | 返回 `Int?`，滚动数组优化 O(min(n,m)) 空间 |
@@ -97,6 +97,14 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | `segment_tree` | 区间和可能溢出 Int32 | 文档已标注，调用者需注意 |
 | `fenwick` | 前缀和可能溢出 Int32 | 文档已标注，调用者需注意 |
 | `kruskal` | `total_weight` 可能溢出 Int32 | 文档已标注，调用者需注意 |
+| `min_cost_flow` | `total_flow`/`total_cost` 使用 Int64 累积，返回 `(Int64,Int64)?` | 已添加溢出防护 + 负环检测 |
+| `dinic` | 所有容量和流量使用 Int64，返回 `Int64?` | 已添加溢出防护 + 迭代 DFS |
+| `interpolation_search` | 减法使用 Int64 防止跨 Int32 范围溢出 | 已添加溢出防护 |
+| `gcd64` | 正确处理 `Int64::MIN`（不做预先取绝对值） | 已修复 |
+| `is_prime64` | 见证集扩展到全 Int64 范围（Sorenson & Webster 2015） | 已修复 |
+| `array_sum` | `array_sum_checked` 返回 `Int?`（溢出返回 None） | 已添加安全版本 |
+| `matrix` | `matmul_int_checked` 返回 `FixedArray[Int]?`（溢出返回 None） | 已添加安全版本 |
+| `combinatorics` | binomial 先乘后除（Int64 中间），stirling2 预检查溢出 | 已修复 |
 
 ### 泛型架构
 
@@ -332,11 +340,13 @@ moon-certified/
 │   ├── radix_sort/           🔒 基数排序 LSD (stable, 11 tests)
 │   └── is_sorted/            ✅ 有序性检查 (verified) + generic
 ├── containers/
-│   ├── binary_heap/          🔒 二叉堆 (Heap 封装 + HeapG[T], 17 tests)
+│   ├── binary_heap/          🔒 二叉堆 (Heap 封装 + HeapG[T] + decrease_key, 17 tests)
 │   ├── hash_table/           🔒 哈希表 K,V 泛型 (StringHashTable 封装, 19 tests)
 │   ├── lru_cache/            🔒 LRU Cache O(1) (HashMap+双向链表, 8 tests)
 │   ├── bloom_filter/         🔒 布隆过滤器 (最优参数, 9 tests)
-│   └── union_find/           🔒 并查集 (pub struct, find→Int?, 16 tests)
+│   ├── union_find/           🔒 并查集 (pub struct, find→Int?, 16 tests)
+│   ├── priority_queue/       🔒 优先队列 (HeapG[T], 动态扩容, decrease_key, 15 tests)
+│   └── monotonic/            🔒 单调栈/单调队列 (next greater/smaller, 滑动窗口, 21 tests)
 ├── trees/
 │   ├── bst/                  🔒 二叉搜索树 (迭代实现, 无栈溢出风险, 22 tests)
 │   ├── avl/                  🔒 AVL 平衡树 (O(1) size, 17 tests)
@@ -344,11 +354,12 @@ moon-certified/
 │   ├── btree/                🔒 B-Tree (16 tests)
 │   ├── segment_tree/         🔒 线段树 + LazySegTree (19 tests)
 │   ├── fenwick/              🔒 树状数组 (14 tests)
-│   ├── trie/                 🔒 字典树 (sparse children, 17 tests)
+│   ├── trie/                 🔒 字典树 (sparse children, autocomplete, wildcard search, 17 tests)
 │   ├── skip_list/            🔒 跳表 (O(log n) expected, 13 tests)
 │   ├── treap/                🔒 Treap (per-instance RNG, O(log n) expected, 13 tests)
-│   ├── splay/              🔒 伸展树 (bottom-up splay, amortized O(log n), 10 tests)
-│   └── sparse_table/       🔒 Sparse Table RMQ (泛型, O(1) 幂等查询, 13 tests)
+│   ├── splay/              🔒 伸展树 (iterative bottom-up, amortized O(log n), 10 tests)
+│   ├── sparse_table/       🔒 Sparse Table RMQ (泛型, O(1) 幂等查询, 13 tests)
+│   └── segment_tree_lazy/  🔒 线段树 Lazy Propagation (区间修改+区间查询, 9 tests)
 ├── graph/
 │   ├── bfs_dfs/              🔒 BFS/DFS 邻接矩阵版 (Option 返回, 34 tests)
 │   ├── adj_list/             🔒 邻接表稀疏图 (O(V+E) 空间, 23 tests)
@@ -366,15 +377,21 @@ moon-certified/
 │   ├── advanced/             🔒 Bellman-Ford + Floyd-Warshall (SPResult, 19 tests)
 │   ├── min_cost_flow/      🔒 最小费用最大流 SPFA (linked-forward-star, 9 tests)
 │   └── two_sat/            🔒 2-SAT (implication graph + Tarjan SCC, 8 tests)
-│   ├── dinic/              🔒 Dinic 最大流 (level graph + blocking flow, 8 tests)
-│   └── lca/               🔒 LCA 最近公共祖先 (binary lifting, O(log n) query, 11 tests)
+│   ├── dinic/              🔒 Dinic 最大流 (level graph + iterative blocking flow, 8 tests)
+│   ├── lca/               🔒 LCA 最近公共祖先 (binary lifting, O(log n) query, 11 tests)
+│   ├── bridge_articulation/ 🔒 桥+割点 (Tarjan, 多重边处理, 15 tests)
+│   ├── euler_path/          🔒 欧拉路径/回路 (Hierholzer, 迭代实现, 14 tests)
+│   └── hungarian/           🔒 匈牙利算法 (二分图最优匹配, O(n³), 10 tests)
 ├── string/
 │   ├── kmp/                  🔒 KMP (17 tests)
 │   ├── rabin_karp/           🔒 Rabin-Karp (25 tests)
 │   ├── suffix_array/         🔒 后缀数组 (15 tests)
 │   ├── z_function/           🔒 Z 算法 (z_array + z_search, 19 tests)
 │   ├── manacher/             🔒 Manacher 回文 (longest/count/radii, 23 tests)
-│   └── aho_corasick/       🔒 Aho-Corasick 多模式匹配 (sparse children, CJK 安全, 12 tests)
+│   ├── aho_corasick/       🔒 Aho-Corasick 多模式匹配 (sparse children, CJK 安全, 12 tests)
+│   ├── boyer_moore/         🔒 Boyer-Moore 字符串搜索 (bad-char + good-suffix, 14 tests)
+│   ├── lcp_array/           🔒 LCP 数组 (Kasai 算法, O(n), 13 tests)
+│   └── suffix_automaton/    🔒 后缀自动机 SAM (子串查询, 不同子串计数, 12 tests)
 ├── number_theory/
 │   ├── gcd/                  ⚠️ GCD (partial verified, handles Int::MIN)
 │   ├── fast_power/           ⚠️ 快速幂 (partial verified + checked variant)
@@ -382,15 +399,18 @@ moon-certified/
 │   ├── miller_rabin/         🔒 Miller-Rabin 素性检验 (deterministic, 11 tests)
 │   ├── crt/                  🔒 中国剩余定理 (coprime + non-coprime, 20 tests)
 │   ├── bsgs/               🔒 BSGS 离散对数 (O(√p), 8 tests)
-│   └── pollard_rho/        🔒 Pollard-Rho 整数分解 (Miller-Rabin + Brent, 10 tests)
-│   └── euler_sieve/        🔒 Euler 线性筛 (O(n) + O(log n) 因式分解, 11 tests)
+│   ├── pollard_rho/        🔒 Pollard-Rho 整数分解 (Miller-Rabin + Brent, 10 tests)
+│   ├── euler_sieve/        🔒 Euler 线性筛 (O(n) + O(log n) 因式分解, 11 tests)
+│   └── ntt/                🔒 数论变换 NTT (O(n log n) 多项式乘法, 11 tests)
 ├── math/
-│   ├── array_sum/            ⚠️ 数组求和 (partial verified)
+│   ├── array_sum/            ⚠️ 数组求和 (partial verified + checked variant)
 │   ├── combinatorics/        🔒 组合数学 (组合数/Catalan/Stirling, Int64 防溢出, 15 tests)
-│   └── matrix/               🔒 矩阵运算 (乘法+高斯消元+行列式, 12 tests)
+│   └── matrix/               🔒 矩阵运算 (乘法+高斯消元+行列式, checked variant, 12 tests)
 ├── dp/
 │   ├── dp/                   🔒 LCS + 编辑距离 + 背包 (OOM 防护, 21 tests)
-│   └── lis/                  🔒 LIS O(n log n) (14 tests)
+│   ├── lis/                  🔒 LIS O(n log n) (14 tests)
+│   ├── interval_dp/          🔒 区间 DP (矩阵链乘+最优BST+burst balloons+石子合并, 22 tests)
+│   └── tree_dp/              🔒 树形 DP (最大独立集+直径+匹配+树背包, 迭代DFS, 19 tests)
 ├── geometry/
 │   ├── convex_hull/          🔒 Graham 凸包 (Int64 防溢出, 9 tests)
 │   ├── andrew_hull/          🔒 Andrew 单调链凸包 (Int64 防溢出, 11 tests)
@@ -486,7 +506,19 @@ moon-certified/
 | segment_ops | 33 | 🔒 tested | ❌ |
 | combinatorics | 15 | 🔒 tested | ❌ |
 | matrix | 12 | 🔒 tested | ❌ |
-| **Total** | **1321** | **5 完整, 4 部分, 81 tested** | **17 generic** |
+| priority_queue | 15 | 🔒 tested | ✅ HeapG[T] |
+| monotonic | 21 | 🔒 tested | ❌ |
+| interval_dp | 22 | 🔒 tested | ❌ |
+| tree_dp | 19 | 🔒 tested | ❌ |
+| bridge_articulation | 15 | 🔒 tested | ❌ |
+| euler_path | 14 | 🔒 tested | ❌ |
+| hungarian | 10 | 🔒 tested | ❌ |
+| ntt | 11 | 🔒 tested | ❌ |
+| boyer_moore | 14 | 🔒 tested | ❌ |
+| lcp_array | 13 | 🔒 tested | ❌ |
+| suffix_automaton | 12 | 🔒 tested | ❌ |
+| segment_tree_lazy | 9 | 🔒 tested | ❌ |
+| **Total** | **1321** | **5 完整, 4 部分, 77 tested** | **17 generic** |
 
 ## 参考资源
 

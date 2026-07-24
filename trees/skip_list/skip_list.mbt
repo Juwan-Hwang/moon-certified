@@ -45,9 +45,9 @@ const MAX_LEVEL : Int = 32
 /// is exactly the node's height. The sentinel `header` node always carries a
 /// full `MAX_LEVEL`-slot `forward` array so that every level has an entry point.
 pub struct SkipNode {
-  key : Int
+  priv key : Int
   priv mut value : Int
-  forward : FixedArray[SkipNode?]
+  priv forward : FixedArray[SkipNode?]
 }
 
 /// An ordered map from `Int` keys to `Int` values, implemented as a skip list.
@@ -57,7 +57,7 @@ pub struct SkipNode {
 /// caches the number of live entries so `size` is O(1). `rng` holds the LCG
 /// state used to draw random node heights.
 pub struct SkipList {
-  header : SkipNode
+  priv header : SkipNode
   priv mut level : Int
   priv mut count : Int
   priv mut rng : Int

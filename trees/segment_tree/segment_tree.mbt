@@ -20,8 +20,8 @@
 /// Not formally verified. Correctness ensured by comprehensive tests
 /// including brute-force cross-checks on large arrays.
 pub struct SegmentTree {
-  tree : FixedArray[Int]
-  n : Int
+  priv tree : FixedArray[Int]
+  priv n : Int
 }
 
 ///|
@@ -133,9 +133,9 @@ pub fn update(st : SegmentTree, idx : Int, val : Int) -> Unit {
 /// that haven't been pushed to children yet. Both arrays use the same
 /// 1-indexed layout as `SegmentTree`.
 pub struct LazySegTree {
-  tree : FixedArray[Int]
-  pending : FixedArray[Int]
-  n : Int
+  priv tree : FixedArray[Int]
+  priv pending : FixedArray[Int]
+  priv n : Int
 }
 
 /// Build a lazy segment tree from an array.

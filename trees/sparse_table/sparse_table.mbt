@@ -24,10 +24,10 @@
 /// `table[k]` holds the combined values for all windows of length `2^k`.
 /// `log2_table[i]` = floor(log2(i)) for O(1) log2 lookup.
 pub struct SparseTable[T] {
-  table : Array[Array[T]]
-  log2_table : FixedArray[Int]
-  length : Int
-  combine : (T, T) -> T
+  priv table : Array[Array[T]]
+  priv log2_table : FixedArray[Int]
+  priv length : Int
+  priv combine : (T, T) -> T
 }
 
 /// Build a sparse table over `arr` using the idempotent `combine` function.
