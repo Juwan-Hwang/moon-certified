@@ -1,3 +1,6 @@
 {
-  "proof-enabled": false
+  "proof-enabled": false,
+  "import": [
+    "moon-certified/geometry/geometry_utils"
+  ]
 }

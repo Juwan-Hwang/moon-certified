@@ -4,104 +4,41 @@
 /// The graph is a flat `n * n` adjacency matrix where `graph[i * n + j] != 0`
 /// means there is a directed edge `i -> j`.
 ///
-/// Uses Tarjan's single-pass DFS with a single stack and two arrays (`index`
-/// and `lowlink`). Time O(n + e) where e is the number of edges; space O(n).
+/// The core Tarjan DFS is delegated to `@graph_utils.tarjan_scc_ids`, which
+/// operates on adjacency lists. This package converts the matrix to an
+/// adjacency list, calls the shared implementation, and then groups vertices
+/// by component ID to produce the list-of-SCCs output format.
+///
+/// Time O(n² + e) where e is the number of edges — the n² comes from scanning
+/// the adjacency matrix to build the adjacency list; space O(n + e).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// Mutable algorithm state, threaded through the recursive DFS.
-priv struct SccState {
-  graph : FixedArray[Int]
-  n : Int
-  mut index_counter : Int
-  indices : FixedArray[Int] // -1 = not yet visited
-  lowlink : FixedArray[Int]
-  on_stack : FixedArray[Bool]
-  stack : FixedArray[Int]
-  mut stack_top : Int
-  result : Array[FixedArray[Int]]
-}
+// The Tarjan SCC algorithm is imported from @graph_utils.
+// This eliminates the code duplication that previously existed between scc
+// and two_sat. The shared implementation is in
+// graph/graph_utils/graph_utils.mbt.
 
-fn new_state(graph : FixedArray[Int], n : Int) -> SccState {
-  {
-    graph,
-    n,
-    index_counter: 0,
-    indices: FixedArray::make(n, -1),
-    lowlink: FixedArray::make(n, 0),
-    on_stack: FixedArray::make(n, false),
-    stack: FixedArray::make(n, 0),
-    stack_top: 0,
-    result: [],
+/// Convert a flat adjacency matrix to an adjacency list.
+///
+/// `graph[i * n + j] != 0` means edge `i -> j`. The resulting `adj[i]` is an
+/// array of neighbor indices.
+fn matrix_to_adj_list(
+  graph : FixedArray[Int],
+  n : Int,
+) -> Array[Array[Int]] {
+  let adj : Array[Array[Int]] = []
+  for _i = 0; _i < n; _i = _i + 1 {
+    adj.push([])
   }
-}
-
-/// Iterative DFS core of Tarjan's algorithm.
-/// Uses an explicit stack to avoid recursion depth limits.
-fn strongconnect(state : SccState, start : Int) -> Unit {
-  // Stack of (vertex, next_neighbor_index) pairs.
-  let dfs_stack : Array[(Int, Int)] = [(start, 0)]
-
-  state.indices[start] = state.index_counter
-  state.lowlink[start] = state.index_counter
-  state.index_counter = state.index_counter + 1
-  state.stack[state.stack_top] = start
-  state.stack_top = state.stack_top + 1
-  state.on_stack[start] = true
-
-  while dfs_stack.length() > 0 {
-    let top_idx = dfs_stack.length() - 1
-    let (v, next_w) = dfs_stack[top_idx]
-    if next_w < state.n {
-      // Try neighbor next_w
-      let w = next_w
-      // Update the next neighbor to try
-      dfs_stack[top_idx] = (v, next_w + 1)
-
-      if state.graph[v * state.n + w] != 0 {
-        if state.indices[w] == -1 {
-          // Tree edge: push w onto DFS stack
-          state.indices[w] = state.index_counter
-          state.lowlink[w] = state.index_counter
-          state.index_counter = state.index_counter + 1
-          state.stack[state.stack_top] = w
-          state.stack_top = state.stack_top + 1
-          state.on_stack[w] = true
-          dfs_stack.push((w, 0))
-        } else if state.on_stack[w] {
-          // Back/cross edge to node on stack
-          if state.indices[w] < state.lowlink[v] {
-            state.lowlink[v] = state.indices[w]
-          }
-        }
-      }
-    } else {
-      // All neighbors of v explored: check if v is SCC root
-      ignore(dfs_stack.pop())
-
-      // If v has a parent in DFS tree, update parent's lowlink
-      if dfs_stack.length() > 0 {
-        let parent_idx = dfs_stack.length() - 1
-        let (parent, _) = dfs_stack[parent_idx]
-        if state.lowlink[v] < state.lowlink[parent] {
-          state.lowlink[parent] = state.lowlink[v]
-        }
-      }
-
-      // If v is the root of an SCC, pop the stack to collect the component.
-      if state.lowlink[v] == state.indices[v] {
-        let scc : Array[Int] = []
-        let mut w = -1
-        while w != v {
-          state.stack_top = state.stack_top - 1
-          w = state.stack[state.stack_top]
-          state.on_stack[w] = false
-          scc.push(w)
-        }
-        state.result.push(FixedArray::makei(scc.length(), fn(i) { scc[i] }))
+  for i = 0; i < n; i = i + 1 {
+    for j = 0; j < n; j = j + 1 {
+      if graph[i * n + j] != 0 {
+        adj[i].push(j)
       }
     }
   }
+  adj
 }
 
 /// Compute the strongly connected components of a directed graph.
@@ -123,13 +60,29 @@ pub fn tarjan_scc(
   if n <= 0 || graph.length() < n * n {
     return FixedArray::make(0, FixedArray::make(0, 0))
   }
-  let state = new_state(graph, n)
-  for v = 0; v < n; v = v + 1 {
-    if state.indices[v] == -1 {
-      strongconnect(state, v)
+  // Convert adjacency matrix to adjacency list for the shared implementation.
+  let adj = matrix_to_adj_list(graph, n)
+  // Run the shared Tarjan SCC: comp[i] = SCC ID of vertex i.
+  let comp = @graph_utils.tarjan_scc_ids(adj, n)
+  // Count the number of SCCs (IDs are 0 .. scc_count-1).
+  let mut scc_count = 0
+  for i = 0; i < n; i = i + 1 {
+    if comp[i] + 1 > scc_count {
+      scc_count = comp[i] + 1
     }
   }
-  FixedArray::makei(state.result.length(), fn(i) { state.result[i] })
+  // Group vertices by component ID.
+  let groups : Array[Array[Int]] = []
+  for _i = 0; _i < scc_count; _i = _i + 1 {
+    groups.push([])
+  }
+  for i = 0; i < n; i = i + 1 {
+    groups[comp[i]].push(i)
+  }
+  // Convert to FixedArray[FixedArray[Int]].
+  FixedArray::makei(scc_count, fn(i) {
+    FixedArray::makei(groups[i].length(), fn(j) { groups[i][j] })
+  })
 }
 
 // ---------------------------------------------------------------------------

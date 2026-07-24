@@ -26,6 +26,7 @@
     "moon-certified/string/z_function",
     "moon-certified/string/manacher",
     "moon-certified/number_theory/miller_rabin",
+    "moon-certified/geometry/geometry_utils",
     "moon-certified/geometry/convex_hull",
     "moon-certified/geometry/andrew_hull",
     "moon-certified/search/interpolation_search",

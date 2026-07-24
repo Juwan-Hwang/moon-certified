@@ -175,11 +175,11 @@ test "stress: suffix_array 600 char string" {
 // ---------------------------------------------------------------------------
 
 test "stress: convex_hull 1000 random points" {
-  let points : Array[@convex_hull.Point] = []
+  let points : Array[@geometry_utils.Point] = []
   for i = 0; i < 1000; i = i + 1 {
     let x = (i * 7 + 3) % 100
     let y = (i * 13 + 5) % 100
-    points.push(@convex_hull.point(x, y))
+    points.push(@geometry_utils.point(x, y))
   }
   let hull = @convex_hull.convex_hull(points)
   // Hull should have at least 3 points for non-degenerate input
@@ -384,9 +384,9 @@ test "stress: topo_sort_adj 1000-node chain DAG" {
 
 test "stress: andrew_hull 1000 random points" {
   let n = 1000
-  let points = FixedArray::make(n, (0, 0))
+  let points : Array[@geometry_utils.Point] = []
   for i = 0; i < n; i = i + 1 {
-    points[i] = ((i * 7 + 3) % 200, (i * 13 + 5) % 200)
+    points.push(@geometry_utils.point((i * 7 + 3) % 200, (i * 13 + 5) % 200))
   }
   let hull = @andrew_hull.convex_hull(points)
   assert_true(hull.length() >= 3)

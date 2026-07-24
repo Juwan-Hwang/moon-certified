@@ -16,22 +16,19 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// A 2D point with integer coordinates.
-pub struct Point {
-  x : Int
-  y : Int
-}
+// @geometry_utils.Point and point are imported from @geometry_utils.
+// This eliminates code duplication across geometry packages.
 
-/// Construct a [`Point`].
-pub fn point(x : Int, y : Int) -> Point {
-  { x, y }
+/// Convenience constructor — delegates to @geometry_utils.point.
+pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
+  @geometry_utils.point(x, y)
 }
 
 /// KD-Tree node. `Empty` is the empty tree; `Node(left, pt, right, sz)`
 /// stores the point, subtrees, and cached subtree size.
 pub enum KDNode {
   Empty
-  Node(KDNode, Point, KDNode, Int) // (left, point, right, size)
+  Node(KDNode, @geometry_utils.Point, KDNode, Int) // (left, point, right, size)
 }
 
 /// Construct an empty KD-Tree.
@@ -43,19 +40,14 @@ pub fn empty() -> KDNode {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Squared Euclidean distance (Int64 to prevent overflow).
-fn dist2(a : Point, b : Point) -> Int64 {
-  let dx = a.x.to_int64() - b.x.to_int64()
-  let dy = a.y.to_int64() - b.y.to_int64()
-  dx * dx + dy * dy
-}
 
-/// Merge sort of a Point subarray by the given axis (0 = x, 1 = y).
+
+/// Merge sort of a @geometry_utils.Point subarray by the given axis (0 = x, 1 = y).
 fn msort_points(
-  pts : Array[Point],
+  pts : Array[@geometry_utils.Point],
   lo : Int,
   hi : Int,
-  tmp : Array[Point],
+  tmp : Array[@geometry_utils.Point],
   axis : Int,
 ) -> Unit {
   let len = hi - lo
@@ -82,7 +74,7 @@ fn msort_points(
 }
 
 /// True if `a` should come before `b` when sorted by the given axis.
-fn le_axis(a : Point, b : Point, axis : Int) -> Bool {
+fn le_axis(a : @geometry_utils.Point, b : @geometry_utils.Point, axis : Int) -> Bool {
   if axis == 0 {
     a.x <= b.x
   } else {
@@ -96,11 +88,11 @@ fn le_axis(a : Point, b : Point, axis : Int) -> Bool {
 
 /// Recursively build the KD-Tree from `pts[lo, hi)`.
 fn build_rec(
-  pts : Array[Point],
+  pts : Array[@geometry_utils.Point],
   lo : Int,
   hi : Int,
   depth : Int,
-  tmp : Array[Point],
+  tmp : Array[@geometry_utils.Point],
 ) -> KDNode {
   if lo >= hi {
     return Empty
@@ -117,16 +109,16 @@ fn build_rec(
 /// Build a KD-Tree from an array of points.
 ///
 /// The input array is copied internally, so the caller's array is not modified.
-pub fn build(points : Array[Point]) -> KDNode {
+pub fn build(points : Array[@geometry_utils.Point]) -> KDNode {
   let n = points.length()
   if n == 0 {
     return Empty
   }
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   for i = 0; i < n; i = i + 1 {
     pts.push(points[i])
   }
-  let tmp : Array[Point] = []
+  let tmp : Array[@geometry_utils.Point] = []
   for i = 0; i < n; i = i + 1 {
     tmp.push(points[0])
   }
@@ -143,16 +135,16 @@ pub fn build(points : Array[Point]) -> KDNode {
 /// distance to the target. Returns the updated best point and distance.
 fn nearest_rec(
   node : KDNode,
-  target : Point,
+  target : @geometry_utils.Point,
   depth : Int,
-  best : Point?,
+  best : @geometry_utils.Point?,
   best_d : Int64,
-) -> (Point?, Int64) {
+) -> (@geometry_utils.Point?, Int64) {
   match node {
     Empty => (best, best_d)
     Node(left, pt, right, _) => {
       // Distance from target to current node's point.
-      let d = dist2(pt, target)
+      let d = @geometry_utils.dist2(pt, target)
       let (cur_best, cur_d) = if best is None || d < best_d {
         (Some(pt), d)
       } else {
@@ -187,7 +179,7 @@ fn nearest_rec(
 /// Find the nearest neighbor of `target` in the KD-Tree.
 ///
 /// Returns `Some(point)` if the tree is non-empty, `None` otherwise.
-pub fn nearest_neighbor(tree : KDNode, target : Point) -> Point? {
+pub fn nearest_neighbor(tree : KDNode, target : @geometry_utils.Point) -> @geometry_utils.Point? {
   let (best, _) = nearest_rec(tree, target, 0, None, 9223372036854775807L)
   best
 }
@@ -200,10 +192,10 @@ pub fn nearest_neighbor(tree : KDNode, target : Point) -> Point? {
 /// [lo.x, hi.x] × [lo.y, hi.y].
 fn range_rec(
   node : KDNode,
-  lo : Point,
-  hi : Point,
+  lo : @geometry_utils.Point,
+  hi : @geometry_utils.Point,
   depth : Int,
-  result : Array[Point],
+  result : Array[@geometry_utils.Point],
 ) -> Unit {
   match node {
     Empty => ()
@@ -237,8 +229,8 @@ fn range_rec(
 /// Find all points within the axis-aligned bounding box [lo, hi] (inclusive).
 ///
 /// Returns an array of points, possibly empty.
-pub fn range_search(tree : KDNode, lo : Point, hi : Point) -> Array[Point] {
-  let result : Array[Point] = []
+pub fn range_search(tree : KDNode, lo : @geometry_utils.Point, hi : @geometry_utils.Point) -> Array[@geometry_utils.Point] {
+  let result : Array[@geometry_utils.Point] = []
   range_rec(tree, lo, hi, 0, result)
   result
 }
@@ -398,7 +390,7 @@ test "kd_tree: nearest neighbor with large coordinates" {
 
 test "kd_tree: random nearest neighbor" {
   // Generate 50 random points and verify nearest neighbor against brute force.
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   let mut st = 42
   for i = 0; i < 50; i = i + 1 {
     st = (st * 31 + 7) % 1000003
