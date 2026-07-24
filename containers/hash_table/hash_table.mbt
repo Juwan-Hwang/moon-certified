@@ -40,6 +40,7 @@ pub struct HashTable[K, V] {
   mut occupied : FixedArray[Bool]
   mut tombstone : FixedArray[Bool]
   mut count : Int
+  mut tombstones : Int
   mut capacity : Int
 }
 
@@ -60,6 +61,7 @@ pub fn[K, V] new(capacity : Int) -> HashTable[K, V] {
     occupied: FixedArray::make(cap, false),
     tombstone: FixedArray::make(cap, false),
     count: 0,
+    tombstones: 0,
     capacity: cap,
   }
 }
@@ -104,10 +106,14 @@ fn[K, V] _put(
   if ht.occupied[pos] {
     return false // no empty slot and no tombstone — truly full
   }
+  // If reusing a tombstone slot, clear the tombstone and decrement the count.
+  if ht.tombstone[pos] {
+    ht.tombstone[pos] = false
+    ht.tombstones = ht.tombstones - 1
+  }
   ht.keys[pos] = Some(key)
   ht.vals[pos] = Some(value)
   ht.occupied[pos] = true
-  ht.tombstone[pos] = false
   ht.count = ht.count + 1
   true
 }
@@ -130,6 +136,7 @@ fn[K, V] _resize(
   ht.tombstone = FixedArray::make(new_cap, false)
   ht.capacity = new_cap
   ht.count = 0
+  ht.tombstones = 0
   for i = 0; i < old_cap; i = i + 1 {
     if old_occ[i] {
       match (old_keys[i], old_vals[i]) {
@@ -155,12 +162,16 @@ pub fn[K, V] insert(
   hash_fn : (K) -> Int,
   eq_fn : (K, K) -> Bool,
 ) -> Unit {
-  // If adding a new entry would push load factor above 0.7, first try
-  // compacting (rehash to same capacity to clear tombstones).
+  // If adding a new entry would push load factor above 0.7, resize.
   if (ht.count + 1) * 10 > ht.capacity * 7 {
-    // Compact first: rehash to same capacity, clearing tombstones.
-    _resize(ht, ht.capacity, hash_fn, eq_fn)
-    // If still above threshold after compaction, double capacity.
+    // Only compact (rehash to same capacity) if there are tombstones to
+    // clear. A same-capacity rehash without tombstones is pure waste —
+    // it changes nothing and we'd immediately need to double anyway.
+    if ht.tombstones > 0 {
+      _resize(ht, ht.capacity, hash_fn, eq_fn)
+    }
+    // If still above threshold (no tombstones to clear, or compaction
+    // wasn't enough), double capacity.
     if (ht.count + 1) * 10 > ht.capacity * 7 {
       _resize(ht, ht.capacity * 2, hash_fn, eq_fn)
     }
@@ -226,6 +237,7 @@ pub fn[K, V] remove(
             ht.occupied[idx] = false
             ht.tombstone[idx] = true
             ht.count = ht.count - 1
+            ht.tombstones = ht.tombstones + 1
             return true
           }
         None => ()

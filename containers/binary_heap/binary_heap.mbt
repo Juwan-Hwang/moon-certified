@@ -25,7 +25,14 @@
 ///
 /// - `data` holds the elements in heap order (0-indexed binary tree).
 /// - `size` is the number of live elements; slots `>= size` are unused.
-pub struct Heap {
+///
+/// The struct is **package-private** (not `pub`): external callers interact
+/// exclusively through methods (`heap_push`, `heap_pop`, `heap_peek`, etc.),
+/// preventing direct mutation of the backing array that could break the heap
+/// invariant. The low-level free functions (`heap_push`, `heap_pop`,
+/// `build_heap`, `heap_sort`) remain public for callers that need direct
+/// `FixedArray[Int]` manipulation.
+struct Heap {
   data : FixedArray[Int]
   mut size : Int
 }

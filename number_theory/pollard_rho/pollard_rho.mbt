@@ -1,8 +1,8 @@
 /// Pollard-Rho integer factorization.
 ///
 /// Finds a non-trivial factor of a composite number `n > 1`. Combined with
-/// a primality test (Miller-Rabin, duplicated here for self-containment), it
-/// provides a complete integer factorization routine.
+/// a primality test (Miller-Rabin via `@int64_utils.is_prime64`), it provides
+/// a complete integer factorization routine.
 ///
 /// **Algorithm.** Uses Floyd's cycle detection on the polynomial sequence
 ///   x₀ = 2, x_{i+1} = (xᵢ² + c) mod n.
@@ -16,95 +16,6 @@
 /// x² < 2^62 < 2^63, so no `Int64` overflow can occur.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
-
-// ---------------------------------------------------------------------------
-// Int64 helpers (self-contained)
-// ---------------------------------------------------------------------------
-
-/// Int64 GCD (Euclidean algorithm). Inputs are taken in absolute value.
-fn gcd64(a : Int64, b : Int64) -> Int64 {
-  let mut x = if a < 0L { -a } else { a }
-  let mut y = if b < 0L { -b } else { b }
-  while y != 0L {
-    let t = x % y
-    x = y
-    y = t
-  }
-  x
-}
-
-/// Modular exponentiation in `Int64`: returns (base^exp) mod m.
-fn pow_mod64(base : Int64, exp : Int64, m : Int64) -> Int64 {
-  let mut result = 1L
-  let mut b = base % m
-  if b < 0L {
-    b = b + m
-  }
-  let mut e = exp
-  while e > 0L {
-    if e % 2L == 1L {
-      result = result * b % m
-    }
-    e = e / 2L
-    b = b * b % m
-  }
-  result
-}
-
-// ---------------------------------------------------------------------------
-// Miller-Rabin primality test (deterministic for Int range)
-// ---------------------------------------------------------------------------
-
-/// Single Miller-Rabin round for witness `a`.
-/// `d` and `s` satisfy n - 1 = d * 2^s with d odd, n odd >= 5.
-fn witness_passes(a : Int64, d : Int64, s : Int, n : Int64) -> Bool {
-  let a_mod = a % n
-  if a_mod == 0L {
-    return true
-  }
-  let mut x = pow_mod64(a_mod, d, n)
-  if x == 1L || x == n - 1L {
-    return true
-  }
-  for _r = 0; _r < s - 1; _r = _r + 1 {
-    x = x * x % n
-    if x == n - 1L {
-      return true
-    }
-  }
-  false
-}
-
-/// Deterministic Miller-Rabin primality test.
-///
-/// For n < 2^31 (the full positive range of 32-bit `Int`), the witness set
-/// {2, 7, 61} suffices (Jaeschke 1993). Returns `true` if `n` is prime,
-/// `false` otherwise (including n < 2).
-fn is_prime64(n : Int64) -> Bool {
-  if n < 2L {
-    return false
-  }
-  if n == 2L || n == 3L {
-    return true
-  }
-  if n % 2L == 0L {
-    return false
-  }
-  // Write n - 1 = d * 2^s with d odd.
-  let mut d = n - 1L
-  let mut s = 0
-  while d % 2L == 0L {
-    d = d / 2L
-    s = s + 1
-  }
-  let witnesses = [2L, 7L, 61L]
-  for i = 0; i < 3; i = i + 1 {
-    if !witness_passes(witnesses[i], d, s, n) {
-      return false
-    }
-  }
-  true
-}
 
 // ---------------------------------------------------------------------------
 // Pollard-Rho core
@@ -136,18 +47,18 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
       // Cycle found without a factor; this attempt failed.
       return n
     }
-    d = gcd64(diff, n)
+    d = @int64_utils.gcd64(diff, n)
   }
   d
 }
 
 /// Find one non-trivial factor of `n`.
 ///
-/// `n` must be a composite number greater than 1 (check with `is_prime64`
-/// before calling). Returns `Some(d)` with a factor `d` satisfying
-/// `1 < d < n`. Returns `None` when `n <= 1`, when `n` is prime (it has no
-/// non-trivial factor), or if all attempts fail (extremely unlikely for
-/// composite `n`).
+/// `n` must be a composite number greater than 1 (check with
+/// `@int64_utils.is_prime64` before calling). Returns `Some(d)` with a factor
+/// `d` satisfying `1 < d < n`. Returns `None` when `n <= 1`, when `n` is prime
+/// (it has no non-trivial factor), or if all attempts fail (extremely unlikely
+/// for composite `n`).
 pub fn pollard_rho(n : Int) -> Int? {
   if n <= 1 {
     return None
@@ -230,7 +141,7 @@ fn factor_rec(m : Int, result : Array[Int]) -> Unit {
   if m == 1 {
     return
   }
-  if is_prime64(m.to_int64()) {
+  if @int64_utils.is_prime64(m.to_int64()) {
     result.push(m)
     return
   }
@@ -305,28 +216,28 @@ test "pollard_rho: prime returns None (no non-trivial factor)" {
 }
 
 test "is_prime64: small primes" {
-  assert_eq(is_prime64(2L), true)
-  assert_eq(is_prime64(3L), true)
-  assert_eq(is_prime64(5L), true)
-  assert_eq(is_prime64(7L), true)
-  assert_eq(is_prime64(11L), true)
+  assert_eq(@int64_utils.is_prime64(2L), true)
+  assert_eq(@int64_utils.is_prime64(3L), true)
+  assert_eq(@int64_utils.is_prime64(5L), true)
+  assert_eq(@int64_utils.is_prime64(7L), true)
+  assert_eq(@int64_utils.is_prime64(11L), true)
 }
 
 test "is_prime64: small composites" {
-  assert_eq(is_prime64(4L), false)
-  assert_eq(is_prime64(6L), false)
-  assert_eq(is_prime64(9L), false)
-  assert_eq(is_prime64(15L), false)
+  assert_eq(@int64_utils.is_prime64(4L), false)
+  assert_eq(@int64_utils.is_prime64(6L), false)
+  assert_eq(@int64_utils.is_prime64(9L), false)
+  assert_eq(@int64_utils.is_prime64(15L), false)
 }
 
 test "is_prime64: Mersenne prime" {
-  assert_eq(is_prime64(2147483647L), true)
+  assert_eq(@int64_utils.is_prime64(2147483647L), true)
 }
 
 test "is_prime64: Carmichael numbers" {
-  assert_eq(is_prime64(561L), false)
-  assert_eq(is_prime64(1105L), false)
-  assert_eq(is_prime64(1729L), false)
+  assert_eq(@int64_utils.is_prime64(561L), false)
+  assert_eq(@int64_utils.is_prime64(1105L), false)
+  assert_eq(@int64_utils.is_prime64(1729L), false)
 }
 
 test "factorize: prime number" {
@@ -422,7 +333,7 @@ test "factorize: product verified for various n" {
     assert_eq(product, n)
     // Every factor should be prime.
     for j = 0; j < f.length(); j = j + 1 {
-      assert_eq(is_prime64(f[j].to_int64()), true)
+      assert_eq(@int64_utils.is_prime64(f[j].to_int64()), true)
     }
   }
 }

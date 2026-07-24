@@ -34,7 +34,14 @@ pub fn exponential_search(arr : FixedArray[Int], target : Int) -> Int? {
   // in the index interval (bound/2, hi] (closed on both ends below).
   let mut bound = 1
   while bound < n && arr[bound] < target {
-    bound = bound * 2
+    // Prevent integer overflow: when bound > n/2, doubling would exceed n
+    // (and for n > 2^30, bound * 2 could overflow Int32). Clamp to n to
+    // exit the loop safely.
+    if bound > n / 2 {
+      bound = n
+    } else {
+      bound = bound * 2
+    }
   }
   // The candidate range is [bound/2, min(bound, n-1)]. `bound/2` is the last
   // index known to hold a value < target (or 0 on the first iteration), and

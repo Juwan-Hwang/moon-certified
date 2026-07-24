@@ -25,16 +25,6 @@
 /// which includes congruence-consistency, no-solution and multi-congruence
 /// checks.
 
-/// `Int64` modulo that always returns a result in [0, m) for m > 0.
-fn mod64(a : Int64, m : Int64) -> Int64 {
-  let r = a % m
-  if r < 0L {
-    r + m
-  } else {
-    r
-  }
-}
-
 /// Extended Euclidean algorithm on `Int64`.
 ///
 /// Returns (g, x, y) with a*x + b*y == g == gcd(a, b). Implemented
@@ -73,8 +63,8 @@ fn crt_combine64(
   r2 : Int64,
   m2 : Int64
 ) -> (Int64, Int64)? {
-  let r1n = mod64(r1, m1)
-  let r2n = mod64(r2, m2)
+  let r1n = @int64_utils.mod64(r1, m1)
+  let r2n = @int64_utils.mod64(r2, m2)
   let (g, p, _) = ext_gcd64(m1, m2)
   let diff = r2n - r1n
   if diff % g != 0L {
@@ -83,8 +73,8 @@ fn crt_combine64(
   let lcm = m1 / g * m2
   let mod_k = m2 / g
   // k ≡ (diff / g) * p (mod mod_k); reduce each factor first to bound the product.
-  let k = mod64(mod64(diff / g, mod_k) * mod64(p, mod_k), mod_k)
-  let x = mod64(m1 * k + r1n, lcm)
+  let k = @int64_utils.mod64(@int64_utils.mod64(diff / g, mod_k) * @int64_utils.mod64(p, mod_k), mod_k)
+  let x = @int64_utils.mod64(m1 * k + r1n, lcm)
   Some((x, lcm))
 }
 
@@ -101,7 +91,15 @@ pub fn crt(r1 : Int, m1 : Int, r2 : Int, m2 : Int) -> Int? {
   }
   match crt_combine64(r1.to_int64(), m1.to_int64(), r2.to_int64(), m2.to_int64()) {
     None => None
-    Some((x, _)) => Some(x.to_int())
+    Some((x, lcm)) =>
+      // The solution x lies in [0, lcm). If lcm exceeds Int32 range, x may
+      // also exceed it, and to_int() would silently truncate. Return None
+      // to signal overflow rather than returning a wrong answer.
+      if lcm > 2147483647L {
+        None
+      } else {
+        Some(x.to_int())
+      }
   }
 }
 
@@ -123,7 +121,7 @@ pub fn crt_system(
   if moduli[0] <= 0 {
     return None
   }
-  let mut cur_r = mod64(remainders[0].to_int64(), moduli[0].to_int64())
+  let mut cur_r = @int64_utils.mod64(remainders[0].to_int64(), moduli[0].to_int64())
   let mut cur_m = moduli[0].to_int64()
   for i = 1; i < n; i = i + 1 {
     if moduli[i] <= 0 {
@@ -142,7 +140,14 @@ pub fn crt_system(
       }
     }
   }
-  Some(cur_r.to_int())
+  // The combined modulus may exceed Int32 range; if so, the solution x (which
+  // lies in [0, cur_m)) may also overflow Int32. Return None to signal this
+  // rather than silently truncating with to_int().
+  if cur_m > 2147483647L {
+    None
+  } else {
+    Some(cur_r.to_int())
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -207,6 +212,14 @@ test "crt: moduli near the Int32 sqrt limit" {
   assert_eq(v % 46327, 13)
   assert_true(v >= 0)
   assert_true(v < 2146654199)
+}
+
+test "crt: LCM overflow returns None" {
+  // 46349 and 46351 are both prime (coprime); their product exceeds 2^31.
+  // The correct LCM is 2148083399 > Int32::MAX, so crt should return None
+  // to signal overflow rather than silently truncating.
+  assert_true(crt(0, 46349, 0, 46351) is None)
+  assert_true(crt(1, 46349, 2, 46351) is None)
 }
 
 test "crt: non-positive modulus returns None" {

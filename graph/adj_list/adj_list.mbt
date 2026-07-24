@@ -70,11 +70,19 @@ pub fn add_undirected_edge(g : Graph, u : Int, v : Int, weight : Int) -> Bool {
 
 /// Get all outgoing edges from vertex `v`.
 /// Returns `None` if `v` is out of bounds.
+///
+/// Returns a **defensive copy** of the internal adjacency list to prevent
+/// external mutation from breaking graph invariants. Callers may freely
+/// modify the returned array without affecting the graph.
 pub fn neighbors(g : Graph, v : Int) -> Array[Edge]? {
   if v < 0 || v >= g.n {
     return None
   }
-  Some(g.adj[v])
+  let copy : Array[Edge] = []
+  for i = 0; i < g.adj[v].length(); i = i + 1 {
+    copy.push(g.adj[v][i])
+  }
+  Some(copy)
 }
 
 // ---------------------------------------------------------------------------

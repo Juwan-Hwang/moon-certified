@@ -140,31 +140,34 @@ pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int? {
 ///
 /// Standard O(n*capacity) DP. `dp[i][w]` is the best value achievable using
 /// the first `i` items under capacity `w`; row 0 (no items) is all zero.
-/// Returns 0 for invalid inputs: mismatched lengths, negative weights or
-/// values, or negative capacity.
 ///
 /// **Memory**: allocates `(n+1) * (capacity+1)` Int values. To prevent OOM,
-/// rejects inputs where `n * capacity > 10^7` (≈40MB for Int32).
+/// rejects inputs where `n * capacity > 10^7` (≈40MB for Int32), returning
+/// `None`. The caller can distinguish a genuine zero-value result (`Some(0)`)
+/// from a rejected input (`None`).
+///
+/// Returns `None` for invalid inputs: mismatched lengths, negative weights or
+/// values, or negative capacity.
 pub fn knapsack(
   weights : FixedArray[Int],
   values : FixedArray[Int],
   capacity : Int,
-) -> Int {
+) -> Int? {
   let n = weights.length()
   // Validate: matching lengths and non-negative weights, values, capacity.
   if n != values.length() || capacity < 0 {
-    return 0
+    return None
   }
   for i = 0; i < n; i = i + 1 {
     if weights[i] < 0 || values[i] < 0 {
-      return 0
+      return None
     }
   }
   // OOM protection: reject inputs that would allocate > 10^7 Int cells.
   // (n+1) * (capacity+1) > 10^7 means ~40MB+ of Int32 values.
   let dp_size = (n + 1) * (capacity + 1)
   if dp_size > 10000000 || dp_size < 0 {
-    return 0
+    return None
   }
   let cols = capacity + 1
   let dp = FixedArray::make(dp_size, 0)
@@ -182,7 +185,7 @@ pub fn knapsack(
       }
     }
   }
-  dp[n * cols + capacity]
+  Some(dp[n * cols + capacity])
 }
 
 // ---------------------------------------------------------------------------
@@ -321,14 +324,14 @@ test "knapsack: basic" {
   values[0] = 3
   values[1] = 4
   values[2] = 5
-  assert_eq(knapsack(weights, values, 5), 7)
+  assert_eq(knapsack(weights, values, 5), Some(7))
 }
 
 test "knapsack: no fit" {
   // Every item heavier than capacity.
   let weights = FixedArray::makei(3, fn(i) { i + 5 }) // [5,6,7]
   let values = FixedArray::makei(3, fn(i) { (i + 1) * 10 }) // [10,20,30]
-  assert_eq(knapsack(weights, values, 3), 0)
+  assert_eq(knapsack(weights, values, 3), Some(0))
 }
 
 test "knapsack: exact fit" {
@@ -339,54 +342,54 @@ test "knapsack: exact fit" {
   let values = FixedArray::make(2, 0)
   values[0] = 4
   values[1] = 5
-  assert_eq(knapsack(weights, values, 5), 9)
+  assert_eq(knapsack(weights, values, 5), Some(9))
 }
 
 test "knapsack: multiple optimal" {
   // Three unit-weight unit-value items, capacity 2: any pair gives value 2.
   let weights = FixedArray::make(3, 1)
   let values = FixedArray::make(3, 1)
-  assert_eq(knapsack(weights, values, 2), 2)
+  assert_eq(knapsack(weights, values, 2), Some(2))
 }
 
 test "knapsack: empty items" {
   let weights = FixedArray::make(0, 0)
   let values = FixedArray::make(0, 0)
-  assert_eq(knapsack(weights, values, 10), 0)
+  assert_eq(knapsack(weights, values, 10), Some(0))
 }
 
 test "knapsack: zero capacity" {
   let weights = FixedArray::makei(2, fn(i) { i + 2 }) // [2,3]
   let values = FixedArray::makei(2, fn(i) { (i + 1) * 4 }) // [4,8]
-  assert_eq(knapsack(weights, values, 0), 0)
+  assert_eq(knapsack(weights, values, 0), Some(0))
 }
 
 test "knapsack: invalid inputs" {
   // Mismatched lengths.
   let w1 = FixedArray::make(2, 1)
   let v1 = FixedArray::make(1, 1)
-  assert_eq(knapsack(w1, v1, 5), 0)
+  assert_eq(knapsack(w1, v1, 5), None)
   // Negative weight.
   let w2 = FixedArray::make(2, 0)
   w2[0] = -1
   w2[1] = 2
   let v2 = FixedArray::make(2, 1)
-  assert_eq(knapsack(w2, v2, 5), 0)
+  assert_eq(knapsack(w2, v2, 5), None)
   // Negative value.
   let w3 = FixedArray::make(2, 1)
   let v3 = FixedArray::make(2, 0)
   v3[0] = -3
   v3[1] = 4
-  assert_eq(knapsack(w3, v3, 5), 0)
+  assert_eq(knapsack(w3, v3, 5), None)
   // Negative capacity.
   let w4 = FixedArray::make(2, 1)
   let v4 = FixedArray::make(2, 1)
-  assert_eq(knapsack(w4, v4, -1), 0)
+  assert_eq(knapsack(w4, v4, -1), None)
 }
 
 test "knapsack: OOM protection" {
-  // n * capacity > 10^7: should return 0 to prevent OOM.
+  // n * capacity > 10^7: should return None to prevent OOM.
   let w = FixedArray::make(10000, 1)
   let v = FixedArray::make(10000, 1)
-  assert_eq(knapsack(w, v, 1000000), 0) // 10^4 * 10^6 = 10^10 > 10^7
+  assert_eq(knapsack(w, v, 1000000), None) // 10^4 * 10^6 = 10^10 > 10^7
 }

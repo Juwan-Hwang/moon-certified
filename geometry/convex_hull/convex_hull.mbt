@@ -57,16 +57,13 @@ fn cross(o : Point, a : Point, b : Point) -> Int {
 }
 
 /// Squared Euclidean distance between two points (avoids floating point).
-/// Uses Int64 internally to prevent overflow for large coordinates.
-fn dist2(a : Point, b : Point) -> Int {
+/// Returns Int64 to prevent overflow for large coordinates — using Int would
+/// silently clamp far-apart collinear points to the same value, corrupting
+/// the polar-angle sort.
+fn dist2(a : Point, b : Point) -> Int64 {
   let dx = (a.x.to_int64() - b.x.to_int64())
   let dy = (a.y.to_int64() - b.y.to_int64())
-  let result = dx * dx + dy * dy
-  if result > 2147483647L {
-    2147483647  // Clamp to Int::max
-  } else {
-    result.to_int()
-  }
+  dx * dx + dy * dy
 }
 
 fn min2(a : Int, b : Int) -> Int {
@@ -93,7 +90,16 @@ fn cmp_point(pivot : Point, a : Point, b : Point) -> Int {
   if c != 0 {
     -c
   } else {
-    dist2(pivot, a) - dist2(pivot, b)
+    // Collinear: nearer first. dist2 returns Int64 to avoid overflow.
+    let da = dist2(pivot, a)
+    let db = dist2(pivot, b)
+    if da < db {
+      -1
+    } else if da > db {
+      1
+    } else {
+      0
+    }
   }
 }
 
@@ -157,11 +163,23 @@ pub fn convex_hull(points : Array[Point]) -> Array[Point] {
   }
   let tmp : FixedArray[Point] = FixedArray::make(n, pivot)
   msort_point(pts, tmp, 0, n, cmp)
+  // Deduplicate: remove consecutive identical points. Three identical points
+  // would otherwise survive the Graham scan (cross == 0 is popped, but the
+  // new point is still pushed), yielding duplicate hull vertices.
+  let dedup : FixedArray[Point] = FixedArray::make(n, pivot)
+  dedup[0] = pts[0]
+  let mut dn = 1
+  for i = 1; i < n; i = i + 1 {
+    if pts[i].x != dedup[dn - 1].x || pts[i].y != dedup[dn - 1].y {
+      dedup[dn] = pts[i]
+      dn = dn + 1
+    }
+  }
   // Graham scan with an explicit stack (FixedArray + size counter).
-  let stack : FixedArray[Point] = FixedArray::make(n, pivot)
+  let stack : FixedArray[Point] = FixedArray::make(dn, pivot)
   let mut size = 0
-  for i = 0; i < n; i = i + 1 {
-    let p = pts[i]
+  for i = 0; i < dn; i = i + 1 {
+    let p = dedup[i]
     while size >= 2 && cross(stack[size - 2], stack[size - 1], p) <= 0 {
       size = size - 1
     }
@@ -289,6 +307,31 @@ test "convex_hull: single point" {
   assert_eq(hull.length(), 1)
   assert_eq(hull[0].x, 3)
   assert_eq(hull[0].y, 3)
+}
+
+test "convex_hull: three identical points" {
+  // All three points are the same — the hull should be a single point, not
+  // two duplicate points.
+  let pts : Array[Point] = [
+    { x: 5, y: 5 }, { x: 5, y: 5 }, { x: 5, y: 5 },
+  ]
+  let hull = convex_hull(pts)
+  assert_eq(hull.length(), 1)
+  assert_eq(hull[0].x, 5)
+  assert_eq(hull[0].y, 5)
+}
+
+test "convex_hull: duplicate points among distinct ones" {
+  // Mix of duplicates and distinct points.
+  let pts : Array[Point] = [
+    { x: 0, y: 0 }, { x: 0, y: 0 },
+    { x: 4, y: 0 }, { x: 0, y: 4 },
+    { x: 4, y: 0 },
+  ]
+  let hull = convex_hull(pts)
+  assert_eq(hull.length(), 3)
+  assert_true(is_convex_ccw(hull))
+  assert_true(all_inside_or_on(pts, hull))
 }
 
 test "convex_hull: two points" {

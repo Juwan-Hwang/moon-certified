@@ -224,12 +224,14 @@ fn[T] del_min(root : RBNode[T]) -> (T, RBNode[T], Bool) {
       }
     }
     Empty => {
-      // del_min is only called on non-empty subtrees (guaranteed by the
-      // caller). If somehow reached, return Empty with no loss.
-      // The min_val is never used because the caller checks the tree structure.
-      // We use `abort` here because returning a default T is impossible for
-      // generic types, and this path is truly unreachable by algorithm invariant.
-      abort("del_min: invariant violated — called on empty subtree")
+      // Truly unreachable: `del_min` is only called from the `Node(l, v, r, c)`
+      // branch where `l` is a `Node` (when `l` is `Empty`, the `Node(Empty, …)`
+      // case above handles it directly). MoonBit has no `unreachable!()` or
+      // `todo()` macro; for generic types where no default `T` can be
+      // constructed, `abort` is the standard way to signal an invariant
+      // violation. If this branch is ever reached, it indicates a bug in the
+      // caller — crashing immediately is safer than returning a wrong value.
+      abort("del_min: unreachable — called on Empty (caller invariant violated)")
     }
   }
 }

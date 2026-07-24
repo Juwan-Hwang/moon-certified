@@ -220,7 +220,7 @@ test "stress: counting_sort 10000 elements" {
 test "stress: radix_sort 10000 elements" {
   let n = 10000
   let xs = FixedArray::makei(n, fn(i) { (i * 17 + 5) % 1000000 })
-  let sorted = @radix_sort.radix_sort(xs)
+  let sorted = @radix_sort.radix_sort(xs).unwrap()
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(sorted[k] <= sorted[k + 1])
   }
