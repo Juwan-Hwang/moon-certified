@@ -32,79 +32,10 @@
 /// and for overflow comparison during distance accumulation.
 const INT_MAX_I64 : Int64 = 2147483647L
 
-/// A min-heap entry: a (distance, vertex) pair.
-/// Distance is stored as Int64 to prevent overflow during accumulation.
-priv struct HeapEntry {
-  dist : Int64
-  vertex : Int
-}
-
-/// Binary min-heap keyed on `dist`.
-/// Stored in a flat `Array[HeapEntry]` using the standard 0-indexed layout:
-/// parent of `i` is `(i-1)/2`, children are `2i+1` and `2i+2`.
-priv struct MinHeap {
-  data : Array[HeapEntry]
-}
-
-fn MinHeap::new() -> MinHeap {
-  { data: [] }
-}
-
-fn MinHeap::len(heap : MinHeap) -> Int {
-  heap.data.length()
-}
-
-/// Insert a (dist, vertex) pair.  Sifts up to restore the heap property.
-fn MinHeap::push(heap : MinHeap, dist : Int64, vertex : Int) -> Unit {
-  heap.data.push({ dist, vertex })
-  let mut i = heap.data.length() - 1
-  while i > 0 {
-    let parent = (i - 1) / 2
-    if heap.data[i].dist < heap.data[parent].dist {
-      let tmp = heap.data[i]
-      heap.data[i] = heap.data[parent]
-      heap.data[parent] = tmp
-      i = parent
-    } else {
-      break
-    }
-  }
-}
-
-/// Remove and return the minimum entry.  Returns `None` if the heap is empty.
-/// Sifts down to restore the heap property.
-fn MinHeap::pop(heap : MinHeap) -> HeapEntry? {
-  let n = heap.data.length()
-  if n == 0 {
-    return None
-  }
-  let result = heap.data[0]
-  // Move the last element to the root, then sift down.
-  heap.data[0] = heap.data[n - 1]
-  let _ = heap.data.pop() // remove the duplicate at the end
-  let len = heap.data.length()
-  let mut i = 0
-  while true {
-    let left = 2 * i + 1
-    let right = 2 * i + 2
-    let mut smallest = i
-    if left < len && heap.data[left].dist < heap.data[smallest].dist {
-      smallest = left
-    }
-    if right < len && heap.data[right].dist < heap.data[smallest].dist {
-      smallest = right
-    }
-    if smallest != i {
-      let tmp = heap.data[i]
-      heap.data[i] = heap.data[smallest]
-      heap.data[smallest] = tmp
-      i = smallest
-    } else {
-      break
-    }
-  }
-  Some(result)
-}
+// The min-heap (HeapEntry + MinHeap) is imported from @graph_utils.
+// This eliminates the code duplication that previously existed between
+// dijkstra_heap and johnson. The shared implementation is in
+// graph/graph_utils/graph_utils.mbt.
 
 /// Compute shortest paths from `src` using a min-heap priority queue.
 ///
@@ -127,10 +58,10 @@ pub fn dijkstra(
   let dist = FixedArray::make(n, INT_MAX_I64)
   let visited = FixedArray::make(n, false)
   dist[src] = 0L
-  let heap = MinHeap::new()
-  MinHeap::push(heap, 0L, src)
-  while MinHeap::len(heap) > 0 {
-    match MinHeap::pop(heap) {
+  let heap = @graph_utils.MinHeap::new()
+  @graph_utils.MinHeap::push(heap, 0L, src)
+  while @graph_utils.MinHeap::len(heap) > 0 {
+    match @graph_utils.MinHeap::pop(heap) {
       Some({ dist: d, vertex: u }) =>
         if !visited[u] {
           visited[u] = true
@@ -142,7 +73,7 @@ pub fn dijkstra(
               let nd = d + w.to_int64()
               if nd < dist[v] {
                 dist[v] = nd
-                MinHeap::push(heap, nd, v)
+                @graph_utils.MinHeap::push(heap, nd, v)
               }
             }
           }

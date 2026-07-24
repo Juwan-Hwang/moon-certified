@@ -25,19 +25,12 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// A 2D point with integer coordinates.
-///
-/// The type is `pub` so callers in other packages can read `.x` and `.y`
-/// from points they constructed. To create a point, use [`point`].
-pub struct Point {
-  x : Int
-  y : Int
-}
+// @geometry_utils.Point and point are imported from @geometry_utils.
+// This eliminates code duplication across geometry packages.
 
-/// Construct a [`Point`] with the given coordinates.
-/// This is the canonical way for external callers to create points.
-pub fn point(x : Int, y : Int) -> Point {
-  { x, y }
+/// Convenience constructor — delegates to @geometry_utils.point.
+pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
+  @geometry_utils.point(x, y)
 }
 
 // ---------------------------------------------------------------------------
@@ -49,18 +42,12 @@ pub fn point(x : Int, y : Int) -> Point {
 /// which the top-level entry converts into `None`.
 let int64_max : Int64 = 9223372036854775807L
 
-/// Squared Euclidean distance between two points (avoids floating point).
-/// Uses Int64 internally to prevent overflow for large coordinates.
-fn dist2(a : Point, b : Point) -> Int64 {
-  let dx = a.x.to_int64() - b.x.to_int64()
-  let dy = a.y.to_int64() - b.y.to_int64()
-  dx * dx + dy * dy
-}
+
 
 /// Three-way comparator by (x, then y). Returns < 0 when `a` precedes `b`.
 /// Comparisons (not arithmetic) are used so coordinates near the Int32
 /// extremes compare correctly.
-fn cmp_xy(a : Point, b : Point) -> Int {
+fn cmp_xy(a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
   let ax = a.x.to_int64()
   let bx = b.x.to_int64()
   if ax != bx {
@@ -83,7 +70,7 @@ fn cmp_xy(a : Point, b : Point) -> Int {
 }
 
 /// Three-way comparator by (y, then x).
-fn cmp_yx(a : Point, b : Point) -> Int {
+fn cmp_yx(a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
   let ay = a.y.to_int64()
   let by = b.y.to_int64()
   if ay != by {
@@ -108,11 +95,11 @@ fn cmp_yx(a : Point, b : Point) -> Int {
 /// Stable merge sort of `pts[lo, hi)` by comparator `cmp`, in place, using
 /// `tmp` as scratch space of the same length.
 fn msort(
-  pts : FixedArray[Point],
-  tmp : FixedArray[Point],
+  pts : FixedArray[@geometry_utils.Point],
+  tmp : FixedArray[@geometry_utils.Point],
   lo : Int,
   hi : Int,
-  cmp : (Point, Point) -> Int,
+  cmp : (@geometry_utils.Point, @geometry_utils.Point) -> Int,
 ) -> Unit {
   let len = hi - lo
   if len <= 1 {
@@ -139,7 +126,7 @@ fn msort(
 
 /// Brute-force minimum squared distance over `Px[lo, hi)`.
 /// Returns `int64_max` when the range holds fewer than 2 points.
-fn brute_force(pts : FixedArray[Point], lo : Int, hi : Int) -> Int64 {
+fn brute_force(pts : FixedArray[@geometry_utils.Point], lo : Int, hi : Int) -> Int64 {
   let n = hi - lo
   if n < 2 {
     return int64_max
@@ -147,7 +134,7 @@ fn brute_force(pts : FixedArray[Point], lo : Int, hi : Int) -> Int64 {
   let mut best = int64_max
   for i = lo; i < hi; i = i + 1 {
     for j = i + 1; j < hi; j = j + 1 {
-      let d = dist2(pts[i], pts[j])
+      let d = @geometry_utils.dist2(pts[i], pts[j])
       if d < best {
         best = d
       }
@@ -173,10 +160,10 @@ fn brute_force(pts : FixedArray[Point], lo : Int, hi : Int) -> Int64 {
 /// guarantees that any cross pair closer than `d` has both endpoints inside the
 /// strip, so the combine step is correct.
 fn closest_rec(
-  px : FixedArray[Point],
+  px : FixedArray[@geometry_utils.Point],
   lo : Int,
   hi : Int,
-  py : FixedArray[Point],
+  py : FixedArray[@geometry_utils.Point],
 ) -> Int64 {
   let n = hi - lo
   if n <= 3 {
@@ -199,8 +186,8 @@ fn closest_rec(
     }
   }
   let need_left = left_size - strict_left
-  let py_l : FixedArray[Point] = FixedArray::make(left_size, py[0])
-  let py_r : FixedArray[Point] = FixedArray::make(right_size, py[0])
+  let py_l : FixedArray[@geometry_utils.Point] = FixedArray::make(left_size, py[0])
+  let py_r : FixedArray[@geometry_utils.Point] = FixedArray::make(right_size, py[0])
   let mut li = 0
   let mut ri = 0
   let mut eq_left = 0
@@ -233,7 +220,7 @@ fn closest_rec(
   // is y-sorted, the strip is y-sorted too. For each point we scan forward
   // only while the y-gap stays below the running best; the classic packing
   // argument bounds this at 7 neighbours, so the combine is O(n).
-  let strip : Array[Point] = []
+  let strip : Array[@geometry_utils.Point] = []
   let mid_x64 = mid_x.to_int64()
   for i = 0; i < n; i = i + 1 {
     let dx = py[i].x.to_int64() - mid_x64
@@ -250,7 +237,7 @@ fn closest_rec(
       if dy * dy >= best {
         break
       }
-      let dd = dist2(pi, strip[j])
+      let dd = @geometry_utils.dist2(pi, strip[j])
       if dd < best {
         best = dd
       }
@@ -265,17 +252,17 @@ fn closest_rec(
 /// Returns `None` when `points` has fewer than 2 elements, otherwise
 /// `Some(min_dist_sq)`. Runs in O(n log n) time and O(n) space. The input
 /// array is not modified.
-pub fn closest_pair(points : Array[Point]) -> Int64? {
+pub fn closest_pair(points : Array[@geometry_utils.Point]) -> Int64? {
   let n = points.length()
   if n < 2 {
     return None
   }
   // x-sorted copy (px) and y-sorted copy (py); the input array is untouched.
-  let px : FixedArray[Point] = FixedArray::makei(n, fn(i) { points[i] })
-  let tmp_x : FixedArray[Point] = FixedArray::make(n, points[0])
+  let px : FixedArray[@geometry_utils.Point] = FixedArray::makei(n, fn(i) { points[i] })
+  let tmp_x : FixedArray[@geometry_utils.Point] = FixedArray::make(n, points[0])
   msort(px, tmp_x, 0, n, cmp_xy)
-  let py : FixedArray[Point] = FixedArray::makei(n, fn(i) { points[i] })
-  let tmp_y : FixedArray[Point] = FixedArray::make(n, points[0])
+  let py : FixedArray[@geometry_utils.Point] = FixedArray::makei(n, fn(i) { points[i] })
+  let tmp_y : FixedArray[@geometry_utils.Point] = FixedArray::make(n, points[0])
   msort(py, tmp_y, 0, n, cmp_yx)
   Some(closest_rec(px, 0, n, py))
 }
@@ -285,7 +272,7 @@ pub fn closest_pair(points : Array[Point]) -> Int64? {
 // ---------------------------------------------------------------------------
 
 /// Brute-force minimum squared distance over an array, for cross-checking.
-fn brute_force_closest(points : Array[Point]) -> Int64? {
+fn brute_force_closest(points : Array[@geometry_utils.Point]) -> Int64? {
   let n = points.length()
   if n < 2 {
     return None
@@ -293,7 +280,7 @@ fn brute_force_closest(points : Array[Point]) -> Int64? {
   let mut best = int64_max
   for i = 0; i < n; i = i + 1 {
     for j = i + 1; j < n; j = j + 1 {
-      let d = dist2(points[i], points[j])
+      let d = @geometry_utils.dist2(points[i], points[j])
       if d < best {
         best = d
       }
@@ -303,7 +290,7 @@ fn brute_force_closest(points : Array[Point]) -> Int64? {
 }
 
 test "closest_pair: empty" {
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   assert_true(closest_pair(pts) is None)
 }
 
@@ -363,7 +350,7 @@ test "closest_pair: closest pair straddles the dividing line" {
 
 test "closest_pair: square grid" {
   // 3×3 grid with spacing 10. Minimum spacing squared = 100.
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   for i = 0; i < 3; i = i + 1 {
     for j = 0; j < 3; j = j + 1 {
       pts.push(point(i * 10, j * 10))
@@ -374,7 +361,7 @@ test "closest_pair: square grid" {
 }
 
 test "closest_pair: large random set vs brute force" {
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   let mut st = 987654
   for i = 0; i < 200; i = i + 1 {
     st = (st * 1103515245 + 12345) % 2147483647
@@ -388,7 +375,7 @@ test "closest_pair: large random set vs brute force" {
 
 test "closest_pair: large coordinates (overflow safety)" {
   // Coordinates up to 10^8: squared differences stay well within Int64.
-  let pts : Array[Point] = []
+  let pts : Array[@geometry_utils.Point] = []
   let mut st = 4242
   for i = 0; i < 60; i = i + 1 {
     st = (st * 1103515245 + 12345) % 2147483647

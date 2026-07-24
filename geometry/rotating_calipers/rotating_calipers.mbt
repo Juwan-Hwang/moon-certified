@@ -21,31 +21,12 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// A 2D point with integer coordinates.
-pub struct Point {
-  x : Int
-  y : Int
-}
+// @geometry_utils.Point, point, dist2, cross64 are imported from @geometry_utils.
+// This eliminates code duplication across geometry packages.
 
-/// Construct a [`Point`].
-pub fn point(x : Int, y : Int) -> Point {
-  { x, y }
-}
-
-/// Squared Euclidean distance (Int64 to prevent overflow).
-fn dist2(a : Point, b : Point) -> Int64 {
-  let dx = a.x.to_int64() - b.x.to_int64()
-  let dy = a.y.to_int64() - b.y.to_int64()
-  dx * dx + dy * dy
-}
-
-/// Cross product of vectors `o→a` and `o→b` (Int64).
-fn cross64(o : Point, a : Point, b : Point) -> Int64 {
-  let ax = a.x.to_int64() - o.x.to_int64()
-  let ay = a.y.to_int64() - o.y.to_int64()
-  let bx = b.x.to_int64() - o.x.to_int64()
-  let by = b.y.to_int64() - o.y.to_int64()
-  ax * by - ay * bx
+/// Convenience constructor — delegates to @geometry_utils.point.
+pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
+  @geometry_utils.point(x, y)
 }
 
 /// Compute the squared diameter (farthest pair distance²) of a convex polygon.
@@ -53,13 +34,13 @@ fn cross64(o : Point, a : Point, b : Point) -> Int64 {
 /// `hull` must be a convex polygon in counterclockwise (CCW) or clockwise (CW)
 /// order with at least 1 vertex. Returns 0 for fewer than 2 vertices, and the
 /// squared distance between the two vertices for exactly 2.
-pub fn diameter_sq(hull : Array[Point]) -> Int64 {
+pub fn diameter_sq(hull : Array[@geometry_utils.Point]) -> Int64 {
   let n = hull.length()
   if n < 2 {
     return 0L
   }
   if n == 2 {
-    return dist2(hull[0], hull[1])
+    return @geometry_utils.dist2(hull[0], hull[1])
   }
   // Detect orientation via signed area (shoelace formula).
   let mut area2 = 0L
@@ -85,7 +66,7 @@ pub fn diameter_sq(hull : Array[Point]) -> Int64 {
   let mut best = 0L
   // At most 2n steps: each vertex is advanced at most n times per caliper.
   for _step = 0; _step < 2 * n; _step = _step + 1 {
-    let d = dist2(hull[i], hull[j])
+    let d = @geometry_utils.dist2(hull[i], hull[j])
     if d > best {
       best = d
     }
@@ -136,7 +117,7 @@ pub fn diameter_sq(hull : Array[Point]) -> Int64 {
 ///
 /// `hull` must be a convex polygon in CCW order with at least 3 vertices.
 /// Returns 0 for fewer than 3 vertices.
-pub fn min_width_numerator(hull : Array[Point]) -> Int64 {
+pub fn min_width_numerator(hull : Array[@geometry_utils.Point]) -> Int64 {
   let n = hull.length()
   if n < 3 {
     return 0L
@@ -148,11 +129,11 @@ pub fn min_width_numerator(hull : Array[Point]) -> Int64 {
   for i = 0; i < n; i = i + 1 {
     let next_i = (i + 1) % n
     // Advance j while the next point is farther from edge (i, next_i).
-    while cross64(hull[i], hull[next_i], hull[(j + 1) % n]) >
-      cross64(hull[i], hull[next_i], hull[j]) {
+    while @geometry_utils.cross64(hull[i], hull[next_i], hull[(j + 1) % n]) >
+      @geometry_utils.cross64(hull[i], hull[next_i], hull[j]) {
       j = (j + 1) % n
     }
-    let area = cross64(hull[i], hull[next_i], hull[j])
+    let area = @geometry_utils.cross64(hull[i], hull[next_i], hull[j])
     let abs_area = if area < 0L {
       -area
     } else {
@@ -236,7 +217,7 @@ test "diameter_sq: vs brute force" {
   let mut best = 0L
   for i = 0; i < 6; i = i + 1 {
     for j = i + 1; j < 6; j = j + 1 {
-      let d = dist2(hull[i], hull[j])
+      let d = @geometry_utils.dist2(hull[i], hull[j])
       if d > best {
         best = d
       }
@@ -247,7 +228,7 @@ test "diameter_sq: vs brute force" {
 
 test "diameter_sq: large polygon vs brute force" {
   // 20-point convex polygon (approximate circle).
-  let hull : Array[Point] = []
+  let hull : Array[@geometry_utils.Point] = []
   let radius = 100
   for i = 0; i < 20; i = i + 1 {
     // Generate points on a circle (approximated with integer coords).
@@ -302,7 +283,7 @@ test "diameter_sq: pentagon" {
   let mut best = 0L
   for i = 0; i < 5; i = i + 1 {
     for j = i + 1; j < 5; j = j + 1 {
-      let d = dist2(hull[i], hull[j])
+      let d = @geometry_utils.dist2(hull[i], hull[j])
       if d > best {
         best = d
       }

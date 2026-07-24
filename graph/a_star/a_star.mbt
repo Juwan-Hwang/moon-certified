@@ -7,7 +7,7 @@
 /// The heuristic is Manhattan distance, which is admissible for 4-directional
 /// movement on a uniform-cost grid, guaranteeing that A* finds the shortest path.
 ///
-/// The priority queue is a binary min-heap of `(f_score, node)` pairs,
+/// The priority queue is the shared binary min-heap from `@graph_utils`,
 /// giving O(E log V) extraction instead of the O(V²) linear-scan approach.
 /// Lazy deletion is used: stale entries (with f > current best) are skipped.
 ///
@@ -19,80 +19,16 @@
 /// For grids where `width + height > Int::max_value` (extremely unlikely),
 /// overflow could occur. In practice, grid sizes are far below this limit.
 
+// The min-heap is imported from @graph_utils.
+// This eliminates the code duplication that previously existed between
+// a_star, dijkstra_heap, and johnson. The shared implementation is in
+// graph/graph_utils/graph_utils.mbt.
+
 /// Manhattan distance between two grid points `(x1, y1)` and `(x2, y2)`.
 fn manhattan(x1 : Int, y1 : Int, x2 : Int, y2 : Int) -> Int {
   let dx = if x1 > x2 { x1 - x2 } else { x2 - x1 }
   let dy = if y1 > y2 { y1 - y2 } else { y2 - y1 }
   dx + dy
-}
-
-/// A min-heap entry: (f_score, node_index).
-priv struct PQEntry {
-  f : Int
-  node : Int
-}
-
-/// Binary min-heap keyed on `f`.
-priv struct PriorityQueue {
-  data : Array[PQEntry]
-}
-
-fn PriorityQueue::new() -> PriorityQueue {
-  { data: [] }
-}
-
-fn PriorityQueue::len(pq : PriorityQueue) -> Int {
-  pq.data.length()
-}
-
-/// Push a (f, node) pair. Sifts up to restore heap property. O(log n).
-fn PriorityQueue::push(pq : PriorityQueue, f : Int, node : Int) -> Unit {
-  pq.data.push({ f, node })
-  let mut i = pq.data.length() - 1
-  while i > 0 {
-    let parent = (i - 1) / 2
-    if pq.data[i].f < pq.data[parent].f {
-      let tmp = pq.data[i]
-      pq.data[i] = pq.data[parent]
-      pq.data[parent] = tmp
-      i = parent
-    } else {
-      break
-    }
-  }
-}
-
-/// Pop the minimum entry. Returns None if empty. Sifts down. O(log n).
-fn PriorityQueue::pop(pq : PriorityQueue) -> PQEntry? {
-  let n = pq.data.length()
-  if n == 0 {
-    return None
-  }
-  let result = pq.data[0]
-  pq.data[0] = pq.data[n - 1]
-  let _ = pq.data.pop()
-  let len = pq.data.length()
-  let mut i = 0
-  while true {
-    let left = 2 * i + 1
-    let right = 2 * i + 2
-    let mut smallest = i
-    if left < len && pq.data[left].f < pq.data[smallest].f {
-      smallest = left
-    }
-    if right < len && pq.data[right].f < pq.data[smallest].f {
-      smallest = right
-    }
-    if smallest != i {
-      let tmp = pq.data[i]
-      pq.data[i] = pq.data[smallest]
-      pq.data[smallest] = tmp
-      i = smallest
-    } else {
-      break
-    }
-  }
-  Some(result)
 }
 
 /// Outcome of an A* search.
@@ -153,14 +89,18 @@ fn a_star_search(
   let g_score = FixedArray::make(total, -1)
   let came_from = FixedArray::make(total, -1)
   let closed = FixedArray::make(total, false)
-  let pq = PriorityQueue::new()
+  let pq = @graph_utils.MinHeap::new()
   g_score[start_idx] = 0
-  PriorityQueue::push(pq, manhattan(start_x, start_y, goal_x, goal_y), start_idx)
+  @graph_utils.MinHeap::push(
+    pq,
+    manhattan(start_x, start_y, goal_x, goal_y).to_int64(),
+    start_idx,
+  )
   let dx = [1, -1, 0, 0]
   let dy = [0, 0, 1, -1]
-  while PriorityQueue::len(pq) > 0 {
-    match PriorityQueue::pop(pq) {
-      Some({ f: _, node: current }) => {
+  while @graph_utils.MinHeap::len(pq) > 0 {
+    match @graph_utils.MinHeap::pop(pq) {
+      Some({ dist: _, vertex: current }) => {
         if closed[current] {
           continue  // Skip stale entries (lazy deletion)
         }
@@ -182,7 +122,7 @@ fn a_star_search(
                 g_score[nidx] = tentative_g
                 came_from[nidx] = current
                 let f = tentative_g + manhattan(nx, ny, goal_x, goal_y)
-                PriorityQueue::push(pq, f, nidx)
+                @graph_utils.MinHeap::push(pq, f.to_int64(), nidx)
               }
             }
           }

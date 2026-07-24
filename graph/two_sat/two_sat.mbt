@@ -13,102 +13,22 @@
 /// - ¬b → a  (edge from `b^1` to `a`)
 ///
 /// **Algorithm.** Build the implication graph (2n nodes), find strongly
-/// connected components (SCCs) via iterative Tarjan's algorithm, then check
-/// for each variable whether `x_i` and `¬x_i` are in the same SCC. If they
-/// are, the formula is unsatisfiable. Otherwise, set `x_i = true` when
-/// `comp[2*i] < comp[2*i+1]` (the positive literal's SCC has a lower Tarjan
-/// index = is topologically later = should be set true).
+/// connected components (SCCs) via the shared iterative Tarjan's algorithm
+/// in `@graph_utils.tarjan_scc_ids`, then check for each variable whether
+/// `x_i` and `¬x_i` are in the same SCC. If they are, the formula is
+/// unsatisfiable. Otherwise, set `x_i = true` when `comp[2*i] < comp[2*i+1]`
+/// (the positive literal's SCC has a lower Tarjan index = is topologically
+/// later = should be set true).
 ///
 /// **Complexity.** O(n + m) where n is the number of variables and m is the
 /// number of clauses.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
-/// Mutable state for iterative Tarjan's SCC algorithm.
-priv struct TSState {
-  adj : Array[Array[Int]] // implication graph adjacency list
-  mut index_counter : Int
-  indices : FixedArray[Int] // -1 = unvisited
-  lowlink : FixedArray[Int]
-  on_stack : FixedArray[Bool]
-  stack : FixedArray[Int] // Tarjan stack
-  mut stack_top : Int
-  comp : FixedArray[Int] // SCC ID assigned to each node
-  mut comp_count : Int
-}
-
-fn ts_new_state(n : Int) -> TSState {
-  let adj : Array[Array[Int]] = []
-  for _i = 0; _i < n; _i = _i + 1 {
-    adj.push([])
-  }
-  {
-    adj,
-    index_counter: 0,
-    indices: FixedArray::make(n, -1),
-    lowlink: FixedArray::make(n, 0),
-    on_stack: FixedArray::make(n, false),
-    stack: FixedArray::make(n, 0),
-    stack_top: 0,
-    comp: FixedArray::make(n, -1),
-    comp_count: 0,
-  }
-}
-
-/// Iterative Tarjan's strongconnect using an explicit DFS stack.
-/// Follows the same pattern as `graph/scc/scc.mbt` but with adjacency list.
-fn ts_strongconnect(state : TSState, start : Int) -> Unit {
-  let dfs_stack : Array[(Int, Int)] = [(start, 0)]
-  state.indices[start] = state.index_counter
-  state.lowlink[start] = state.index_counter
-  state.index_counter = state.index_counter + 1
-  state.stack[state.stack_top] = start
-  state.stack_top = state.stack_top + 1
-  state.on_stack[start] = true
-  while dfs_stack.length() > 0 {
-    let top_idx = dfs_stack.length() - 1
-    let (v, next_w) = dfs_stack[top_idx]
-    let neighbors = state.adj[v]
-    if next_w < neighbors.length() {
-      let w = neighbors[next_w]
-      dfs_stack[top_idx] = (v, next_w + 1)
-      if state.indices[w] == -1 {
-        state.indices[w] = state.index_counter
-        state.lowlink[w] = state.index_counter
-        state.index_counter = state.index_counter + 1
-        state.stack[state.stack_top] = w
-        state.stack_top = state.stack_top + 1
-        state.on_stack[w] = true
-        dfs_stack.push((w, 0))
-      } else if state.on_stack[w] {
-        if state.indices[w] < state.lowlink[v] {
-          state.lowlink[v] = state.indices[w]
-        }
-      }
-    } else {
-      ignore(dfs_stack.pop())
-      // Update parent's lowlink.
-      if dfs_stack.length() > 0 {
-        let parent_idx = dfs_stack.length() - 1
-        let (parent, _) = dfs_stack[parent_idx]
-        if state.lowlink[v] < state.lowlink[parent] {
-          state.lowlink[parent] = state.lowlink[v]
-        }
-      }
-      // If v is an SCC root, pop the stack and assign component IDs.
-      if state.lowlink[v] == state.indices[v] {
-        let mut w = -1
-        while w != v {
-          state.stack_top = state.stack_top - 1
-          w = state.stack[state.stack_top]
-          state.on_stack[w] = false
-          state.comp[w] = state.comp_count
-        }
-        state.comp_count = state.comp_count + 1
-      }
-    }
-  }
-}
+// The Tarjan SCC algorithm is imported from @graph_utils.
+// This eliminates the code duplication that previously existed between
+// two_sat and scc. The shared implementation is in
+// graph/graph_utils/graph_utils.mbt.
 
 /// Solve a 2-SAT problem.
 ///
@@ -126,33 +46,32 @@ pub fn two_sat(n : Int, clauses : Array[(Int, Int)]) -> FixedArray[Bool]? {
     return None
   }
   let num_nodes = 2 * n
-  let state = ts_new_state(num_nodes)
-  // Build implication graph: for clause (a ∨ b), add edges ¬a → b and ¬b → a.
+  // Build the implication graph as an adjacency list.
+  let adj : Array[Array[Int]] = []
+  for _i = 0; _i < num_nodes; _i = _i + 1 {
+    adj.push([])
+  }
   for i = 0; i < clauses.length(); i = i + 1 {
     let (a, b) = clauses[i]
     // Validate literal range.
     if a < 0 || a >= num_nodes || b < 0 || b >= num_nodes {
       return None
     }
-    state.adj[a ^ 1].push(b) // ¬a → b
-    state.adj[b ^ 1].push(a) // ¬b → a
+    adj[a ^ 1].push(b) // ¬a → b
+    adj[b ^ 1].push(a) // ¬b → a
   }
-  // Run Tarjan's SCC on all unvisited nodes.
-  for v = 0; v < num_nodes; v = v + 1 {
-    if state.indices[v] == -1 {
-      ts_strongconnect(state, v)
-    }
-  }
+  // Run Tarjan's SCC via the shared implementation.
+  let comp = @graph_utils.tarjan_scc_ids(adj, num_nodes)
   // Check for contradictions: x_i and ¬x_i in the same SCC.
   for i = 0; i < n; i = i + 1 {
-    if state.comp[2 * i] == state.comp[2 * i + 1] {
+    if comp[2 * i] == comp[2 * i + 1] {
       return None
     }
   }
   // Build assignment: x_i = true when comp[2*i] < comp[2*i+1].
   let assignment = FixedArray::make(n, false)
   for i = 0; i < n; i = i + 1 {
-    assignment[i] = state.comp[2 * i] < state.comp[2 * i + 1]
+    assignment[i] = comp[2 * i] < comp[2 * i + 1]
   }
   Some(assignment)
 }

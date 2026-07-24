@@ -16,51 +16,37 @@
 /// - The ray-casting algorithm counts boundary points as either inside or
 ///   outside depending on edge alignment (standard even-odd behaviour).
 
-/// 2D point with integer coordinates.
-pub struct Point {
-  x : Int
-  y : Int
-}
+// @geometry_utils.Point and point are imported from @geometry_utils.
+// This eliminates code duplication across geometry packages.
 
 /// A line segment from `p` to `q`.
 pub struct Segment {
-  p : Point
-  q : Point
+  p : @geometry_utils.Point
+  q : @geometry_utils.Point
 }
 
-/// Construct a point.
-pub fn point(x : Int, y : Int) -> Point {
-  { x, y }
+/// Convenience constructor — delegates to @geometry_utils.point.
+pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
+  @geometry_utils.point(x, y)
 }
 
 /// Construct a segment.
-pub fn segment(p : Point, q : Point) -> Segment {
+pub fn segment(p : @geometry_utils.Point, q : @geometry_utils.Point) -> Segment {
   { p, q }
-}
-
-/// Compute the cross product of vectors OA and OB: (A - O) × (B - O).
-/// Uses Int64 to avoid overflow. Positive = counterclockwise,
-/// negative = clockwise, zero = collinear.
-fn cross(o : Point, a : Point, b : Point) -> Int64 {
-  let oax = (a.x - o.x).to_int64()
-  let oay = (a.y - o.y).to_int64()
-  let obx = (b.x - o.x).to_int64()
-  let oby = (b.y - o.y).to_int64()
-  oax * oby - oay * obx
 }
 
 /// Orientation of the triplet (O, A, B):
 /// - `1`  = counterclockwise (left turn)
 /// - `-1` = clockwise (right turn)
 /// - `0`  = collinear
-fn orientation(o : Point, a : Point, b : Point) -> Int {
-  let c = cross(o, a, b)
+fn orientation(o : @geometry_utils.Point, a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
+  let c = @geometry_utils.cross64(o, a, b)
   if c > 0L { 1 } else if c < 0L { -1 } else { 0 }
 }
 
 /// Check if point `p` lies on segment `s` (assuming collinearity).
 /// Tests bounding box containment.
-fn on_segment_collinear(p : Point, s : Segment) -> Bool {
+fn on_segment_collinear(p : @geometry_utils.Point, s : Segment) -> Bool {
   let min_x = if s.p.x <= s.q.x { s.p.x } else { s.q.x }
   let max_x = if s.p.x >= s.q.x { s.p.x } else { s.q.x }
   let min_y = if s.p.y <= s.q.y { s.p.y } else { s.q.y }
@@ -97,7 +83,7 @@ pub fn segments_intersect(s1 : Segment, s2 : Segment) -> Bool {
 }
 
 /// Check if point `p` lies on segment `s`. O(1).
-pub fn point_on_segment(p : Point, s : Segment) -> Bool {
+pub fn point_on_segment(p : @geometry_utils.Point, s : Segment) -> Bool {
   orientation(s.p, s.q, p) == 0 && on_segment_collinear(p, s)
 }
 
@@ -110,7 +96,7 @@ pub fn point_on_segment(p : Point, s : Segment) -> Bool {
 /// "inside" — use `point_on_polygon_boundary` for boundary checks.
 ///
 /// O(n) time.
-pub fn point_in_polygon(p : Point, polygon : Array[Point]) -> Bool {
+pub fn point_in_polygon(p : @geometry_utils.Point, polygon : Array[@geometry_utils.Point]) -> Bool {
   let n = polygon.length()
   if n < 3 {
     return false
@@ -140,7 +126,7 @@ pub fn point_in_polygon(p : Point, polygon : Array[Point]) -> Bool {
 }
 
 /// Check if a point lies exactly on the boundary of the polygon. O(n).
-pub fn point_on_polygon_boundary(p : Point, polygon : Array[Point]) -> Bool {
+pub fn point_on_polygon_boundary(p : @geometry_utils.Point, polygon : Array[@geometry_utils.Point]) -> Bool {
   let n = polygon.length()
   if n < 2 {
     return false
@@ -161,7 +147,7 @@ pub fn point_on_polygon_boundary(p : Point, polygon : Array[Point]) -> Bool {
 /// negative = clockwise. To get the actual area, take `|result| / 2`.
 ///
 /// O(n) time.
-pub fn polygon_signed_area_2x(polygon : Array[Point]) -> Int64 {
+pub fn polygon_signed_area_2x(polygon : Array[@geometry_utils.Point]) -> Int64 {
   let n = polygon.length()
   if n < 3 {
     return 0L
@@ -184,7 +170,7 @@ pub fn polygon_signed_area_2x(polygon : Array[Point]) -> Int64 {
 /// may be a half-integer (e.g., a triangle with area 2.5).
 ///
 /// O(n) time.
-pub fn polygon_area(polygon : Array[Point]) -> Double {
+pub fn polygon_area(polygon : Array[@geometry_utils.Point]) -> Double {
   let area2 = polygon_signed_area_2x(polygon)
   // |area2| / 2.0
   let abs_area2 = if area2 < 0L { -area2 } else { area2 }
@@ -196,7 +182,7 @@ pub fn polygon_area(polygon : Array[Point]) -> Double {
 /// The polygon is convex if all turns are in the same direction (all left
 /// or all right, allowing collinear edges). The vertex order (CW or CCW)
 /// is determined automatically.
-pub fn polygon_is_convex(polygon : Array[Point]) -> Bool {
+pub fn polygon_is_convex(polygon : Array[@geometry_utils.Point]) -> Bool {
   let n = polygon.length()
   if n < 3 {
     return false
