@@ -66,6 +66,28 @@ pub fn count_nonneg(
   }
 }
 
+/// Overflow-safe sum of all array elements.
+///
+/// Returns `Some(total)` when the mathematical sum fits in 32-bit `Int`,
+/// or `None` when the sum overflows `Int` range. Uses 64-bit arithmetic
+/// internally to detect overflow before it happens.
+///
+/// Unlike `array_sum`, this function does **not** require elements to be
+/// non-negative and correctly detects overflow for both positive and negative
+/// sums.
+pub fn array_sum_checked(xs : FixedArray[Int]) -> Int? {
+  let mut sum = 0L
+  let max_int = 2147483647L
+  let min_int = -2147483648L
+  for i = 0; i < xs.length(); i = i + 1 {
+    sum = sum + xs[i].to_int64()
+    if sum > max_int || sum < min_int {
+      return None
+    }
+  }
+  Some(sum.to_int())
+}
+
 test "array_sum: basic" {
   let xs = FixedArray::makei(5, fn(i) { i + 1 })  // [1, 2, 3, 4, 5]
   assert_eq(array_sum(xs), 15)
@@ -102,4 +124,39 @@ test "array_sum: correctness check" {
   assert_eq(array_sum(xs), 45)
   let xs2 = FixedArray::makei(5, fn(i) { (i + 1) * (i + 1) })  // [1,4,9,16,25]
   assert_eq(array_sum(xs2), 55)
+}
+
+test "array_sum_checked: basic" {
+  let xs = FixedArray::makei(5, fn(i) { i + 1 })
+  assert_eq(array_sum_checked(xs), Some(15))
+}
+
+test "array_sum_checked: overflow detected" {
+  // 50000 * 50000 elements each = 2.5e9 > Int32::MAX
+  let xs = FixedArray::make(50000, 50000)
+  assert_true(array_sum_checked(xs) is None)
+}
+
+test "array_sum_checked: negative overflow" {
+  let xs = FixedArray::make(50000, -50000)
+  assert_true(array_sum_checked(xs) is None)
+}
+
+test "array_sum_checked: no overflow with negatives" {
+  let xs = FixedArray::make(5, 0)
+  xs[0] = 1000
+  xs[1] = -500
+  xs[2] = 200
+  xs[3] = -300
+  xs[4] = 600
+  assert_eq(array_sum_checked(xs), Some(1000))
+}
+
+test "array_sum_checked: boundary" {
+  let xs = FixedArray::make(2, 0)
+  xs[0] = 2147483647
+  xs[1] = 0
+  assert_eq(array_sum_checked(xs), Some(2147483647))
+  xs[1] = 1
+  assert_true(array_sum_checked(xs) is None)
 }

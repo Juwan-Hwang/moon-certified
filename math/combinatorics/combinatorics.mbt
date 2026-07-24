@@ -66,7 +66,15 @@ pub fn permutation(n : Int, k : Int) -> Int? {
 /// Uses the multiplicative formula: C(n,k) = product_{i=1}^{k} (n-k+i)/i.
 /// This avoids computing large factorials directly.
 ///
-/// Returns `None` if inputs are invalid or the result overflows.
+/// **Overflow-safe computation**: The intermediate product
+/// `result * (n-k+i)` is computed in `Int64` before dividing by `i`.
+/// Since `C(n-k+i, i)` is always an integer, the division is exact — no
+/// "divide first" shortcut is needed.  Each partial result is checked
+/// against `Int32` max after every step, so the next intermediate is
+/// bounded by `Int32_max * Int32_max < Int64_max` and can never overflow
+/// `Int64`.
+///
+/// Returns `None` if inputs are invalid or the result overflows Int32.
 pub fn binomial(n : Int, k : Int) -> Int? {
   if n < 0 || k < 0 {
     return None
@@ -82,31 +90,15 @@ pub fn binomial(n : Int, k : Int) -> Int? {
   let mut result = 1L
   for i = 1; i <= k; i = i + 1 {
     // result = result * (n - k + i) / i
-    // We multiply first, then divide. Since C(n,k) is always an integer,
-    // the intermediate result is always divisible by i after multiplication.
-    // To avoid overflow, we use: result = result * (n - k + i) / i
-    // But we need to be careful about overflow in the multiplication.
-    let numerator = (n - k + i).to_int64()
-    // Check: result * numerator might overflow
-    if result > int64_max / numerator {
-      // Try dividing first
-      let prev = result
-      result = result / i.to_int64()
-      // Check if divisible
-      if result * i.to_int64() != prev {
-        // Not divisible — can't avoid overflow
-        return None
-      }
-      result = result * numerator
-    } else {
-      result = result * numerator / i.to_int64()
+    // C(n-k+i, i) is always an integer, so the division is exact.
+    // The intermediate result * (n-k+i) cannot overflow Int64 because
+    // result < 2^31 (checked below) and (n-k+i) < 2^31.
+    result = result * (n - k + i).to_int64() / i.to_int64()
+    if result > 2147483647L {
+      return None // Overflow: partial result exceeds Int32
     }
   }
-  if result > 2147483647L {
-    None
-  } else {
-    Some(result.to_int())
-  }
+  Some(result.to_int())
 }
 
 /// Compute the n-th Catalan number: C(n) = C(2n, n) / (n+1).
@@ -178,11 +170,20 @@ pub fn stirling2(n : Int, k : Int) -> Int? {
       // dp[j-1] currently holds S(i-1, j-1) (not yet updated)
       let s_prev_j = dp[j]       // S(i-1, j)
       let s_prev_jm1 = dp[j - 1] // S(i-1, j-1)
-      let val = j.to_int64() * s_prev_j + s_prev_jm1
-      // Overflow check
-      if val < 0L {
+      // Overflow-safe computation: check BEFORE each operation rather
+      // than detecting wraparound after the fact.  j is a small Int
+      // (<= k <= n), but s_prev_j can be large.
+      let j_i64 = j.to_int64()
+      // Multiplication: would j_i64 * s_prev_j exceed Int64?
+      if s_prev_j > 0L && j_i64 > int64_max / s_prev_j {
         return None
       }
+      let product = j_i64 * s_prev_j
+      // Addition: would product + s_prev_jm1 exceed Int64?
+      if s_prev_jm1 > 0L && product > int64_max - s_prev_jm1 {
+        return None
+      }
+      let val = product + s_prev_jm1
       dp[j] = val
       j = j - 1
     }

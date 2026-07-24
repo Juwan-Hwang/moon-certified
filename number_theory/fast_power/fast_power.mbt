@@ -1,19 +1,22 @@
 /// Fast exponentiation using binary decomposition.
 /// Computes base^exp in O(log exp) multiplications.
 ///
+/// **Deprecated**: This function does not detect overflow. If the result
+/// exceeds 32-bit `Int` range, it silently wraps to a negative value,
+/// invalidating the non-negativity guarantee at runtime.
+///
+/// Use `fast_power_checked` instead, which returns `None` on overflow.
+///
+/// This function is retained for formal verification (Z3 proof of
+/// non-negativity under the mathematical integer model) and backward
+/// compatibility with code that can guarantee no overflow.
+///
 /// Verified by `moon prove`:
 /// - result >= 0 when base >= 0 and exp >= 0 (non-negativity, proven by Z3)
 ///
 /// Not verified (requires nonlinear arithmetic beyond Z3's capability):
 /// - result == base^exp (full correctness)
 /// - result >= 1 when base >= 1 (monotonicity)
-///
-/// **Overflow**: `base^exp` is computed using 32-bit `Int` arithmetic.
-/// Results exceeding 2³¹−1 silently wrap to negative values, which
-/// invalidates the non-negativity guarantee at runtime (the proof
-/// models `Int` as mathematical integers).
-/// Use `fast_power_checked` for an overflow-safe variant that returns
-/// `None` when the result would exceed `Int`'s range.
 
 pub fn fast_power(
   base : Int,

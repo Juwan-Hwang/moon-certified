@@ -27,9 +27,11 @@
 ///
 /// ## Implementation
 ///
-/// This is a **bottom-up** splay tree: the key is searched first (descending
-/// to the leaf), then splayed back to the root on the way up via recursive
-/// zig, zig-zig, and zig-zag rotations. The tree is represented as an
+/// This is a **bottom-up** splay tree implemented **iteratively**: the search
+/// descends to the target using an explicit loop (recording the path in an
+/// array), then rotations are applied from the bottom up using the recorded
+/// path. No recursion is used, so there is **no stack overflow risk** even
+/// on degenerate trees of depth > 10⁴. The tree is represented as an
 /// immutable, recursive `enum`, so every operation returns a new tree
 /// (functional style, no mutation).
 ///
@@ -38,15 +40,12 @@
 /// - `search`  — O(log n) amortized
 /// - `delete`  — O(log n) amortized
 /// - `size`    — O(1) (cached in every node)
-/// - `inorder` — O(n)
+/// - `inorder` — O(n), iterative (no stack overflow)
 ///
 /// ## Limitations
 ///
 /// - Keys are `Int`; the structure is a set (no per-key value).
 /// - Duplicate keys are silently ignored on insert.
-/// - Recursive operations may overflow the call stack on a degenerate tree
-///   of depth > ~10⁴ (MoonBit has no tail-call optimization guarantee).
-///   For guaranteed O(log n) worst-case depth, use `avl` or `red_black_tree`.
 /// - The worst-case single-operation time is O(n), not O(log n). Only the
 ///   *amortized* cost over a sequence of operations is O(log n).
 ///
@@ -77,12 +76,6 @@ fn node_size(t : SplayNode) -> Int {
 }
 
 /// Construct a `Node` with the size automatically computed from its children.
-///
-/// This centralises the size-update logic so every rotation produces a
-/// correctly-sized node without repeating `1 + node_size(…) + node_size(…)`
-/// at each call site. All six rotation cases (Zig, Zig-Zig, Zig-Zag and their
-/// mirrors) now delegate to this helper, eliminating the copy-pasted size
-/// arithmetic that was error-prone and hard to maintain.
 fn mk_node(l : SplayNode, key : Int, r : SplayNode) -> SplayNode {
   Node(l, key, r, 1 + node_size(l) + node_size(r))
 }
@@ -93,109 +86,158 @@ fn mk_node(l : SplayNode, key : Int, r : SplayNode) -> SplayNode {
 /// If `k` is not in the tree, the last node on the search path (the node that
 /// would be `k`'s parent) is brought to the root.
 ///
-/// This is the bottom-up splay implementation: the search descends to the
-/// target depth, then rotations are applied on the way back up.
+/// This is an **iterative** bottom-up splay: the search descends to the target
+/// using a loop (recording the path in arrays), then rotations are applied
+/// from the bottom up. No recursion is used, preventing stack overflow on
+/// degenerate trees.
 fn splay(t : SplayNode, k : Int) -> SplayNode {
   match t {
     Empty => Empty
-    _ => splay_bottom_up(t, k)
-  }
-}
-
-/// Bottom-up splay: search for k, then splay on the way up.
-///
-/// All six rotation cases (Zig, Zig-Zig, Zig-Zag and their mirror Zags) use
-/// [`mk_node`] to construct nodes, so size maintenance is centralised in one
-/// place rather than copy-pasted across every case.
-fn splay_bottom_up(t : SplayNode, k : Int) -> SplayNode {
-  match t {
-    Empty => Empty
-    Node(l, key, r, _) => {
-      if k == key {
-        mk_node(l, key, r)
-      } else if k < key {
-        // k is in the left subtree
-        match l {
-          Empty => mk_node(l, key, r)
-          Node(ll, lk, lr, _) => {
-            if k == lk {
-              // Zig: one right rotation
-              mk_node(ll, lk, mk_node(lr, key, r))
-            } else if k < lk {
-              // Zig-Zig: k is in the left subtree of ll
-              match ll {
-                Empty => {
-                  // Just zig
-                  mk_node(ll, lk, mk_node(lr, key, r))
-                }
-                _ => {
-                  // Splay k to the root of ll, then double right rotation.
-                  let splayed_ll = splay_bottom_up(ll, k)
-                  match splayed_ll {
-                    Node(lll, slk, llr, _) =>
-                      mk_node(lll, slk, mk_node(llr, lk, mk_node(lr, key, r)))
-                    _ => t
-                  }
-                }
-              }
+    _ => {
+      // Step 1: Descend the tree iteratively, recording the path.
+      // path_nodes[i] = the i-th ancestor of the target (0 = root).
+      // path_dirs[i] = true if we went left from path_nodes[i], false if right.
+      let path_nodes : Array[SplayNode] = []
+      let path_dirs : Array[Bool] = []
+      let mut curr = t
+      let mut found = false
+      while true {
+        match curr {
+          Empty => break
+          Node(l, key, r, _) => {
+            if k == key {
+              found = true
+              break
+            } else if k < key {
+              path_nodes.push(curr)
+              path_dirs.push(true)
+              curr = l
             } else {
-              // Zig-Zag: k is in the right subtree of lk
-              match lr {
-                Empty =>
-                  mk_node(ll, lk, mk_node(lr, key, r))
-                _ => {
-                  let splayed_lr = splay_bottom_up(lr, k)
-                  match splayed_lr {
-                    Node(lrl, slk, lrr, _) =>
-                      mk_node(mk_node(ll, lk, lrl), slk, mk_node(lrr, key, r))
-                    _ => t
-                  }
-                }
-              }
+              path_nodes.push(curr)
+              path_dirs.push(false)
+              curr = r
             }
           }
         }
-      } else {
-        // k > key: mirror of the above
-        match r {
-          Empty => mk_node(l, key, r)
-          Node(rl, rk, rr, _) => {
-            if k == rk {
-              // Zag: one left rotation
-              mk_node(mk_node(l, key, rl), rk, rr)
-            } else if k > rk {
-              // Zag-Zag: k is in the right subtree of rr
-              match rr {
-                Empty =>
-                  mk_node(mk_node(l, key, rl), rk, rr)
-                _ => {
-                  // Splay k to the root of rr, then double left rotation.
-                  let splayed_rr = splay_bottom_up(rr, k)
-                  match splayed_rr {
-                    Node(rl_, srk, rrr, _) =>
-                      mk_node(mk_node(mk_node(l, key, rl), rk, rl_), srk, rrr)
-                    _ => t
-                  }
-                }
-              }
+      }
+      // If k was not found, splay the last node on the search path.
+      if !found {
+        match curr {
+          Empty => {
+            if path_nodes.length() == 0 {
+              return t
+            }
+            curr = path_nodes[path_nodes.length() - 1]
+            ignore(path_nodes.pop())
+            ignore(path_dirs.pop())
+          }
+          _ => ()
+        }
+      }
+      // Step 2: Splay curr to the root by processing the path bottom-up.
+      // Process two levels at a time (zig-zig / zig-zag / zag-zag / zag-zig),
+      // then one level (zig / zag) if the path has odd length.
+      let mut node = curr
+      let mut i = path_nodes.length()
+      while i >= 2 {
+        let parent = path_nodes[i - 1]
+        let dir1 = path_dirs[i - 1]
+        let grandparent = path_nodes[i - 2]
+        let dir2 = path_dirs[i - 2]
+        match (grandparent, parent, node) {
+          (Node(gl, gk, gr, _), Node(pl, pk, pr, _), Node(nl, nk, nr, _)) => {
+            if dir2 && dir1 {
+              // Zig-Zig: grandparent -> parent (left) -> node (left)
+              node = mk_node(nl, nk, mk_node(nr, pk, mk_node(pr, gk, gr)))
+            } else if !dir2 && !dir1 {
+              // Zag-Zag: grandparent -> parent (right) -> node (right)
+              node = mk_node(mk_node(mk_node(gl, gk, pl), pk, nl), nk, nr)
+            } else if dir2 && !dir1 {
+              // Zig-Zag: grandparent went left, parent went right
+              node = mk_node(mk_node(pl, pk, nl), nk, mk_node(nr, gk, gr))
             } else {
-              // Zag-Zig: k is in the left subtree of rk
-              match rl {
-                Empty =>
-                  mk_node(mk_node(l, key, rl), rk, rr)
-                _ => {
-                  let splayed_rl = splay_bottom_up(rl, k)
-                  match splayed_rl {
-                    Node(rll, slk, rlr, _) =>
-                      mk_node(mk_node(l, key, rll), slk, mk_node(rlr, rk, rr))
-                    _ => t
-                  }
-                }
+              // Zag-Zig: grandparent went right, parent went left
+              node = mk_node(mk_node(gl, gk, nl), nk, mk_node(nr, pk, pr))
+            }
+          }
+          _ => abort("splay: unexpected Empty in path")
+        }
+        i = i - 2
+      }
+      // Handle the last single zig/zag (if path has odd length).
+      if i == 1 {
+        let parent = path_nodes[0]
+        let dir = path_dirs[0]
+        match (parent, node) {
+          (Node(pl, pk, pr, _), Node(nl, nk, nr, _)) => {
+            if dir {
+              // Zig: node is left child of parent
+              node = mk_node(nl, nk, mk_node(nr, pk, pr))
+            } else {
+              // Zag: node is right child of parent
+              node = mk_node(mk_node(pl, pk, nl), nk, nr)
+            }
+          }
+          _ => abort("splay: unexpected Empty in zig/zag")
+        }
+      }
+      node
+    }
+  }
+}
+
+/// Splay the maximum node to the root of tree `t`.
+///
+/// After this, the root has no right child. Uses the same iterative approach
+/// as `splay` — no recursion, no stack overflow risk.
+fn splay_max(t : SplayNode) -> SplayNode {
+  match t {
+    Empty => Empty
+    _ => {
+      // Descend right, recording the path.
+      let path_nodes : Array[SplayNode] = []
+      let mut curr = t
+      while true {
+        match curr {
+          Empty => break
+          Node(_, _, r, _) => {
+            match r {
+              Empty => break
+              _ => {
+                path_nodes.push(curr)
+                curr = r
               }
             }
           }
         }
       }
+      // curr is the rightmost node (max). Splay it to the root.
+      // All directions are "right" (zag-zag and zag).
+      let mut node = curr
+      let mut i = path_nodes.length()
+      while i >= 2 {
+        let parent = path_nodes[i - 1]
+        let grandparent = path_nodes[i - 2]
+        match (grandparent, parent, node) {
+          (Node(gl, gk, _gr, _), Node(pl, pk, _pr, _), Node(nl, nk, nr, _)) => {
+            // Zag-Zag: all right children
+            node = mk_node(mk_node(mk_node(gl, gk, pl), pk, nl), nk, nr)
+          }
+          _ => abort("splay_max: unexpected Empty in path")
+        }
+        i = i - 2
+      }
+      if i == 1 {
+        let parent = path_nodes[0]
+        match (parent, node) {
+          (Node(pl, pk, _pr, _), Node(nl, nk, nr, _)) => {
+            // Zag: single left rotation
+            node = mk_node(mk_node(pl, pk, nl), nk, nr)
+          }
+          _ => abort("splay_max: unexpected Empty in zag")
+        }
+      }
+      node
     }
   }
 }
@@ -209,9 +251,8 @@ pub fn insert(tree : SplayNode, key : Int) -> SplayNode {
     Empty => mk_node(Empty, key, Empty)
     Node(l, k, r, _) as t => {
       if key == k {
-        t // key already present, no change
+        t
       } else if key < k {
-        // Split: l < key < k < r (after splay, root is closest to key)
         mk_node(l, key, mk_node(Empty, k, r))
       } else {
         mk_node(mk_node(l, k, Empty), key, r)
@@ -243,9 +284,8 @@ pub fn delete(tree : SplayNode, key : Int) -> SplayNode {
     Empty => Empty
     Node(l, k, r, _) => {
       if k != key {
-        splayed // key not found, return splayed tree unchanged
+        splayed
       } else {
-        // Key found at root. Join left and right subtrees.
         join(l, r)
       }
     }
@@ -261,46 +301,10 @@ fn join(l : SplayNode, r : SplayNode) -> SplayNode {
   if r is Empty {
     return l
   }
-  // Splay the maximum key in l to the root.
-  // The maximum key is the rightmost node; we splay a very large value.
   let splayed = splay_max(l)
   match splayed {
     Node(sl, sk, Empty, _) => mk_node(sl, sk, r)
-    _ => splayed // Should not happen: splay_max brings max to root.
-  }
-}
-
-/// Splay the maximum node to the root of tree `t`.
-/// After this, the root has no right child.
-fn splay_max(t : SplayNode) -> SplayNode {
-  match t {
-    Empty => Empty
-    Node(l, key, r, _) => {
-      match r {
-        Empty => mk_node(l, key, Empty)
-        Node(rl, rk, rr, _) => {
-          match rr {
-            Empty => {
-              // rk is the max: rotate left to bring rk to root
-              mk_node(mk_node(l, key, rl), rk, Empty)
-            }
-            _ => {
-              // Splay max of rr, then rotate
-              let splayed_rr = splay_max(rr)
-              match splayed_rr {
-                Node(rrl, srk, rrr, _) =>
-                  mk_node(
-                    mk_node(l, key, mk_node(rl, rk, rrl)),
-                    srk,
-                    rrr,
-                  )
-                _ => t
-              }
-            }
-          }
-        }
-      }
-    }
+    _ => splayed
   }
 }
 
@@ -310,20 +314,39 @@ pub fn size(tree : SplayNode) -> Int {
 }
 
 /// In-order traversal: returns all keys in ascending order.
-/// O(n) time and space.
+/// O(n) time and space. Uses an explicit stack (iterative, no recursion).
 pub fn inorder(tree : SplayNode) -> FixedArray[Int] {
   let out : Array[Int] = []
-  fn visit(t : SplayNode) -> Unit {
-    match t {
-      Empty => ()
-      Node(l, k, r, _) => {
-        visit(l)
-        out.push(k)
-        visit(r)
+  // Explicit stack for iterative in-order traversal.
+  let stack : Array[SplayNode] = []
+  let mut curr = tree
+  while true {
+    // Push all left children onto the stack.
+    while true {
+      match curr {
+        Empty => break
+        Node(l, _key, _r, _) => {
+          stack.push(curr)
+          curr = l
+        }
       }
     }
+    if stack.length() == 0 {
+      break
+    }
+    // Pop and visit.
+    match stack.pop() {
+      Some(node) =>
+        match node {
+          Node(_l, key, r, _) => {
+            out.push(key)
+            curr = r
+          }
+          _ => ()
+        }
+      None => break
+    }
   }
-  visit(tree)
   FixedArray::from_array(out.view())
 }
 
@@ -352,7 +375,6 @@ test "splay: search brings key to root" {
   tree = insert(tree, 5)
   let (t, found) = search(tree, 1)
   assert_true(found)
-  // After splaying, 1 should be at root
   match t {
     Node(_, k, _, _) => assert_eq(k, 1)
     Empty => abort("expected non-empty tree")
@@ -410,8 +432,6 @@ test "splay: duplicate insert ignored" {
 }
 
 test "splay: sequential insert then search all" {
-  // Worst case for BST: sequential insertion creates a linked list.
-  // Splay tree should still find all elements.
   let mut tree = empty()
   for k = 1; k <= 1000; k = k + 1 {
     tree = insert(tree, k)
@@ -433,7 +453,6 @@ test "splay: interleaved insert and delete" {
   tree = delete(tree, 10)
   let arr = inorder(tree)
   assert_eq(arr.length(), 2)
-  // Remaining: 5 and 15
   let mut found5 = false
   let mut found15 = false
   for k = 0; k < arr.length(); k = k + 1 {
@@ -465,14 +484,36 @@ test "splay: size consistency after operations" {
     tree = delete(tree, k * 2)
   }
   assert_eq(size(tree), 250)
-  // Verify remaining keys are present
   for k = 251; k <= 500; k = k + 1 {
     let (_, found) = search(tree, k * 2)
     assert_true(found)
   }
-  // Verify deleted keys are gone
   for k = 1; k <= 250; k = k + 1 {
     let (_, found) = search(tree, k * 2)
     assert_false(found)
   }
+}
+
+test "splay: deep sequential insert (stack safety)" {
+  // Sequential insertion creates a degenerate tree (linked list).
+  // The iterative splay must not stack overflow on 5000 nodes.
+  let mut tree = empty()
+  for k = 1; k <= 5000; k = k + 1 {
+    tree = insert(tree, k)
+  }
+  assert_eq(size(tree), 5000)
+  // Search for the last element (deepest node before splay).
+  let (t, found) = search(tree, 5000)
+  assert_true(found)
+  assert_eq(size(t), 5000)
+}
+
+test "splay: inorder on deep tree (stack safety)" {
+  // In-order traversal of a 5000-node tree must not stack overflow.
+  let mut tree = empty()
+  for k = 1; k <= 5000; k = k + 1 {
+    tree = insert(tree, k)
+  }
+  let arr = inorder(tree)
+  assert_eq(arr.length(), 5000)
 }

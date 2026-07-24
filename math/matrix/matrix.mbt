@@ -119,6 +119,41 @@ pub fn matmul_int(
   r
 }
 
+/// Overflow-safe `Int` matrix multiplication.
+///
+/// Like `matmul_int` but returns `None` as soon as any element of the product
+/// exceeds 32-bit `Int` range, instead of silently truncating with `to_int`.
+///
+/// Returns `Some(result)` when all products fit in `Int`, or `None` when at
+/// least one element overflows. Also returns `None` for invalid dimensions.
+pub fn matmul_int_checked(
+  a : FixedArray[Int],
+  n : Int,
+  m : Int,
+  b : FixedArray[Int],
+  p : Int,
+) -> FixedArray[Int]? {
+  if n <= 0 || p <= 0 || m < 0 || a.length() < n * m || b.length() < m * p {
+    return None
+  }
+  let r = FixedArray::make(n * p, 0)
+  let max_int = 2147483647L
+  let min_int = -2147483648L
+  for i = 0; i < n; i = i + 1 {
+    for j = 0; j < p; j = j + 1 {
+      let mut sum = 0L
+      for k = 0; k < m; k = k + 1 {
+        sum = sum + a[i * m + k].to_int64() * b[k * p + j].to_int64()
+      }
+      if sum > max_int || sum < min_int {
+        return None
+      }
+      r[i * p + j] = sum.to_int()
+    }
+  }
+  Some(r)
+}
+
 /// Multiply `Int64` matrix `A` (`n x m`) by `Int64` matrix `B` (`m x p`).
 ///
 /// Returns the `n x p` product. All arithmetic is in `Int64`; the dot product
@@ -505,6 +540,45 @@ test "matmul: dimension mismatch returns empty (Int and Int64)" {
   let b64 = FixedArray::make(4, 0L)
   let c64 = matmul_int64(a64, 2, 3, b64, 2)
   assert_eq(c64.length(), 0)
+}
+
+test "matmul_int_checked: basic multiplication" {
+  let a = FixedArray::make(4, 0)
+  a[0] = 1
+  a[1] = 2
+  a[2] = 3
+  a[3] = 4
+  let b = FixedArray::make(4, 0)
+  b[0] = 5
+  b[1] = 6
+  b[2] = 7
+  b[3] = 8
+  let c = matmul_int_checked(a, 2, 2, b, 2)
+  assert_eq(c.unwrap()[0], 19)
+  assert_eq(c.unwrap()[1], 22)
+  assert_eq(c.unwrap()[2], 43)
+  assert_eq(c.unwrap()[3], 50)
+}
+
+test "matmul_int_checked: overflow detected" {
+  // [40000 40000] * [40000 40000] = [3.2e9 ...] > Int32::MAX
+  let a = FixedArray::make(4, 0)
+  a[0] = 40000
+  a[1] = 40000
+  a[2] = 40000
+  a[3] = 40000
+  let b = FixedArray::make(4, 0)
+  b[0] = 40000
+  b[1] = 40000
+  b[2] = 40000
+  b[3] = 40000
+  assert_true(matmul_int_checked(a, 2, 2, b, 2) is None)
+}
+
+test "matmul_int_checked: invalid dimensions" {
+  let a = FixedArray::make(6, 0)
+  let b = FixedArray::make(4, 0)
+  assert_true(matmul_int_checked(a, 2, 3, b, 2) is None)
 }
 
 test "matmul_int64: large values beyond Int32 range" {

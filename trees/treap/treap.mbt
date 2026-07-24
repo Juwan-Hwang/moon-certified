@@ -59,8 +59,8 @@ pub enum TreapNode {
 /// so test execution order cannot perturb the results. The fields are
 /// immutable; `insert` returns a fresh `Treap` carrying the advanced state.
 pub struct Treap {
-  root : TreapNode
-  rng : Int
+  priv root : TreapNode
+  priv rng : Int
 }
 
 // ---------------------------------------------------------------------------

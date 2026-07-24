@@ -12,9 +12,9 @@
 const BTREE_MIN_DEGREE : Int = 2
 
 pub struct BTreeNode {
-  keys : Array[Int]
-  children : Array[BTreeNode]
-  leaf : Bool
+  priv keys : Array[Int]
+  priv children : Array[BTreeNode]
+  priv leaf : Bool
 }
 
 /// Create an empty B-Tree (a single leaf node with no keys).

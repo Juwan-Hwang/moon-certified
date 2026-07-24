@@ -10,7 +10,13 @@ pub struct UnionFind {
 }
 
 /// Create a UnionFind with n singleton sets: {0}, {1}, ..., {n-1}.
+///
+/// **Precondition**: `n >= 0`. A negative size is a programming error
+/// and will trigger an abort with a descriptive message.
 pub fn new(n : Int) -> UnionFind {
+  if n < 0 {
+    abort("union_find.new: n must be non-negative, got " + n.to_string())
+  }
   let parent = FixedArray::make(n, 0)
   let rank = FixedArray::make(n, 0)
   for i = 0; i < n; {

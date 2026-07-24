@@ -10,8 +10,10 @@
 /// avoiding the potential pseudo-polynomial blowup of naive Ford-Fulkerson
 /// with DFS.
 ///
-/// Returns the maximum flow from `src` to `sink` as an `Int64`. For invalid
-/// inputs (n <= 0, out-of-bounds vertices, src == sink), returns 0.
+/// Returns `Some(flow)` for valid inputs, or `None` for invalid inputs
+/// (n <= 0, out-of-bounds vertices, src == sink, or graph array too small).
+/// Returning `Option` distinguishes invalid input from a valid flow of 0
+/// (which occurs when no augmenting path exists).
 ///
 /// `total_flow` is accumulated in `Int64` to prevent overflow: the sum of all
 /// augmenting path flows can exceed `Int::max_value` (2³¹−1) in networks with
@@ -71,7 +73,12 @@ fn bfs_augmenting_path(
 /// `graph` is an `n × n` adjacency matrix where `graph[i * n + j]` is the
 /// capacity of the edge `i → j`. Capacity 0 means no edge.
 ///
-/// Returns the maximum flow value as `Int64`. Returns 0 for invalid inputs.
+/// Returns `Some(flow)` for valid inputs, where `flow` is the maximum flow
+/// value as `Int64`. A valid flow of `0L` means the source and sink are
+/// disconnected (no augmenting path exists).
+///
+/// Returns `None` for invalid inputs: `n <= 0`, out-of-bounds `src` or
+/// `sink`, `src == sink`, or `graph.length() < n * n`.
 ///
 /// `total_flow` is accumulated in `Int64` to prevent overflow when the sum
 /// of augmenting path flows exceeds 32-bit `Int` range.
@@ -80,12 +87,12 @@ pub fn max_flow(
   n : Int,
   src : Int,
   sink : Int,
-) -> Int64 {
+) -> Int64? {
   if n <= 0 || src < 0 || src >= n || sink < 0 || sink >= n || src == sink {
-    return 0L
+    return None
   }
   if graph.length() < n * n {
-    return 0L
+    return None
   }
   // Copy capacities into the residual graph (original capacities are
   // consumed during augmentation; we must not mutate the caller's array).
@@ -120,7 +127,7 @@ pub fn max_flow(
     }
     total_flow = total_flow + path_flow.to_int64()
   }
-  total_flow
+  Some(total_flow)
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +141,7 @@ test "max_flow: simple chain" {
   graph[0 * n + 1] = 10
   graph[1 * n + 2] = 10
   graph[2 * n + 3] = 10
-  assert_eq(max_flow(graph, n, 0, 3), 10L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(10L))
 }
 
 test "max_flow: two parallel paths" {
@@ -146,7 +153,7 @@ test "max_flow: two parallel paths" {
   graph[0 * n + 2] = 5
   graph[1 * n + 3] = 5
   graph[2 * n + 3] = 10
-  assert_eq(max_flow(graph, n, 0, 3), 10L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(10L))
 }
 
 test "max_flow: bottleneck" {
@@ -157,23 +164,24 @@ test "max_flow: bottleneck" {
   graph[0 * n + 1] = 20
   graph[1 * n + 2] = 5
   graph[2 * n + 3] = 20
-  assert_eq(max_flow(graph, n, 0, 3), 5L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(5L))
 }
 
 test "max_flow: no path" {
-  // 0 and 3 are disconnected
+  // 0 and 3 are disconnected; valid graph but max flow is 0.
+  // This is distinct from invalid input (which returns None).
   let n = 4
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 10
   graph[2 * n + 3] = 10
-  assert_eq(max_flow(graph, n, 0, 3), 0L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(0L))
 }
 
 test "max_flow: single edge" {
   let n = 2
   let graph = FixedArray::make(n * n, 0)
   graph[0 * n + 1] = 7
-  assert_eq(max_flow(graph, n, 0, 1), 7L)
+  assert_eq(max_flow(graph, n, 0, 1), Some(7L))
 }
 
 test "max_flow: classic CLRS example" {
@@ -191,7 +199,7 @@ test "max_flow: classic CLRS example" {
   graph[3 * n + 5] = 20
   graph[4 * n + 3] = 7
   graph[4 * n + 5] = 4
-  assert_eq(max_flow(graph, n, 0, 5), 23L)
+  assert_eq(max_flow(graph, n, 0, 5), Some(23L))
 }
 
 test "max_flow: undirected graph (bidirectional edges)" {
@@ -202,7 +210,7 @@ test "max_flow: undirected graph (bidirectional edges)" {
   graph[1 * n + 0] = 10
   graph[1 * n + 2] = 10
   graph[2 * n + 1] = 10
-  assert_eq(max_flow(graph, n, 0, 2), 10L)
+  assert_eq(max_flow(graph, n, 0, 2), Some(10L))
 }
 
 test "max_flow: self-loop ignored" {
@@ -211,7 +219,7 @@ test "max_flow: self-loop ignored" {
   graph[0 * n + 0] = 100 // self-loop, should be ignored
   graph[0 * n + 1] = 10
   graph[1 * n + 2] = 10
-  assert_eq(max_flow(graph, n, 0, 2), 10L)
+  assert_eq(max_flow(graph, n, 0, 2), Some(10L))
 }
 
 test "max_flow: adding edge increases flow" {
@@ -223,22 +231,24 @@ test "max_flow: adding edge increases flow" {
   graph[1 * n + 3] = 5
   graph[0 * n + 2] = 5
   graph[2 * n + 3] = 10
-  assert_eq(max_flow(graph, n, 0, 3), 10L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(10L))
   // Add cross edge 1 -> 2 (5): now 0->1->2->3 carries additional 5
   // Total: 0->1->3 (5) + 0->1->2->3 (5) + 0->2->3 (5) = 15
   graph[1 * n + 2] = 5
-  assert_eq(max_flow(graph, n, 0, 3), 15L)
+  assert_eq(max_flow(graph, n, 0, 3), Some(15L))
 }
 
-test "max_flow: invalid inputs" {
+test "max_flow: invalid inputs return None" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  assert_eq(max_flow(graph, 0, 0, 2), 0L) // n = 0
-  assert_eq(max_flow(graph, n, -1, 2), 0L) // src < 0
-  assert_eq(max_flow(graph, n, 3, 2), 0L) // src >= n
-  assert_eq(max_flow(graph, n, 0, -1), 0L) // sink < 0
-  assert_eq(max_flow(graph, n, 0, 3), 0L) // sink >= n
-  assert_eq(max_flow(graph, n, 1, 1), 0L) // src == sink
+  assert_true(max_flow(graph, 0, 0, 2) is None) // n = 0
+  assert_true(max_flow(graph, n, -1, 2) is None) // src < 0
+  assert_true(max_flow(graph, n, 3, 2) is None) // src >= n
+  assert_true(max_flow(graph, n, 0, -1) is None) // sink < 0
+  assert_true(max_flow(graph, n, 0, 3) is None) // sink >= n
+  assert_true(max_flow(graph, n, 1, 1) is None) // src == sink
+  // graph too small for n
+  assert_true(max_flow(FixedArray::make(4, 0), n, 0, 2) is None)
 }
 
 test "max_flow: large chain 100 nodes" {
@@ -247,7 +257,7 @@ test "max_flow: large chain 100 nodes" {
   for i = 0; i < n - 1; i = i + 1 {
     graph[i * n + (i + 1)] = 10
   }
-  assert_eq(max_flow(graph, n, 0, n - 1), 10L)
+  assert_eq(max_flow(graph, n, 0, n - 1), Some(10L))
 }
 
 test "max_flow: capacity not mutated" {

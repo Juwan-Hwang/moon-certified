@@ -13,9 +13,9 @@
 /// 1. **Trie construction.**  Each pattern is inserted one code unit at a
 ///    time into a trie rooted at node 0.  Every node stores a *sparse* list
 ///    of `(code_unit, child_index)` pairs — kept sorted by code unit —
-///    instead of a dense 256-slot array.  Child lookup is O(k) where k is the
-///    node's branching factor (typically 1-3), but k is bounded by the
-///    alphabet actually used, not a fixed 256.  A node's `output` list
+///    instead of a dense 256-slot array.  Child lookup uses binary search
+///    for O(log k) where k is the node's branching factor (typically 1-3),
+///    bounded by the alphabet actually used, not a fixed 256.  A node's `output` list
 ///    records the indices of all patterns that terminate at that node.
 ///
 /// 2. **Failure-link construction (BFS).**  For each node `u` at depth >= 1
@@ -49,14 +49,16 @@
 ///
 /// - Build: O(sum of pattern lengths) for trie construction.  The failure-
 ///   link BFS visits each node once and scans only that node's *existing*
-///   children (k entries) plus, per child, the fail chain.  The fail chain
-///   across a whole search/build decreases total depth by at most the total
-///   pattern length, so the BFS is O(sum of pattern lengths).
+///   children (k entries) plus, per child, the fail chain.  Each fail-chain
+///   step uses binary search (O(log k)) to test for a matching child.  The
+///   fail chain across a whole search/build decreases total depth by at most
+///   the total pattern length, so the BFS is O(sum of pattern lengths).
 ///
 /// - Search: O(text_length + number_of_matches).  Each text code unit
 ///   advances the automaton at most once (amortised over fail-link
 ///   traversals, which can only decrease depth), and each match is emitted
-///   exactly once.
+///   exactly once.  Each transition uses binary search (O(log k)) for child
+///   lookup.
 ///
 /// Memory
 /// ======
@@ -122,19 +124,21 @@ fn make_node() -> AcNode {
 /// Look up the child of `node` reached by code unit `code_unit`.
 ///
 /// Returns the child node index, or -1 if `node` has no child for that code
-/// unit.  The children list is kept sorted by code unit, so the scan exits
-/// early once it passes the target value.
+/// unit.  The children list is kept sorted by code unit, enabling binary
+/// search for O(log k) lookup where k is the node's branching factor.
 fn find_child(node : AcNode, code_unit : Int) -> Int {
-  let mut i = 0
-  while i < node.children.length() {
-    let (c, child) = node.children[i]
+  let mut lo = 0
+  let mut hi = node.children.length()
+  while lo < hi {
+    let mid = lo + (hi - lo) / 2
+    let (c, child) = node.children[mid]
     if c == code_unit {
       return child
+    } else if c < code_unit {
+      lo = mid + 1
+    } else {
+      hi = mid
     }
-    if c > code_unit {
-      return -1 // sorted: no later entry can match
-    }
-    i = i + 1
   }
   -1
 }

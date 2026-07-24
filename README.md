@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.9.0** — 75 个算法包 + 共享工具模块，`moon check` 0 warnings 0 errors，`moon test` 1096 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
+**v0.9.0** — 87 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 1321 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
 
 ### v0.9.0 变更亮点（代码质量提升 + 消除重复）
 
@@ -159,7 +159,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (1091 tests)
+# 运行测试 (1321 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -486,7 +486,7 @@ moon-certified/
 | segment_ops | 33 | 🔒 tested | ❌ |
 | combinatorics | 15 | 🔒 tested | ❌ |
 | matrix | 12 | 🔒 tested | ❌ |
-| **Total** | **1091** | **5 完整, 4 部分, 69 tested** | **17 generic** |
+| **Total** | **1321** | **5 完整, 4 部分, 81 tested** | **17 generic** |
 
 ## 参考资源
 
