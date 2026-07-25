@@ -37,7 +37,87 @@
 /// tail-call optimisation, so a recursive implementation could crash on
 /// trees with depth > 10⁴.
 ///
+/// The three forest DP functions (`max_independent_set`, `tree_diameter`,
+/// and `max_matching_on_tree`) share a single generic post-order forest
+/// traversal, `dfs_forest`, and differ only in their per-vertex DP
+/// transition, which is supplied as a callback. `tree_knapsack` operates
+/// on a rooted tree given as a directed `children` adjacency, so its
+/// traversal shape is different and it is kept self-contained.
+///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
+
+// ---------------------------------------------------------------------------
+// Internal: generic iterative post-order DFS on a forest
+// ---------------------------------------------------------------------------
+
+/// Internal: post-order DFS on a forest.
+///
+/// Walks every connected component of an undirected graph given by `adj`
+/// and invokes `process(u, parent, neighbors)` once per vertex **after** all
+/// of its descendants have already been processed (post-order). This is the
+/// shared traversal skeleton used by every forest DP in this module.
+///
+/// # Parameters
+/// - `adj`: adjacency list; `adj[u]` holds the neighbour descriptors of
+///   `u`. For unweighted graphs each descriptor is the neighbour index
+///   itself (`T = Int`); for weighted graphs each descriptor is
+///   `(neighbour, weight)` (`T = (Int, Int)`).
+/// - `n`: number of vertices, indexed `0 .. n - 1`.
+/// - `get_vertex`: extracts the neighbour index from a descriptor. This is
+///   the only operation the traversal needs on `T`, which keeps the helper
+///   generic without imposing a trait bound (and lets MoonBit monomorphise
+///   each instantiation, so there is no dynamic-dispatch overhead).
+/// - `process`: the per-vertex DP-transition callback. Receives
+///   `(u, parent, neighbors)` where `neighbors = adj[u]`; the caller
+///   iterates it to fold in already-computed child results.
+///
+/// Forests (multiple connected components) are handled by looping over
+/// every unvisited vertex as a potential root. An explicit
+/// `(node, parent, child_idx)` stack is used so the traversal cannot
+/// overflow on degenerate chains; MoonBit does not guarantee tail-call
+/// optimisation for recursion.
+fn[T] dfs_forest(
+  adj : Array[Array[T]],
+  n : Int,
+  get_vertex : (T) -> Int,
+  process : (Int, Int, Array[T]) -> Unit,
+) -> Unit {
+  let visited = FixedArray::make(n, false)
+  for root = 0; root < n; root = root + 1 {
+    if visited[root] {
+      continue
+    }
+    // Stack entry: (node, parent, next-child-index).
+    let stack : Array[(Int, Int, Int)] = [(root, -1, 0)]
+    visited[root] = true
+    while stack.length() > 0 {
+      let top_idx = stack.length() - 1
+      let (u, parent, child_idx) = stack[top_idx]
+      let neighbors = adj[u]
+      // Find the next unvisited child, skipping the parent edge.
+      let mut next_child = -1
+      let mut j = child_idx
+      while j < neighbors.length() {
+        let v = get_vertex(neighbors[j])
+        if v != parent && !visited[v] {
+          next_child = v
+          break
+        }
+        j = j + 1
+      }
+      if next_child >= 0 {
+        // Descend into `next_child`; resume scanning from j + 1 on return.
+        stack[top_idx] = (u, parent, j + 1)
+        visited[next_child] = true
+        stack.push((next_child, u, 0))
+      } else {
+        // All children processed: run the caller's DP transition.
+        process(u, parent, neighbors)
+        ignore(stack.pop())
+      }
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Maximum Independent Set on Trees
@@ -77,34 +157,11 @@ pub fn max_independent_set(
   // dp[v][1] = max weight in subtree of v, SELECTING v.
   let dp0 = FixedArray::make(n, 0L)
   let dp1 = FixedArray::make(n, 0L)
-  // Post-order iterative DFS.
-  let visited = FixedArray::make(n, false)
-  // Stack entries: (vertex, parent, child_index)
-  // parent = -1 for root.
-  let root = 0
-  let stack : Array[(Int, Int, Int)] = [(root, -1, 0)]
-  visited[root] = true
-  while stack.length() > 0 {
-    let top_idx = stack.length() - 1
-    let (u, parent, child_idx) = stack[top_idx]
-    let neighbors = adj[u]
-    // Find the next unvisited neighbour.
-    let mut next_child = -1
-    let mut j = child_idx
-    while j < neighbors.length() {
-      let v = neighbors[j]
-      if v != parent && !visited[v] {
-        next_child = v
-        break
-      }
-      j = j + 1
-    }
-    if next_child >= 0 {
-      // Advance the child index for this stack entry.
-      stack[top_idx] = (u, parent, j + 1)
-      visited[next_child] = true
-      stack.push((next_child, u, 0))
-    } else {
+  dfs_forest(
+    adj,
+    n,
+    fn(v) { v },
+    fn(u, parent, neighbors) {
       // All children processed: compute DP for u.
       let w = if u < weights.length() && weights[u] > 0 {
         weights[u].to_int64()
@@ -113,69 +170,15 @@ pub fn max_independent_set(
       }
       dp1[u] = w
       dp0[u] = 0L
-      // Combine children.
       for k = 0; k < neighbors.length(); k = k + 1 {
         let v = neighbors[k]
-        if v != parent && v != next_child {
-          // This is a child (visited and not parent).
-          // Check if v was actually a child (visited as a descendant).
-          // In post-order, all children of u have their dp computed.
-          // Since we only push children to the stack, v is a child if
-          // visited[v] is true and v != parent.
-          // We need a way to know which neighbours are children.
-          // In a tree, any neighbour that is not the parent is a child.
+        if v != parent {
           dp1[u] = dp1[u] + dp0[v]
           dp0[u] = dp0[u] + (if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] })
         }
       }
-      ignore(stack.pop())
-    }
-  }
-  // Handle disconnected components (forest).
-  // For each unvisited vertex, run DFS from it.
-  for v = 1; v < n; v = v + 1 {
-    if !visited[v] {
-      let stack2 : Array[(Int, Int, Int)] = [(v, -1, 0)]
-      visited[v] = true
-      while stack2.length() > 0 {
-        let top_idx2 = stack2.length() - 1
-        let (u2, parent2, child_idx2) = stack2[top_idx2]
-        let neighbors2 = adj[u2]
-        let mut next_child2 = -1
-        let mut j2 = child_idx2
-        while j2 < neighbors2.length() {
-          let v2 = neighbors2[j2]
-          if v2 != parent2 && !visited[v2] {
-            next_child2 = v2
-            break
-          }
-          j2 = j2 + 1
-        }
-        if next_child2 >= 0 {
-          stack2[top_idx2] = (u2, parent2, j2 + 1)
-          visited[next_child2] = true
-          stack2.push((next_child2, u2, 0))
-        } else {
-          let w2 = if u2 < weights.length() && weights[u2] > 0 {
-            weights[u2].to_int64()
-          } else {
-            0L
-          }
-          dp1[u2] = w2
-          dp0[u2] = 0L
-          for k = 0; k < neighbors2.length(); k = k + 1 {
-            let v2 = neighbors2[k]
-            if v2 != parent2 && v2 != next_child2 {
-              dp1[u2] = dp1[u2] + dp0[v2]
-              dp0[u2] = dp0[u2] +
-                (if dp0[v2] > dp1[v2] { dp0[v2] } else { dp1[v2] })
-            }
-          }
-          ignore(stack2.pop())
-        }
-      }
-    }
-  }
+    },
+  )
   // Answer: max over all roots.
   let mut result = 0L
   for v = 0; v < n; v = v + 1 {
@@ -220,37 +223,17 @@ pub fn tree_diameter(
   let max1 = FixedArray::make(n, 0L) // longest downward path from v
   let max2 = FixedArray::make(n, 0L) // second-longest downward path from v
   let mut diameter = 0L
-  // Post-order iterative DFS.
-  let visited = FixedArray::make(n, false)
-  let root = 0
-  let stack : Array[(Int, Int, Int)] = [(root, -1, 0)]
-  visited[root] = true
-  while stack.length() > 0 {
-    let top_idx = stack.length() - 1
-    let (u, parent, child_idx) = stack[top_idx]
-    let neighbors = adj[u]
-    let mut next_child = -1
-    let mut j = child_idx
-    while j < neighbors.length() {
-      let (v, _) = neighbors[j]
-      if v != parent && !visited[v] {
-        next_child = v
-        break
-      }
-      j = j + 1
-    }
-    if next_child >= 0 {
-      stack[top_idx] = (u, parent, j + 1)
-      visited[next_child] = true
-      stack.push((next_child, u, 0))
-    } else {
+  dfs_forest(
+    adj,
+    n,
+    fn(pair) { pair.0 },
+    fn(u, parent, neighbors) {
       // All children processed: compute max1, max2 for u.
       max1[u] = 0L
       max2[u] = 0L
       for k = 0; k < neighbors.length(); k = k + 1 {
         let (v, w) = neighbors[k]
-        if v != parent && v != next_child {
-          // v is a child; its max1[v] + w is a candidate downward path.
+        if v != parent {
           let path_len = max1[v] + w.to_int64()
           if path_len > max1[u] {
             max2[u] = max1[u]
@@ -260,61 +243,12 @@ pub fn tree_diameter(
           }
         }
       }
-      // Diameter through u = max1[u] + max2[u].
       let through_u = max1[u] + max2[u]
       if through_u > diameter {
         diameter = through_u
       }
-      ignore(stack.pop())
-    }
-  }
-  // Handle forest (disconnected trees).
-  for v = 1; v < n; v = v + 1 {
-    if !visited[v] {
-      let stack2 : Array[(Int, Int, Int)] = [(v, -1, 0)]
-      visited[v] = true
-      while stack2.length() > 0 {
-        let top_idx2 = stack2.length() - 1
-        let (u2, parent2, child_idx2) = stack2[top_idx2]
-        let neighbors2 = adj[u2]
-        let mut next_child2 = -1
-        let mut j2 = child_idx2
-        while j2 < neighbors2.length() {
-          let (v2, _) = neighbors2[j2]
-          if v2 != parent2 && !visited[v2] {
-            next_child2 = v2
-            break
-          }
-          j2 = j2 + 1
-        }
-        if next_child2 >= 0 {
-          stack2[top_idx2] = (u2, parent2, j2 + 1)
-          visited[next_child2] = true
-          stack2.push((next_child2, u2, 0))
-        } else {
-          max1[u2] = 0L
-          max2[u2] = 0L
-          for k = 0; k < neighbors2.length(); k = k + 1 {
-            let (v2, w) = neighbors2[k]
-            if v2 != parent2 && v2 != next_child2 {
-              let path_len = max1[v2] + w.to_int64()
-              if path_len > max1[u2] {
-                max2[u2] = max1[u2]
-                max1[u2] = path_len
-              } else if path_len > max2[u2] {
-                max2[u2] = path_len
-              }
-            }
-          }
-          let through_u2 = max1[u2] + max2[u2]
-          if through_u2 > diameter {
-            diameter = through_u2
-          }
-          ignore(stack2.pop())
-        }
-      }
-    }
-  }
+    },
+  )
   diameter
 }
 
@@ -364,55 +298,31 @@ pub fn max_matching_on_tree(
   // dp1[v] = max matching in subtree of v, v IS matched to a child.
   let dp0 = FixedArray::make(n, 0)
   let dp1 = FixedArray::make(n, 0)
-  let visited = FixedArray::make(n, false)
-  // Process all components (handles forests).
-  for root = 0; root < n; root = root + 1 {
-    if visited[root] {
-      continue
-    }
-    let stack : Array[(Int, Int, Int)] = [(root, -1, 0)]
-    visited[root] = true
-    while stack.length() > 0 {
-      let top_idx = stack.length() - 1
-      let (u, parent, child_idx) = stack[top_idx]
-      let neighbors = adj[u]
-      let mut next_child = -1
-      let mut j = child_idx
-      while j < neighbors.length() {
-        let v = neighbors[j]
-        if v != parent && !visited[v] {
-          next_child = v
-          break
-        }
-        j = j + 1
-      }
-      if next_child >= 0 {
-        stack[top_idx] = (u, parent, j + 1)
-        visited[next_child] = true
-        stack.push((next_child, u, 0))
-      } else {
-        // All children processed.
-        dp0[u] = 0
-        dp1[u] = 0
-        for k = 0; k < neighbors.length(); k = k + 1 {
-          let v = neighbors[k]
-          if v != parent && v != next_child {
-            // v is a child.
-            let child_best = if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] }
-            dp0[u] = dp0[u] + child_best
-            // dp1[u]: match u with v → gain 1 + dp0[v], lose child_best.
-            let match_gain = 1 + dp0[v] - child_best
-            if match_gain > dp1[u] {
-              dp1[u] = match_gain
-            }
+  dfs_forest(
+    adj,
+    n,
+    fn(v) { v },
+    fn(u, parent, neighbors) {
+      // All children processed.
+      dp0[u] = 0
+      dp1[u] = 0
+      for k = 0; k < neighbors.length(); k = k + 1 {
+        let v = neighbors[k]
+        if v != parent {
+          // v is a child.
+          let child_best = if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] }
+          dp0[u] = dp0[u] + child_best
+          // dp1[u]: match u with v → gain 1 + dp0[v], lose child_best.
+          let match_gain = 1 + dp0[v] - child_best
+          if match_gain > dp1[u] {
+            dp1[u] = match_gain
           }
         }
-        // dp1[u] now represents the gain from matching u with a child.
-        dp1[u] = dp0[u] + dp1[u]
-        ignore(stack.pop())
       }
-    }
-  }
+      // dp1[u] now represents the gain from matching u with a child.
+      dp1[u] = dp0[u] + dp1[u]
+    },
+  )
   // Answer: max over all roots of max(dp0[v], dp1[v]).
   let mut result = 0
   for v = 0; v < n; v = v + 1 {
@@ -448,6 +358,11 @@ pub fn max_matching_on_tree(
 /// - Space: O(V * C) for the DP table.
 ///
 /// Uses `Int64` for value accumulation to prevent overflow.
+///
+/// Note: unlike the three forest DPs above, this operates on a rooted tree
+/// given as a directed `children` adjacency, so there is no parent edge to
+/// skip and no need for a `visited` array; the traversal therefore uses its
+/// own `(vertex, child_index)` stack and is not routed through `dfs_forest`.
 pub fn tree_knapsack(
   children : Array[Array[Int]],
   n : Int,

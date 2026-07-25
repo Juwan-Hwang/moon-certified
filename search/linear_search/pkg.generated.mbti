@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/search/linear_search"
+
+// Values
+pub fn search(FixedArray[Int], Int) -> Int?
+
+pub fn[T] search_generic(FixedArray[T], T, (T, T) -> Int) -> Int?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/concurrent"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct BoundedQueue[T] {
+  // private fields
+}
+pub fn[T] BoundedQueue::capacity(Self[T]) -> Int
+pub fn[T] BoundedQueue::is_empty(Self[T]) -> Bool
+pub fn[T] BoundedQueue::is_full(Self[T]) -> Bool
+pub fn[T] BoundedQueue::new(Int) -> Self[T]
+pub fn[T] BoundedQueue::size(Self[T]) -> Int
+pub fn[T] BoundedQueue::try_pop(Self[T]) -> T?
+pub fn[T] BoundedQueue::try_push(Self[T], T) -> Bool
+
+pub struct RingBuffer[T] {
+  // private fields
+}
+pub fn[T] RingBuffer::capacity(Self[T]) -> Int
+pub fn[T] RingBuffer::is_empty(Self[T]) -> Bool
+pub fn[T] RingBuffer::is_full(Self[T]) -> Bool
+pub fn[T] RingBuffer::new(Int) -> Self[T]
+pub fn[T] RingBuffer::pop(Self[T]) -> T?
+pub fn[T] RingBuffer::push(Self[T], T) -> Bool
+pub fn[T] RingBuffer::size(Self[T]) -> Int
+
+pub struct SnapshotMap[K, V] {
+  // private fields
+}
+pub fn[K : Hash + Eq, V] SnapshotMap::contains(Self[K, V], K) -> Bool
+pub fn[K, V] SnapshotMap::default() -> Self[K, V]
+pub fn[K : Hash + Eq, V] SnapshotMap::get(Self[K, V], K) -> V?
+pub fn[K, V] SnapshotMap::is_empty(Self[K, V]) -> Bool
+pub fn[K, V] SnapshotMap::new(Int) -> Self[K, V]
+pub fn[K : Hash + Eq, V] SnapshotMap::put(Self[K, V], K, V) -> Unit
+pub fn[K : Hash + Eq, V] SnapshotMap::remove(Self[K, V], K) -> Bool
+pub fn[K, V] SnapshotMap::size(Self[K, V]) -> Int
+pub fn[K, V] SnapshotMap::snapshot(Self[K, V]) -> Self[K, V]
+
+// Type aliases
+
+// Traits
+

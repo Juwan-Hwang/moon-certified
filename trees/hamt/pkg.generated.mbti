@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/hamt"
+
+// Values
+pub fn delete(HAMT, String) -> HAMT
+
+pub fn empty() -> HAMT
+
+pub fn get(HAMT, String) -> Int?
+
+pub fn insert(HAMT, String, Int) -> HAMT
+
+pub fn is_empty(HAMT) -> Bool
+
+pub fn size(HAMT) -> Int
+
+// Errors
+
+// Types and methods
+pub enum HAMT {
+  Empty
+  Leaf(String, Int)
+  Node(Int, Array[HAMT])
+  Collision(Int, Array[HAMT])
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,4 @@
+{
+  "proof-enabled": false,
+  "import": ["moon-certified/number_theory/int64_utils"]
+}

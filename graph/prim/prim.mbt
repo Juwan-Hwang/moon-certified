@@ -274,3 +274,95 @@ test "prim: MST edges form a valid tree" {
     assert_true(p != i)
   }
 }
+
+// ---------------------------------------------------------------------------
+// Checked Prim's MST with Int64 overflow detection
+// ---------------------------------------------------------------------------
+
+/// Checked Prim's MST with `Int64` weight accumulation and overflow detection.
+///
+/// Returns `None` if the total MST weight would overflow `Int64`. Otherwise
+/// returns `(parent, total_weight)` where `total_weight` is `Int64`.
+pub fn prim_mst_checked(
+  graph : FixedArray[Int],
+  n : Int,
+) -> (FixedArray[Int], Int64)? {
+  if n <= 0 || graph.length() < n * n {
+    return Some((FixedArray::make(0, 0), 0L))
+  }
+  let key = FixedArray::make(n, 9223372036854775807L)
+  let parent = FixedArray::make(n, -1)
+  let in_mst = FixedArray::make(n, false)
+  key[0] = 0L
+  let mut total = 0L
+  for step = 0; step < n; step = step + 1 {
+    let mut u = -1
+    let mut best = 9223372036854775807L
+    for i = 0; i < n; i = i + 1 {
+      if !in_mst[i] && key[i] < best {
+        best = key[i]
+        u = i
+      }
+    }
+    if u == -1 {
+      break
+    }
+    in_mst[u] = true
+    if u != 0 {
+      if total > 9223372036854775807L - key[u] {
+        return None
+      }
+      total = total + key[u]
+    }
+    for v = 0; v < n; v = v + 1 {
+      let w = graph[u * n + v]
+      if w != 0 && !in_mst[v] {
+        let w64 = w.to_int64()
+        if w64 < key[v] {
+          key[v] = w64
+          parent[v] = u
+        }
+      }
+    }
+  }
+  Some((parent, total))
+}
+
+test "prim: checked basic" {
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[1 * n + 2] = 2
+  graph[2 * n + 1] = 2
+  graph[0 * n + 2] = 3
+  graph[2 * n + 0] = 3
+  let result = prim_mst_checked(graph, n)
+  match result {
+    Some((parent, w)) => {
+      assert_eq(w, 3L)
+      assert_eq(parent[0], -1)
+    }
+    None => abort("expected Some")
+  }
+}
+
+test "prim: checked matches unchecked" {
+  let n = 10
+  let graph = FixedArray::make(n * n, 0)
+  for i = 0; i < n - 1; i = i + 1 {
+    graph[i * n + (i + 1)] = i + 1
+    graph[(i + 1) * n + i] = i + 1
+  }
+  let (parent1, w1) = prim_mst(graph, n)
+  let result = prim_mst_checked(graph, n)
+  match result {
+    Some((parent2, w2)) => {
+      assert_eq(w2, w1.to_int64())
+      for i = 0; i < n; i = i + 1 {
+        assert_eq(parent2[i], parent1[i])
+      }
+    }
+    None => abort("expected Some")
+  }
+}

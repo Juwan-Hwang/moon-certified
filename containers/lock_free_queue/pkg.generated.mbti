@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/lock_free_queue"
+
+// Values
+pub fn[T] lock_free_queue_capacity(LockFreeQueue[T]) -> Int
+
+pub fn[T] lock_free_queue_cas_count(LockFreeQueue[T]) -> Int
+
+pub fn[T] lock_free_queue_dequeue(LockFreeQueue[T]) -> T?
+
+pub fn[T] lock_free_queue_enqueue(LockFreeQueue[T], T) -> Bool
+
+pub fn[T] lock_free_queue_is_empty(LockFreeQueue[T]) -> Bool
+
+pub fn[T] lock_free_queue_is_full(LockFreeQueue[T]) -> Bool
+
+pub fn[T] lock_free_queue_new(Int) -> LockFreeQueue[T]
+
+pub fn[T] lock_free_queue_size(LockFreeQueue[T]) -> Int
+
+// Errors
+
+// Types and methods
+pub struct LockFreeQueue[T] {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/two_sat"
+
+// Values
+pub fn two_sat(Int, Array[(Int, Int)]) -> FixedArray[Bool]?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

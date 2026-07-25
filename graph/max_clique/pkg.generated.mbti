@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/max_clique"
+
+// Values
+pub fn add_edge(Graph, Int, Int) -> Unit
+
+pub fn find_max_clique(Graph) -> Array[Int]
+
+pub fn has_edge(Graph, Int, Int) -> Bool
+
+pub fn max_clique_size(Graph) -> Int
+
+pub fn new_graph(Int) -> Graph
+
+// Errors
+
+// Types and methods
+pub struct Graph {
+  n : Int
+  adj : Array[Int]
+}
+
+// Type aliases
+
+// Traits
+

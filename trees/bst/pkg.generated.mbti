@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/bst"
+
+// Values
+pub fn delete(Node, Int) -> Node
+
+pub fn find_min(Node) -> Int?
+
+pub fn inorder(Node) -> FixedArray[Int]
+
+pub fn insert(Node, Int) -> Node
+
+pub fn search(Node, Int) -> Bool
+
+pub fn size(Node) -> Int
+
+// Errors
+
+// Types and methods
+pub enum Node {
+  Empty
+  Node(Node, Int, Node)
+}
+
+// Type aliases
+
+// Traits
+

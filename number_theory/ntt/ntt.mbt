@@ -40,26 +40,26 @@ pub const NTT_G : Int64 = 3L
 /// Reorder `a` so that element `i` moves to the position obtained by reversing
 /// the bits of `i` in `log2(n)` bits. This is the standard pre-processing
 /// step for iterative (Cooley-Tukey) NTT.
+///
+/// Uses the standard O(n) incremental bit-reversal: each j is derived from
+/// the previous j by adding 1 in reversed-bit order, avoiding the O(n log n)
+/// cost of reversing bits independently for each index.
 fn bit_reverse(a : Array[Int64], n : Int) -> Unit {
-  let mut i = 1
-  while i < n {
-    let mut j = 0
-    // Reverse the log2(n) bits of i.
-    let mut temp = i
-    let mut bits = 0
-    let mut nn = n
-    while nn > 1 {
-      j = j * 2 + (temp % 2)
-      temp = temp / 2
-      nn = nn / 2
-      bits = bits + 1
+  let mut j = 0
+  for i = 1; i < n; i = i + 1 {
+    // Compute the bit-reversal of i from the bit-reversal of i-1:
+    // add 1 to the reversed representation (MSB first).
+    let mut bit = n >> 1
+    while (j & bit) != 0 {
+      j = j ^ bit
+      bit = bit >> 1
     }
+    j = j | bit
     if j > i {
       let tmp = a[i]
       a[i] = a[j]
       a[j] = tmp
     }
-    i = i + 1
   }
 }
 
@@ -271,7 +271,7 @@ test "ntt: multiply with zero coefficients" {
   assert_eq(c[0], 0L)
   assert_eq(c[1], 1L) // 0*0 + 1*1 = 1
   assert_eq(c[2], 0L)
-  assert_eq(c[3], 1L) // 1*0 + 0*1 = 0... wait, 1*1 + 0*0 = 1
+  assert_eq(c[3], 1L) // 1*1 + 0*0 = 1
   assert_eq(c[4], 0L)
 }
 

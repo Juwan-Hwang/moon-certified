@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/red_black_tree"
+
+// Values
+pub fn[T] delete(RBNode[T], T, (T, T) -> Int) -> RBNode[T]
+
+pub fn[T] empty() -> RBNode[T]
+
+pub fn[T] find_min(RBNode[T]) -> T?
+
+pub fn[T] height(RBNode[T]) -> Int
+
+pub fn[T] inorder(RBNode[T], (T) -> Unit) -> Unit
+
+pub fn[T] insert(RBNode[T], T, (T, T) -> Int) -> RBNode[T]
+
+pub fn[T] is_valid_rb(RBNode[T], (T, T) -> Int) -> Bool
+
+pub fn[T] search(RBNode[T], T, (T, T) -> Int) -> Bool
+
+pub fn[T] size(RBNode[T]) -> Int
+
+// Errors
+
+// Types and methods
+pub enum Color {
+  Red
+  Black
+}
+
+pub enum RBNode[T] {
+  Empty
+  Node(RBNode[T], T, RBNode[T], Color, Int)
+}
+
+// Type aliases
+
+// Traits
+

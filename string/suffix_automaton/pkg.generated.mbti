@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/suffix_automaton"
+
+// Values
+pub fn build(String) -> SuffixAutomaton
+
+pub fn count_distinct_substrings(SuffixAutomaton) -> Int
+
+pub fn count_occurrences(SuffixAutomaton, String) -> Int
+
+pub fn is_substring(SuffixAutomaton, String) -> Bool
+
+pub fn longest_common_substring(String, String) -> Int
+
+pub fn longest_repeated_substring_length(SuffixAutomaton) -> Int?
+
+pub fn sum_of_lengths_of_distinct_substrings(SuffixAutomaton) -> Int
+
+// Errors
+
+// Types and methods
+pub struct SuffixAutomaton {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

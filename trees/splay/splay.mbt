@@ -1,5 +1,7 @@
 /// Splay Tree: a self-adjusting binary search tree.
 ///
+/// **Generic**: works with any type `T` given a comparator function.
+///
 /// A splay tree is a BST where every access (search, insert, or delete) is
 /// followed by a "splay" operation that moves the accessed node to the root
 /// via a sequence of rotations. This has two consequences:
@@ -44,7 +46,8 @@
 ///
 /// ## Limitations
 ///
-/// - Keys are `Int`; the structure is a set (no per-key value).
+/// - Keys are generic (type `T`, supplied with a comparator); the structure is
+///   a set (no per-key value).
 /// - Duplicate keys are silently ignored on insert.
 /// - The worst-case single-operation time is O(n), not O(log n). Only the
 ///   *amortized* cost over a sequence of operations is O(log n).
@@ -57,18 +60,18 @@
 ///
 /// `Empty` is the empty tree. `Node(left, key, right, size)` carries the
 /// cached subtree size so `size` is O(1).
-pub enum SplayNode {
+pub enum SplayNode[T] {
   Empty
-  Node(SplayNode, Int, SplayNode, Int) // (left, key, right, size)
+  Node(SplayNode[T], T, SplayNode[T], Int) // (left, key, right, size)
 }
 
 /// Public constructor for an empty splay tree.
-pub fn empty() -> SplayNode {
+pub fn[T] empty() -> SplayNode[T] {
   Empty
 }
 
 /// Compute the size of a splay tree. O(1) for nodes (cached), O(1) for Empty.
-fn node_size(t : SplayNode) -> Int {
+fn[T] node_size(t : SplayNode[T]) -> Int {
   match t {
     Empty => 0
     Node(_, _, _, s) => s
@@ -76,7 +79,7 @@ fn node_size(t : SplayNode) -> Int {
 }
 
 /// Construct a `Node` with the size automatically computed from its children.
-fn mk_node(l : SplayNode, key : Int, r : SplayNode) -> SplayNode {
+fn[T] mk_node(l : SplayNode[T], key : T, r : SplayNode[T]) -> SplayNode[T] {
   Node(l, key, r, 1 + node_size(l) + node_size(r))
 }
 
@@ -90,14 +93,14 @@ fn mk_node(l : SplayNode, key : Int, r : SplayNode) -> SplayNode {
 /// using a loop (recording the path in arrays), then rotations are applied
 /// from the bottom up. No recursion is used, preventing stack overflow on
 /// degenerate trees.
-fn splay(t : SplayNode, k : Int) -> SplayNode {
+fn[T] splay(t : SplayNode[T], k : T, cmp : (T, T) -> Int) -> SplayNode[T] {
   match t {
     Empty => Empty
     _ => {
       // Step 1: Descend the tree iteratively, recording the path.
       // path_nodes[i] = the i-th ancestor of the target (0 = root).
       // path_dirs[i] = true if we went left from path_nodes[i], false if right.
-      let path_nodes : Array[SplayNode] = []
+      let path_nodes : Array[SplayNode[T]] = []
       let path_dirs : Array[Bool] = []
       let mut curr = t
       let mut found = false
@@ -105,10 +108,11 @@ fn splay(t : SplayNode, k : Int) -> SplayNode {
         match curr {
           Empty => break
           Node(l, key, r, _) => {
-            if k == key {
+            let c = cmp(k, key)
+            if c == 0 {
               found = true
               break
-            } else if k < key {
+            } else if c < 0 {
               path_nodes.push(curr)
               path_dirs.push(true)
               curr = l
@@ -190,12 +194,12 @@ fn splay(t : SplayNode, k : Int) -> SplayNode {
 ///
 /// After this, the root has no right child. Uses the same iterative approach
 /// as `splay` — no recursion, no stack overflow risk.
-fn splay_max(t : SplayNode) -> SplayNode {
+fn[T] splay_max(t : SplayNode[T]) -> SplayNode[T] {
   match t {
     Empty => Empty
     _ => {
       // Descend right, recording the path.
-      let path_nodes : Array[SplayNode] = []
+      let path_nodes : Array[SplayNode[T]] = []
       let mut curr = t
       while true {
         match curr {
@@ -246,13 +250,18 @@ fn splay_max(t : SplayNode) -> SplayNode {
 ///
 /// If the key already exists, the tree is unchanged (but the key is still
 /// splayed to the root). If new, a node is created and splayed to the root.
-pub fn insert(tree : SplayNode, key : Int) -> SplayNode {
-  match splay(tree, key) {
+pub fn[T] insert(
+  tree : SplayNode[T],
+  key : T,
+  cmp : (T, T) -> Int,
+) -> SplayNode[T] {
+  match splay(tree, key, cmp) {
     Empty => mk_node(Empty, key, Empty)
     Node(l, k, r, _) as t => {
-      if key == k {
+      let c = cmp(key, k)
+      if c == 0 {
         t
-      } else if key < k {
+      } else if c < 0 {
         mk_node(l, key, mk_node(Empty, k, r))
       } else {
         mk_node(mk_node(l, k, Empty), key, r)
@@ -265,11 +274,15 @@ pub fn insert(tree : SplayNode, key : Int) -> SplayNode {
 ///
 /// Returns `(splayed_tree, found)` where `splayed_tree` has the closest node
 /// to `key` at the root, and `found` indicates whether `key` was present.
-pub fn search(tree : SplayNode, key : Int) -> (SplayNode, Bool) {
-  let splayed = splay(tree, key)
+pub fn[T] search(
+  tree : SplayNode[T],
+  key : T,
+  cmp : (T, T) -> Int,
+) -> (SplayNode[T], Bool) {
+  let splayed = splay(tree, key, cmp)
   match splayed {
     Empty => (Empty, false)
-    Node(_, k, _, _) => (splayed, k == key)
+    Node(_, k, _, _) => (splayed, cmp(k, key) == 0)
   }
 }
 
@@ -278,12 +291,16 @@ pub fn search(tree : SplayNode, key : Int) -> (SplayNode, Bool) {
 /// Splays the key to the root. If found, the root is removed and its two
 /// children are joined: the maximum of the left subtree is splayed to become
 /// the new root, and the right subtree is attached as its right child.
-pub fn delete(tree : SplayNode, key : Int) -> SplayNode {
-  let splayed = splay(tree, key)
+pub fn[T] delete(
+  tree : SplayNode[T],
+  key : T,
+  cmp : (T, T) -> Int,
+) -> SplayNode[T] {
+  let splayed = splay(tree, key, cmp)
   match splayed {
     Empty => Empty
     Node(l, k, r, _) => {
-      if k != key {
+      if cmp(k, key) != 0 {
         splayed
       } else {
         join(l, r)
@@ -294,7 +311,7 @@ pub fn delete(tree : SplayNode, key : Int) -> SplayNode {
 
 /// Join two splay trees where all keys in `l` < all keys in `r`.
 /// Splay the maximum of `l` to the root, then attach `r` as its right child.
-fn join(l : SplayNode, r : SplayNode) -> SplayNode {
+fn[T] join(l : SplayNode[T], r : SplayNode[T]) -> SplayNode[T] {
   if l is Empty {
     return r
   }
@@ -309,16 +326,16 @@ fn join(l : SplayNode, r : SplayNode) -> SplayNode {
 }
 
 /// Number of keys in the splay tree. O(1).
-pub fn size(tree : SplayNode) -> Int {
+pub fn[T] size(tree : SplayNode[T]) -> Int {
   node_size(tree)
 }
 
 /// In-order traversal: returns all keys in ascending order.
 /// O(n) time and space. Uses an explicit stack (iterative, no recursion).
-pub fn inorder(tree : SplayNode) -> FixedArray[Int] {
-  let out : Array[Int] = []
+pub fn[T] inorder(tree : SplayNode[T]) -> FixedArray[T] {
+  let out : Array[T] = []
   // Explicit stack for iterative in-order traversal.
-  let stack : Array[SplayNode] = []
+  let stack : Array[SplayNode[T]] = []
   let mut curr = tree
   while true {
     // Push all left children onto the stack.
@@ -354,26 +371,31 @@ pub fn inorder(tree : SplayNode) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+/// Integer comparator for tests.
+fn int_cmp(a : Int, b : Int) -> Int {
+  a - b
+}
+
 test "splay: basic insert and search" {
   let mut tree = empty()
-  tree = insert(tree, 5)
-  tree = insert(tree, 3)
-  tree = insert(tree, 7)
-  let (t, found) = search(tree, 3)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 3, int_cmp)
+  tree = insert(tree, 7, int_cmp)
+  let (t, found) = search(tree, 3, int_cmp)
   assert_true(found)
   assert_eq(size(t), 3)
-  let (_, found2) = search(tree, 99)
+  let (_, found2) = search(tree, 99, int_cmp)
   assert_false(found2)
 }
 
 test "splay: search brings key to root" {
   let mut tree = empty()
-  tree = insert(tree, 1)
-  tree = insert(tree, 2)
-  tree = insert(tree, 3)
-  tree = insert(tree, 4)
-  tree = insert(tree, 5)
-  let (t, found) = search(tree, 1)
+  tree = insert(tree, 1, int_cmp)
+  tree = insert(tree, 2, int_cmp)
+  tree = insert(tree, 3, int_cmp)
+  tree = insert(tree, 4, int_cmp)
+  tree = insert(tree, 5, int_cmp)
+  let (t, found) = search(tree, 1, int_cmp)
   assert_true(found)
   match t {
     Node(_, k, _, _) => assert_eq(k, 1)
@@ -383,38 +405,38 @@ test "splay: search brings key to root" {
 
 test "splay: delete leaf" {
   let mut tree = empty()
-  tree = insert(tree, 5)
-  tree = insert(tree, 3)
-  tree = insert(tree, 7)
-  tree = delete(tree, 7)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 3, int_cmp)
+  tree = insert(tree, 7, int_cmp)
+  tree = delete(tree, 7, int_cmp)
   assert_eq(size(tree), 2)
-  let (_, found) = search(tree, 7)
+  let (_, found) = search(tree, 7, int_cmp)
   assert_false(found)
 }
 
 test "splay: delete root" {
   let mut tree = empty()
-  tree = insert(tree, 5)
-  tree = insert(tree, 3)
-  tree = insert(tree, 7)
-  tree = delete(tree, 5)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 3, int_cmp)
+  tree = insert(tree, 7, int_cmp)
+  tree = delete(tree, 5, int_cmp)
   assert_eq(size(tree), 2)
-  let (_, found) = search(tree, 5)
+  let (_, found) = search(tree, 5, int_cmp)
   assert_false(found)
 }
 
 test "splay: delete non-existent" {
   let mut tree = empty()
-  tree = insert(tree, 5)
-  tree = insert(tree, 3)
-  tree = delete(tree, 99)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 3, int_cmp)
+  tree = delete(tree, 99, int_cmp)
   assert_eq(size(tree), 2)
 }
 
 test "splay: BST invariant after inserts" {
   let mut tree = empty()
   for k = 1; k <= 100; k = k + 1 {
-    tree = insert(tree, k)
+    tree = insert(tree, k, int_cmp)
   }
   let arr = inorder(tree)
   for k = 0; k < 99; k = k + 1 {
@@ -425,32 +447,32 @@ test "splay: BST invariant after inserts" {
 
 test "splay: duplicate insert ignored" {
   let mut tree = empty()
-  tree = insert(tree, 5)
-  tree = insert(tree, 5)
-  tree = insert(tree, 5)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 5, int_cmp)
+  tree = insert(tree, 5, int_cmp)
   assert_eq(size(tree), 1)
 }
 
 test "splay: sequential insert then search all" {
   let mut tree = empty()
   for k = 1; k <= 1000; k = k + 1 {
-    tree = insert(tree, k)
+    tree = insert(tree, k, int_cmp)
   }
   assert_eq(size(tree), 1000)
   for k = 1; k <= 1000; k = k + 1 {
-    let (_, found) = search(tree, k)
+    let (_, found) = search(tree, k, int_cmp)
     assert_true(found)
   }
 }
 
 test "splay: interleaved insert and delete" {
   let mut tree = empty()
-  tree = insert(tree, 10)
-  tree = insert(tree, 20)
-  tree = insert(tree, 5)
-  tree = delete(tree, 20)
-  tree = insert(tree, 15)
-  tree = delete(tree, 10)
+  tree = insert(tree, 10, int_cmp)
+  tree = insert(tree, 20, int_cmp)
+  tree = insert(tree, 5, int_cmp)
+  tree = delete(tree, 20, int_cmp)
+  tree = insert(tree, 15, int_cmp)
+  tree = delete(tree, 10, int_cmp)
   let arr = inorder(tree)
   assert_eq(arr.length(), 2)
   let mut found5 = false
@@ -466,10 +488,10 @@ test "splay: interleaved insert and delete" {
 test "splay: empty tree operations" {
   let tree = empty()
   assert_eq(size(tree), 0)
-  let (t, found) = search(tree, 5)
+  let (t, found) = search(tree, 5, int_cmp)
   assert_false(found)
   assert_true(t is Empty)
-  let t2 = delete(tree, 5)
+  let t2 = delete(tree, 5, int_cmp)
   assert_true(t2 is Empty)
   assert_eq(inorder(tree).length(), 0)
 }
@@ -477,19 +499,19 @@ test "splay: empty tree operations" {
 test "splay: size consistency after operations" {
   let mut tree = empty()
   for k = 1; k <= 500; k = k + 1 {
-    tree = insert(tree, k * 2)
+    tree = insert(tree, k * 2, int_cmp)
   }
   assert_eq(size(tree), 500)
   for k = 1; k <= 250; k = k + 1 {
-    tree = delete(tree, k * 2)
+    tree = delete(tree, k * 2, int_cmp)
   }
   assert_eq(size(tree), 250)
   for k = 251; k <= 500; k = k + 1 {
-    let (_, found) = search(tree, k * 2)
+    let (_, found) = search(tree, k * 2, int_cmp)
     assert_true(found)
   }
   for k = 1; k <= 250; k = k + 1 {
-    let (_, found) = search(tree, k * 2)
+    let (_, found) = search(tree, k * 2, int_cmp)
     assert_false(found)
   }
 }
@@ -499,11 +521,11 @@ test "splay: deep sequential insert (stack safety)" {
   // The iterative splay must not stack overflow on 5000 nodes.
   let mut tree = empty()
   for k = 1; k <= 5000; k = k + 1 {
-    tree = insert(tree, k)
+    tree = insert(tree, k, int_cmp)
   }
   assert_eq(size(tree), 5000)
   // Search for the last element (deepest node before splay).
-  let (t, found) = search(tree, 5000)
+  let (t, found) = search(tree, 5000, int_cmp)
   assert_true(found)
   assert_eq(size(t), 5000)
 }
@@ -512,8 +534,30 @@ test "splay: inorder on deep tree (stack safety)" {
   // In-order traversal of a 5000-node tree must not stack overflow.
   let mut tree = empty()
   for k = 1; k <= 5000; k = k + 1 {
-    tree = insert(tree, k)
+    tree = insert(tree, k, int_cmp)
   }
   let arr = inorder(tree)
   assert_eq(arr.length(), 5000)
+}
+
+test "splay: generic with string keys" {
+  // Verify the tree works with String keys using a lexicographic comparator.
+  let cmp = @test_utils.str_cmp
+  let mut tree : SplayNode[String] = empty()
+  tree = insert(tree, "banana", cmp)
+  tree = insert(tree, "apple", cmp)
+  tree = insert(tree, "cherry", cmp)
+  assert_eq(size(tree), 3)
+  let (_, found) = search(tree, "apple", cmp)
+  assert_true(found)
+  let (_, found2) = search(tree, "grape", cmp)
+  assert_false(found2)
+  let arr = inorder(tree)
+  assert_eq(arr[0], "apple")
+  assert_eq(arr[1], "banana")
+  assert_eq(arr[2], "cherry")
+  tree = delete(tree, "banana", cmp)
+  assert_eq(size(tree), 2)
+  let (_, found3) = search(tree, "banana", cmp)
+  assert_false(found3)
 }

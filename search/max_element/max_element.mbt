@@ -91,20 +91,7 @@ test "max_element_generic: String" {
   xs[0] = "apple"
   xs[1] = "cherry"
   xs[2] = "banana"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  assert_eq(max_element_generic(xs, str_cmp).unwrap(), 1)
+  assert_eq(max_element_generic(xs, @test_utils.str_cmp).unwrap(), 1)
 }
 
 test "max_element_generic: empty array returns None" {

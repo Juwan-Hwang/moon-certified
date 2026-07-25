@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/tree_dp"
+
+// Values
+pub fn max_independent_set(Array[Array[Int]], Int, FixedArray[Int]) -> Int64
+
+pub fn max_matching_on_tree(Array[Array[Int]], Int) -> Int
+
+pub fn tree_diameter(Array[Array[(Int, Int)]], Int) -> Int64
+
+pub fn tree_knapsack(Array[Array[Int]], Int, FixedArray[Int], FixedArray[Int], Int) -> Int64
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

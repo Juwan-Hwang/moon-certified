@@ -17,8 +17,12 @@
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
 
-/// Stable merge sort of `arr[lo, hi)` (an array of integers) by comparator.
-/// Uses `tmp` as scratch space. Sorts in place.
+/// Stable bottom-up (iterative) merge sort of `arr[lo, hi)` by comparator.
+///
+/// Uses an explicit bottom-up approach: merge sub-arrays of width 1, 2, 4,
+/// 8, ... until the entire range is sorted. This avoids recursion entirely,
+/// preventing stack overflow on large strings (the recursive variant could
+/// crash at depth ~10⁴ on MoonBit's default stack).
 fn msort_int(
   arr : FixedArray[Int],
   tmp : FixedArray[Int],
@@ -26,26 +30,37 @@ fn msort_int(
   hi : Int,
   cmp : (Int, Int) -> Int,
 ) -> Unit {
-  let len = hi - lo
-  if len <= 1 {
+  let n = hi - lo
+  if n <= 1 {
     return
   }
-  let mid = lo + len / 2
-  msort_int(arr, tmp, lo, mid, cmp)
-  msort_int(arr, tmp, mid, hi, cmp)
-  let mut i = lo
-  let mut j = mid
-  for k = lo; k < hi; k = k + 1 {
-    if j >= hi || (i < mid && cmp(arr[i], arr[j]) <= 0) {
-      tmp[k] = arr[i]
-      i = i + 1
-    } else {
-      tmp[k] = arr[j]
-      j = j + 1
+  let mut width = 1
+  while width < n {
+    let mut i = lo
+    while i < hi {
+      let mid = if i + width < hi { i + width } else { hi }
+      let end = if i + 2 * width < hi { i + 2 * width } else { hi }
+      if mid < end {
+        // Merge [i, mid) and [mid, end) into tmp[i..end).
+        let mut p = i
+        let mut q = mid
+        for k = i; k < end; k = k + 1 {
+          if q >= end || (p < mid && cmp(arr[p], arr[q]) <= 0) {
+            tmp[k] = arr[p]
+            p = p + 1
+          } else {
+            tmp[k] = arr[q]
+            q = q + 1
+          }
+        }
+        // Copy back.
+        for k = i; k < end; k = k + 1 {
+          arr[k] = tmp[k]
+        }
+      }
+      i = i + 2 * width
     }
-  }
-  for k = lo; k < hi; k = k + 1 {
-    arr[k] = tmp[k]
+    width = width * 2
   }
 }
 

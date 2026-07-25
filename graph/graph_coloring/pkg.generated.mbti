@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/graph_coloring"
+
+// Values
+pub fn color_count(Coloring) -> Int
+
+pub fn color_of(Coloring, Int) -> Int
+
+pub fn dsatur(Array[Array[Int]], Int) -> Coloring
+
+pub fn greedy_color(Array[Array[Int]], Int) -> Coloring
+
+pub fn is_valid_coloring(Array[Array[Int]], Int, Coloring) -> Bool
+
+pub fn welsh_powell(Array[Array[Int]], Int) -> Coloring
+
+// Errors
+
+// Types and methods
+pub struct Coloring {
+  colors : FixedArray[Int]
+  num_colors : Int
+}
+
+// Type aliases
+
+// Traits
+

@@ -646,25 +646,13 @@ test "rbtree: delete preserves BST ordering" {
 test "rbtree: generic with String" {
   let mut tree : RBNode[String] = empty()
   let words = ["banana", "apple", "cherry", "date"]
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
   for k = 0; k < 4; k = k + 1 {
-    tree = insert(tree, words[k], str_cmp)
+    tree = insert(tree, words[k], @test_utils.str_cmp)
   }
   assert_eq(size(tree), 4)
   assert_eq(find_min(tree).unwrap(), "apple")
-  assert_true(search(tree, "apple", str_cmp))
-  assert_false(search(tree, "grape", str_cmp))
+  assert_true(search(tree, "apple", @test_utils.str_cmp))
+  assert_false(search(tree, "grape", @test_utils.str_cmp))
   let result = FixedArray::make(4, "")
   let idx = FixedArray::make(1, 0)
   inorder(tree, fn(v) { result[idx[0]] = v; idx[0] = idx[0] + 1 })

@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/manacher"
+
+// Values
+pub fn count_palindromes(String) -> Int
+
+pub fn longest_palindrome(String) -> String?
+
+pub fn palindrome_radii(String) -> FixedArray[Int]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

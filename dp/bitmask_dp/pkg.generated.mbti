@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/bitmask_dp"
+
+// Values
+pub fn add_edge(BitGraph, Int, Int) -> Unit
+
+pub fn chromatic_number(Array[Int], Int) -> Int
+
+pub fn has_edge(BitGraph, Int, Int) -> Bool
+
+pub fn has_hamiltonian_cycle(Array[Int], Int) -> Bool
+
+pub fn has_hamiltonian_path(Array[Int], Int) -> Bool
+
+pub fn max_independent_set(Array[Int], Int) -> Int
+
+pub fn max_independent_set_vertices(Array[Int], Int) -> (Int, Array[Int])
+
+pub fn min_vertex_cover(Array[Int], Int) -> Int
+
+pub fn min_vertex_cover_vertices(Array[Int], Int) -> (Int, Array[Int])
+
+pub fn new_graph(Int) -> BitGraph?
+
+pub fn tsp(Int, Array[Array[Int64]]) -> Int64?
+
+pub fn tsp_path(Int, Array[Array[Int64]]) -> (Int64, Array[Int])?
+
+// Errors
+
+// Types and methods
+pub struct BitGraph {
+  n : Int
+  adj : Array[Int]
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/adj_list"
+
+// Values
+pub fn add_edge(Graph, Int, Int, Int) -> Bool
+
+pub fn add_undirected_edge(Graph, Int, Int, Int) -> Bool
+
+pub fn bfs_count(Graph, Int) -> Int?
+
+pub fn bfs_distances(Graph, Int) -> FixedArray[Int?]?
+
+pub fn dfs_count(Graph, Int) -> Int?
+
+pub fn has_path(Graph, Int, Int) -> Bool
+
+pub fn neighbors(Graph, Int) -> Array[Edge]?
+
+pub fn new(Int) -> Graph
+
+pub fn num_edges(Graph) -> Int
+
+pub fn num_vertices(Graph) -> Int
+
+// Errors
+
+// Types and methods
+pub struct Edge {
+  // private fields
+}
+
+pub struct Graph {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

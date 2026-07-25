@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/min_cost_flow"
+
+// Values
+pub fn min_cost_max_flow(Int, Int, Int, Array[(Int, Int, Int, Int)]) -> (Int64, Int64)?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/number_theory/euler_sieve"
+
+// Values
+pub fn factorize(EulerSieve, Int) -> Array[(Int, Int)]?
+
+pub fn is_prime(EulerSieve, Int) -> Bool
+
+pub fn nth_prime(EulerSieve, Int) -> Int?
+
+pub fn prime_count(EulerSieve) -> Int
+
+pub fn primes(EulerSieve) -> FixedArray[Int]
+
+pub fn sieve(Int) -> EulerSieve?
+
+pub fn smallest_prime_factor(EulerSieve, Int) -> Int?
+
+// Errors
+
+// Types and methods
+pub struct EulerSieve {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

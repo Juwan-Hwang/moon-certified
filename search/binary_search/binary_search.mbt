@@ -126,19 +126,6 @@ test "binary_search_generic: String" {
   xs[1] = "banana"
   xs[2] = "cherry"
   xs[3] = "date"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  assert_eq(search_generic(xs, "cherry", str_cmp), Some(2))
-  assert_true(search_generic(xs, "grape", str_cmp) is None)
+  assert_eq(search_generic(xs, "cherry", @test_utils.str_cmp), Some(2))
+  assert_true(search_generic(xs, "grape", @test_utils.str_cmp) is None)
 }

@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/suffix_balanced_tree"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct SuffixBalancedTree {
+  // private fields
+}
+pub fn SuffixBalancedTree::count_distinct_substrings(Self) -> Int64
+pub fn SuffixBalancedTree::from_array(Array[Int]) -> Self
+pub fn SuffixBalancedTree::kth_suffix(Self, Int) -> Int
+pub fn SuffixBalancedTree::length(Self) -> Int
+pub fn SuffixBalancedTree::pattern_count(Self, Array[Int]) -> Int
+pub fn SuffixBalancedTree::rank_of(Self, Int) -> Int
+
+// Type aliases
+
+// Traits
+

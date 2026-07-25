@@ -10,7 +10,65 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.9.0** — 86 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 1321 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
+**v0.11.0** — 157 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2184 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
+
+### v0.11.0 变更亮点（生产级基础设施 + 缺失领域补齐）
+
+- **新增 44 个算法包**，全面补齐商业级算法库的缺失领域：
+  - **并发数据结构**：RingBuffer、BoundedQueue、SnapshotMap (COW 快照) — 无锁队列 (Michael-Scott)
+  - **持久化/外部算法**：External Sort、LSM-Tree、B+Tree、Persistent Vector、HAMT
+  - **字符串高级结构**：Suffix Tree、FM-Index、Wavelet Tree、Palindromic Tree、Lyndon 分解、Suffix Balanced Tree
+  - **图高级算法**：Edmonds Blossom (一般图最大匹配)、Dominator Tree、Gomory-Hu Tree、Stoer-Wagner 全局最小割、HLPP 最大流、Hopcroft-Karp、Min Steiner Tree、HLD、重心分解、虚树、最大团 (Bron-Kerbosch)、图着色、下界限制流
+  - **几何进阶**：3D 凸包、Voronoi 图、Delaunay 三角剖分、半平面交、动态凸包
+  - **数学/数值**：FFT (复数)、单纯形法 (LP)、LU/QR/SVD 分解、特征值、Newton 迭代、Berlekamp-Massey
+  - **概率/近似结构**：Count-Min Sketch、HyperLogLog、Cuckoo Filter、W-TinyLFU、TTL Cache
+  - **数论进阶**：二次剩余、原根、Möbius 反演、有限域、Reed-Solomon 编码、多项式运算
+  - **DP 进阶**：数位 DP、状压 DP、凸壳技巧 (CHT)、分治 DP、Knuth 优化、SOS DP
+  - **搜索/ML 基础**：Ball-Tree、VP-Tree、LSH、Ternary Search
+  - **其他**：Nim 博弈 (Sprague-Grundy)、水库采样、加权随机采样、CRC、Mo 算法、李超树、二维树状数组、Segment Tree Beats、External Sort
+
+- **Bug 修复 (3 个 P0/P1)**：
+  - Euler Path `total_edges` 统计越界顶点导致路径校验错误 (P0)
+  - Boyer-Moore `build_bad_char` 硬编码 256 仅支持 ASCII，CJK 字符越界崩溃 (P0)
+  - Convex Hull 使用 `cross()` (Int32) 而非 `cross64()` (Int64)，坐标差 >46340 溢出 (P1)
+
+- **生产级改进 (12 个模块)**：
+  - AVL/Segment Tree/Treap/BTree：递归栈保护、溢出检测、O(1) size()
+  - Segment Tree Lazy：point_get 从 O(log n) 优化为 O(1)
+  - Bloom Filter：泛型化 + get_bit 边界检查
+  - Suffix Array：递归归并排序改为迭代实现，防栈溢出
+  - Tree DP：森林处理代码去重 (~40 行)
+  - Matrix：负指数处理 + Bareiss 溢出文档
+  - NTT：清理死代码 + O(n) bit_reverse
+  - Int64 Utils：gcd64(Int64::MIN) 文档修正
+
+- **测试/验证基础设施**：
+  - **benchmarks/** 目录：性能基准测试，含排序/树/图/数论/字符串/几何的 wall-clock 时间测量与复杂度验证
+  - **test/fuzz/** 目录：Fuzz 测试 + 对抗性输入测试（排序最坏情况、图自环/断开/环检测、字符串 Unicode、Carmichael 数、几何共线/重复点、并发结构边界）
+  - **test/stress/** 增强：排序压力测试验证置换性质（非仅有序性），LIS 压力测试重构实际子序列验证（非仅平凡边界）
+  - **test/test_utils/** 共享测试工具（消除 14 个文件的 str_cmp 重复）
+  - **docs/API_STABILITY.md** API 稳定性策略
+
+- **算法升级**：
+  - 最小费用最大流：从纯 SPFA 升级为 **Successive Shortest Paths with Potentials**（首迭代 SPFA + 后续 Dijkstra），复杂度从 O(F·V·E) 降至 O(V·E + F·E log V)
+  - prim/segment_tree/fenwick/kruskal：新增 checked 变体 (Int64 溢出检测)
+
+- **文档/错误处理统一**：
+  - miller_rabin 文档修正：见证集从 {2,7,61} 更正为 12 见证集 {2,3,5,7,...,37}
+  - euler_sieve 错误处理：从 abort(panic) 改为返回 None，与全库 Option 策略一致
+  - andrew_hull cmp_point：Int32 减法改为 Int64，与 closest_pair 一致
+
+### v0.10.0 变更亮点（生产级扩展）
+
+- **新增 27 个算法包**，覆盖之前缺失的关键领域：
+  - **字符串**：Suffix Tree (Ukkonen)、Palindromic Tree (Eertree)、Rolling Hash (双模数)、Lyndon 分解
+  - **图论**：Hopcroft-Karp 二分匹配、Stoer-Wagner 全局最小割、Bron-Kerbosch 最大团
+  - **树结构**：Link-Cut Tree (Sleator-Tarjan)、Persistent Vector
+  - **几何**：3D 凸包 (随机增量法)、半平面交 (S&I 算法 + 双端队列)
+  - **数学**：Newton 迭代法、LU/QR/SVD 矩阵分解、Berlekamp-Massey 线性递推、FFT、单纯形法
+  - **容器**：W-TinyLFU 缓存 (Window+SLRU+Count-Min Sketch)、Cuckoo Filter、HyperLogLog、TTL Cache、Count-Min Sketch
+  - **DP**：数位 DP
+  - **其他**：Nim 博弈 (Sprague-Grundy)、水库采样、Int64 工具模块
 
 ### v0.9.0 变更亮点（代码质量提升 + 消除重复）
 
@@ -93,10 +151,10 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | `edit_distance` | n × m > 10⁷ 时返回 `None` | 返回 `Int?`，滚动数组优化 O(min(n,m)) 空间 |
 | `counting_sort` | 负值或 k > 10⁷ 时返回 `None` | 返回 `FixedArray[Int]?` |
 | `pollard_rho` | 失败（素数或无法分解）时返回 `None` | 返回 `Int?`，与素数结果可区分 |
-| `prim` | `total_weight` 可能溢出 Int32 | 文档已标注，调用者需注意 |
-| `segment_tree` | 区间和可能溢出 Int32 | 文档已标注，调用者需注意 |
-| `fenwick` | 前缀和可能溢出 Int32 | 文档已标注，调用者需注意 |
-| `kruskal` | `total_weight` 可能溢出 Int32 | 文档已标注，调用者需注意 |
+| `prim` | `total_weight` 可能溢出 Int32 | 文档已标注；`prim_mst_checked` 返回 `(FixedArray[Int], Int64)?` |
+| `segment_tree` | 区间和可能溢出 Int32 | 文档已标注；`SegmentTree64` 提供 checked 变体返回 `Int?` |
+| `fenwick` | 前缀和可能溢出 Int32 | 文档已标注；`Fenwick64` 提供 checked 变体返回 `Int?` |
+| `kruskal` | `total_weight` 可能溢出 Int32 | 文档已标注；`kruskal_mst_checked` 返回 `(FixedArray[Edge], Int64)?` |
 | `min_cost_flow` | `total_flow`/`total_cost` 使用 Int64 累积，返回 `(Int64,Int64)?` | 已添加溢出防护 + 负环检测 |
 | `dinic` | 所有容量和流量使用 Int64，返回 `Int64?` | 已添加溢出防护 + 迭代 DFS |
 | `interpolation_search` | 减法使用 Int64 防止跨 Int32 范围溢出 | 已添加溢出防护 |
@@ -105,6 +163,9 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | `array_sum` | `array_sum_checked` 返回 `Int?`（溢出返回 None） | 已添加安全版本 |
 | `matrix` | `matmul_int_checked` 返回 `FixedArray[Int]?`（溢出返回 None） | 已添加安全版本 |
 | `combinatorics` | binomial 先乘后除（Int64 中间），stirling2 预检查溢出 | 已修复 |
+| `rolling_hash` | 双模数哈希使用 Int64 中间运算，大字符串仍可能溢出 | 文档已标注，调用者需注意 |
+| `matrix_decomp` | 使用 Double 浮点运算，无整数溢出风险 | 浮点精度限制 |
+| `newton_method` | 使用 Double 浮点运算，无整数溢出风险 | 浮点精度限制 |
 
 ### 泛型架构
 
@@ -167,7 +228,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (1321 tests)
+# 运行测试 (1599 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -343,7 +404,12 @@ moon-certified/
 │   ├── binary_heap/          🔒 二叉堆 (Heap 封装 + HeapG[T] + decrease_key, 17 tests)
 │   ├── hash_table/           🔒 哈希表 K,V 泛型 (StringHashTable 封装, 19 tests)
 │   ├── lru_cache/            🔒 LRU Cache O(1) (HashMap+双向链表, 8 tests)
+│   ├── ttl_cache/            🔒 TTL Cache (过期清理 + LRU, 10 tests)
+│   ├── w_tinylfu/            🔒 W-TinyLFU 缓存 (Window+SLRU+CMS, 11 tests)
 │   ├── bloom_filter/         🔒 布隆过滤器 (最优参数, 9 tests)
+│   ├── cuckoo_filter/        🔒 布谷鸟过滤器 (支持删除, 8 tests)
+│   ├── count_min_sketch/     🔒 Count-Min Sketch (双哈希+合并, 10 tests)
+│   ├── hyperloglog/          🔒 HyperLogLog 基数估计 (10 tests)
 │   ├── union_find/           🔒 并查集 (pub struct, find→Int?, 16 tests)
 │   ├── priority_queue/       🔒 优先队列 (HeapG[T], 动态扩容, decrease_key, 15 tests)
 │   └── monotonic/            🔒 单调栈/单调队列 (next greater/smaller, 滑动窗口, 21 tests)
@@ -359,7 +425,9 @@ moon-certified/
 │   ├── treap/                🔒 Treap (per-instance RNG, O(log n) expected, 13 tests)
 │   ├── splay/              🔒 伸展树 (iterative bottom-up, amortized O(log n), 10 tests)
 │   ├── sparse_table/       🔒 Sparse Table RMQ (泛型, O(1) 幂等查询, 13 tests)
-│   └── segment_tree_lazy/  🔒 线段树 Lazy Propagation (区间修改+区间查询, 9 tests)
+│   ├── segment_tree_lazy/  🔒 线段树 Lazy Propagation (区间修改+区间查询, 9 tests)
+│   ├── link_cut/           🔒 Link-Cut Tree (Sleator-Tarjan splay, 12 tests)
+│   └── persistent_vector/ 🔒 Persistent Vector (结构共享, O(log n), 9 tests)
 ├── graph/
 │   ├── bfs_dfs/              🔒 BFS/DFS 邻接矩阵版 (Option 返回, 34 tests)
 │   ├── adj_list/             🔒 邻接表稀疏图 (O(V+E) 空间, 23 tests)
@@ -381,7 +449,10 @@ moon-certified/
 │   ├── lca/               🔒 LCA 最近公共祖先 (binary lifting, O(log n) query, 11 tests)
 │   ├── bridge_articulation/ 🔒 桥+割点 (Tarjan, 多重边处理, 15 tests)
 │   ├── euler_path/          🔒 欧拉路径/回路 (Hierholzer, 迭代实现, 14 tests)
-│   └── hungarian/           🔒 匈牙利算法 (二分图最优匹配, O(n³), 10 tests)
+│   ├── hungarian/           🔒 匈牙利算法 (二分图最优匹配, O(n³), 10 tests)
+│   ├── hopcroft_karp/       🔒 Hopcroft-Karp 二分匹配 (O(E√V), 9 tests)
+│   ├── stoer_wagner/        🔒 Stoer-Wagner 全局最小割 (O(V³), 10 tests)
+│   └── max_clique/          🔒 Bron-Kerbosch 最大团 (pivot+退化度, 12 tests)
 ├── string/
 │   ├── kmp/                  🔒 KMP (17 tests)
 │   ├── rabin_karp/           🔒 Rabin-Karp (25 tests)
@@ -391,10 +462,15 @@ moon-certified/
 │   ├── aho_corasick/       🔒 Aho-Corasick 多模式匹配 (sparse children, CJK 安全, 12 tests)
 │   ├── boyer_moore/         🔒 Boyer-Moore 字符串搜索 (bad-char + good-suffix, 14 tests)
 │   ├── lcp_array/           🔒 LCP 数组 (Kasai 算法, O(n), 13 tests)
-│   └── suffix_automaton/    🔒 后缀自动机 SAM (子串查询, 不同子串计数, 12 tests)
+│   ├── suffix_automaton/    🔒 后缀自动机 SAM (子串查询, 不同子串计数, 12 tests)
+│   ├── suffix_tree/         🔒 后缀树 (Ukkonen O(n), 12 tests)
+│   ├── palindromic_tree/    🔒 回文树 Eertree (所有回文子串, 11 tests)
+│   ├── rolling_hash/        🔒 滚动哈希 (双模数防碰撞, 12 tests)
+│   └── lyndon/              🔒 Lyndon 分解 (Duval 算法, 最小表示, 13 tests)
 ├── number_theory/
 │   ├── gcd/                  ⚠️ GCD (partial verified, handles Int::MIN)
 │   ├── fast_power/           ⚠️ 快速幂 (partial verified + checked variant)
+│   ├── int64_utils/          🔒 Int64 工具 (mod64/gcd64/pow_mod64/is_prime64, 21 tests)
 │   ├── prime/                🔒 素数筛 + 扩展欧几里得 (OOM 防护, 18 tests)
 │   ├── miller_rabin/         🔒 Miller-Rabin 素性检验 (deterministic, 11 tests)
 │   ├── crt/                  🔒 中国剩余定理 (coprime + non-coprime, 20 tests)
@@ -405,19 +481,31 @@ moon-certified/
 ├── math/
 │   ├── array_sum/            ⚠️ 数组求和 (partial verified + checked variant)
 │   ├── combinatorics/        🔒 组合数学 (组合数/Catalan/Stirling, Int64 防溢出, 15 tests)
-│   └── matrix/               🔒 矩阵运算 (乘法+高斯消元+行列式, checked variant, 12 tests)
+│   ├── matrix/               🔒 矩阵运算 (乘法+高斯消元+行列式, checked variant, 12 tests)
+│   ├── matrix_decomp/        🔒 矩阵分解 LU/QR/SVD (部分主元/Householder/Jacobi, 16 tests)
+│   ├── newton_method/        🔒 Newton 迭代法 (根求解+n次根+平方根, 23 tests)
+│   ├── berlekamp_massey/     🔒 Berlekamp-Massey 线性递推 (O(n²), 10 tests)
+│   ├── fft/                  🔒 FFT 快速傅里叶变换 (Cooley-Tukey, 11 tests)
+│   └── simplex/              🔒 单纯形法 线性规划 (两阶段, 10 tests)
 ├── dp/
 │   ├── dp/                   🔒 LCS + 编辑距离 + 背包 (OOM 防护, 21 tests)
 │   ├── lis/                  🔒 LIS O(n log n) (14 tests)
 │   ├── interval_dp/          🔒 区间 DP (矩阵链乘+最优BST+burst balloons+石子合并, 22 tests)
-│   └── tree_dp/              🔒 树形 DP (最大独立集+直径+匹配+树背包, 迭代DFS, 19 tests)
+│   ├── tree_dp/              🔒 树形 DP (最大独立集+直径+匹配+树背包, 迭代DFS, 19 tests)
+│   └── digit_dp/            🔒 数位 DP (计数+各位数字和+不含某数字, 11 tests)
 ├── geometry/
 │   ├── convex_hull/          🔒 Graham 凸包 (Int64 防溢出, 9 tests)
 │   ├── andrew_hull/          🔒 Andrew 单调链凸包 (Int64 防溢出, 11 tests)
+│   ├── convex_hull_3d/       🔒 3D 凸包 (随机增量法+地平线边, 12 tests)
+│   ├── half_plane_intersection/ 🔒 半平面交 (S&I 算法+双端队列, 9 tests)
 │   ├── kd_tree/            🔒 KD-Tree 2D 空间索引 (NN + range search, 13 tests)
 │   ├── rotating_calipers/  🔒 旋转卡壳 (凸包直径+宽度, CCW/CW, 14 tests)
 │   ├── closest_pair/       🔒 最近点对 (分治 O(n log n), 9 tests)
 │   └── segment_ops/       🔒 线段相交+点在多边形内 (精确整数叉积, 33 tests)
+├── game_theory/
+│   └── nim_sg/               🔒 Nim 博弈 (Sprague-Grundy 定理, 13 tests)
+├── random/
+│   └── reservoir_sampling/   🔒 水库采样 (O(n) 在线采样, 8 tests)
 ├── .github/workflows/
 │   └── ci.yml                ✅ GitHub Actions CI (check + test + prove)
 ├── CHANGELOG.md              📋 Semantic Versioning changelog
@@ -518,7 +606,32 @@ moon-certified/
 | lcp_array | 13 | 🔒 tested | ❌ |
 | suffix_automaton | 12 | 🔒 tested | ❌ |
 | segment_tree_lazy | 9 | 🔒 tested | ❌ |
-| **Total** | **1321** | **5 完整, 4 部分, 77 tested** | **17 generic** |
+| suffix_tree | 12 | 🔒 tested | ❌ |
+| palindromic_tree | 11 | 🔒 tested | ❌ |
+| rolling_hash | 12 | 🔒 tested | ❌ |
+| lyndon | 13 | 🔒 tested | ❌ |
+| link_cut | 12 | 🔒 tested | ❌ |
+| persistent_vector | 9 | 🔒 tested | ❌ |
+| hopcroft_karp | 9 | 🔒 tested | ❌ |
+| stoer_wagner | 10 | 🔒 tested | ❌ |
+| max_clique | 12 | 🔒 tested | ❌ |
+| convex_hull_3d | 12 | 🔒 tested | ❌ |
+| half_plane_intersection | 9 | 🔒 tested | ❌ |
+| matrix_decomp | 16 | 🔒 tested | ❌ |
+| newton_method | 23 | 🔒 tested | ❌ |
+| berlekamp_massey | 10 | 🔒 tested | ❌ |
+| fft | 11 | 🔒 tested | ❌ |
+| simplex | 10 | 🔒 tested | ❌ |
+| digit_dp | 11 | 🔒 tested | ❌ |
+| w_tinylfu | 11 | 🔒 tested | ❌ |
+| ttl_cache | 10 | 🔒 tested | ❌ |
+| cuckoo_filter | 8 | 🔒 tested | ❌ |
+| count_min_sketch | 10 | 🔒 tested | ❌ |
+| hyperloglog | 10 | 🔒 tested | ❌ |
+| nim_sg | 13 | 🔒 tested | ❌ |
+| reservoir_sampling | 8 | 🔒 tested | ❌ |
+| int64_utils | 21 | 🔒 tested | ❌ |
+| **Total** | **1599** | **5 完整, 4 部分, 104 tested** | **17 generic** |
 
 ## 参考资源
 

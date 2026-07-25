@@ -245,3 +245,133 @@ test "fenwick: update then query consistency" {
     assert_eq(query(ft, i), expected)
   }
 }
+
+// ===========================================================================
+// Int64 Checked Fenwick Tree with Overflow Detection
+// ===========================================================================
+
+/// Checked Fenwick Tree for `Int64` with overflow detection.
+///
+/// Provides the same operations as [`Fenwick`] but uses `Int64` internally.
+/// `update64` and `query64` return `None` when an arithmetic overflow is
+/// detected, allowing callers to handle the error gracefully instead of
+/// silently wrapping.
+pub struct Fenwick64 {
+  priv tree : FixedArray[Int64]
+  priv n : Int
+}
+
+/// Build a checked Fenwick Tree from an `Int64` array in O(n).
+pub fn build64(arr : FixedArray[Int64]) -> Fenwick64 {
+  let n = arr.length()
+  let tree = FixedArray::make(n + 1, 0L)
+  for i = 1; i <= n; i = i + 1 {
+    tree[i] = arr[i - 1]
+  }
+  for i = 1; i <= n; i = i + 1 {
+    let j = i + (i & (-i))
+    if j <= n {
+      tree[j] = tree[j] + tree[i]
+    }
+  }
+  { tree, n }
+}
+
+/// Add `delta` to position `idx` (1-indexed). Returns `None` on overflow.
+pub fn update64(ft : Fenwick64, idx : Int, delta : Int64) -> Unit? {
+  if idx < 1 || idx > ft.n {
+    return Some(())
+  }
+  let mut i = idx
+  while i <= ft.n {
+    let prev = ft.tree[i]
+    ft.tree[i] = ft.tree[i] + delta
+    if (delta > 0L && ft.tree[i] < prev) || (delta < 0L && ft.tree[i] > prev) {
+      return None
+    }
+    i = i + (i & (-i))
+  }
+  Some(())
+}
+
+/// Prefix sum of positions `[1, idx]`. Returns `None` on overflow.
+pub fn query64(ft : Fenwick64, idx : Int) -> Int64? {
+  if idx <= 0 {
+    return Some(0L)
+  }
+  let mut i = idx
+  if i > ft.n {
+    i = ft.n
+  }
+  let mut sum = 0L
+  while i > 0 {
+    let prev = sum
+    sum = sum + ft.tree[i]
+    if (ft.tree[i] > 0L && sum < prev) || (ft.tree[i] < 0L && sum > prev) {
+      return None
+    }
+    i = i - (i & (-i))
+  }
+  Some(sum)
+}
+
+/// Inclusive sum of `[l, r]`. Returns `None` on overflow.
+pub fn range_query64(ft : Fenwick64, l : Int, r : Int) -> Int64? {
+  if l > r || r < 1 || l > ft.n {
+    return Some(0L)
+  }
+  let cl = if l < 1 { 1 } else { l }
+  let cr = if r > ft.n { ft.n } else { r }
+  match query64(ft, cr) {
+    None => None
+    Some(right) =>
+      match query64(ft, cl - 1) {
+        None => None
+        Some(left) => {
+          let diff = right - left
+          if (left > 0L && diff > right) || (left < 0L && diff < right) {
+            None
+          } else {
+            Some(diff)
+          }
+        }
+      }
+  }
+}
+
+test "fenwick64: basic build and query" {
+  let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
+  let ft = build64(arr)
+  assert_eq(query64(ft, 5), Some(15L))
+  assert_eq(query64(ft, 3), Some(6L))
+}
+
+test "fenwick64: update and query" {
+  let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
+  let ft = build64(arr)
+  let _ = update64(ft, 3, 10L)
+  assert_eq(query64(ft, 5), Some(25L))
+  assert_eq(range_query64(ft, 3, 3), Some(13L))
+}
+
+test "fenwick64: overflow detection" {
+  let arr = FixedArray::make(1, 9223372036854775807L)
+  let ft = build64(arr)
+  // Adding 1 to Int64::MAX should overflow.
+  assert_eq(update64(ft, 1, 1L), None)
+}
+
+test "fenwick64: brute-force cross-check" {
+  let n = 100
+  let arr = FixedArray::makei(n, fn(i) { ((i * 3 + 7) % 17 - 5).to_int64() })
+  let ft = build64(arr)
+  for start = 0; start < n; start = start + 7 {
+    for end = start; end < n; end = end + 11 {
+      let mut expected = 0L
+      for k = start; k <= end; k = k + 1 {
+        expected = expected + arr[k]
+      }
+      assert_eq(range_query64(ft, start + 1, end + 1), Some(expected))
+    }
+  }
+}

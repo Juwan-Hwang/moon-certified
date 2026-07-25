@@ -48,9 +48,9 @@ fn max2(a : Int, b : Int) -> Int {
 /// are ordered by distance, nearest first. Returns a negative value when `a`
 /// should precede `b`.
 fn cmp_point(pivot : @geometry_utils.Point, a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
-  let c = @geometry_utils.cross(pivot, a, b)
-  if c != 0 {
-    -c
+  let c = @geometry_utils.cross64(pivot, a, b)
+  if c != 0L {
+    if c > 0L { -1 } else { 1 }
   } else {
     // Collinear: nearer first. dist2 returns Int64 to avoid overflow.
     let da = @geometry_utils.dist2(pivot, a)
@@ -142,14 +142,14 @@ pub fn convex_hull(points : Array[@geometry_utils.Point]) -> Array[@geometry_uti
   let mut size = 0
   for i = 0; i < dn; i = i + 1 {
     let p = dedup[i]
-    while size >= 2 && @geometry_utils.cross(stack[size - 2], stack[size - 1], p) <= 0 {
+    while size >= 2 && @geometry_utils.cross64(stack[size - 2], stack[size - 1], p) <= 0L {
       size = size - 1
     }
     stack[size] = p
     size = size + 1
   }
   // Wrap-around cleanup: drop a collinear tail touching the first vertex.
-  while size >= 3 && @geometry_utils.cross(stack[size - 2], stack[size - 1], stack[0]) <= 0 {
+  while size >= 3 && @geometry_utils.cross64(stack[size - 2], stack[size - 1], stack[0]) <= 0L {
     size = size - 1
   }
   let result : Array[@geometry_utils.Point] = []
@@ -173,7 +173,7 @@ fn is_convex_ccw(hull : Array[@geometry_utils.Point]) -> Bool {
     let o = hull[i]
     let a = hull[(i + 1) % m]
     let b = hull[(i + 2) % m]
-    if @geometry_utils.cross(o, a, b) <= 0 {
+    if @geometry_utils.cross64(o, a, b) <= 0L {
       return false
     }
   }
@@ -205,7 +205,7 @@ fn all_inside_or_on(points : Array[@geometry_utils.Point], hull : Array[@geometr
     let hi_y = max2(a.y, b.y)
     for i = 0; i < points.length(); i = i + 1 {
       let p = points[i]
-      if @geometry_utils.cross(a, b, p) != 0 {
+      if @geometry_utils.cross64(a, b, p) != 0L {
         return false
       }
       if p.x < lo_x || p.x > hi_x || p.y < lo_y || p.y > hi_y {
@@ -220,7 +220,7 @@ fn all_inside_or_on(points : Array[@geometry_utils.Point], hull : Array[@geometr
     for j = 0; j < m; j = j + 1 {
       let a = hull[j]
       let b = hull[(j + 1) % m]
-      if @geometry_utils.cross(a, b, p) < 0 {
+      if @geometry_utils.cross64(a, b, p) < 0L {
         return false
       }
     }
@@ -356,7 +356,7 @@ test "convex_hull: hull is strictly convex (all turns CCW)" {
     let o = hull[i]
     let a = hull[(i + 1) % m]
     let b = hull[(i + 2) % m]
-    assert_true(@geometry_utils.cross(o, a, b) > 0)
+    assert_true(@geometry_utils.cross64(o, a, b) > 0L)
   }
   assert_true(all_inside_or_on(pts, hull))
 }

@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/number_theory/reed_solomon"
+
+// Values
+pub fn gf256_new() -> GF256
+
+pub fn gf_add(GF256, Int, Int) -> Int
+
+pub fn gf_div(GF256, Int, Int) -> Int
+
+pub fn gf_inv(GF256, Int) -> Int
+
+pub fn gf_mul(GF256, Int, Int) -> Int
+
+pub fn gf_pow(GF256, Int, Int) -> Int
+
+pub fn gf_sub(GF256, Int, Int) -> Int
+
+pub fn rs_decode(GF256, FixedArray[Int], Int, Int) -> FixedArray[Int]?
+
+pub fn rs_encode(GF256, FixedArray[Int], Int) -> FixedArray[Int]
+
+// Errors
+
+// Types and methods
+pub struct GF256 {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

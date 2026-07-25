@@ -10,17 +10,19 @@
 /// passes. If none do, n is composite. If n passes for every witness, it is
 /// prime.
 ///
-/// **Determinism.** For n < 2^31 (the full positive range of 32-bit `Int`),
-/// the witness set {2, 7, 61} suffices (Jaeschke 1993). The larger set
-/// {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37} suffices for n <
-/// 3,317,044,064,679,887,385,961,981, far beyond `Int`'s range, so the smaller
-/// set is used here.
+/// **Determinism.** This function delegates to `@int64_utils.is_prime64`,
+/// which uses the **12-witness set** `{2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+/// 31, 37}` — sufficient for all `n < 3,317,044,064,679,887,385,961,981`
+/// (Sorenson and Webster 2015), far beyond the 32-bit `Int` range. The
+/// smaller 3-witness set `{2, 7, 61}` (Jaeschke 1993) would also suffice for
+/// 32-bit inputs, but the stronger 12-witness set is used for consistency
+/// with `is_prime64` and to future-proof against `Int64` callers.
 ///
-/// **Complexity.** O(k * log n) modular multiplications with k = 3 witnesses.
+/// **Complexity.** O(k * log n) modular multiplications with k = 12 witnesses.
 ///
-/// **Overflow safety.** All modular exponentiation is performed in `Int64`.
-/// Since n < 2^31, every intermediate product is below 2^62 < 2^63, so no
-/// `Int64` overflow can occur.
+/// **Overflow safety.** All modular exponentiation is performed in `Int64`
+/// via `mul_mod` (binary decomposition), preventing overflow even for values
+/// close to `Int64::MAX`.
 ///
 /// The core `is_prime64` and `pow_mod64` functions are shared via
 /// `@int64_utils` to avoid code duplication with `pollard_rho` and `bsgs`.
@@ -33,7 +35,9 @@
 ///
 /// Returns `false` for `n < 2`, `true` for `n == 2` or `n == 3`, `false` for
 /// even `n > 2`, and otherwise applies the deterministic Miller-Rabin test
-/// with witnesses {2, 7, 61}, which is exact for all `n < 2^31`.
+/// with the 12-witness set `{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37}`,
+/// which is exact for all `n < 3.3 * 10^24` — far beyond the 32-bit `Int`
+/// range.
 ///
 /// This delegates to `@int64_utils.is_prime64` to avoid duplicating the
 /// Miller-Rabin implementation across packages.

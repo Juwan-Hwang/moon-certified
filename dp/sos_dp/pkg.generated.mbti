@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/sos_dp"
+
+// Values
+pub fn sos_count_nonzero(FixedArray[Int]) -> FixedArray[Int64]
+
+pub fn sos_sum(FixedArray[Int]) -> FixedArray[Int64]
+
+pub fn sos_superset_sum(FixedArray[Int]) -> FixedArray[Int64]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

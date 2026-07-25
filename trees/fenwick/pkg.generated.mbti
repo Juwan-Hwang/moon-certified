@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/fenwick"
+
+// Values
+pub fn build(FixedArray[Int]) -> Fenwick
+
+pub fn build64(FixedArray[Int64]) -> Fenwick64
+
+pub fn query(Fenwick, Int) -> Int
+
+pub fn query64(Fenwick64, Int) -> Int64?
+
+pub fn range_query(Fenwick, Int, Int) -> Int
+
+pub fn range_query64(Fenwick64, Int, Int) -> Int64?
+
+pub fn update(Fenwick, Int, Int) -> Unit
+
+pub fn update64(Fenwick64, Int, Int64) -> Unit?
+
+// Errors
+
+// Types and methods
+pub struct Fenwick {
+  // private fields
+}
+
+pub struct Fenwick64 {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

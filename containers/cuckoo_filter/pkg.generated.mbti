@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/cuckoo_filter"
+
+// Values
+pub fn add(CuckooFilter, String) -> Bool
+
+pub fn contains(CuckooFilter, String) -> Bool
+
+pub fn new(Int, Int) -> CuckooFilter
+
+pub fn remove(CuckooFilter, String) -> Bool
+
+pub fn size(CuckooFilter) -> Int
+
+// Errors
+
+// Types and methods
+pub struct CuckooFilter {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/hungarian"
+
+// Values
+pub fn max_weight_matching(FixedArray[Int64], Int) -> (Int64, FixedArray[Int])?
+
+pub fn min_cost_matching(FixedArray[Int64], Int) -> (Int64, FixedArray[Int])?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

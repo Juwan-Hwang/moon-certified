@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/interval_dp"
+
+// Values
+pub fn burst_balloons(FixedArray[Int]) -> Int64
+
+pub fn matrix_chain(FixedArray[Int]) -> MatrixChainResult
+
+pub fn merge_stones(FixedArray[Int]) -> Int64
+
+pub fn optimal_bst(FixedArray[Int]) -> Int64
+
+// Errors
+
+// Types and methods
+pub struct MatrixChainResult {
+  min_cost : Int64
+  parenthesization : String
+}
+
+// Type aliases
+
+// Traits
+

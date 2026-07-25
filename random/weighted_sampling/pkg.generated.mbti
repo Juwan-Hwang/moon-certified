@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/random/weighted_sampling"
+
+// Values
+pub fn alias_draw(AliasTable, Double) -> Int
+
+pub fn build_alias(FixedArray[Double]) -> AliasTable
+
+pub fn weighted_reservoir_sample(FixedArray[Double], Int) -> FixedArray[Int]
+
+// Errors
+
+// Types and methods
+pub struct AliasTable {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

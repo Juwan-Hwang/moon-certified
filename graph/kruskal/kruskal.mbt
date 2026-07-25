@@ -332,3 +332,73 @@ test "kruskal: mst_weight matches kruskal_mst" {
   assert_eq(mst_weight(edges, 3), w)
   assert_eq(mst_weight(edges, 3), 3)
 }
+
+// ---------------------------------------------------------------------------
+// Checked Kruskal's MST with Int64 overflow detection
+// ---------------------------------------------------------------------------
+
+/// Checked Kruskal's MST with `Int64` weight accumulation and overflow detection.
+///
+/// Returns `None` if the total MST weight would overflow `Int64`. Otherwise
+/// returns `(mst_edges, total_weight)` where `total_weight` is `Int64`.
+pub fn kruskal_mst_checked(
+  edges : FixedArray[Edge],
+  n : Int,
+) -> (FixedArray[Edge], Int64)? {
+  if n <= 0 || edges.length() == 0 {
+    return Some((FixedArray::make(0, edge(0, 0, 0)), 0L))
+  }
+  let sorted = FixedArray::makei(edges.length(), fn(i) { edges[i] })
+  sort_edges(sorted)
+  let uf = @union_find.new(n)
+  let selected = FixedArray::make(n - 1, edge(0, 0, 0))
+  let mut count = 0
+  let mut total = 0L
+  for i = 0; i < sorted.length(); i = i + 1 {
+    let e = sorted[i]
+    if @union_find.union(uf, e.from, e.to) {
+      selected[count] = e
+      count = count + 1
+      let w64 = e.weight.to_int64()
+      if total > 9223372036854775807L - w64 {
+        return None
+      }
+      total = total + w64
+    }
+  }
+  let mst = FixedArray::makei(count, fn(i) { selected[i] })
+  Some((mst, total))
+}
+
+test "kruskal: checked basic" {
+  let edges = FixedArray::make(3, edge(0, 0, 0))
+  edges[0] = edge(0, 1, 1)
+  edges[1] = edge(1, 2, 2)
+  edges[2] = edge(0, 2, 3)
+  let result = kruskal_mst_checked(edges, 3)
+  match result {
+    Some((mst, w)) => {
+      assert_eq(mst.length(), 2)
+      assert_eq(w, 3L)
+    }
+    None => abort("expected Some")
+  }
+}
+
+test "kruskal: checked matches unchecked" {
+  let edges = FixedArray::make(5, edge(0, 0, 0))
+  edges[0] = edge(0, 1, 1)
+  edges[1] = edge(1, 2, 2)
+  edges[2] = edge(2, 3, 3)
+  edges[3] = edge(3, 4, 4)
+  edges[4] = edge(0, 4, 100)
+  let (mst1, w1) = kruskal_mst(edges, 5)
+  let result = kruskal_mst_checked(edges, 5)
+  match result {
+    Some((mst2, w2)) => {
+      assert_eq(w2, w1.to_int64())
+      assert_eq(mst2.length(), mst1.length())
+    }
+    None => abort("expected Some")
+  }
+}

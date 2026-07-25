@@ -152,23 +152,10 @@ test "bound_search: generic with String" {
   words[1] = "banana"
   words[2] = "cherry"
   words[3] = "date"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  assert_eq(lower_bound(words, "banana", str_cmp), 1)
-  assert_eq(upper_bound(words, "banana", str_cmp), 2)
-  assert_true(binary_search_generic(words, "date", str_cmp) is Some(_))
-  assert_true(binary_search_generic(words, "grape", str_cmp) is None)
+  assert_eq(lower_bound(words, "banana", @test_utils.str_cmp), 1)
+  assert_eq(upper_bound(words, "banana", @test_utils.str_cmp), 2)
+  assert_true(binary_search_generic(words, "date", @test_utils.str_cmp) is Some(_))
+  assert_true(binary_search_generic(words, "grape", @test_utils.str_cmp) is None)
 }
 
 test "bound_search: reverse comparator" {

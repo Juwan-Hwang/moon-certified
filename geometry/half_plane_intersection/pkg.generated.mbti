@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/half_plane_intersection"
+
+// Values
+pub fn dpoint(Double, Double) -> DPoint
+
+pub fn half_plane(DPoint, DPoint) -> HalfPlane
+
+pub fn intersect(Array[HalfPlane]) -> Array[DPoint]
+
+// Errors
+
+// Types and methods
+pub struct DPoint {
+  x : Double
+  y : Double
+}
+
+pub struct HalfPlane {
+  p : DPoint
+  q : DPoint
+}
+
+// Type aliases
+
+// Traits
+

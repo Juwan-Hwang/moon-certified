@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/graph_utils"
+
+// Values
+pub fn tarjan_scc_ids(Array[Array[Int]], Int) -> FixedArray[Int]
+
+// Errors
+
+// Types and methods
+pub struct HeapEntry {
+  dist : Int64
+  vertex : Int
+}
+
+pub struct MinHeap {
+  // private fields
+}
+pub fn MinHeap::len(Self) -> Int
+pub fn MinHeap::new() -> Self
+pub fn MinHeap::pop(Self) -> HeapEntry?
+pub fn MinHeap::push(Self, Int64, Int) -> Unit
+
+// Type aliases
+
+// Traits
+

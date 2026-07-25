@@ -37,11 +37,16 @@ pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
 
 /// Lexicographic comparator for points by (x, y). Returns a negative value
 /// when `a` should precede `b`.
+///
+/// Uses Int64 subtraction to avoid overflow when coordinate differences are
+/// large (consistent with the cross64 overflow strategy used elsewhere).
 fn cmp_point(a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
   if a.x != b.x {
-    a.x - b.x
+    let d = a.x.to_int64() - b.x.to_int64()
+    if d < 0L { -1 } else { 1 }
   } else {
-    a.y - b.y
+    let d = a.y.to_int64() - b.y.to_int64()
+    if d < 0L { -1 } else if d > 0L { 1 } else { 0 }
   }
 }
 

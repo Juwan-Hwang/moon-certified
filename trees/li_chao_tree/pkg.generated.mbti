@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/li_chao_tree"
+
+// Values
+pub fn eval(Line, Int64) -> Int64
+
+pub fn insert_max(LiChaoTreeMax, Line) -> Unit
+
+pub fn insert_min(LiChaoTreeMin, Line) -> Unit
+
+pub fn line(Int64, Int64) -> Line
+
+pub fn new_max(Int64, Int64) -> LiChaoTreeMax
+
+pub fn new_min(Int64, Int64) -> LiChaoTreeMin
+
+pub fn query_max(LiChaoTreeMax, Int64) -> Int64
+
+pub fn query_min(LiChaoTreeMin, Int64) -> Int64
+
+// Errors
+
+// Types and methods
+pub struct LiChaoTreeMax {
+  x_lo : Int64
+  x_hi : Int64
+  lines : Array[Line]
+  has_line : Array[Bool]
+  size : Int
+}
+
+pub struct LiChaoTreeMin {
+  x_lo : Int64
+  x_hi : Int64
+  lines : Array[Line]
+  has_line : Array[Bool]
+  size : Int
+}
+
+pub struct Line {
+  m : Int64
+  b : Int64
+}
+
+// Type aliases
+
+// Traits
+

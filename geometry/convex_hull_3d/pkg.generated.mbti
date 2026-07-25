@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/convex_hull_3d"
+
+// Values
+pub fn build(Array[Point3D]) -> ConvexHull3D
+
+pub fn contains(ConvexHull3D, Point3D) -> Bool
+
+pub fn face_count(ConvexHull3D) -> Int
+
+pub fn get_faces(ConvexHull3D) -> Array[(Int, Int, Int)]
+
+pub fn get_volume6(ConvexHull3D) -> Int64
+
+pub fn point3d(Int, Int, Int) -> Point3D
+
+// Errors
+
+// Types and methods
+pub struct ConvexHull3D {
+  // private fields
+}
+
+pub struct Point3D {
+  x : Int
+  y : Int
+  z : Int
+}
+
+// Type aliases
+
+// Traits
+

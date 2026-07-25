@@ -192,7 +192,11 @@ pub fn matmul_int64(
 ///
 /// Computes `A^exp` in `O(log exp)` matrix multiplications. Each multiplication
 /// accumulates in `Int64` (see `matmul_int`). `exp == 0` yields the identity
-/// matrix; `exp < 0` is treated as `0` (identity). The input is not modified.
+/// matrix. **`exp < 0` silently returns the identity matrix** — this is a
+/// deliberate fallback because negative exponents require the matrix to be
+/// invertible (and computing the inverse via Gaussian elimination is a
+/// separate operation). Callers who need to detect negative exponents should
+/// use [`matpow_int_checked`]. The input is not modified.
 pub fn matpow_int(a : FixedArray[Int], n : Int, exp : Int) -> FixedArray[Int] {
   let acc = identity_int(n)
   if n <= 0 || exp <= 0 {
@@ -220,8 +224,10 @@ pub fn matpow_int(a : FixedArray[Int], n : Int, exp : Int) -> FixedArray[Int] {
 
 /// Raise an `n x n` `Int64` matrix to the power `exp` via binary exponentiation.
 ///
-/// `exp == 0` yields the identity matrix; `exp < 0` is treated as `0`.
-/// The input is not modified.
+/// `exp == 0` yields the identity matrix. **`exp < 0` silently returns the
+/// identity matrix** — see [`matpow_int`] for rationale. Use
+/// [`matpow_int64_checked`] to detect negative exponents. The input is not
+/// modified.
 pub fn matpow_int64(
   a : FixedArray[Int64],
   n : Int,
@@ -250,6 +256,34 @@ pub fn matpow_int64(
   acc
 }
 
+/// Checked matrix power: returns `Some(A^exp)` for `exp >= 0`, `None` for
+/// `exp < 0` (negative exponents require matrix invertibility, which is not
+/// verified here). Use this when the caller needs to distinguish a genuine
+/// identity result (`exp == 0`) from the silent fallback in `matpow_int`.
+pub fn matpow_int_checked(
+  a : FixedArray[Int],
+  n : Int,
+  exp : Int,
+) -> FixedArray[Int]? {
+  if exp < 0 {
+    return None
+  }
+  Some(matpow_int(a, n, exp))
+}
+
+/// Checked `Int64` matrix power: returns `Some(A^exp)` for `exp >= 0`,
+/// `None` for `exp < 0`.
+pub fn matpow_int64_checked(
+  a : FixedArray[Int64],
+  n : Int,
+  exp : Int,
+) -> FixedArray[Int64]? {
+  if exp < 0 {
+    return None
+  }
+  Some(matpow_int64(a, n, exp))
+}
+
 // ---------------------------------------------------------------------------
 // Gaussian elimination (fraction-free / Bareiss-Montante)
 // ---------------------------------------------------------------------------
@@ -262,6 +296,11 @@ pub fn matpow_int64(
 /// where `prev` is the previous pivot (initially `1`). The Bareiss theorem
 /// guarantees the division is always exact, so no fractions appear and the
 /// transformed matrix stays integral.
+///
+/// **Overflow risk**: The intermediate `pivot * M[i][j] - factor * M[pivot][j]`
+/// is computed in `Int64`. For matrices with 32-bit-range entries and modest
+/// dimensions, the intermediates stay within `Int64` range. For larger inputs,
+/// intermediates can overflow `Int64` — see `determinant_int64` for details.
 ///
 /// Returns the rank (number of non-zero rows). The input matrix is modified.
 pub fn gauss_int64(mat : FixedArray[Int64], n : Int, m : Int) -> Int {
@@ -338,6 +377,17 @@ pub fn gauss_int(mat : FixedArray[Int], n : Int, m : Int) -> Int {
 /// A copy is reduced to upper-triangular form with exact integer divisions;
 /// the determinant is the last pivot, sign-corrected for row swaps. The input
 /// is not modified.
+///
+/// **Overflow risk (Bareiss)**: The Bareiss update computes
+/// `pivot * M[i][j] - factor * M[pivot][j]` in `Int64`. For an `n x n` matrix
+/// whose entries have magnitude up to `B`, intermediate values can grow up to
+/// `B^n / pivot^(n-2)` in the worst case. For practical 32-bit-range inputs
+/// (`|B| < 2^31`) and modest matrix sizes (`n <= 20`), the intermediates stay
+/// well within `Int64` range. For larger matrices or very large entries,
+/// consider using a modular determinant (compute `det mod p` for several
+/// primes) or a floating-point approximation. The Bareiss theorem guarantees
+/// the division is always exact, but does not guarantee the intermediates fit
+/// in `Int64`.
 ///
 /// Returns `1` for `n == 0` (by convention) and `0` for singular matrices.
 pub fn determinant_int64(mat : FixedArray[Int64], n : Int) -> Int64 {
@@ -655,6 +705,32 @@ test "matpow: Fibonacci via matrix power (Int and Int64)" {
   let r64 = matpow_int64(a64, 2, 90)
   assert_eq(r64[1], 2880067194370816120L) // F(90)
   assert_eq(r64[3], 1779979416004714189L) // F(89)
+}
+
+test "matpow_checked: negative exponent returns None" {
+  let a = FixedArray::make(4, 0)
+  a[0] = 1
+  a[1] = 2
+  a[2] = 3
+  a[3] = 4
+  // exp < 0 → None
+  assert_true(matpow_int_checked(a, 2, -1) is None)
+  assert_true(matpow_int_checked(a, 2, -100) is None)
+  // exp == 0 → Some(identity)
+  let z = matpow_int_checked(a, 2, 0).unwrap()
+  assert_eq(z[0], 1)
+  assert_eq(z[3], 1)
+  // exp > 0 → Some(A^exp)
+  let sq = matpow_int_checked(a, 2, 2).unwrap()
+  assert_eq(sq[0], 7)
+  // Int64 variant
+  let a64 = FixedArray::make(4, 0L)
+  a64[0] = 1L
+  a64[1] = 2L
+  a64[2] = 3L
+  a64[3] = 4L
+  assert_true(matpow_int64_checked(a64, 2, -1) is None)
+  assert_true(matpow_int64_checked(a64, 2, 0).unwrap()[0] == 1L)
 }
 
 test "gauss: full rank, rank-deficient, zero column, and rank 1" {

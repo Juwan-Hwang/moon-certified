@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/kd_tree"
+
+import {
+  "moon-certified/geometry/geometry_utils",
+}
+
+// Values
+pub fn build(Array[@geometry_utils.Point]) -> KDNode
+
+pub fn empty() -> KDNode
+
+pub fn nearest_neighbor(KDNode, @geometry_utils.Point) -> @geometry_utils.Point?
+
+pub fn point(Int, Int) -> @geometry_utils.Point
+
+pub fn range_search(KDNode, @geometry_utils.Point, @geometry_utils.Point) -> Array[@geometry_utils.Point]
+
+pub fn size(KDNode) -> Int
+
+// Errors
+
+// Types and methods
+pub enum KDNode {
+  Empty
+  Node(KDNode, @geometry_utils.Point, KDNode, Int)
+}
+
+// Type aliases
+
+// Traits
+

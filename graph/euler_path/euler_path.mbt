@@ -225,10 +225,17 @@ pub fn find_euler_path(
   if n <= 0 || adj.length() < n {
     return { path: FixedArray::make(0, 0), is_circuit: false }
   }
-  // Count total edges.
+  // Count total edges (only valid edges — invalid neighbours are skipped
+  // by hierholzer and compute_degrees, so they must be skipped here too
+  // to keep the path-length validation consistent).
   let mut total_edges = 0
   for u = 0; u < n; u = u + 1 {
-    total_edges = total_edges + adj[u].length()
+    for j = 0; j < adj[u].length(); j = j + 1 {
+      let v = adj[u][j]
+      if v >= 0 && v < n {
+        total_edges = total_edges + 1
+      }
+    }
   }
   if total_edges == 0 {
     // Empty graph: trivial circuit on vertex 0 (if it exists).

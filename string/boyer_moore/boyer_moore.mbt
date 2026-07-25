@@ -37,11 +37,15 @@
 
 /// Build the bad-character shift table.
 ///
-/// `bad_char[c]` = the rightmost index of character `c` in the pattern,
-/// or -1 if `c` does not appear. The shift for a mismatch at position `j`
-/// with text character `c` is `j - bad_char[c]` (clamped to ≥ 1).
-fn build_bad_char(pattern : String) -> FixedArray[Int] {
-  let table = FixedArray::make(256, -1)
+/// Returns a `Map[Int, Int]` mapping each character code point to its
+/// rightmost index in the pattern. Characters absent from the pattern
+/// are simply missing from the map (treated as -1 during lookup).
+///
+/// Uses a hash map instead of a fixed-size array to support **all Unicode
+/// code points**, including CJK characters (e.g. '中' = U+4E2D = 20013)
+/// and emoji, which would overflow a 256-element ASCII table.
+fn build_bad_char(pattern : String) -> Map[Int, Int] {
+  let table : Map[Int, Int] = Map([])
   for i = 0; i < pattern.length(); i = i + 1 {
     table[pattern[i].to_int()] = i
   }
@@ -133,7 +137,7 @@ pub fn search(text : String, pattern : String) -> Int? {
       return Some(s)
     }
     // Compute shift from both heuristics and take the maximum.
-    let bc_shift = j - bad_char[text[s + j].to_int()]
+    let bc_shift = j - bad_char.get(text[s + j].to_int()).unwrap_or(-1)
     let gs_shift = good_suffix[j]
     let shift = if bc_shift > gs_shift { bc_shift } else { gs_shift }
     s = s + (if shift < 1 { 1 } else { shift })
@@ -164,7 +168,7 @@ pub fn search_all(text : String, pattern : String) -> FixedArray[Int] {
       // Shift by 1 (or by good_suffix[0]) to find the next occurrence.
       s = s + good_suffix[0]
     } else {
-      let bc_shift = j - bad_char[text[s + j].to_int()]
+      let bc_shift = j - bad_char.get(text[s + j].to_int()).unwrap_or(-1)
       let gs_shift = good_suffix[j]
       let shift = if bc_shift > gs_shift { bc_shift } else { gs_shift }
       s = s + (if shift < 1 { 1 } else { shift })
