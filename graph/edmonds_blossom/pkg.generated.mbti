@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/edmonds_blossom"
+
+// Values
+pub fn cardinality(Matching) -> Int
+
+pub fn max_matching(Array[Array[Int]], Int) -> Matching
+
+pub fn max_matching_from_edges(Array[(Int, Int)], Int) -> Matching
+
+pub fn partner(Matching, Int) -> Int
+
+// Errors
+
+// Types and methods
+pub struct Matching {
+  matches : FixedArray[Int]
+  card : Int
+}
+
+// Type aliases
+
+// Traits
+

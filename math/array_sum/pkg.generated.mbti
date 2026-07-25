@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/array_sum"
+
+// Values
+pub fn array_sum(FixedArray[Int]) -> Int
+
+pub fn array_sum_checked(FixedArray[Int]) -> Int?
+
+pub fn count_nonneg(FixedArray[Int]) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

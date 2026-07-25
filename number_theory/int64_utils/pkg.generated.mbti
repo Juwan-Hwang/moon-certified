@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/number_theory/int64_utils"
+
+// Values
+pub fn gcd64(Int64, Int64) -> Int64
+
+pub fn is_prime64(Int64) -> Bool
+
+pub fn mod64(Int64, Int64) -> Int64
+
+pub fn mul_mod(Int64, Int64, Int64) -> Int64
+
+pub fn pow_mod64(Int64, Int64, Int64) -> Int64
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

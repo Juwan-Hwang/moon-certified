@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/splay"
+
+// Values
+pub fn delete(SplayNode, Int) -> SplayNode
+
+pub fn empty() -> SplayNode
+
+pub fn inorder(SplayNode) -> FixedArray[Int]
+
+pub fn insert(SplayNode, Int) -> SplayNode
+
+pub fn search(SplayNode, Int) -> (SplayNode, Bool)
+
+pub fn size(SplayNode) -> Int
+
+// Errors
+
+// Types and methods
+pub enum SplayNode {
+  Empty
+  Node(SplayNode, Int, SplayNode, Int)
+}
+
+// Type aliases
+
+// Traits
+

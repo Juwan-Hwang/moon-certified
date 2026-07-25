@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/avl"
+
+// Values
+pub fn[T] delete(AvlNode[T], T, (T, T) -> Int) -> AvlNode[T]
+
+pub fn[T] empty() -> AvlNode[T]
+
+pub fn[T] find_min(AvlNode[T]) -> T?
+
+pub fn[T] height(AvlNode[T]) -> Int
+
+pub fn[T] inorder(AvlNode[T]) -> FixedArray[T]
+
+pub fn[T] insert(AvlNode[T], T, (T, T) -> Int) -> AvlNode[T]
+
+pub fn[T] search(AvlNode[T], T, (T, T) -> Int) -> Bool
+
+pub fn[T] size(AvlNode[T]) -> Int
+
+// Errors
+
+// Types and methods
+pub enum AvlNode[T] {
+  Empty
+  Node(AvlNode[T], T, AvlNode[T], Int, Int)
+}
+
+// Type aliases
+
+// Traits
+

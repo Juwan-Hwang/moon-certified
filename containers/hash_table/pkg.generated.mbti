@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/hash_table"
+
+// Values
+pub fn[K, V] contains(HashTable[K, V], K, (K) -> Int, (K, K) -> Bool) -> Bool
+
+pub fn[K, V] get(HashTable[K, V], K, (K) -> Int, (K, K) -> Bool) -> V?
+
+pub fn hashtable_contains(StringHashTable, String) -> Bool
+
+pub fn hashtable_get(StringHashTable, String) -> Int?
+
+pub fn hashtable_insert(StringHashTable, String, Int) -> Unit
+
+pub fn hashtable_new(Int, (String) -> Int, (String, String) -> Bool) -> StringHashTable
+
+pub fn hashtable_new_default(Int) -> StringHashTable
+
+pub fn hashtable_remove(StringHashTable, String) -> Bool
+
+pub fn hashtable_size(StringHashTable) -> Int
+
+pub fn[K, V] insert(HashTable[K, V], K, V, (K) -> Int, (K, K) -> Bool) -> Unit
+
+pub fn[K, V] new(Int) -> HashTable[K, V]
+
+pub fn[K, V] remove(HashTable[K, V], K, (K) -> Int, (K, K) -> Bool) -> Bool
+
+pub fn[K, V] size(HashTable[K, V]) -> Int
+
+// Errors
+
+// Types and methods
+pub struct HashTable[K, V] {
+  // private fields
+}
+
+pub struct StringHashTable {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

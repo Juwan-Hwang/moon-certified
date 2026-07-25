@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/bridge_articulation"
+
+// Values
+pub fn find_articulation_points(Array[Array[Int]], Int) -> FixedArray[Int]
+
+pub fn find_bridges(Array[Array[Int]], Int) -> FixedArray[(Int, Int)]
+
+pub fn find_bridges_and_articulations(Array[Array[Int]], Int) -> BridgeArtResult
+
+// Errors
+
+// Types and methods
+pub struct BridgeArtResult {
+  articulation_points : FixedArray[Int]
+  bridges : FixedArray[(Int, Int)]
+}
+
+// Type aliases
+
+// Traits
+

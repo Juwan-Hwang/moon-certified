@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/sorting/is_sorted"
+
+// Values
+pub fn is_sorted(FixedArray[Int]) -> Bool
+
+pub fn[T] is_sorted_generic(FixedArray[T], (T, T) -> Int) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

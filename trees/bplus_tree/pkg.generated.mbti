@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/bplus_tree"
+
+// Values
+pub fn insert(BPTree, Int, Int) -> Unit
+
+pub fn new() -> BPTree
+
+pub fn range_query(BPTree, Int, Int) -> Array[Int]
+
+pub fn search(BPTree, Int) -> Int?
+
+pub fn size(BPTree) -> Int
+
+pub fn to_sorted_array(BPTree) -> Array[Int]
+
+// Errors
+
+// Types and methods
+pub struct BPTree {
+  mut root : BPTreeChild
+  mut size : Int
+}
+
+pub enum BPTreeChild {
+  Node(BPTreeNode)
+  Leaf(BPTreeLeaf)
+}
+
+pub struct BPTreeLeaf {
+  keys : Array[Int]
+  values : Array[Int]
+  mut next : BPTreeLeaf?
+}
+
+pub struct BPTreeNode {
+  keys : Array[Int]
+  children : Array[BPTreeChild]
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/btree"
+
+// Values
+pub fn delete(BTreeNode, Int) -> BTreeNode
+
+pub fn inorder(BTreeNode, (Int) -> Unit) -> Unit
+
+pub fn insert(BTreeNode, Int) -> BTreeNode
+
+pub fn new() -> BTreeNode
+
+pub fn search(BTreeNode, Int) -> Bool
+
+pub fn size(BTreeNode) -> Int
+
+// Errors
+
+// Types and methods
+pub struct BTreeNode {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

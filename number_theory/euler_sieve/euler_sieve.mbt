@@ -28,23 +28,24 @@ pub struct EulerSieve {
 
 /// Run the Euler linear sieve up to `n` (inclusive).
 ///
-/// Returns a struct containing the sorted list of primes and the spf table.
-/// For `n < 2` an empty result is returned.
+/// Returns `Some(EulerSieve)` containing the sorted list of primes and the
+/// spf table. For `n < 2` an empty result is returned (still `Some`).
 ///
 /// **Memory safety**: The sieve allocates arrays of size `n + 1` and an
 /// estimated prime buffer. To prevent out-of-memory panics on unreasonably
-/// large inputs, `n` is capped at `100_000_000` (100M). For larger ranges,
-/// use a segmented sieve.
-pub fn sieve(n : Int) -> EulerSieve {
+/// large inputs, `n` is capped at `100_000_000` (100M). For `n` exceeding
+/// this limit, `None` is returned — callers should use a segmented sieve
+/// for larger ranges.
+pub fn sieve(n : Int) -> EulerSieve? {
   if n < 2 {
-    return { primes: FixedArray::make(0, 0), spf: FixedArray::make(0, 0), limit: n }
+    return Some({ primes: FixedArray::make(0, 0), spf: FixedArray::make(0, 0), limit: n })
   }
   // OOM protection: the sieve allocates an spf array of size n+1 and a prime
   // buffer of size ~n/3+8. For n > 100M this exceeds typical available memory
-  // (>400 MB for Int32 arrays). Reject early instead of letting the runtime
-  // panic with an opaque allocation failure.
+  // (>400 MB for Int32 arrays). Return None instead of panicking, consistent
+  // with the library's "Option over magic values" error-handling policy.
   if n > 100_000_000 {
-    abort("euler_sieve: n={n} exceeds safe limit (100_000_000). Use a segmented sieve for larger ranges.")
+    return None
   }
   let spf = FixedArray::make(n + 1, 0)
   // Upper bound on prime count: n / ln(n) * 1.26 ≈ n for small n; use n/3 + 8
@@ -77,7 +78,7 @@ pub fn sieve(n : Int) -> EulerSieve {
   for i = 0; i < count; i = i + 1 {
     primes[i] = primes_buf[i]
   }
-  { primes, spf, limit: n }
+  Some({ primes, spf, limit: n })
 }
 
 /// Return the array of primes found by the sieve, in ascending order. O(1).
@@ -143,7 +144,10 @@ pub fn nth_prime(s : EulerSieve, k : Int) -> Int? {
 // ---------------------------------------------------------------------------
 
 test "euler_sieve: basic primes up to 30" {
-  let s = sieve(30)
+  let s = match sieve(30) {
+    Some(v) => v
+    None => abort("expected sieve result")
+  }
   let ps = primes(s)
   assert_eq(ps.length(), 10)
   assert_eq(ps[0], 2)
@@ -159,14 +163,33 @@ test "euler_sieve: basic primes up to 30" {
 }
 
 test "euler_sieve: prime count matches known values" {
-  assert_eq(prime_count(sieve(10)), 4)
-  assert_eq(prime_count(sieve(100)), 25)
-  assert_eq(prime_count(sieve(1000)), 168)
-  assert_eq(prime_count(sieve(10000)), 1229)
+  let s10 = match sieve(10) {
+    Some(v) => v
+    None => abort("")
+  }
+  let s100 = match sieve(100) {
+    Some(v) => v
+    None => abort("")
+  }
+  let s1000 = match sieve(1000) {
+    Some(v) => v
+    None => abort("")
+  }
+  let s10000 = match sieve(10000) {
+    Some(v) => v
+    None => abort("")
+  }
+  assert_eq(prime_count(s10), 4)
+  assert_eq(prime_count(s100), 25)
+  assert_eq(prime_count(s1000), 168)
+  assert_eq(prime_count(s10000), 1229)
 }
 
 test "euler_sieve: is_prime" {
-  let s = sieve(100)
+  let s = match sieve(100) {
+    Some(v) => v
+    None => abort("")
+  }
   assert_true(is_prime(s, 2))
   assert_true(is_prime(s, 97))
   assert_false(is_prime(s, 1))
@@ -176,7 +199,10 @@ test "euler_sieve: is_prime" {
 }
 
 test "euler_sieve: smallest prime factor" {
-  let s = sieve(100)
+  let s = match sieve(100) {
+    Some(v) => v
+    None => abort("")
+  }
   assert_eq(smallest_prime_factor(s, 2), Some(2))
   assert_eq(smallest_prime_factor(s, 12), Some(2))
   assert_eq(smallest_prime_factor(s, 49), Some(7))
@@ -186,7 +212,10 @@ test "euler_sieve: smallest prime factor" {
 }
 
 test "euler_sieve: factorize" {
-  let s = sieve(10000)
+  let s = match sieve(10000) {
+    Some(v) => v
+    None => abort("")
+  }
   let f = match factorize(s, 360) {
     Some(v) => v
     None => abort("expected factorization")
@@ -198,7 +227,10 @@ test "euler_sieve: factorize" {
 }
 
 test "euler_sieve: factorize prime" {
-  let s = sieve(1000)
+  let s = match sieve(1000) {
+    Some(v) => v
+    None => abort("")
+  }
   let f = match factorize(s, 997) {
     Some(v) => v
     None => abort("expected factorization")
@@ -208,7 +240,10 @@ test "euler_sieve: factorize prime" {
 }
 
 test "euler_sieve: factorize power of 2" {
-  let s = sieve(1024)
+  let s = match sieve(1024) {
+    Some(v) => v
+    None => abort("")
+  }
   let f = match factorize(s, 1024) {
     Some(v) => v
     None => abort("expected factorization")
@@ -218,7 +253,10 @@ test "euler_sieve: factorize power of 2" {
 }
 
 test "euler_sieve: nth_prime" {
-  let s = sieve(100)
+  let s = match sieve(100) {
+    Some(v) => v
+    None => abort("")
+  }
   assert_eq(nth_prime(s, 0), Some(2))
   assert_eq(nth_prime(s, 1), Some(3))
   assert_eq(nth_prime(s, 24), Some(97))
@@ -227,20 +265,33 @@ test "euler_sieve: nth_prime" {
 }
 
 test "euler_sieve: sieve(1) returns empty" {
-  let s = sieve(1)
+  let s = match sieve(1) {
+    Some(v) => v
+    None => abort("")
+  }
   assert_eq(prime_count(s), 0)
   assert_false(is_prime(s, 1))
 }
 
 test "euler_sieve: sieve(2) returns single prime" {
-  let s = sieve(2)
+  let s = match sieve(2) {
+    Some(v) => v
+    None => abort("")
+  }
   assert_eq(prime_count(s), 1)
   assert_true(is_prime(s, 2))
   assert_false(is_prime(s, 3))
 }
 
+test "euler_sieve: rejects oversized input" {
+  assert_true(sieve(100_000_001) is None)
+}
+
 test "euler_sieve: cross-check with trial division" {
-  let s = sieve(5000)
+  let s = match sieve(5000) {
+    Some(v) => v
+    None => abort("")
+  }
   // Verify every spf entry is correct
   for i = 2; i <= 5000; i = i + 1 {
     let p = s.spf[i]

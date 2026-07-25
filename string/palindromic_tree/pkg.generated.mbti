@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/palindromic_tree"
+
+// Values
+pub fn all_palindromes(PalindromicTree) -> Array[String]
+
+pub fn build(String) -> PalindromicTree
+
+pub fn count_all_palindromes(PalindromicTree) -> Int64
+
+pub fn count_distinct_palindromes(PalindromicTree) -> Int
+
+pub fn count_occurrences(PalindromicTree, String) -> Int
+
+pub fn longest_palindrome_length(PalindromicTree) -> Int
+
+// Errors
+
+// Types and methods
+type Node
+
+pub struct PalindromicTree {
+  nodes : Array[Node]
+  mut last : Int
+  s : Array[Int]
+  mut n : Int
+}
+
+// Type aliases
+
+// Traits
+

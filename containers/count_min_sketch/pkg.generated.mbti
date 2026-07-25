@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/count_min_sketch"
+
+// Values
+pub fn add(CountMinSketch, String) -> Unit
+
+pub fn add_int(CountMinSketch, Int) -> Unit
+
+pub fn depth(CountMinSketch) -> Int
+
+pub fn estimate(CountMinSketch, String) -> Int
+
+pub fn estimate_int(CountMinSketch, Int) -> Int
+
+pub fn inner_product(CountMinSketch, CountMinSketch) -> Int
+
+pub fn merge(CountMinSketch, CountMinSketch) -> CountMinSketch
+
+pub fn new(Double, Double) -> CountMinSketch
+
+pub fn width(CountMinSketch) -> Int
+
+// Errors
+
+// Types and methods
+pub struct CountMinSketch {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

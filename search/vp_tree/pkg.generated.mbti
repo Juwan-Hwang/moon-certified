@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/search/vp_tree"
+
+// Values
+pub fn build(Int, (Int, Int) -> Double) -> VPTree
+
+pub fn nearest_neighbor(VPTree, Int) -> Int
+
+pub fn range_search(VPTree, Int, Double) -> Array[Int]
+
+// Errors
+
+// Types and methods
+pub enum VPNode {
+  Empty
+  Node(Int, Double, VPNode, VPNode)
+}
+
+pub struct VPTree {
+  root : VPNode
+  n : Int
+  dist : (Int, Int) -> Double
+}
+
+// Type aliases
+
+// Traits
+

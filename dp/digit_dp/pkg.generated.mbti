@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/digit_dp"
+
+// Values
+pub fn count_digit_sum(String, Int) -> Int64
+
+pub fn count_digit_sum_range(String, String, Int) -> Int64
+
+pub fn count_divisible(String, Int) -> Int64
+
+pub fn count_divisible_range(String, String, Int) -> Int64
+
+pub fn count_no_repeated_digits(String) -> Int64
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

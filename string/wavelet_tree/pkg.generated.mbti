@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/wavelet_tree"
+
+// Values
+pub fn access(WaveletTree, Int) -> Int?
+
+pub fn build(String) -> WaveletTree
+
+pub fn length(WaveletTree) -> Int
+
+pub fn range_count(WaveletTree, Int, Int, Int) -> Int
+
+pub fn rank(WaveletTree, Int, Int) -> Int
+
+pub fn select(WaveletTree, Int, Int) -> Int?
+
+// Errors
+
+// Types and methods
+type WTNode
+
+pub struct WaveletTree {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

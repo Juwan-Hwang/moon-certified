@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/hopcroft_karp"
+
+// Values
+pub fn add_edge(BipartiteGraph, Int, Int) -> Unit
+
+pub fn max_matching(BipartiteGraph) -> (Int, Array[Int], Array[Int])
+
+pub fn max_matching_size(BipartiteGraph) -> Int
+
+pub fn new_graph(Int, Int) -> BipartiteGraph
+
+// Errors
+
+// Types and methods
+pub struct BipartiteGraph {
+  n : Int
+  m : Int
+  adj : Array[Array[Int]]
+}
+
+// Type aliases
+
+// Traits
+

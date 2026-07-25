@@ -11,22 +11,60 @@
 // Sorting: 10,000 elements with pseudo-random distribution
 // ---------------------------------------------------------------------------
 
+/// Verify that `sorted` is a permutation of `original` (no elements lost
+/// or duplicated). Uses a counting approach: for each distinct value, the
+/// count in `sorted` must equal the count in `original`.
+fn assert_permutation(original : FixedArray[Int], sorted : FixedArray[Int]) -> Unit raise {
+  let n = original.length()
+  assert_eq(sorted.length(), n)
+  // Find min/max to size the count array.
+  if n == 0 {
+    return
+  }
+  let mut lo = original[0]
+  let mut hi = original[0]
+  for i = 1; i < n; i = i + 1 {
+    if original[i] < lo {
+      lo = original[i]
+    }
+    if original[i] > hi {
+      hi = original[i]
+    }
+  }
+  let range = hi - lo + 1
+  let counts_orig = FixedArray::make(range, 0)
+  let counts_sorted = FixedArray::make(range, 0)
+  for i = 0; i < n; i = i + 1 {
+    counts_orig[original[i] - lo] = counts_orig[original[i] - lo] + 1
+    counts_sorted[sorted[i] - lo] = counts_sorted[sorted[i] - lo] + 1
+  }
+  for v = 0; v < range; v = v + 1 {
+    assert_eq(counts_orig[v], counts_sorted[v])
+  }
+}
+
 test "stress: quick_sort 10000 elements" {
   let n = 10000
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 13) % 1000 })
+  let original = FixedArray::makei(n, fn(i) { (i * 7 + 13) % 1000 })
   @quick_sort.quick_sort(xs, fn(a, b) { a - b })
+  // Verify sortedness.
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(xs[k] <= xs[k + 1])
   }
+  // Verify permutation: no elements lost or duplicated.
+  assert_permutation(original, xs)
 }
 
 test "stress: merge_sort 10000 elements" {
   let n = 10000
   let xs = FixedArray::makei(n, fn(i) { (i * 3 + 7) % 500 })
+  let original = FixedArray::makei(n, fn(i) { (i * 3 + 7) % 500 })
   @merge_sort.merge_sort(xs, fn(a, b) { a - b })
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(xs[k] <= xs[k + 1])
   }
+  assert_permutation(original, xs)
 }
 
 // ---------------------------------------------------------------------------
@@ -51,14 +89,15 @@ test "stress: red_black_tree 1000 insert + 1000 delete" {
 // ---------------------------------------------------------------------------
 
 test "stress: btree 1000 insert + search" {
+  let cmp = fn(a : Int, b : Int) -> Int { a - b }
   let mut root = @btree.new()
   for k = 1; k <= 1000; k = k + 1 {
-    root = @btree.insert(root, k)
+    root = @btree.insert(root, k, cmp)
   }
   for k = 1; k <= 1000; k = k + 1 {
-    assert_true(@btree.search(root, k))
+    assert_true(@btree.search(root, k, cmp))
   }
-  assert_false(@btree.search(root, 1001))
+  assert_false(@btree.search(root, 1001, cmp))
 }
 
 // ---------------------------------------------------------------------------
@@ -97,7 +136,14 @@ test "stress: dijkstra_heap 1000 node graph" {
 // ---------------------------------------------------------------------------
 
 test "stress: bloom_filter 10000 elements no false negatives" {
-  let bf = @bloom_filter.new(10000, 0.01)
+  let str_hash = fn(s : String) -> Int {
+    let mut h = 0
+    for i = 0; i < s.length(); i = i + 1 {
+      h = h * 31 + s[i].to_int()
+    }
+    h
+  }
+  let bf = @bloom_filter.new(10000, 0.01, str_hash)
   for i = 0; i < 10000; i = i + 1 {
     @bloom_filter.add(bf, "key_\{i}")
   }
@@ -150,8 +196,46 @@ test "stress: lis 5000 elements" {
   let n = 5000
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 1000 })
   let len = @lis.lis_length(xs)
-  assert_true(len > 0)
-  assert_true(len <= n)
+  // Verify the result is a valid LIS length by cross-checking with
+  // a brute-force O(n^2) DP on a smaller sample.
+  let sample_n = 200
+  let sample = FixedArray::makei(sample_n, fn(i) { (i * 7 + 3) % 100 })
+  let sample_len = @lis.lis_length(sample)
+  // Brute-force LIS on the sample.
+  let dp = FixedArray::make(sample_n, 1)
+  for i = 0; i < sample_n; i = i + 1 {
+    for j = 0; j < i; j = j + 1 {
+      if sample[j] < sample[i] && dp[j] + 1 > dp[i] {
+        dp[i] = dp[j] + 1
+      }
+    }
+  }
+  let mut brute_max = 0
+  for i = 0; i < sample_n; i = i + 1 {
+    if dp[i] > brute_max {
+      brute_max = dp[i]
+    }
+  }
+  assert_eq(sample_len, brute_max)
+  // For the full array: reconstruct the actual subsequence and verify it is
+  // strictly increasing, is a valid subsequence of xs, and has length equal
+  // to lis_length. This is much stronger than the trivial `1 <= len <= n`
+  // bounds check: it confirms the reported length is actually achievable by
+  // a concrete increasing subsequence drawn from the input.
+  let seq = @lis.lis_sequence(xs)
+  assert_eq(seq.length(), len)
+  // Strictly increasing.
+  for k = 1; k < seq.length(); k = k + 1 {
+    assert_true(seq[k - 1] < seq[k])
+  }
+  // Valid subsequence of xs: scan xs and match seq in order.
+  let mut j = 0
+  for i = 0; i < n && j < seq.length(); i = i + 1 {
+    if xs[i] == seq[j] {
+      j = j + 1
+    }
+  }
+  assert_eq(j, seq.length())
 }
 
 // ---------------------------------------------------------------------------
@@ -184,14 +268,14 @@ test "stress: convex_hull 1000 random points" {
   let hull = @convex_hull.convex_hull(points)
   // Hull should have at least 3 points for non-degenerate input
   assert_true(hull.length() >= 3)
-  // Verify all turns are counterclockwise (convex)
+  // Verify all turns are counterclockwise (convex) using cross64 to
+  // avoid Int32 overflow for large coordinates.
   let h = hull.length()
   for i = 0; i < h; i = i + 1 {
     let p0 = hull[i]
     let p1 = hull[(i + 1) % h]
     let p2 = hull[(i + 2) % h]
-    let cross = (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x)
-    assert_true(cross >= 0)
+    assert_true(@geometry_utils.cross64(p0, p1, p2) >= 0L)
   }
 }
 
@@ -202,10 +286,12 @@ test "stress: convex_hull 1000 random points" {
 test "stress: heap_sort 10000 elements" {
   let n = 10000
   let xs = FixedArray::makei(n, fn(i) { (i * 11 + 7) % 1000 })
+  let original = FixedArray::makei(n, fn(i) { (i * 11 + 7) % 1000 })
   @heap_sort.heap_sort(xs, fn(a, b) { a - b })
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(xs[k] <= xs[k + 1])
   }
+  assert_permutation(original, xs)
 }
 
 test "stress: counting_sort 10000 elements" {
@@ -215,6 +301,7 @@ test "stress: counting_sort 10000 elements" {
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(sorted[k] <= sorted[k + 1])
   }
+  assert_permutation(xs, sorted)
 }
 
 test "stress: radix_sort 10000 elements" {
@@ -224,17 +311,18 @@ test "stress: radix_sort 10000 elements" {
   for k = 0; k < n - 1; k = k + 1 {
     assert_true(sorted[k] <= sorted[k + 1])
   }
+  assert_permutation(xs, sorted)
 }
 
 test "stress: avl 1000 insert + delete with balance" {
-  let mut tree = @avl.empty()
+  let mut tree : @avl.AvlNode[Int] = @avl.empty()
   for k = 1; k <= 1000; k = k + 1 {
-    tree = @avl.insert(tree, k)
+    tree = @avl.insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(@avl.size(tree), 1000)
   assert_true(@avl.height(tree) <= 20)
   for k = 1; k <= 500; k = k + 1 {
-    tree = @avl.delete(tree, k)
+    tree = @avl.delete(tree, k, fn(a, b) { a - b })
   }
   assert_eq(@avl.size(tree), 500)
   assert_true(@avl.height(tree) <= 20)
@@ -256,16 +344,16 @@ test "stress: skip_list 1000 insert + search + delete" {
 }
 
 test "stress: treap 1000 insert + search + delete" {
-  let mut tree = @treap.empty()
+  let mut tree : @treap.Treap[Int] = @treap.empty()
   for k = 1; k <= 1000; k = k + 1 {
-    tree = @treap.insert(tree, k)
+    tree = @treap.insert(tree, k, fn(a, b) { a - b })
   }
   assert_eq(@treap.size(tree), 1000)
   for k = 1; k <= 1000; k = k + 1 {
-    assert_true(@treap.search(tree, k))
+    assert_true(@treap.search(tree, k, fn(a, b) { a - b }))
   }
   for k = 1; k <= 500; k = k + 1 {
-    tree = @treap.delete(tree, k)
+    tree = @treap.delete(tree, k, fn(a, b) { a - b })
   }
   assert_eq(@treap.size(tree), 500)
 }

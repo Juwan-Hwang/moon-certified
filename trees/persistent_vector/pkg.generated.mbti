@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/persistent_vector"
+
+// Values
+pub fn[T] empty() -> PersistentVector[T]
+
+pub fn[T] get(PersistentVector[T], Int) -> T?
+
+pub fn[T] length(PersistentVector[T]) -> Int
+
+pub fn[T] push(PersistentVector[T], T) -> PersistentVector[T]
+
+pub fn[T] set(PersistentVector[T], Int, T) -> PersistentVector[T]
+
+// Errors
+
+// Types and methods
+pub enum Node[T] {
+  Leaf(Array[T])
+  Branch(FixedArray[Node[T]?])
+}
+
+pub struct PersistentVector[T] {
+  // private fields
+}
+pub fn[T] PersistentVector::new() -> Self[T]
+
+// Type aliases
+
+// Traits
+

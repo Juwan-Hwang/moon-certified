@@ -171,8 +171,21 @@ test "lis_length: with duplicates" {
 test "lis_length: large random 100 elements" {
   let xs = FixedArray::makei(100, fn(i) { (i * 37 + 11) % 97 })
   let l = lis_length(xs)
-  assert_true(l >= 1)
-  assert_true(l <= 100)
+  // Verify against O(n^2) brute-force LIS.
+  let n = xs.length()
+  let dp = FixedArray::make(n, 1)
+  let mut brute = 0
+  for i = 0; i < n; i = i + 1 {
+    for j = 0; j < i; j = j + 1 {
+      if xs[j] < xs[i] && dp[j] + 1 > dp[i] {
+        dp[i] = dp[j] + 1
+      }
+    }
+    if dp[i] > brute {
+      brute = dp[i]
+    }
+  }
+  assert_eq(l, brute)
 }
 
 test "lis_sequence: basic reconstruction" {

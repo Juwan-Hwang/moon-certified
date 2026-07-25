@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/simplex"
+
+// Values
+pub fn solve(Array[Double], Array[Array[Double]], Array[Double]) -> SimplexResult
+
+// Errors
+
+// Types and methods
+pub enum SimplexResult {
+  Optimal(Array[Double], Double)
+  Infeasible
+  Unbounded
+}
+
+// Type aliases
+
+// Traits
+

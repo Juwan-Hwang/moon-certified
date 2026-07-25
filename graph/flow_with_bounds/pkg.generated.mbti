@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/flow_with_bounds"
+
+// Values
+pub fn bounded_edge(Int, Int, Int, Int) -> BoundedEdge
+
+pub fn bounded_max_flow(Int, FixedArray[BoundedEdge], Int, Int) -> BoundedFlowResult
+
+pub fn edge_flow(BoundedFlowResult, Int) -> Int
+
+pub fn feasible_flow(Int, FixedArray[BoundedEdge], Int, Int) -> BoundedFlowResult
+
+pub fn is_feasible(BoundedFlowResult) -> Bool
+
+pub fn total_flow(BoundedFlowResult) -> Int
+
+pub fn vertex_count(BoundedFlowResult) -> Int
+
+// Errors
+
+// Types and methods
+pub struct BoundedEdge {
+  from : Int
+  to : Int
+  lower : Int
+  upper : Int
+}
+
+pub struct BoundedFlowResult {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

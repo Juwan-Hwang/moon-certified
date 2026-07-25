@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/game_theory/nim_sg"
+
+// Values
+pub fn game_sum_winner(Array[Int]) -> Int
+
+pub fn grundy_dp(Int, (Int) -> Array[Int]) -> FixedArray[Int]
+
+pub fn grundy_sum(Array[Int]) -> Int
+
+pub fn kayles_grundy(Int) -> FixedArray[Int]
+
+pub fn mex(Array[Int]) -> Int
+
+pub fn nim_sum(Array[Int]) -> Int
+
+pub fn nim_winner(Array[Int]) -> Int
+
+pub fn nim_winning_move(Array[Int]) -> (Int, Int)?
+
+pub fn subtraction_game_grundy(Int, Int) -> FixedArray[Int]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

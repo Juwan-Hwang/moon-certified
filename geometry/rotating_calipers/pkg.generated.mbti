@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/rotating_calipers"
+
+import {
+  "moon-certified/geometry/geometry_utils",
+}
+
+// Values
+pub fn diameter_sq(Array[@geometry_utils.Point]) -> Int64
+
+pub fn min_width_numerator(Array[@geometry_utils.Point]) -> Int64
+
+pub fn point(Int, Int) -> @geometry_utils.Point
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

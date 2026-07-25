@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/bidirectional_bfs"
+
+// Values
+pub fn bidirectional_bfs(Array[Array[(Int, Int)]], Int, Int, Int) -> Int?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/voronoi"
+
+import {
+  "moon-certified/geometry/delaunay",
+}
+
+// Values
+pub fn compute(Array[@delaunay.DPoint]) -> VoronoiDiagram
+
+// Errors
+
+// Types and methods
+pub struct VEdge {
+  v0 : Int
+  v1 : Int
+  is_bounded : Bool
+  dx : Double
+  dy : Double
+}
+
+pub struct VVertex {
+  x : Double
+  y : Double
+}
+
+pub struct VoronoiDiagram {
+  vertices : Array[VVertex]
+  edges : Array[VEdge]
+  num_sites : Int
+}
+
+// Type aliases
+
+// Traits
+

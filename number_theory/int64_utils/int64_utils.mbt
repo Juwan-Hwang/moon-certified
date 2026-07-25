@@ -89,10 +89,11 @@ pub fn mul_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
 /// The final result is normalised to non-negative.
 ///
 /// For `gcd64(Int64::MIN, b)` where `b != 0`, the result is mathematically
-/// correct (e.g. `gcd64(Int64::MIN, 2) == 2`). The only inaccuracy is
-/// `gcd64(Int64::MIN, 0)` — the true answer is 2^63, which cannot be
-/// represented as `Int64`; `Int64::MAX` is returned as the closest
-/// representable value.
+/// correct (e.g. `gcd64(Int64::MIN, 2) == 2`). The only inaccuracy occurs
+/// when the true GCD is 2^63 — specifically `gcd64(Int64::MIN, 0)` and
+/// `gcd64(Int64::MIN, Int64::MIN)` — since 2^63 cannot be represented as
+/// `Int64`; `Int64::MAX` (2^63−1) is returned as the closest representable
+/// value.
 pub fn gcd64(a : Int64, b : Int64) -> Int64 {
   let mut x = a
   let mut y = b

@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/sorting/insertion_sort"
+
+// Values
+pub fn[T] insertion_sort(FixedArray[T], (T, T) -> Int) -> Unit
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

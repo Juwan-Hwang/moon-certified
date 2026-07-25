@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/sorting/external_sort"
+
+// Values
+pub fn config(Int, Int) -> ExternalSortConfig
+
+pub fn external_sort(FixedArray[Int], ExternalSortConfig) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct ExternalSortConfig {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

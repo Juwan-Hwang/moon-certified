@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/dominator_tree"
+
+// Values
+pub fn build_dominator_tree(FixedArray[Array[Int]], Int, Int) -> DominatorTree
+
+pub fn build_dominator_tree_arr(Array[Array[Int]], Int, Int) -> DominatorTree
+
+pub fn dominates(DominatorTree, Int, Int) -> Bool
+
+pub fn idom(DominatorTree, Int) -> Int?
+
+pub fn root(DominatorTree) -> Int
+
+pub fn vertex_count(DominatorTree) -> Int
+
+// Errors
+
+// Types and methods
+pub struct DominatorTree {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

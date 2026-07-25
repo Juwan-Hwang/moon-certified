@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/binary_heap"
+
+// Values
+pub fn build_heap(FixedArray[Int]) -> Int
+
+pub fn heap_new(Int) -> Heap
+
+pub fn heap_pop(FixedArray[Int], Int) -> (Int?, Int)
+
+pub fn heap_push(FixedArray[Int], Int, Int) -> Int?
+
+pub fn heap_sort(FixedArray[Int]) -> Unit
+
+// Errors
+
+// Types and methods
+type Heap
+pub fn Heap::heap_build(Self) -> Unit
+pub fn Heap::heap_capacity(Self) -> Int
+pub fn Heap::heap_is_empty(Self) -> Bool
+pub fn Heap::heap_peek(Self) -> Int?
+pub fn Heap::heap_pop(Self) -> Int?
+pub fn Heap::heap_push(Self, Int) -> Unit?
+pub fn Heap::heap_size(Self) -> Int
+
+pub struct HeapG[T] {
+  // private fields
+}
+pub fn[T] HeapG::decrease_key(Self[T], Int, T) -> Unit?
+pub fn[T] HeapG::is_empty(Self[T]) -> Bool
+pub fn[T] HeapG::len(Self[T]) -> Int
+pub fn[T] HeapG::new((T, T) -> Int) -> Self[T]
+pub fn[T] HeapG::peek(Self[T]) -> T?
+pub fn[T] HeapG::pop(Self[T]) -> T?
+pub fn[T] HeapG::push(Self[T], T) -> Unit
+pub fn[T] HeapG::remove(Self[T], Int) -> T?
+
+// Type aliases
+
+// Traits
+

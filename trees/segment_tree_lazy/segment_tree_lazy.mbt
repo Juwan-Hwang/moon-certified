@@ -9,8 +9,24 @@
 /// - `range_sum(l, r)` — sum of elements in `[l, r)`. O(log n).
 /// - `range_min(l, r)` — minimum element in `[l, r)`. O(log n).
 /// - `range_max(l, r)` — maximum element in `[l, r)`. O(log n).
-/// - `point_get(idx)` — value at `idx`. O(log n).
+/// - `point_get(idx)` — **base** value at `idx` (last `point_set` or `build`
+///   value, NOT including pending `range_add` updates). **O(1)** via a
+///   cached `values` array.
+/// - `current_value(idx)` — **current** value at `idx` including all pending
+///   `range_add` updates. O(log n).
 /// - `point_set(idx, val)` — set `arr[idx] = val`. O(log n).
+///
+/// ## point_get vs current_value
+///
+/// The tree maintains a cached `values` array that mirrors the last value
+/// explicitly set at each position (via `build` or `point_set`). This allows
+/// **O(1)** `point_get` — useful for workloads that set values frequently and
+/// read them back without intervening `range_add` calls.
+///
+/// When `range_add` has been applied, `point_get` returns the **stale** base
+/// value. To obtain the **current** value (including all pending `range_add`
+/// deltas), use `current_value(idx)` which traverses the tree to collect lazy
+/// tags in O(log n), or equivalently `range_sum(idx, idx + 1)`.
 ///
 /// ## How it works
 ///
@@ -18,6 +34,16 @@
 /// records pending additions that have been applied to this node but not yet
 /// pushed to its children. When a query touches a child, `push_down`
 /// propagates the lazy value before recursing.
+///
+/// **Stack safety**: every recursive helper descends a perfectly balanced
+/// binary tree (each level halves the segment), so the recursion depth is
+/// O(log n) — safe for any array that fits in memory; no depth guard is
+/// needed. The midpoint uses the overflow-safe `lo + (hi - lo) / 2` form so
+/// index arithmetic never wraps.
+///
+/// **Point reads**: `point_get` is already O(1) (it reads the cached
+/// `values` array directly), so no separate `point_get_fast` is required.
+/// See "point_get vs current_value" above for the base/current distinction.
 ///
 /// All fields are **package-private**; external callers interact through
 /// free functions only.
@@ -40,9 +66,13 @@ pub struct LazySegNode {
 ///
 /// - `nodes` is a 1-indexed array of `4 * n` elements (standard binary heap layout).
 /// - `n` is the size of the underlying array.
+/// - `values` is a cached copy of the base values (set via `build` or
+///   `point_set`), enabling O(1) `point_get`. It does NOT reflect
+///   `range_add` updates; use `current_value` for that.
 pub struct LazySegTree {
   priv nodes : Array[LazySegNode]
   priv n : Int
+  priv values : FixedArray[Int64]
 }
 
 /// Sentinel values for empty segments.
@@ -59,9 +89,14 @@ const NEG_INF_LAZY : Int64 = -9223372036854775808L
 /// `n` is determined by `arr.length()`. An empty array produces a tree with `n = 0`.
 pub fn build(arr : FixedArray[Int]) -> LazySegTree {
   let n = arr.length()
+  let values = FixedArray::make(n, 0L)
+  for i = 0; i < n; i = i + 1 {
+    values[i] = arr[i].to_int64()
+  }
   let st : LazySegTree = {
     nodes: [],
     n,
+    values,
   }
   // Allocate 4*n nodes.
   for i = 0; i < 4 * n + 4; i = i + 1 {
@@ -88,7 +123,7 @@ fn build_helper(
     st.nodes[node].lazy_val = 0L
     return
   }
-  let mid = (lo + hi) / 2
+  let mid = lo + (hi - lo) / 2
   build_helper(st, arr, node * 2, lo, mid)
   build_helper(st, arr, node * 2 + 1, mid + 1, hi)
   push_up(st, node)
@@ -121,7 +156,7 @@ fn push_down(st : LazySegTree, node : Int, lo : Int, hi : Int) -> Unit {
     let lazy_val = st.nodes[node].lazy_val
     let left = node * 2
     let right = node * 2 + 1
-    let mid = (lo + hi) / 2
+    let mid = lo + (hi - lo) / 2
     apply_lazy(st, left, lo, mid, lazy_val)
     apply_lazy(st, right, mid + 1, hi, lazy_val)
     st.nodes[node].lazy_val = 0L
@@ -179,7 +214,7 @@ fn update_helper(
     return
   }
   push_down(st, node, lo, hi)
-  let mid = (lo + hi) / 2
+  let mid = lo + (hi - lo) / 2
   if l <= mid {
     update_helper(st, node * 2, lo, mid, l, r, val)
   }
@@ -211,7 +246,7 @@ fn query_sum_helper(
     return st.nodes[node].sum
   }
   push_down(st, node, lo, hi)
-  let mid = (lo + hi) / 2
+  let mid = lo + (hi - lo) / 2
   let mut result = 0L
   if l <= mid {
     result = result + query_sum_helper(st, node * 2, lo, mid, l, r)
@@ -244,7 +279,7 @@ fn query_min_helper(
     return st.nodes[node].mn
   }
   push_down(st, node, lo, hi)
-  let mid = (lo + hi) / 2
+  let mid = lo + (hi - lo) / 2
   let mut result = INF_LAZY
   if l <= mid {
     let v = query_min_helper(st, node * 2, lo, mid, l, r)
@@ -283,7 +318,7 @@ fn query_max_helper(
     return st.nodes[node].mx
   }
   push_down(st, node, lo, hi)
-  let mid = (lo + hi) / 2
+  let mid = lo + (hi - lo) / 2
   let mut result = NEG_INF_LAZY
   if l <= mid {
     let v = query_max_helper(st, node * 2, lo, mid, l, r)
@@ -300,10 +335,32 @@ fn query_max_helper(
   result
 }
 
-/// Get the value at index `idx`. O(log n).
+/// Get the **base** value at index `idx`. **O(1)**.
+///
+/// Returns the last value set via `point_set` or `build` at this position,
+/// directly from the cached `values` array. Does **NOT** include pending
+/// `range_add` updates.
+///
+/// To obtain the current value including all `range_add` deltas, use
+/// `current_value(idx)` (O(log n)) or `range_sum(idx, idx + 1)` (O(log n)).
 ///
 /// Returns 0 if `idx` is out of bounds.
 pub fn point_get(st : LazySegTree, idx : Int) -> Int64 {
+  if st.n == 0 || idx < 0 || idx >= st.n {
+    return 0L
+  }
+  st.values[idx]
+}
+
+/// Get the **current** value at index `idx`, including all pending
+/// `range_add` updates. **O(log n)**.
+///
+/// This traverses the tree to collect all lazy tags affecting `idx`,
+/// giving the up-to-date value. Use this when `range_add` has been
+/// applied since the last `point_set` and you need the actual current value.
+///
+/// Returns 0 if `idx` is out of bounds.
+pub fn current_value(st : LazySegTree, idx : Int) -> Int64 {
   if st.n == 0 || idx < 0 || idx >= st.n {
     return 0L
   }
@@ -312,13 +369,45 @@ pub fn point_get(st : LazySegTree, idx : Int) -> Int64 {
 
 /// Set `arr[idx] = val`. O(log n).
 ///
+/// Uses a **direct single-traversal update**: pushes down lazy tags along the
+/// path to the leaf, sets the leaf value, then pulls up aggregates on the way
+/// back. This avoids the double traversal (point_get + range_add) that the
+/// naive approach requires.
+///
+/// Also updates the cached `values` array in O(1), so that `point_get(idx)`
+/// returns `val` immediately after this call (until a `range_add` affects `idx`).
+///
 /// Does nothing if `idx` is out of bounds.
 pub fn point_set(st : LazySegTree, idx : Int, val : Int64) -> Unit {
   if st.n == 0 || idx < 0 || idx >= st.n {
     return
   }
-  let current = point_get(st, idx)
-  range_add(st, idx, idx, val - current)
+  st.values[idx] = val
+  point_set_helper(st, 1, 0, st.n - 1, idx, val)
+}
+
+fn point_set_helper(
+  st : LazySegTree,
+  node : Int,
+  lo : Int,
+  hi : Int,
+  idx : Int,
+  val : Int64,
+) -> Unit {
+  if lo == hi {
+    st.nodes[node].sum = val
+    st.nodes[node].mn = val
+    st.nodes[node].mx = val
+    return
+  }
+  push_down(st, node, lo, hi)
+  let mid = lo + (hi - lo) / 2
+  if idx <= mid {
+    point_set_helper(st, node * 2, lo, mid, idx, val)
+  } else {
+    point_set_helper(st, node * 2 + 1, mid + 1, hi, idx, val)
+  }
+  push_up(st, node)
 }
 
 /// Number of elements in the underlying array. O(1).
@@ -352,13 +441,16 @@ test "LazySegTree: range_add then sum" {
   let st = build(arr)
   range_add(st, 0, 4, 10L) // add 10 to all
   assert_eq(range_sum(st, 0, 5), 50L)
-  assert_eq(point_get(st, 2), 10L)
+  // point_get returns the BASE value (0, before range_add); current_value
+  // returns the actual value (10, after range_add).
+  assert_eq(point_get(st, 2), 0L)
+  assert_eq(current_value(st, 2), 10L)
   range_add(st, 1, 3, 5L) // add 5 to [1,3]
-  assert_eq(point_get(st, 0), 10L)
-  assert_eq(point_get(st, 1), 15L)
-  assert_eq(point_get(st, 2), 15L)
-  assert_eq(point_get(st, 3), 15L)
-  assert_eq(point_get(st, 4), 10L)
+  assert_eq(current_value(st, 0), 10L)
+  assert_eq(current_value(st, 1), 15L)
+  assert_eq(current_value(st, 2), 15L)
+  assert_eq(current_value(st, 3), 15L)
+  assert_eq(current_value(st, 4), 10L)
   assert_eq(range_sum(st, 0, 5), 65L)
 }
 
@@ -390,10 +482,11 @@ test "LazySegTree: overlapping range adds" {
   range_add(st, 3, 8, 1L)
   range_add(st, 5, 9, 1L)
   // 0:1, 1:1, 2:1, 3:2, 4:2, 5:3, 6:2, 7:2, 8:2, 9:1
-  assert_eq(point_get(st, 0), 1L)
-  assert_eq(point_get(st, 3), 2L)
-  assert_eq(point_get(st, 5), 3L)
-  assert_eq(point_get(st, 9), 1L)
+  // After range_add, use current_value to get the up-to-date value.
+  assert_eq(current_value(st, 0), 1L)
+  assert_eq(current_value(st, 3), 2L)
+  assert_eq(current_value(st, 5), 3L)
+  assert_eq(current_value(st, 9), 1L)
   assert_eq(range_sum(st, 0, 10), 17L) // 1+1+1+2+2+3+2+2+2+1
 }
 
@@ -403,7 +496,8 @@ test "LazySegTree: single element" {
   assert_eq(point_get(st, 0), 42L)
   assert_eq(range_sum(st, 0, 1), 42L)
   range_add(st, 0, 0, 8L)
-  assert_eq(point_get(st, 0), 50L)
+  // After range_add, use current_value to get the up-to-date value.
+  assert_eq(current_value(st, 0), 50L)
 }
 
 test "LazySegTree: out of bounds" {
@@ -441,7 +535,8 @@ test "LazySegTree: stress test (many range adds)" {
     }
   }
   for i = 0; i < n; i = i + 1 {
-    assert_eq(point_get(st, i), expected[i])
+    // After range_add, use current_value to get the up-to-date value.
+    assert_eq(current_value(st, i), expected[i])
   }
   // Verify range sums.
   assert_eq(range_sum(st, 0, n), range_sum_brute(expected, 0, n))

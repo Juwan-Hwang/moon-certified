@@ -1,0 +1,39 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/search/lsh"
+
+// Values
+pub fn build(Array[Array[Double]], Double, Int, Int, Int) -> LSHIndex
+
+pub fn nearest_neighbor(LSHIndex, Array[Double]) -> Int
+
+pub fn range_search(LSHIndex, Array[Double], Double) -> Array[Int]
+
+// Errors
+
+// Types and methods
+pub struct Bucket {
+  key : String
+  indices : Array[Int]
+}
+
+pub struct LSHIndex {
+  tables : Array[LSHTable]
+  k : Int
+  l : Int
+  w : Double
+  d : Int
+  points : Array[Array[Double]]
+  seed : Int
+}
+
+pub struct LSHTable {
+  projections : Array[Array[Double]]
+  offsets : Array[Double]
+  w : Double
+  buckets : Array[Bucket]
+}
+
+// Type aliases
+
+// Traits
+

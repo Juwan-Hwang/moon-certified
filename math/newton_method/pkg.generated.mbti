@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/newton_method"
+
+// Values
+pub fn nth_root(Double, Int) -> Double
+
+pub fn solve((Double) -> Double, (Double) -> Double, Double, Double, Int) -> NewtonResult
+
+pub fn solve_default((Double) -> Double, (Double) -> Double, Double) -> NewtonResult
+
+pub fn sqrt(Double) -> Double
+
+pub fn unwrap_or(NewtonResult, Double) -> Double
+
+// Errors
+
+// Types and methods
+pub enum NewtonResult {
+  Converged(Double)
+  MaxIterations(Double)
+  ZeroDerivative(Double)
+  Diverged
+}
+
+// Type aliases
+
+// Traits
+

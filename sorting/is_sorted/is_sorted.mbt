@@ -89,20 +89,7 @@ test "is_sorted_generic: String sorted" {
   xs[0] = "apple"
   xs[1] = "banana"
   xs[2] = "cherry"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  assert_eq(is_sorted_generic(xs, str_cmp), true)
+  assert_eq(is_sorted_generic(xs, @test_utils.str_cmp), true)
 }
 
 test "is_sorted_generic: String unsorted" {
@@ -110,20 +97,7 @@ test "is_sorted_generic: String unsorted" {
   xs[0] = "cherry"
   xs[1] = "banana"
   xs[2] = "apple"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  assert_eq(is_sorted_generic(xs, str_cmp), false)
+  assert_eq(is_sorted_generic(xs, @test_utils.str_cmp), false)
 }
 
 test "is_sorted_generic: empty and single" {

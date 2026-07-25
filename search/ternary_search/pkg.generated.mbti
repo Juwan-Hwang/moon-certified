@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/search/ternary_search"
+
+// Values
+pub fn ternary_search_max((Int) -> Int, Int, Int) -> Int
+
+pub fn ternary_search_max_double((Double) -> Double, Double, Double, Double) -> Double
+
+pub fn ternary_search_min((Int) -> Int, Int, Int) -> Int
+
+pub fn ternary_search_min_double((Double) -> Double, Double, Double, Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

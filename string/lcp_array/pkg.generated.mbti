@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/lcp_array"
+
+// Values
+pub fn build(FixedArray[Int], String) -> FixedArray[Int]
+
+pub fn count_distinct_substrings(FixedArray[Int], FixedArray[Int], Int) -> Int64
+
+pub fn longest_repeated_substring(FixedArray[Int], FixedArray[Int]) -> (Int, Int)?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

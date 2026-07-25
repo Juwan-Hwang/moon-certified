@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/centroid_decomposition"
+
+// Values
+pub fn build(Array[Array[Int]], Int) -> CentroidDecomp
+
+pub fn centroid_subtree(Array[Array[Int]], CentroidDecomp, Int) -> Array[Int]
+
+// Errors
+
+// Types and methods
+pub struct CentroidDecomp {
+  n : Int
+  centroid_parent : FixedArray[Int]
+  centroid_depth : FixedArray[Int]
+  root : Int
+}
+
+// Type aliases
+
+// Traits
+

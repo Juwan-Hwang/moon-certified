@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/ttl_cache"
+
+// Values
+pub fn[K : Hash + Eq, V] clear(TtlCache[K, V]) -> Unit
+
+pub fn[K : Hash + Eq, V] get(TtlCache[K, V], K) -> V?
+
+pub fn[K : Hash + Eq, V] new(Int, Int) -> TtlCache[K, V]
+
+pub fn[K : Hash + Eq, V] put(TtlCache[K, V], K, V) -> Unit
+
+pub fn[K : Hash + Eq, V] remove(TtlCache[K, V], K) -> Unit
+
+pub fn[K, V] size(TtlCache[K, V]) -> Int
+
+pub fn[K : Hash + Eq, V] tick(TtlCache[K, V], Int) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Entry[V] {
+  // private fields
+}
+
+pub struct TtlCache[K, V] {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

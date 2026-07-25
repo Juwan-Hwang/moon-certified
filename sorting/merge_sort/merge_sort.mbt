@@ -195,20 +195,7 @@ test "merge_sort: generic with String" {
   xs[2] = "apple"
   xs[3] = "elderberry"
   xs[4] = "cherry"
-  /// Lexicographic string comparator (MoonBit's default Compare uses shortlex).
-  let str_cmp = fn(a : String, b : String) -> Int {
-    let la = a.length()
-    let lb = b.length()
-    let min = if la < lb { la } else { lb }
-    for k = 0; k < min; k = k + 1 {
-      let ca = a[k].to_int()
-      let cb = b[k].to_int()
-      if ca < cb { return -1 }
-      if ca > cb { return 1 }
-    }
-    la - lb
-  }
-  merge_sort(xs, str_cmp)
+  merge_sort(xs, @test_utils.str_cmp)
   assert_eq(xs[0], "apple")
   assert_eq(xs[1], "banana")
   assert_eq(xs[2], "cherry")

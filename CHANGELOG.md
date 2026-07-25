@@ -5,6 +5,187 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-07-25
+
+### Added — 44 new algorithm packages + production infrastructure
+
+#### Containers
+- `concurrent` — Concurrent data structures: generic RingBuffer, BoundedQueue (try_push/try_pop), SnapshotMap (copy-on-write snapshot with O(1) snapshot).
+- `lock_free_queue` — Michael-Scott lock-free queue with preallocated node pool and CAS-based enqueue/dequeue.
+- `lsm_tree` — Log-Structured Merge-Tree with memtable, SSTable flush, and multi-level compaction.
+- `bplus_tree` (in trees/) — B+Tree with linked leaves for range queries.
+- `hamt` (in trees/) — Hash Array Mapped Trie (HAMT) for persistent, O(log₃₂ n) key-value store.
+- `crc` — CRC-32 (IEEE 802.3) checksum with lookup table.
+
+#### String
+- `suffix_tree` — Ukkonen's suffix tree: build, contains, count_occurrences, count_distinct_substrings, longest_repeated_substring.
+- `fm_index` — FM-Index for compressed full-text indexing: count, locate, extract.
+- `wavelet_tree` — Wavelet tree for rank/select queries on sequences.
+- `palindromic_tree` — Eertree for all distinct palindromic substrings.
+- `suffix_balanced_tree` — Suffix balanced tree for online suffix insertion.
+- `lyndon` — Lyndon decomposition (Duval) and minimum rotation (Booth).
+
+#### Graph
+- `edmonds_blossom` — Edmonds' Blossom algorithm for maximum matching in general (non-bipartite) graphs.
+- `dominator_tree` — Lengauer-Tarjan dominator tree construction.
+- `gomory_hu` — Gomory-Hu tree for all-pairs min-cut.
+- `stoer_wagner` — Stoer-Wagner global minimum cut.
+- `hlpp` — Highest-Label Preflow Push max flow (O(V²√E)).
+- `hopcroft_karp` — Hopcroft-Karp bipartite matching (O(E√V)).
+- `min_steiner_tree` — Minimum Steiner tree (approximation + exact for small terminal sets).
+- `hld` — Heavy-Light Decomposition for path queries/updates on trees.
+- `centroid_decomposition` — Centroid decomposition for divide-and-conquer on trees.
+- `virtual_tree` — Virtual tree (auxiliary tree) construction from a vertex set.
+- `max_clique` — Bron-Kerbosch maximum clique with pivoting and degeneracy ordering.
+- `graph_coloring` — Graph coloring (DSATUR heuristic + greedy).
+- `flow_with_bounds` — Min-cost max-flow with lower and upper capacity bounds.
+
+#### Geometry
+- `convex_hull_3d` — 3D convex hull via randomized incremental construction.
+- `voronoi` — Voronoi diagram via Fortune's sweep line algorithm.
+- `delaunay` — Delaunay triangulation via incremental insertion.
+- `half_plane_intersection` — Half-plane intersection (S&I + deque).
+- `dynamic_hull` — Dynamic convex hull (online insertion, O(log²n) per point).
+
+#### Math
+- `fft` — Fast Fourier Transform (Cooley-Tukey radix-2) for complex polynomial multiplication.
+- `matrix_decomp` — LU decomposition (partial pivoting), QR (Householder), SVD (one-sided Jacobi), eigenvalues (QR iteration).
+- `newton_method` — Newton-Raphson root finding with robust error handling.
+- `simplex` — Two-phase simplex method for linear programming.
+- `berlekamp_massey` — Berlekamp-Massey linear recurrence finding.
+
+#### Number Theory
+- `quadratic_residue` — Tonelli-Shanks algorithm for quadratic residues mod prime.
+- `primitive_root` — Primitive root finding modulo prime.
+- `mobius` — Möbius function and Möbius inversion.
+- `finite_field` — GF(p) finite field arithmetic.
+- `reed_solomon` — Reed-Solomon encoding/decoding with GF(256).
+- `polynomial` — Polynomial operations (inverse, sqrt, ln, exp mod x^n).
+
+#### Dynamic Programming
+- `bitmask_dp` — Bitmask DP: Hamiltonian path, Steiner tree, independent set on small graphs.
+- `convex_hull_trick` — Convex Hull Trick for slope optimization.
+- `digit_dp` — Digit DP for digit-property counting.
+- `divide_conquer_dp` — Divide-and-conquer DP optimization.
+- `knuth_opt` — Knuth optimization (quadrangle inequality).
+- `sos_dp` — Sum Over Subsets DP.
+
+#### Trees
+- `persistent_vector` — Persistent vector with structural sharing (path copying).
+- `link_cut` — Link-Cut Tree (Sleator-Tarjan).
+- `li_chao_tree` — Li Chao Tree for line segment optimization.
+- `bit_2d` — 2D Binary Indexed Tree.
+- `mo_algorithm` — Mo's algorithm for offline range queries.
+- `segment_tree_beats` — Segment Tree Beats (range chmin/chmax + sum).
+
+#### Search
+- `ball_tree` — Ball tree for nearest neighbor search.
+- `vp_tree` — Vantage Point tree for metric space search.
+- `lsh` — Locality-Sensitive Hashing for approximate nearest neighbor.
+- `ternary_search` — Ternary search for unimodal function optimization.
+
+#### Sorting
+- `external_sort` — External merge sort for datasets larger than memory.
+
+#### Random
+- `reservoir_sampling` — Reservoir sampling (Algorithm R).
+- `weighted_sampling` — Weighted random sampling (alias method).
+
+#### Game Theory
+- `nim_sg` — Nim game and Sprague-Grundy theorem.
+
+#### Test Infrastructure
+- `benchmarks/` — Performance benchmark suite with wall-clock timing and complexity verification.
+- `test/fuzz/` — Fuzz tests and adversarial input tests (sorting worst-case, graph self-loops/disconnects/cycles, string Unicode, Carmichael numbers, geometry collinear/duplicate, concurrent structure boundaries).
+- `test/stress/` — Enhanced stress tests with permutation verification (sorting) and subsequence validation (LIS).
+- `test/test_utils/` — Shared test utilities (eliminates str_cmp duplication across 14 files).
+- `docs/API_STABILITY.md` — API stability and deprecation policy.
+
+### Fixed — 3 P0/P1 bugs + 12 production-grade improvements
+
+#### Bug fixes (P0/P1)
+- `euler_path`: Fixed `total_edges` counting out-of-bounds vertices, causing path-length validation to incorrectly reject valid Euler paths (P0).
+- `boyer_moore`: Fixed `build_bad_char` using hardcoded 256-element array (ASCII only) — now uses `Map[Int, Int]` supporting all Unicode code points including CJK (P0).
+- `convex_hull`: Fixed using `cross()` (Int32) instead of `cross64()` (Int64) — coordinate differences >46340 caused overflow. Now consistent with `andrew_hull` (P1).
+
+#### Production-grade improvements
+- `avl`: Added recursion depth limit (stack protection) + generic support.
+- `segment_tree`: Added overflow-safe midpoint `lo + (hi-lo)/2` + stack protection + checked Int64 variant.
+- `segment_tree_lazy`: `point_get` optimized from O(log n) to O(1) + overflow detection.
+- `btree`: `size()` upgraded from O(n) traversal to O(1) cached count + `_delete` clamp precision fix.
+- `treap`: Added stack protection + iterative alternatives for degenerate trees.
+- `bloom_filter`: Made generic + added `get_bit` boundary check (consistent with `set_bit`).
+- `suffix_array`: Recursive merge sort replaced with iterative bottom-up implementation (stack-safe).
+- `tree_dp`: Forest handling code deduplicated (~40 lines removed).
+- `matrix`: Negative exponent handling + Bareiss algorithm overflow documentation.
+- `ntt`: Dead code in `bit_reverse` removed + upgraded from O(n log n) to O(n) bit-reversal.
+- `int64_utils`: `gcd64(Int64::MIN, Int64::MIN)` documentation corrected.
+
+#### Algorithm upgrades
+- `min_cost_flow`: Upgraded from pure SPFA to **Successive Shortest Paths with Potentials** (first iteration SPFA + subsequent Dijkstra with reduced costs). Complexity improved from O(F·V·E) to O(V·E + F·E log V).
+- `prim`/`segment_tree`/`fenwick`/`kruskal`: Added `*_checked` variants with Int64 overflow detection.
+
+#### Documentation / error handling
+- `miller_rabin`: Documentation corrected — witness set is {2,3,5,7,11,13,17,19,23,29,31,37} (12 witnesses), not {2,7,61}.
+- `euler_sieve`: Changed from `abort(panic)` to returning `None` for n > 100M, consistent with library's Option-over-magic-values policy.
+- `andrew_hull`: `cmp_point` changed from Int32 subtraction to Int64 subtraction, consistent with `closest_pair.cmp_xy`.
+- README updated: overflow table now documents checked variants for prim/segment_tree/fenwick/kruskal.
+- CI: Added macOS to the test matrix (was ubuntu-only).
+
+### Changed
+- Updated README: 113 → 157 packages, 1599 → 2184 tests.
+- CI matrix: ubuntu-22.04 → ubuntu-22.04 + ubuntu-latest + macos-latest.
+
+## [0.10.0] - 2026-07-25
+
+### Added — 27 new algorithm packages
+
+#### String
+- `suffix_tree` — Ukkonen's algorithm for O(n) suffix tree construction. Supports substring search, longest common extension, and suffix enumeration.
+- `palindromic_tree` — Eertree (palindromic tree) for storing all distinct palindromic substrings in O(n). Supports insertion, existence query, and longest palindrome.
+- `rolling_hash` — Dual-modulus rolling hash for collision-resistant substring hashing. Supports arbitrary [l, r) range queries in O(1).
+- `lyndon` — Lyndon decomposition via Duval's algorithm. Includes minimum rotation (Booth's algorithm) and lexicographically smallest rotation.
+
+#### Graph
+- `hopcroft_karp` — Hopcroft-Karp algorithm for maximum bipartite matching in O(E√V). Layered BFS + greedy DFS.
+- `stoer_wagner` — Stoer-Wagner algorithm for global minimum cut in O(V³). Phase-based vertex contraction.
+- `max_clique` — Bron-Kerbosch algorithm with pivoting and degeneracy ordering for maximum clique finding.
+
+#### Trees
+- `link_cut` — Link-Cut Tree (Sleator-Tarjan) using splay-tree representation. Supports dynamic tree operations: link, cut, connected, root query in amortized O(log n).
+- `persistent_vector` — Persistent vector with structural sharing (path copying). O(log n) update, O(1) snapshot.
+
+#### Geometry
+- `convex_hull_3d` — 3D convex hull via randomized incremental construction with horizon edge detection. O(n log n) expected.
+- `half_plane_intersection` — Half-plane intersection using sort-and-sweep algorithm with deque. No atan2 (cross-product comparator). Bounding box for unbounded cases.
+
+#### Math
+- `matrix_decomp` — LU decomposition (partial pivoting), QR decomposition (Householder reflections), SVD (one-sided Jacobi rotations). All for Double matrices.
+- `newton_method` — Newton-Raphson root finding with robust error handling (zero derivative, divergence, max iterations). Includes nth_root and sqrt.
+- `berlekamp_massey` — Berlekamp-Massey algorithm for finding the shortest linear recurrence relation of a sequence in O(n²).
+- `fft` — Fast Fourier Transform (Cooley-Tukey radix-2) for O(n log n) polynomial multiplication. Complex arithmetic with trigonometric recursion.
+- `simplex` — Two-phase simplex method for linear programming. Handles equality and inequality constraints with auxiliary variables.
+
+#### Containers
+- `w_tinylfu` — W-TinyLFU cache combining Window LRU + SLRU + Count-Min Sketch frequency estimator. Modern admission-based cache with aging for superior hit rates.
+- `cuckoo_filter` — Cuckoo filter supporting insertion, lookup, and deletion with configurable fingerprint size and bucket count.
+- `hyperloglog` — HyperLogLog for cardinality estimation with bias correction for small/large ranges.
+- `ttl_cache` — TTL cache with LRU eviction and time-based expiry. Monotonic clock for O(1) TTL check.
+- `count_min_sketch` — Count-Min Sketch with double hashing, merge, and inner product estimation. Configurable epsilon/delta guarantees.
+
+#### Dynamic Programming
+- `digit_dp` — Digit DP for counting numbers with specific digit properties (digit sum, digit constraints, range [L, R] queries).
+
+#### Game Theory
+- `nim_sg` — Combinatorial game theory: Nim game solving, Sprague-Grundy theorem for composite games, Grundy number computation.
+
+#### Random
+- `reservoir_sampling` — Reservoir sampling (Algorithm R) for O(n) online uniform sampling from a stream of unknown size.
+
+### Changed
+- Updated README: 86 → 113 packages, 1321 → 1599 tests. All new packages documented in project structure and test statistics.
+- Added overflow documentation entries for rolling_hash, matrix_decomp, and newton_method.
+
 ## [0.9.0] - 2026-07-24
 
 ### Added — 12 new algorithm packages
