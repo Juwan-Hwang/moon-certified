@@ -62,6 +62,14 @@
 /// sites with real atomic CAS — the public API and algorithm structure
 /// stay identical.
 ///
+/// ## Real concurrency today: `@async.Mutex`
+///
+/// For code that needs **actual mutual exclusion** in MoonBit's current
+/// async runtime, use the `@async.Mutex` from the `moonbitlang/async`
+/// package. See the `containers/concurrent` module's `AsyncQueue[T]` for
+/// a production-grade mutex-protected queue that works with MoonBit's
+/// cooperative async scheduler.
+///
 /// ## Bounded capacity (production optimisation)
 ///
 /// Unlike the original (unbounded) Michael-Scott queue, this implementation

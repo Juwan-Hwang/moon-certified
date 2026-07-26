@@ -1,3 +1,7 @@
+import {
+  "moonbitlang/async",
+}
+
 options(
   "proof-enabled": false,
 )

@@ -6,9 +6,15 @@
 /// 2. **K-way merge**: Merge K sorted runs at a time using a binary min-heap,
 ///    achieving O(n log k) per merge pass (not O(n×k)).
 ///
-/// This in-memory simulation demonstrates the external sort algorithm
+/// This in-memory implementation demonstrates the external sort algorithm
 /// without actual disk I/O. It operates on `FixedArray` and uses an
 /// internal "run list" to simulate disk-based sorted runs.
+///
+/// For real disk-backed external sort, see the companion module
+/// `external_sort_disk.mbt` which provides `external_sort_disk`, an async
+/// function that persists sorted runs to temporary files between merge
+/// passes using `@async/fs`, enabling sorting of datasets larger than
+/// available memory.
 ///
 /// ## Complexity
 /// - Time: O(n log n) — each merge pass is O(n log k), with ⌈log_k(runs)⌉ passes.

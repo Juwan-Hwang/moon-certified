@@ -20,11 +20,17 @@
 ///
 /// ## This implementation
 ///
-/// This is an in-memory simulation of the LSM-Tree architecture. The
+/// This is an in-memory implementation of the LSM-Tree architecture. The
 /// MemTable uses a sorted array (for simplicity and cache efficiency). The
 /// SSTables are stored in memory as sorted arrays with Bloom filters. This
-/// demonstrates the full LSM architecture without actual disk I/O, making it
-/// suitable for testing and as a reference implementation.
+/// demonstrates the full LSM architecture, making it suitable for testing
+/// and as a reference implementation.
+///
+/// For disk-backed persistence, see the companion module `lsm_tree_disk.mbt`
+/// which provides async functions (`flush_to_disk`, `persist_to_disk`,
+/// `restore_from_disk`, `checkpoint_to_disk`) using `@async/fs` for real
+/// file I/O. The disk variant enables the LSM-Tree to survive process
+/// restarts and handle datasets larger than available memory.
 ///
 /// ## Complexity
 /// - Write: O(1) amortized (append to MemTable, periodically flush).
