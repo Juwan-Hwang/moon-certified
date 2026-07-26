@@ -28,6 +28,7 @@
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
 
+///|
 /// Swap two elements in a generic array.
 fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -35,6 +36,7 @@ fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
+///|
 /// Sift-down for a max-heap over xs[0..size).
 ///
 /// Moves the element at `idx` down the tree until the max-heap property
@@ -68,13 +70,10 @@ fn[T] sift_down(
   }
 }
 
+///|
 /// Build a max-heap in place over xs[0..n) using Floyd's method:
 /// sift down every non-leaf node, from the last parent down to the root.
-fn[T] build_max_heap(
-  xs : FixedArray[T],
-  n : Int,
-  cmp : (T, T) -> Int,
-) -> Unit {
+fn[T] build_max_heap(xs : FixedArray[T], n : Int, cmp : (T, T) -> Int) -> Unit {
   // The last non-leaf node sits at index n / 2 - 1.
   let mut i = n / 2 - 1
   while i >= 0 {
@@ -83,12 +82,10 @@ fn[T] build_max_heap(
   }
 }
 
+///|
 /// Generic in-place heap sort.
 /// Sorts the entire array in ascending order according to `cmp`.
-pub fn[T] heap_sort(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Unit {
+pub fn[T] heap_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
@@ -105,6 +102,7 @@ pub fn[T] heap_sort(
   }
 }
 
+///|
 test "heap_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
   heap_sort(xs, fn(a, b) { a - b })
@@ -115,6 +113,7 @@ test "heap_sort: basic" {
   assert_eq(xs[4], 5)
 }
 
+///|
 test "heap_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i }) // [0, 1, ..., 9]
   heap_sort(xs, fn(a, b) { a - b })
@@ -123,6 +122,7 @@ test "heap_sort: already sorted" {
   }
 }
 
+///|
 test "heap_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
   heap_sort(xs, fn(a, b) { a - b })
@@ -131,18 +131,21 @@ test "heap_sort: reverse sorted" {
   }
 }
 
+///|
 test "heap_sort: single element" {
   let xs = FixedArray::make(1, 42)
   heap_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "heap_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   heap_sort(xs, fn(a, b) { a - b })
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "heap_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   heap_sort(xs, fn(a, b) { a - b })
@@ -156,6 +159,7 @@ test "heap_sort: duplicates" {
   assert_eq(xs[7], 2)
 }
 
+///|
 test "heap_sort: negative values" {
   let xs = FixedArray::makei(5, fn(i) { 2 - i }) // [2, 1, 0, -1, -2]
   heap_sort(xs, fn(a, b) { a - b })
@@ -164,6 +168,7 @@ test "heap_sort: negative values" {
   }
 }
 
+///|
 test "heap_sort: large random-like" {
   let xs = FixedArray::makei(30, fn(i) { (i * 7 + 3) % 17 })
   heap_sort(xs, fn(a, b) { a - b })
@@ -172,6 +177,7 @@ test "heap_sort: large random-like" {
   }
 }
 
+///|
 test "heap_sort: even length" {
   let xs = FixedArray::makei(8, fn(i) { (i * 3 + 1) % 8 })
   heap_sort(xs, fn(a, b) { a - b })
@@ -180,6 +186,7 @@ test "heap_sort: even length" {
   }
 }
 
+///|
 test "heap_sort: odd length" {
   let xs = FixedArray::makei(7, fn(i) { (i * 5 + 2) % 7 })
   heap_sort(xs, fn(a, b) { a - b })
@@ -188,6 +195,7 @@ test "heap_sort: odd length" {
   }
 }
 
+///|
 test "heap_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -208,6 +216,7 @@ test "heap_sort: permutation check" {
   }
 }
 
+///|
 test "heap_sort: generic with String" {
   let xs = FixedArray::make(4, "")
   xs[0] = "cherry"

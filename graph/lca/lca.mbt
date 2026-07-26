@@ -20,6 +20,7 @@
 ///   directions).
 /// - After building, the adjacency list is no longer needed.
 
+///|
 /// Binary Lifting LCA structure.
 ///
 /// `up[k][v]` is the 2^k-th ancestor of node `v`, or `-1` if it doesn't exist.
@@ -31,15 +32,12 @@ pub struct LCA {
   priv n : Int
 }
 
+///|
 /// Build the LCA structure for a tree with `n` nodes rooted at `root`.
 ///
 /// `adj` is the adjacency list where `adj[v]` is the list of neighbours of `v`.
 /// The tree must be connected and undirected (edges appear in both directions).
-pub fn build(
-  n : Int,
-  root : Int,
-  adj : Array[Array[Int]],
-) -> LCA {
+pub fn build(n : Int, root : Int, adj : Array[Array[Int]]) -> LCA {
   if n <= 0 {
     return { up: [], depth: FixedArray::make(0, 0), log_n: 0, n: 0 }
   }
@@ -85,6 +83,7 @@ pub fn build(
   { up, depth, log_n, n }
 }
 
+///|
 /// Integer log2 (floor). Returns the position of the highest set bit.
 fn ilog2(n : Int) -> Int {
   let mut r = 0
@@ -96,6 +95,7 @@ fn ilog2(n : Int) -> Int {
   r
 }
 
+///|
 /// Find the 2^k-th ancestor of node `v`. Returns `-1` if no such ancestor.
 /// k must be ≥ 0.
 pub fn ancestor(lca : LCA, v : Int, k : Int) -> Int {
@@ -105,6 +105,7 @@ pub fn ancestor(lca : LCA, v : Int, k : Int) -> Int {
   lca.up[k][v]
 }
 
+///|
 /// Return the depth of node `v` (distance from root in edges). O(1).
 pub fn depth_of(lca : LCA, v : Int) -> Int {
   if v < 0 || v >= lca.n {
@@ -113,6 +114,7 @@ pub fn depth_of(lca : LCA, v : Int) -> Int {
   lca.depth[v]
 }
 
+///|
 /// Find the lowest common ancestor of nodes `u` and `v`.
 ///
 /// Returns `-1` if either node is invalid. If `u == v`, returns `u`.
@@ -156,6 +158,7 @@ pub fn lca(l : LCA, u : Int, v : Int) -> Int {
   l.up[0][a]
 }
 
+///|
 /// Return the distance (number of edges) between nodes `u` and `v`.
 /// Returns `-1` if either node is invalid.
 /// Runs in O(log n) (one LCA query + two depth lookups).
@@ -175,6 +178,7 @@ pub fn distance(l : LCA, u : Int, v : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Build adjacency list from edge list.
 fn make_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   let adj = []
@@ -189,6 +193,7 @@ fn make_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   adj
 }
 
+///|
 test "lca: simple tree" {
   //       0
   //      / \
@@ -205,6 +210,7 @@ test "lca: simple tree" {
   assert_eq(lca(l, 4, 2), 0)
 }
 
+///|
 test "lca: depth and distance" {
   let adj = make_adj(5, [(0, 1), (0, 2), (1, 3), (1, 4)])
   let l = build(5, 0, adj)
@@ -219,6 +225,7 @@ test "lca: depth and distance" {
   assert_eq(distance(l, 3, 3), 0)
 }
 
+///|
 test "lca: single node" {
   let adj : Array[Array[Int]] = [[]]
   let l = build(1, 0, adj)
@@ -227,6 +234,7 @@ test "lca: single node" {
   assert_eq(depth_of(l, 0), 0)
 }
 
+///|
 test "lca: chain (degenerate tree)" {
   // 0 - 1 - 2 - 3 - 4 - 5
   let adj = make_adj(6, [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)])
@@ -238,6 +246,7 @@ test "lca: chain (degenerate tree)" {
   assert_eq(distance(l, 2, 4), 2)
 }
 
+///|
 test "lca: star tree" {
   //   0 is center, 1..5 are leaves
   let adj = make_adj(6, [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)])
@@ -251,6 +260,7 @@ test "lca: star tree" {
   }
 }
 
+///|
 test "lca: non-root root" {
   //       2
   //      / \
@@ -267,6 +277,7 @@ test "lca: non-root root" {
   assert_eq(distance(l, 1, 3), 3) // 1 -> 0 -> 2 -> 3
 }
 
+///|
 test "lca: ancestor queries" {
   let adj = make_adj(5, [(0, 1), (0, 2), (1, 3), (1, 4)])
   let l = build(5, 0, adj)
@@ -277,6 +288,7 @@ test "lca: ancestor queries" {
   assert_eq(ancestor(l, 2, 5), -1) // out of range k
 }
 
+///|
 test "lca: invalid nodes" {
   let adj = make_adj(5, [(0, 1), (0, 2), (1, 3), (1, 4)])
   let l = build(5, 0, adj)
@@ -286,6 +298,7 @@ test "lca: invalid nodes" {
   assert_eq(distance(l, 0, -1), -1)
 }
 
+///|
 test "lca: larger tree" {
   //         0
   //       /   \
@@ -295,7 +308,14 @@ test "lca: larger tree" {
   //   / \
   //  7   8
   let adj = make_adj(9, [
-    (0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7), (3, 8),
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (1, 4),
+    (2, 5),
+    (2, 6),
+    (3, 7),
+    (3, 8),
   ])
   let l = build(9, 0, adj)
   assert_eq(lca(l, 7, 8), 3)
@@ -308,6 +328,7 @@ test "lca: larger tree" {
   assert_eq(distance(l, 4, 5), 4) // 4->1->0->2->5
 }
 
+///|
 test "lca: balanced binary tree" {
   // Complete binary tree of depth 3 (15 nodes)
   // Node i has children 2i+1 and 2i+2
@@ -330,6 +351,7 @@ test "lca: balanced binary tree" {
   assert_eq(distance(l, 7, 14), 6)
 }
 
+///|
 test "lca: deep tree stress" {
   // Build a tree: root 0, node i is child of i-1 (chain of 100)
   let n = 100

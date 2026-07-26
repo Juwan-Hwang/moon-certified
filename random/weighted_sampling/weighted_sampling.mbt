@@ -24,6 +24,7 @@
 // SplitMix64 PRNG
 // ---------------------------------------------------------------------------
 
+///|
 /// SplitMix64 PRNG state — a single `Int64` that produces high-quality
 /// pseudo-random values with full period (2^64) and good statistical
 /// properties (passes BigCrush). This is the same generator used by
@@ -32,11 +33,13 @@ priv struct SplitMix64 {
   mut state : Int64
 }
 
+///|
 /// Create a SplitMix64 PRNG seeded with `seed`.
 fn splitmix64_new(seed : Int64) -> SplitMix64 {
   { state: seed }
 }
 
+///|
 /// Next 64-bit pseudo-random value.
 fn splitmix64_next(rng : SplitMix64) -> Int64 {
   rng.state = rng.state + 0x9E3779B97F4A7C15L
@@ -47,6 +50,7 @@ fn splitmix64_next(rng : SplitMix64) -> Int64 {
   z
 }
 
+///|
 /// Next uniform double in [0, 1).
 fn splitmix64_next_double(rng : SplitMix64) -> Double {
   // Use the top 53 bits for a full-precision double.
@@ -60,6 +64,7 @@ fn splitmix64_next_double(rng : SplitMix64) -> Double {
 // Alias Method (O(1) per-sample after O(n) preprocessing)
 // ---------------------------------------------------------------------------
 
+///|
 /// Alias table for O(1) weighted sampling.
 pub struct AliasTable {
   priv prob : FixedArray[Double]
@@ -67,6 +72,7 @@ pub struct AliasTable {
   priv n : Int
 }
 
+///|
 /// Build an alias table from weights.
 ///
 /// # Parameters
@@ -76,7 +82,11 @@ pub struct AliasTable {
 pub fn build_alias(weights : FixedArray[Double]) -> AliasTable {
   let n = weights.length()
   if n == 0 {
-    return AliasTable::{ prob : FixedArray::make(0, 0.0), alias_idx : FixedArray::make(0, 0), n : 0 }
+    return AliasTable::{
+      prob: FixedArray::make(0, 0.0),
+      alias_idx: FixedArray::make(0, 0),
+      n: 0,
+    }
   }
   // Normalize weights to sum = n.
   let mut total = 0.0
@@ -120,6 +130,7 @@ pub fn build_alias(weights : FixedArray[Double]) -> AliasTable {
   AliasTable::{ prob, alias_idx, n }
 }
 
+///|
 /// Draw a sample from the alias table using a uniform random `r` in [0, 1).
 pub fn alias_draw(table : AliasTable, r : Double) -> Int {
   if table.n == 0 {
@@ -139,6 +150,7 @@ pub fn alias_draw(table : AliasTable, r : Double) -> Int {
 // Weighted Reservoir Sampling (A-Res algorithm by Efraimidis & Spirakis)
 // ---------------------------------------------------------------------------
 
+///|
 /// Sample k items from a stream of weighted items without replacement.
 ///
 /// Uses the A-Res algorithm: for each item, generate a key = u^(1/w) where
@@ -246,6 +258,7 @@ pub fn weighted_reservoir_sample(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "alias: uniform distribution" {
   let weights = FixedArray::make(4, 1.0)
   let table = build_alias(weights)
@@ -255,9 +268,12 @@ test "alias: uniform distribution" {
   }
 }
 
+///|
 test "alias: draw returns valid index" {
   let weights = FixedArray::make(3, 0.0)
-  weights[0] = 1.0; weights[1] = 2.0; weights[2] = 3.0
+  weights[0] = 1.0
+  weights[1] = 2.0
+  weights[2] = 3.0
   let table = build_alias(weights)
   for i = 0; i < 100; i = i + 1 {
     let r = (i.to_double() + 0.5) / 100.0
@@ -266,6 +282,7 @@ test "alias: draw returns valid index" {
   }
 }
 
+///|
 test "alias: single item" {
   let weights = FixedArray::make(1, 5.0)
   let table = build_alias(weights)
@@ -274,6 +291,7 @@ test "alias: single item" {
   assert_eq(alias_draw(table, 0.99), 0)
 }
 
+///|
 test "weighted_reservoir: sample size k" {
   let weights = FixedArray::make(10, 1.0)
   let result = weighted_reservoir_sample(weights, 3, 42L)
@@ -286,18 +304,21 @@ test "weighted_reservoir: sample size k" {
   assert_true(result[1] != result[2])
 }
 
+///|
 test "weighted_reservoir: k >= n returns all" {
   let weights = FixedArray::make(5, 1.0)
   let result = weighted_reservoir_sample(weights, 10, 42L)
   assert_eq(result.length(), 5)
 }
 
+///|
 test "weighted_reservoir: k = 0 returns empty" {
   let weights = FixedArray::make(5, 1.0)
   let result = weighted_reservoir_sample(weights, 0, 42L)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "weighted_reservoir: weighted bias" {
   // Item 0 has weight 1000, others have weight 1.
   // Item 0 should almost always be selected.
@@ -314,6 +335,7 @@ test "weighted_reservoir: weighted bias" {
   assert_true(count_0 > 90)
 }
 
+///|
 test "weighted_reservoir: different seeds produce different results" {
   let weights = FixedArray::makei(100, fn(i) { (i + 1).to_double() })
   let r1 = weighted_reservoir_sample(weights, 5, 42L)

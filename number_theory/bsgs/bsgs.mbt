@@ -25,6 +25,7 @@
 // Only package-specific helpers are defined here.
 // ---------------------------------------------------------------------------
 
+///|
 /// Int64 modular inverse via the extended Euclidean algorithm.
 ///
 /// Returns `Some(inv)` with a · inv ≡ 1 (mod m), or `None` when
@@ -51,6 +52,7 @@ fn mod_inv64(a : Int64, m : Int64) -> Int64? {
   }
 }
 
+///|
 /// Integer square root ceiling: smallest r with r · r >= n, for n > 0.
 /// Uses binary search with Int64 to avoid overflow.
 fn isqrt_ceil(n : Int) -> Int {
@@ -76,6 +78,7 @@ fn isqrt_ceil(n : Int) -> Int {
 // Sorted-table infrastructure for the baby-step phase
 // ---------------------------------------------------------------------------
 
+///|
 /// Stable merge sort of `(Int64, Int)` pairs by the first element.
 /// Sorts `arr[lo, hi)` in place using `tmp` as scratch.
 fn msort_pairs(
@@ -107,6 +110,7 @@ fn msort_pairs(
   }
 }
 
+///|
 /// Binary search for `val` in a sorted array of `(Int64, Int)` pairs.
 ///
 /// Assumes `arr` is sorted ascending by the first element with duplicates
@@ -132,6 +136,7 @@ fn bsearch_pairs(arr : Array[(Int64, Int)], val : Int64) -> Int? {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve the discrete logarithm a^x ≡ b (mod p).
 ///
 /// Returns `Some(x)` with the smallest non-negative x satisfying the
@@ -227,22 +232,26 @@ pub fn discrete_log(a : Int, b : Int, p : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "discrete_log: basic" {
   // 2^x ≡ 3 (mod 5). 2^0=1, 2^1=2, 2^2=4, 2^3=3. Answer: x=3.
   assert_eq(discrete_log(2, 3, 5), Some(3))
 }
 
+///|
 test "discrete_log: b is one" {
   // a^0 = 1, so any a with b=1 gives x=0.
   assert_eq(discrete_log(3, 1, 7), Some(0))
   assert_eq(discrete_log(123, 1, 997), Some(0))
 }
 
+///|
 test "discrete_log: no solution" {
   // 2^x mod 7 cycles through 1,2,4,1,...; 3 never appears.
   assert_true(discrete_log(2, 3, 7) is None)
 }
 
+///|
 test "discrete_log: generator of Z_7*" {
   // 3 is a primitive root mod 7: 3^0=1, 3^1=3, 3^2=2, 3^3=6, 3^4=4, 3^5=5.
   assert_eq(discrete_log(3, 1, 7), Some(0))
@@ -253,6 +262,7 @@ test "discrete_log: generator of Z_7*" {
   assert_eq(discrete_log(3, 5, 7), Some(5))
 }
 
+///|
 test "discrete_log: primitive root mod large prime" {
   // 5 is a primitive root mod 1000003 (a prime).
   // 5^1000002 ≡ 1 (mod 1000003) by Fermat's little theorem.
@@ -267,6 +277,7 @@ test "discrete_log: primitive root mod large prime" {
   }
 }
 
+///|
 test "discrete_log: a is zero" {
   // 0^x = 0 for x >= 1, 0^0 = 1.
   assert_eq(discrete_log(0, 0, 7), Some(1))
@@ -274,26 +285,31 @@ test "discrete_log: a is zero" {
   assert_true(discrete_log(0, 3, 7) is None)
 }
 
+///|
 test "discrete_log: b is zero with coprime a" {
   // If gcd(a, p) = 1, a^x is never 0 mod p, so no solution.
   assert_true(discrete_log(2, 0, 7) is None)
 }
 
+///|
 test "discrete_log: negative a and b" {
   // -2 mod 5 = 3; 3^x ≡ -3 mod 5 → 3^x ≡ 2 mod 5.
   // 3^0=1, 3^1=3, 3^2=4, 3^3=2. Answer: x=3.
   assert_eq(discrete_log(-2, -3, 5), Some(3))
 }
 
+///|
 test "discrete_log: p equals one" {
   assert_eq(discrete_log(5, 3, 1), Some(0))
 }
 
+///|
 test "discrete_log: p non-positive" {
   assert_true(discrete_log(2, 3, 0) is None)
   assert_true(discrete_log(2, 3, -1) is None)
 }
 
+///|
 test "discrete_log: large prime near Int max" {
   // 2147483647 = 2^31 - 1 is a Mersenne prime (M31).
   // 7 is a primitive root mod M31.
@@ -306,16 +322,19 @@ test "discrete_log: large prime near Int max" {
   assert_eq(discrete_log(7, 1, p), Some(0))
 }
 
+///|
 test "discrete_log: b equals one returns zero before coprimality" {
   // b=1 should return Some(0) regardless of gcd(a, p), since a^0 = 1.
   assert_eq(discrete_log(6, 1, 9), Some(0))
 }
 
+///|
 test "discrete_log: non-coprime a with non-trivial b returns None" {
   // gcd(6, 9) = 3 ≠ 1; BSGS cannot compute the inverse for non-trivial b.
   assert_true(discrete_log(6, 3, 9) is None)
 }
 
+///|
 test "discrete_log: exhaustive check mod 11" {
   // 2 is a primitive root mod 11. Check all residues.
   let p = 11

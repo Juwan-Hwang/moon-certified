@@ -45,6 +45,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A state in the suffix automaton.
 ///
 /// - `len`: the length of the longest string in the equivalence class.
@@ -59,6 +60,7 @@ priv struct SAMState {
   mut cnt : Int
 }
 
+///|
 /// The suffix automaton: an array of states plus the index of the `last`
 /// state (the state representing the entire string processed so far).
 pub struct SuffixAutomaton {
@@ -70,6 +72,7 @@ pub struct SuffixAutomaton {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build a suffix automaton for `s`.
 ///
 /// Processes each byte of `s` left to right, creating at most 2 new states
@@ -77,9 +80,7 @@ pub struct SuffixAutomaton {
 /// pre-computed.
 pub fn build(s : String) -> SuffixAutomaton {
   let sam : SuffixAutomaton = {
-    states: [
-      { len: 0, link: -1, trans: [], cnt: 1 },
-    ],
+    states: [{ len: 0, link: -1, trans: [], cnt: 1 }],
     last: 0,
   }
   for i = 0; i < s.length(); i = i + 1 {
@@ -89,16 +90,12 @@ pub fn build(s : String) -> SuffixAutomaton {
   sam
 }
 
+///|
 /// Extend the automaton by appending the byte `c`.
 fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
   let cur = sam.states.length()
   let last_len = sam.states[sam.last].len
-  sam.states.push({
-    len: last_len + 1,
-    link: -1,
-    trans: [],
-    cnt: 1,
-  })
+  sam.states.push({ len: last_len + 1, link: -1, trans: [], cnt: 1 })
   let mut p = sam.last
   // Add transitions from all states reachable via suffix links that don't
   // yet have a transition on `c`.
@@ -141,7 +138,8 @@ fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
           sam.states[q].link = clone
           sam.states[cur].link = clone
         }
-      None => abort("suffix_automaton invariant violated: transition must exist")
+      None =>
+        abort("suffix_automaton invariant violated: transition must exist")
     }
   }
   sam.last = cur
@@ -151,6 +149,7 @@ fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
 // Occurrence counting
 // ---------------------------------------------------------------------------
 
+///|
 /// Populate `cnt` for each state by propagating counts up the suffix-link tree.
 ///
 /// After construction, each non-clone state has `cnt = 1`. We sort states by
@@ -193,6 +192,7 @@ fn compute_occurrences(sam : SuffixAutomaton) -> Unit {
 // Queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Check if `pattern` is a substring of the string used to build `sam`.
 ///
 /// Walks the automaton following transitions for each byte of `pattern`.
@@ -208,6 +208,7 @@ pub fn is_substring(sam : SuffixAutomaton, pattern : String) -> Bool {
   true
 }
 
+///|
 /// Count the number of distinct non-empty substrings of the original string.
 ///
 /// Computed as the sum of `(state.len - state.link.len)` over all non-root
@@ -222,6 +223,7 @@ pub fn count_distinct_substrings(sam : SuffixAutomaton) -> Int {
   total
 }
 
+///|
 /// Count how many times `pattern` appears as a substring.
 ///
 /// Walks the automaton to the state for `pattern`, then returns the
@@ -238,6 +240,7 @@ pub fn count_occurrences(sam : SuffixAutomaton, pattern : String) -> Int {
   sam.states[cur].cnt
 }
 
+///|
 /// Find the length of the longest substring that appears at least twice.
 ///
 /// Returns `Some(len)` if such a substring exists, `None` if all characters
@@ -260,6 +263,7 @@ pub fn longest_repeated_substring_length(sam : SuffixAutomaton) -> Int? {
   }
 }
 
+///|
 /// Find the longest common substring of two strings.
 ///
 /// Builds a SAM for `s`, then walks `t` through the SAM, tracking the longest
@@ -298,6 +302,7 @@ pub fn longest_common_substring(s : String, t : String) -> Int {
   best
 }
 
+///|
 /// Total length of all distinct substrings.
 ///
 /// Computed as the sum of `(state.len * (state.len + 1) / 2 -
@@ -322,6 +327,7 @@ pub fn sum_of_lengths_of_distinct_substrings(sam : SuffixAutomaton) -> Int {
 // Transition helpers (sorted array for O(log k) lookup)
 // ---------------------------------------------------------------------------
 
+///|
 /// Binary search for a transition on byte `c` in the sorted transition array.
 fn get_trans(st : SAMState, c : Int) -> Int? {
   let mut lo = 0
@@ -341,11 +347,13 @@ fn get_trans(st : SAMState, c : Int) -> Int? {
   None
 }
 
+///|
 /// Check whether a transition on `c` exists.
 fn has_trans(st : SAMState, c : Int) -> Bool {
   get_trans(st, c) is Some(_)
 }
 
+///|
 /// Insert or update a transition `(c, target)` keeping the array sorted.
 fn set_trans(st : SAMState, c : Int, target : Int) -> Unit {
   let mut lo = 0
@@ -370,6 +378,7 @@ fn set_trans(st : SAMState, c : Int, target : Int) -> Unit {
   st.trans.insert(lo, (c, target))
 }
 
+///|
 /// Deep-copy a transition array.
 fn copy_trans(src : Array[(Int, Int)]) -> Array[(Int, Int)] {
   let dst : Array[(Int, Int)] = []
@@ -383,6 +392,7 @@ fn copy_trans(src : Array[(Int, Int)]) -> Array[(Int, Int)] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "SAM: is_substring basic" {
   let sam = build("ababc")
   assert_eq(is_substring(sam, "ab"), true)
@@ -397,12 +407,14 @@ test "SAM: is_substring basic" {
   assert_eq(is_substring(sam, "cab"), false)
 }
 
+///|
 test "SAM: is_substring empty pattern" {
   let sam = build("hello")
   // Empty pattern is trivially a substring.
   assert_eq(is_substring(sam, ""), true)
 }
 
+///|
 test "SAM: count_distinct_substrings" {
   // "ababc" distinct substrings: a, b, c, ab, ba, bc, aba, bab, abc, abab,
   // babc, ababc = 12
@@ -416,6 +428,7 @@ test "SAM: count_distinct_substrings" {
   assert_eq(count_distinct_substrings(sam3), 6)
 }
 
+///|
 test "SAM: count_occurrences" {
   let sam = build("ababab")
   assert_eq(count_occurrences(sam, "a"), 3)
@@ -430,6 +443,7 @@ test "SAM: count_occurrences" {
   assert_eq(count_occurrences(sam, "abc"), 0)
 }
 
+///|
 test "SAM: longest_repeated_substring" {
   let sam = build("ababab")
   assert_eq(longest_repeated_substring_length(sam), Some(4)) // "abab" appears twice
@@ -439,6 +453,7 @@ test "SAM: longest_repeated_substring" {
   assert_eq(longest_repeated_substring_length(sam3), Some(3)) // "aaa"
 }
 
+///|
 test "SAM: longest_common_substring" {
   assert_eq(longest_common_substring("ababc", "babc"), 4) // "babc"
   assert_eq(longest_common_substring("abcdef", "defxyz"), 3) // "def"
@@ -447,6 +462,7 @@ test "SAM: longest_common_substring" {
   assert_eq(longest_common_substring("aaaa", "aa"), 2)
 }
 
+///|
 test "SAM: sum_of_lengths_of_distinct_substrings" {
   // "ab" → distinct: a(1), b(1), ab(2) → sum = 4
   let sam = build("ab")
@@ -456,6 +472,7 @@ test "SAM: sum_of_lengths_of_distinct_substrings" {
   assert_eq(sum_of_lengths_of_distinct_substrings(sam2), 10)
 }
 
+///|
 test "SAM: state count bound (2n-1)" {
   // For a string of length n, the SAM has at most 2n-1 states.
   let s = "abcdefgh"
@@ -465,6 +482,7 @@ test "SAM: state count bound (2n-1)" {
   assert_true(sam.states.length() >= n + 1) // at least n+1 (root + n)
 }
 
+///|
 test "SAM: all substrings match brute force" {
   let s = "banana"
   let sam = build(s)
@@ -481,6 +499,7 @@ test "SAM: all substrings match brute force" {
   assert_eq(is_substring(sam, "bn"), false)
 }
 
+///|
 test "SAM: occurrences match brute force" {
   let s = "mississippi"
   let sam = build(s)
@@ -509,6 +528,7 @@ test "SAM: occurrences match brute force" {
   assert_eq(count_occurrences(sam, "xyz"), 0)
 }
 
+///|
 test "SAM: count_distinct matches formula" {
   // For a string with all distinct characters "abcde", distinct substrings
   // = n*(n+1)/2 = 5*6/2 = 15
@@ -516,6 +536,7 @@ test "SAM: count_distinct matches formula" {
   assert_eq(count_distinct_substrings(sam), 15)
 }
 
+///|
 test "SAM: single character" {
   let sam = build("a")
   assert_eq(count_distinct_substrings(sam), 1)

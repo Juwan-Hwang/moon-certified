@@ -32,11 +32,13 @@
 // GF(p): Prime field arithmetic
 // ---------------------------------------------------------------------------
 
+///|
 /// A prime field GF(p) with modulus `p`.
 pub struct PrimeField {
   p : Int64
 }
 
+///|
 /// Create a prime field GF(p).
 ///
 /// **Precondition**: `p` must be a prime. The constructor does not verify
@@ -45,6 +47,7 @@ pub fn prime_field(p : Int64) -> PrimeField {
   { p, }
 }
 
+///|
 /// Add two elements in GF(p).
 pub fn pf_add(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   let r = a + b
@@ -56,6 +59,7 @@ pub fn pf_add(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   }
 }
 
+///|
 /// Subtract two elements in GF(p): returns `(a - b) mod p`.
 pub fn pf_sub(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   let p = f.p
@@ -67,6 +71,7 @@ pub fn pf_sub(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   }
 }
 
+///|
 /// Multiply two elements in GF(p): returns `(a * b) mod p`.
 pub fn pf_mul(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   // Use modular multiplication to avoid overflow.
@@ -74,6 +79,7 @@ pub fn pf_mul(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   mod_mul(a, b, f.p)
 }
 
+///|
 /// Compute the multiplicative inverse of `a` in GF(p).
 ///
 /// Returns `a^{-1} mod p` via Fermat's little theorem:
@@ -87,6 +93,7 @@ pub fn pf_inv(f : PrimeField, a : Int64) -> Int64 {
   pow_mod(a, f.p - 2L, f.p)
 }
 
+///|
 /// Divide `a` by `b` in GF(p): returns `a * b^{-1} mod p`.
 ///
 /// Returns 0 if `b == 0`.
@@ -97,11 +104,13 @@ pub fn pf_div(f : PrimeField, a : Int64, b : Int64) -> Int64 {
   pf_mul(f, a, pf_inv(f, b))
 }
 
+///|
 /// Exponentiate: `base^exp mod p`.
 pub fn pf_pow(f : PrimeField, base : Int64, exp : Int64) -> Int64 {
   pow_mod(base, exp, f.p)
 }
 
+///|
 /// Check if `a` is a quadratic residue in GF(p).
 ///
 /// Uses Euler's criterion: `a` is a QR iff `a^{(p-1)/2} == 1 mod p`.
@@ -118,6 +127,7 @@ pub fn pf_is_quadratic_residue(f : PrimeField, a : Int64) -> Bool {
 // GF(2^n): Binary extension field arithmetic
 // ---------------------------------------------------------------------------
 
+///|
 /// A binary extension field GF(2^n) defined by an irreducible polynomial.
 ///
 /// Elements are represented as `Int64` bit vectors: bit `i` corresponds to
@@ -130,6 +140,7 @@ pub struct BinaryField {
   n : Int
 }
 
+///|
 /// Create a binary extension field GF(2^n) from an irreducible polynomial.
 ///
 /// # Parameters
@@ -140,22 +151,26 @@ pub fn binary_field(mod_poly : Int64, n : Int) -> BinaryField {
   { mod_poly, n }
 }
 
+///|
 /// Create GF(2^8) with the AES irreducible polynomial x^8 + x^4 + x^3 + x + 1.
 pub fn aes_field() -> BinaryField {
   // x^8 + x^4 + x^3 + x + 1 = 0b100011011 = 0x11B = 283
   binary_field(0x11BL, 8)
 }
 
+///|
 /// Add two elements in GF(2^n): XOR.
 pub fn bf_add(_f : BinaryField, a : Int64, b : Int64) -> Int64 {
   a ^ b
 }
 
+///|
 /// Subtract two elements in GF(2^n): same as addition (XOR).
 pub fn bf_sub(f : BinaryField, a : Int64, b : Int64) -> Int64 {
   bf_add(f, a, b)
 }
 
+///|
 /// Multiply two elements in GF(2^n) using shift-and-reduce.
 ///
 /// Performs carry-less multiplication followed by modular reduction by the
@@ -181,6 +196,7 @@ pub fn bf_mul(f : BinaryField, a : Int64, b : Int64) -> Int64 {
   result
 }
 
+///|
 /// Compute the multiplicative inverse of `a` in GF(2^n).
 ///
 /// Uses exponentiation: `a^{2^n - 2}` (Fermat's little theorem for GF(2^n)).
@@ -195,6 +211,7 @@ pub fn bf_inv(f : BinaryField, a : Int64) -> Int64 {
   bf_pow(f, a, exp)
 }
 
+///|
 /// Exponentiate in GF(2^n): `base^exp`.
 pub fn bf_pow(f : BinaryField, base : Int64, exp : Int64) -> Int64 {
   let mut result = 1L
@@ -210,6 +227,7 @@ pub fn bf_pow(f : BinaryField, base : Int64, exp : Int64) -> Int64 {
   result
 }
 
+///|
 /// Divide `a` by `b` in GF(2^n): `a * b^{-1}`.
 pub fn bf_div(f : BinaryField, a : Int64, b : Int64) -> Int64 {
   if b == 0L {
@@ -222,6 +240,7 @@ pub fn bf_div(f : BinaryField, a : Int64, b : Int64) -> Int64 {
 // Helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Modular multiplication: (a * b) mod m, avoiding overflow.
 fn mod_mul(a : Int64, b : Int64, m : Int64) -> Int64 {
   let mut result = 0L
@@ -237,12 +256,13 @@ fn mod_mul(a : Int64, b : Int64, m : Int64) -> Int64 {
     if (y & 1L) != 0L {
       result = (result + x) % m
     }
-    x = (x * 2L) % m
+    x = x * 2L % m
     y = y >> 1
   }
   result
 }
 
+///|
 /// Modular exponentiation: base^exp mod m.
 fn pow_mod(base : Int64, exp : Int64, m : Int64) -> Int64 {
   let mut result = 1L
@@ -265,6 +285,7 @@ fn pow_mod(base : Int64, exp : Int64, m : Int64) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "gf: prime field addition" {
   let f = prime_field(7L)
   // (3 + 5) mod 7 = 1
@@ -275,6 +296,7 @@ test "gf: prime field addition" {
   assert_eq(pf_add(f, 0L, 3L), 3L)
 }
 
+///|
 test "gf: prime field subtraction" {
   let f = prime_field(7L)
   // (3 - 5) mod 7 = 5
@@ -283,6 +305,7 @@ test "gf: prime field subtraction" {
   assert_eq(pf_sub(f, 0L, 1L), 6L)
 }
 
+///|
 test "gf: prime field multiplication" {
   let f = prime_field(7L)
   // (3 * 4) mod 7 = 12 mod 7 = 5
@@ -291,6 +314,7 @@ test "gf: prime field multiplication" {
   assert_eq(pf_mul(f, 6L, 6L), 1L)
 }
 
+///|
 test "gf: prime field inverse" {
   let f = prime_field(7L)
   // 3^{-1} mod 7 = 5 (since 3*5 = 15 = 2*7+1)
@@ -303,6 +327,7 @@ test "gf: prime field inverse" {
   assert_eq(pf_inv(f, 0L), 0L)
 }
 
+///|
 test "gf: prime field division" {
   let f = prime_field(7L)
   // 6 / 3 = 6 * 5 = 30 mod 7 = 2
@@ -311,6 +336,7 @@ test "gf: prime field division" {
   assert_eq(pf_div(f, 1L, 1L), 1L)
 }
 
+///|
 test "gf: prime field exponentiation" {
   let f = prime_field(7L)
   // 2^3 mod 7 = 8 mod 7 = 1
@@ -319,6 +345,7 @@ test "gf: prime field exponentiation" {
   assert_eq(pf_pow(f, 3L, 5L), 5L)
 }
 
+///|
 test "gf: quadratic residue" {
   let f = prime_field(7L)
   // QRs mod 7: {1, 2, 4} (1^2=1, 2^2=4, 3^2=2, 4^2=2, 5^2=4, 6^2=1)
@@ -330,6 +357,7 @@ test "gf: quadratic residue" {
   assert_false(pf_is_quadratic_residue(f, 6L))
 }
 
+///|
 test "gf: large prime field" {
   // Use a large prime.
   let f = prime_field(1000000007L)
@@ -346,11 +374,13 @@ test "gf: large prime field" {
 
 // --- GF(2^n) tests ---
 
+///|
 test "gf: binary field addition (XOR)" {
   let f = aes_field()
   assert_eq(bf_add(f, 0x57L, 0x83L), 0xD4L) // 0x57 ^ 0x83 = 0xD4
 }
 
+///|
 test "gf: binary field multiplication" {
   let f = aes_field()
   // 0x57 * 0x83 in GF(2^8) with AES polynomial = 0xC1
@@ -361,6 +391,7 @@ test "gf: binary field multiplication" {
   assert_eq(bf_mul(f, 0x03L, 0x03L), 0x05L)
 }
 
+///|
 test "gf: binary field identity" {
   let f = aes_field()
   // 1 * a = a
@@ -369,6 +400,7 @@ test "gf: binary field identity" {
   assert_eq(bf_mul(f, 0x00L, 0xABL), 0x00L)
 }
 
+///|
 test "gf: binary field inverse" {
   let f = aes_field()
   // a * a^{-1} = 1
@@ -381,6 +413,7 @@ test "gf: binary field inverse" {
   assert_eq(bf_inv(f, 0x00L), 0x00L)
 }
 
+///|
 test "gf: binary field exponentiation" {
   let f = aes_field()
   // 0x02^8 = 0x01 in GF(2^8) (Fermat's little theorem)
@@ -391,6 +424,7 @@ test "gf: binary field exponentiation" {
   assert_eq(bf_pow(f, 0x01L, 100L), 0x01L)
 }
 
+///|
 test "gf: binary field division" {
   let f = aes_field()
   // a / b = a * b^{-1}
@@ -401,6 +435,7 @@ test "gf: binary field division" {
   assert_eq(bf_mul(f, quotient, b), a)
 }
 
+///|
 test "gf: binary field Fermat's theorem" {
   let f = aes_field()
   // a^{2^n - 1} = 1 for any nonzero a in GF(2^n)
@@ -410,6 +445,7 @@ test "gf: binary field Fermat's theorem" {
   assert_eq(result, 0x01L)
 }
 
+///|
 test "gf: binary field GF(2^4)" {
   // GF(2^4) with irreducible polynomial x^4 + x + 1 = 0b10011 = 19
   let f = binary_field(0b10011L, 4)

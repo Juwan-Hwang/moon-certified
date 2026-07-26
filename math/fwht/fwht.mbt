@@ -13,6 +13,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// In-place FWHT (sequency order, normalized).
 /// `data` must have length = power of 2.
 pub fn fwht(data : Array[Double]) -> Unit {
@@ -42,6 +43,7 @@ pub fn fwht(data : Array[Double]) -> Unit {
   }
 }
 
+///|
 /// Inverse FWHT (same as forward for Hadamard, then normalize).
 pub fn ifwht(data : Array[Double]) -> Unit {
   // Hadamard transform is self-inverse up to scaling.
@@ -72,6 +74,7 @@ pub fn ifwht(data : Array[Double]) -> Unit {
   }
 }
 
+///|
 /// Integer FWHT for XOR convolution.
 /// Computes in-place Hadamard transform on integers (no normalization).
 pub fn fwht_int(data : Array[Int]) -> Unit {
@@ -96,6 +99,7 @@ pub fn fwht_int(data : Array[Int]) -> Unit {
   }
 }
 
+///|
 /// Inverse integer FWHT: divide by n after forward transform.
 pub fn ifwht_int(data : Array[Int]) -> Unit {
   fwht_int(data)
@@ -105,6 +109,7 @@ pub fn ifwht_int(data : Array[Int]) -> Unit {
   }
 }
 
+///|
 /// XOR convolution: c[k] = Σ_{i xor j = k} a[i] * b[j].
 pub fn xor_convolve(a : Array[Int], b : Array[Int]) -> Array[Int] {
   let n = a.length()
@@ -123,15 +128,21 @@ pub fn xor_convolve(a : Array[Int], b : Array[Int]) -> Array[Int] {
   fc
 }
 
+///|
 /// Helper: absolute value of double.
 fn absd(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fwht: forward and inverse roundtrip" {
   let data = [1.0, 2.0, 3.0, 4.0]
   let original = data.copy()
@@ -142,6 +153,7 @@ test "fwht: forward and inverse roundtrip" {
   }
 }
 
+///|
 test "fwht: known transform" {
   // H_2 = [[1,1],[1,-1]] / sqrt(2)
   // [1, 0] -> [1/sqrt(2), 1/sqrt(2)]
@@ -152,6 +164,7 @@ test "fwht: known transform" {
   assert_true(absd(data[1] - expected) < 0.0000000001)
 }
 
+///|
 test "fwht_int: forward inverse roundtrip" {
   let data = [1, 2, 3, 4]
   let original = data.copy()
@@ -160,6 +173,7 @@ test "fwht_int: forward inverse roundtrip" {
   assert_eq(data, original)
 }
 
+///|
 test "xor_convolve: basic" {
   // a = [1, 1, 0, 0], b = [1, 1, 0, 0]
   // c[k] = Σ_{i xor j = k} a[i]*b[j]
@@ -174,6 +188,7 @@ test "xor_convolve: basic" {
   assert_eq(c[3], 0)
 }
 
+///|
 test "fwht: power of 2 check" {
   let data = [1.0, 2.0, 3.0] // Not power of 2
   fwht(data)

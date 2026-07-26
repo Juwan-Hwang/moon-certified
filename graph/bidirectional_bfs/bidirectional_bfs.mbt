@@ -53,11 +53,12 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Build the transposed graph: `tgraph[i]` contains `(j, w)` for every edge
 /// `j -> i` with weight `w` in the original `graph`.
 fn build_transpose(
   graph : Array[Array[(Int, Int)]],
-  n : Int
+  n : Int,
 ) -> Array[Array[(Int, Int)]] {
   let tgraph : Array[Array[(Int, Int)]] = []
   for _i = 0; _i < n; _i = _i + 1 {
@@ -74,6 +75,7 @@ fn build_transpose(
   tgraph
 }
 
+///|
 /// Expand one BFS level from the side whose queue is `q` (indexed by `head`),
 /// recording distances in `dist_this` and checking the opposite side's
 /// `dist_other` for a meeting.
@@ -123,6 +125,7 @@ fn expand_level(
   }
 }
 
+///|
 /// Compute the shortest unweighted path length between `src` and `dst`.
 ///
 /// `graph[i]` is an `Array` of `(neighbor, weight)` pairs; weights are ignored.
@@ -162,7 +165,9 @@ pub fn bidirectional_bfs(
     let size_a = qa.length() - head_a
     let size_b = qb.length() - head_b
     if size_a <= size_b {
-      let (result, new_head) = expand_level(graph, n, qa, head_a, dist_a, dist_b)
+      let (result, new_head) = expand_level(
+        graph, n, qa, head_a, dist_a, dist_b,
+      )
       head_a = new_head
       match result {
         Some(d) => return Some(d)
@@ -170,7 +175,9 @@ pub fn bidirectional_bfs(
       }
     } else {
       // Backward search uses the transposed graph.
-      let (result, new_head) = expand_level(tgraph, n, qb, head_b, dist_b, dist_a)
+      let (result, new_head) = expand_level(
+        tgraph, n, qb, head_b, dist_b, dist_a,
+      )
       head_b = new_head
       match result {
         Some(d) => return Some(d)
@@ -185,6 +192,7 @@ pub fn bidirectional_bfs(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bidirectional_bfs: basic path" {
   // Undirected chain 0 - 1 - 2 - 3 - 4.
   let n = 5
@@ -198,6 +206,7 @@ test "bidirectional_bfs: basic path" {
   assert_eq(bidirectional_bfs(graph, n, 1, 3), Some(2))
 }
 
+///|
 test "bidirectional_bfs: no path" {
   // Two disconnected components: {0,1} and {2,3}.
   let n = 4
@@ -210,6 +219,7 @@ test "bidirectional_bfs: no path" {
   assert_true(bidirectional_bfs(graph, n, 1, 2) is None)
 }
 
+///|
 test "bidirectional_bfs: src equals dst" {
   let n = 3
   let graph : Array[Array[(Int, Int)]] = [[], [], []]
@@ -219,6 +229,7 @@ test "bidirectional_bfs: src equals dst" {
   assert_eq(bidirectional_bfs(graph, n, 2, 2), Some(0))
 }
 
+///|
 test "bidirectional_bfs: single edge" {
   let n = 2
   let graph : Array[Array[(Int, Int)]] = [[], []]
@@ -228,6 +239,7 @@ test "bidirectional_bfs: single edge" {
   assert_eq(bidirectional_bfs(graph, n, 1, 0), Some(1))
 }
 
+///|
 test "bidirectional_bfs: chain" {
   // Undirected chain of 10 nodes.
   let n = 10
@@ -244,6 +256,7 @@ test "bidirectional_bfs: chain" {
   assert_eq(bidirectional_bfs(graph, n, 3, 7), Some(4))
 }
 
+///|
 test "bidirectional_bfs: star graph" {
   // Center 0 connected to leaves 1, 2, 3, 4.
   let n = 5
@@ -259,6 +272,7 @@ test "bidirectional_bfs: star graph" {
   assert_eq(bidirectional_bfs(graph, n, 0, 4), Some(1))
 }
 
+///|
 test "bidirectional_bfs: disconnected" {
   // 0 - 1 - 2 - 3 chain, plus isolated 4.
   let n = 5
@@ -272,6 +286,7 @@ test "bidirectional_bfs: disconnected" {
   assert_true(bidirectional_bfs(graph, n, 4, 4) is Some(0))
 }
 
+///|
 test "bidirectional_bfs: directed graph" {
   // Directed chain 0 -> 1 -> 2 -> 3.
   let n = 4
@@ -284,6 +299,7 @@ test "bidirectional_bfs: directed graph" {
   assert_true(bidirectional_bfs(graph, n, 3, 0) is None)
 }
 
+///|
 test "bidirectional_bfs: directed graph no false meeting" {
   // Edges: 0->1, 2->1, 1->3. Query 0->2 must return None because 0 cannot
   // reach 2 in this directed graph. Previously the backward search followed
@@ -300,6 +316,7 @@ test "bidirectional_bfs: directed graph no false meeting" {
   assert_eq(bidirectional_bfs(graph, n, 2, 3), Some(2))
 }
 
+///|
 test "bidirectional_bfs: complete graph K4" {
   let n = 4
   let graph : Array[Array[(Int, Int)]] = []
@@ -325,6 +342,7 @@ test "bidirectional_bfs: complete graph K4" {
   }
 }
 
+///|
 test "bidirectional_bfs: weights are ignored" {
   // Same topology as the basic path but with arbitrary weights.
   let n = 5
@@ -341,6 +359,7 @@ test "bidirectional_bfs: weights are ignored" {
   assert_eq(bidirectional_bfs(graph, n, 0, 4), Some(4))
 }
 
+///|
 test "bidirectional_bfs: meeting in the middle" {
   // Two paths from 0 to 5 of different hop lengths; BFS picks the shorter.
   //   Short: 0 - 3 - 5           (2 hops)
@@ -360,6 +379,7 @@ test "bidirectional_bfs: meeting in the middle" {
   assert_eq(bidirectional_bfs(graph, n, 0, 5), Some(2))
 }
 
+///|
 test "bidirectional_bfs: grid 5x5 corner to corner" {
   // 5x5 grid (undirected), source (0,0)=0, target (4,4)=24.
   let size = 5
@@ -385,6 +405,7 @@ test "bidirectional_bfs: grid 5x5 corner to corner" {
   assert_eq(bidirectional_bfs(graph, n, 0, 24), Some(8))
 }
 
+///|
 test "bidirectional_bfs: invalid input" {
   let graph : Array[Array[(Int, Int)]] = [[]]
   assert_true(bidirectional_bfs(graph, 0, 0, 0) is None) // n = 0

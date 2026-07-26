@@ -142,6 +142,7 @@ pub fn update(st : SegmentTree, idx : Int, val : Int) -> Unit {
 // a query or update needs to access children.
 // ===========================================================================
 
+///|
 /// Lazy segment tree supporting range add updates and range sum queries.
 ///
 /// `tree` stores the sum of each segment; `pending` stores pending additions
@@ -153,6 +154,7 @@ pub struct LazySegTree {
   priv n : Int
 }
 
+///|
 /// Build a lazy segment tree from an array.
 pub fn lazy_build(arr : FixedArray[Int]) -> LazySegTree {
   let n = arr.length()
@@ -164,6 +166,7 @@ pub fn lazy_build(arr : FixedArray[Int]) -> LazySegTree {
   LazySegTree::{ tree, pending, n }
 }
 
+///|
 fn lazy_build_helper(
   arr : FixedArray[Int],
   tree : FixedArray[Int],
@@ -181,6 +184,7 @@ fn lazy_build_helper(
   }
 }
 
+///|
 /// Push pending value to children.
 fn lazy_push(
   tree : FixedArray[Int],
@@ -205,6 +209,7 @@ fn lazy_push(
   pending[node] = 0
 }
 
+///|
 /// Range add: add `val` to all elements in [l, r).
 fn lazy_update_helper(
   tree : FixedArray[Int],
@@ -231,6 +236,7 @@ fn lazy_update_helper(
   tree[node] = tree[2 * node] + tree[2 * node + 1]
 }
 
+///|
 /// Range sum query over [ql, qr).
 fn lazy_query_helper(
   tree : FixedArray[Int],
@@ -254,6 +260,7 @@ fn lazy_query_helper(
   left + right
 }
 
+///|
 /// Add `val` to every element in range [l, r) (0-indexed, half-open).
 /// No-op if the range is invalid or out of bounds.
 pub fn lazy_update(st : LazySegTree, l : Int, r : Int, val : Int) -> Unit {
@@ -263,6 +270,7 @@ pub fn lazy_update(st : LazySegTree, l : Int, r : Int, val : Int) -> Unit {
   lazy_update_helper(st.tree, st.pending, 1, 0, st.n, l, r, val)
 }
 
+///|
 /// Query the sum of elements in range [l, r) (0-indexed, half-open).
 /// Returns 0 for invalid ranges.
 pub fn lazy_query(st : LazySegTree, l : Int, r : Int) -> Int {
@@ -535,6 +543,7 @@ test "lazy: empty array" {
 // Int64 Checked Segment Tree with Overflow Detection
 // ===========================================================================
 
+///|
 /// Checked segment tree for `Int64` with overflow detection.
 ///
 /// Provides the same operations as [`SegmentTree`] but uses `Int64` internally.
@@ -545,6 +554,7 @@ pub struct SegmentTree64 {
   priv n : Int
 }
 
+///|
 fn build_helper64(
   arr : FixedArray[Int64],
   tree : FixedArray[Int64],
@@ -562,6 +572,7 @@ fn build_helper64(
   }
 }
 
+///|
 fn query_helper64(
   tree : FixedArray[Int64],
   node : Int,
@@ -584,7 +595,7 @@ fn query_helper64(
           Some(right) => {
             let sum = left + right
             if (left > 0L && right > 0L && sum < left) ||
-               (left < 0L && right < 0L && sum > left) {
+              (left < 0L && right < 0L && sum > left) {
               None
             } else {
               Some(sum)
@@ -595,6 +606,7 @@ fn query_helper64(
   }
 }
 
+///|
 fn update_helper64(
   tree : FixedArray[Int64],
   node : Int,
@@ -617,8 +629,16 @@ fn update_helper64(
       None => None
       Some(_) => {
         let new_sum = tree[2 * node] + tree[2 * node + 1]
-        if (tree[2 * node] > 0L && tree[2 * node + 1] > 0L && new_sum < tree[2 * node]) ||
-           (tree[2 * node] < 0L && tree[2 * node + 1] < 0L && new_sum > tree[2 * node]) {
+        if (
+            tree[2 * node] > 0L &&
+            tree[2 * node + 1] > 0L &&
+            new_sum < tree[2 * node]
+          ) ||
+          (
+            tree[2 * node] < 0L &&
+            tree[2 * node + 1] < 0L &&
+            new_sum > tree[2 * node]
+          ) {
           None
         } else {
           tree[node] = new_sum
@@ -629,6 +649,7 @@ fn update_helper64(
   }
 }
 
+///|
 /// Build a checked segment tree from an `Int64` array.
 pub fn build64(arr : FixedArray[Int64]) -> SegmentTree64 {
   let n = arr.length()
@@ -639,6 +660,7 @@ pub fn build64(arr : FixedArray[Int64]) -> SegmentTree64 {
   SegmentTree64::{ tree, n }
 }
 
+///|
 /// Query sum of `[l, r)` with overflow checking.
 pub fn query64(st : SegmentTree64, l : Int, r : Int) -> Int64? {
   if l < 0 || r > st.n || l >= r {
@@ -647,6 +669,7 @@ pub fn query64(st : SegmentTree64, l : Int, r : Int) -> Int64? {
   query_helper64(st.tree, 1, 0, st.n, l, r)
 }
 
+///|
 /// Update index `idx` to `val` with overflow checking.
 pub fn update64(st : SegmentTree64, idx : Int, val : Int64) -> Unit? {
   if idx < 0 || idx >= st.n {
@@ -655,6 +678,7 @@ pub fn update64(st : SegmentTree64, idx : Int, val : Int64) -> Unit? {
   update_helper64(st.tree, 1, 0, st.n, idx, val)
 }
 
+///|
 test "segment_tree64: basic build and query" {
   let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
   let st = build64(arr)
@@ -662,6 +686,7 @@ test "segment_tree64: basic build and query" {
   assert_eq(query64(st, 1, 4), Some(9L))
 }
 
+///|
 test "segment_tree64: update and query" {
   let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
   let st = build64(arr)
@@ -669,6 +694,7 @@ test "segment_tree64: update and query" {
   assert_eq(query64(st, 0, 5), Some(112L))
 }
 
+///|
 test "segment_tree64: brute-force cross-check" {
   let n = 50
   let arr = FixedArray::makei(n, fn(i) { (i * 7 + 3).to_int64() })

@@ -19,9 +19,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Maximum Int value, used as "unlimited" for autocomplete limits.
 let max_int : Int = 2147483647
 
+///|
 /// A trie node.
 ///
 /// `children` is a sparse array of (byte_value, child_node) pairs, kept sorted
@@ -34,11 +36,13 @@ pub struct TrieNode {
   priv mut count : Int
 }
 
+///|
 /// Create an empty trie (a root node with no children, not a word end).
 pub fn empty() -> TrieNode {
   { children: [], is_end: false, count: 0 }
 }
 
+///|
 /// Find a child by byte value. Returns the child node or None.
 fn find_child(node : TrieNode, byte_val : Int) -> TrieNode? {
   let mut i = 0
@@ -55,6 +59,7 @@ fn find_child(node : TrieNode, byte_val : Int) -> TrieNode? {
   None
 }
 
+///|
 /// Insert a child at the correct sorted position.
 fn insert_child(node : TrieNode, byte_val : Int, child : TrieNode) -> Unit {
   let mut i = 0
@@ -68,6 +73,7 @@ fn insert_child(node : TrieNode, byte_val : Int, child : TrieNode) -> Unit {
   node.children.insert(i, (byte_val, child))
 }
 
+///|
 /// Follow the path of `word` through the trie. Returns the terminal node, or
 /// `None` if the path does not exist at any byte.
 fn find_node(root : TrieNode, word : String) -> TrieNode? {
@@ -82,6 +88,7 @@ fn find_node(root : TrieNode, word : String) -> TrieNode? {
   Some(node)
 }
 
+///|
 /// Insert a word into the trie, creating intermediate nodes as needed.
 /// Re-inserting an existing word is a no-op and leaves `count` unchanged.
 pub fn insert(root : TrieNode, word : String) -> Unit {
@@ -104,6 +111,7 @@ pub fn insert(root : TrieNode, word : String) -> Unit {
   }
 }
 
+///|
 /// Exact-match search. Returns true iff the word was previously inserted.
 pub fn search(root : TrieNode, word : String) -> Bool {
   match find_node(root, word) {
@@ -112,17 +120,20 @@ pub fn search(root : TrieNode, word : String) -> Bool {
   }
 }
 
+///|
 /// Prefix search. Returns true iff any inserted word starts with `prefix`.
 /// An empty prefix always returns true (the root always exists).
 pub fn starts_with(root : TrieNode, prefix : String) -> Bool {
   find_node(root, prefix) is Some(_)
 }
 
+///|
 /// True iff `node` has at least one child.
 fn has_children(node : TrieNode) -> Bool {
   node.children.length() > 0
 }
 
+///|
 /// Recursive removal helper.
 ///
 /// Unmarks the word's end node and prunes any childless, non-terminal nodes
@@ -160,6 +171,7 @@ fn remove_helper(node : TrieNode, word : String, depth : Int) -> Bool {
   }
 }
 
+///|
 /// Remove a word from the trie. Returns true if the word was found and
 /// removed, false if it was not present. Only a successful removal decrements
 /// `count`.
@@ -171,6 +183,7 @@ pub fn remove(root : TrieNode, word : String) -> Bool {
   removed
 }
 
+///|
 /// Number of distinct words currently stored in the trie. O(1).
 ///
 /// Only meaningful when called on the root returned by `empty`; the `count`
@@ -179,6 +192,7 @@ pub fn size(root : TrieNode) -> Int {
   root.count
 }
 
+///|
 /// Depth-first helper for `enumerate`. Pushes every word-ending under `node`
 /// into `out`, building each word from the byte path accumulated in `path`.
 /// Children are visited in ascending byte value order (because they're
@@ -193,7 +207,7 @@ pub fn size(root : TrieNode) -> Int {
 fn enumerate_into(
   node : TrieNode,
   path : Array[Char],
-  out : Array[String]
+  out : Array[String],
 ) -> Unit {
   if node.is_end {
     out.push(String::from_array(path.view()))
@@ -206,6 +220,7 @@ fn enumerate_into(
   }
 }
 
+///|
 /// Enumerate every stored string via depth-first traversal. The returned
 /// array is in ascending code-unit-sequence (lexicographic) order. An empty
 /// trie yields an empty array.
@@ -216,6 +231,7 @@ pub fn enumerate(root : TrieNode) -> FixedArray[String] {
   FixedArray::from_array(out.view())
 }
 
+///|
 /// Return the byte-prefix `s[0..end]` as an owned `String`.
 ///
 /// `end` must be a byte offset of `s` that falls on a UTF-8 code-point
@@ -225,6 +241,7 @@ fn byte_prefix(s : String, end : Int) -> String {
   s[:end].to_owned()
 }
 
+///|
 /// Return the longest stored string that is a prefix of `s`, or `None` if no
 /// stored string is a prefix of `s`. Walks `s` down the trie, remembering the
 /// deepest word-end seen along the way.
@@ -265,6 +282,7 @@ pub fn longest_prefix(root : TrieNode, s : String) -> String? {
 // Autocomplete / prefix-based search API
 // ---------------------------------------------------------------------------
 
+///|
 /// Collect all words under `node` into `out`, building each word by prepending
 /// `prefix` to the byte path. Uses an explicit stack for stack safety.
 fn collect_words_iter(
@@ -298,6 +316,7 @@ fn collect_words_iter(
   }
 }
 
+///|
 /// Return up to `limit` words that start with `prefix`.
 ///
 /// Walks down the trie to the node for `prefix`, then collects all complete
@@ -306,7 +325,11 @@ fn collect_words_iter(
 ///
 /// If the prefix path does not exist, returns an empty array.
 /// If `limit <= 0`, all matching words are returned.
-pub fn autocomplete(root : TrieNode, prefix : String, limit : Int) -> FixedArray[String] {
+pub fn autocomplete(
+  root : TrieNode,
+  prefix : String,
+  limit : Int,
+) -> FixedArray[String] {
   // Navigate to the prefix node.
   match find_node(root, prefix) {
     None => FixedArray::make(0, "")
@@ -317,12 +340,22 @@ pub fn autocomplete(root : TrieNode, prefix : String, limit : Int) -> FixedArray
       for i = 0; i < prefix.length(); i = i + 1 {
         path.push(prefix[i].to_char().unwrap())
       }
-      collect_words_iter(node, path, out, if limit <= 0 { max_int } else { limit })
+      collect_words_iter(
+        node,
+        path,
+        out,
+        if limit <= 0 {
+          max_int
+        } else {
+          limit
+        },
+      )
       FixedArray::from_array(out.view())
     }
   }
 }
 
+///|
 /// Match a single path component against a pattern byte.
 /// Returns true if `pattern_byte` matches `text_byte`.
 /// `'*'` matches any single byte (wildcard).
@@ -330,6 +363,7 @@ fn match_byte(pattern_byte : Int, text_byte : Int) -> Bool {
   pattern_byte == 42 || pattern_byte == text_byte // 42 = '*' ASCII
 }
 
+///|
 /// Search for stored words matching a wildcard pattern.
 ///
 /// `'*'` in the pattern matches any single byte. All other bytes must match
@@ -389,6 +423,7 @@ pub fn wildcard_search(root : TrieNode, pattern : String) -> FixedArray[String] 
   FixedArray::from_array(arr.view())
 }
 
+///|
 /// Lexicographic comparison: returns true if a < b.
 fn str_lt(a : String, b : String) -> Bool {
   let la = a.length()
@@ -397,8 +432,12 @@ fn str_lt(a : String, b : String) -> Bool {
   for k = 0; k < min; k = k + 1 {
     let ca = a[k].to_int()
     let cb = b[k].to_int()
-    if ca < cb { return true }
-    if ca > cb { return false }
+    if ca < cb {
+      return true
+    }
+    if ca > cb {
+      return false
+    }
   }
   la < lb
 }
@@ -407,6 +446,7 @@ fn str_lt(a : String, b : String) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "trie: insert and search" {
   let root = empty()
   insert(root, "hello")
@@ -418,6 +458,7 @@ test "trie: insert and search" {
   assert_eq(search(root, ""), false)
 }
 
+///|
 test "trie: prefix search" {
   let root = empty()
   insert(root, "apple")
@@ -432,6 +473,7 @@ test "trie: prefix search" {
   assert_eq(starts_with(root, ""), true) // empty prefix always matches
 }
 
+///|
 test "trie: remove existing word" {
   let root = empty()
   insert(root, "apple")
@@ -444,6 +486,7 @@ test "trie: remove existing word" {
   assert_eq(starts_with(root, "appl"), false)
 }
 
+///|
 test "trie: remove non-existent word" {
   let root = empty()
   insert(root, "hello")
@@ -453,11 +496,13 @@ test "trie: remove non-existent word" {
   assert_eq(search(root, "hello"), true)
 }
 
+///|
 test "trie: remove from empty trie" {
   let root = empty()
   assert_eq(remove(root, "anything"), false)
 }
 
+///|
 test "trie: empty string" {
   let root = empty()
   assert_eq(search(root, ""), false)
@@ -468,6 +513,7 @@ test "trie: empty string" {
   assert_eq(search(root, ""), false)
 }
 
+///|
 test "trie: single character" {
   let root = empty()
   insert(root, "a")
@@ -479,6 +525,7 @@ test "trie: single character" {
   assert_eq(starts_with(root, "a"), false) // pruned
 }
 
+///|
 test "trie: multiple words with common prefix" {
   let root = empty()
   insert(root, "app")
@@ -505,6 +552,7 @@ test "trie: multiple words with common prefix" {
   assert_eq(starts_with(root, "appl"), true)
 }
 
+///|
 test "trie: remove prunes entire chain" {
   let root = empty()
   insert(root, "abc")
@@ -514,6 +562,7 @@ test "trie: remove prunes entire chain" {
   assert_eq(starts_with(root, ""), true) // root still exists
 }
 
+///|
 test "trie: re-insert after removal" {
   let root = empty()
   insert(root, "cat")
@@ -523,15 +572,14 @@ test "trie: re-insert after removal" {
   assert_eq(search(root, "cat"), true)
 }
 
+///|
 test "trie: large dataset" {
   let root = empty()
   let words = [
-    "algorithm", "binary", "branch", "breadth", "cycle", "data",
-    "depth", "dijkstra", "edge", "fenwick", "forest", "graph",
-    "heap", "insert", "kruskal", "leaf", "matrix", "node",
-    "path", "prim", "queue", "recursive", "search", "segment",
-    "stack", "tarjan", "tree", "trie", "union", "vertex",
-    "weight", "xor",
+    "algorithm", "binary", "branch", "breadth", "cycle", "data", "depth", "dijkstra",
+    "edge", "fenwick", "forest", "graph", "heap", "insert", "kruskal", "leaf", "matrix",
+    "node", "path", "prim", "queue", "recursive", "search", "segment", "stack", "tarjan",
+    "tree", "trie", "union", "vertex", "weight", "xor",
   ]
   for k = 0; k < words.length(); k = k + 1 {
     insert(root, words[k])
@@ -558,6 +606,7 @@ test "trie: large dataset" {
   }
 }
 
+///|
 test "trie: insert duplicate word" {
   let root = empty()
   insert(root, "hello")
@@ -568,6 +617,7 @@ test "trie: insert duplicate word" {
   assert_eq(remove(root, "hello"), false) // already removed
 }
 
+///|
 test "trie: size tracking" {
   let root = empty()
   assert_eq(size(root), 0)
@@ -591,6 +641,7 @@ test "trie: size tracking" {
   assert_eq(size(root), 0)
 }
 
+///|
 test "trie: enumerate" {
   let root = empty()
   insert(root, "apple")
@@ -606,6 +657,7 @@ test "trie: enumerate" {
   assert_eq(words[3], "cherry")
 }
 
+///|
 test "trie: enumerate empty and after remove" {
   let root = empty()
   assert_eq(enumerate(root).length(), 0)
@@ -621,6 +673,7 @@ test "trie: enumerate empty and after remove" {
   assert_eq(words[1], "cat")
 }
 
+///|
 test "trie: longest prefix" {
   let root = empty()
   insert(root, "app")
@@ -636,6 +689,7 @@ test "trie: longest prefix" {
   assert_eq(longest_prefix(root, "ap"), None)
 }
 
+///|
 test "trie: longest prefix with empty string" {
   let root = empty()
   insert(root, "")

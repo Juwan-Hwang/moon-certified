@@ -8,6 +8,7 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite below,
 /// including a cross-check between the two algorithms.
 
+///|
 /// Result of a shortest-path computation that may detect a negative cycle.
 ///
 /// `Distances` holds a distance array where each element is `Some(d)` if the
@@ -24,6 +25,7 @@ pub enum SPResult {
   NegativeCycle
 }
 
+///|
 /// Bellman-Ford: shortest paths from `src`, handling negative weights.
 ///
 /// `graph` is an `n * n` adjacency matrix where `graph[i * n + j]` is the
@@ -40,11 +42,7 @@ pub enum SPResult {
 /// arithmetic internally. If a distance would exceed 32-bit `Int` range,
 /// it is clamped to `Int::max_value` / `Int::min_value`. This prevents
 /// silent overflow that could produce incorrect results.
-pub fn bellman_ford(
-  graph : FixedArray[Int],
-  n : Int,
-  src : Int,
-) -> SPResult? {
+pub fn bellman_ford(graph : FixedArray[Int], n : Int, src : Int) -> SPResult? {
   if n <= 0 || src < 0 || src >= n || graph.length() < n * n {
     return None
   }
@@ -66,9 +64,13 @@ pub fn bellman_ford(
           if w != 0L {
             let nd = du + w
             // Clamp to prevent overflow from cascading
-            let clamped = if nd > int_max { int_max }
-                          else if nd < int_min { int_min }
-                          else { nd }
+            let clamped = if nd > int_max {
+              int_max
+            } else if nd < int_min {
+              int_min
+            } else {
+              nd
+            }
             if !reachable[v] || clamped < dist[v] {
               dist[v] = clamped
               reachable[v] = true
@@ -100,15 +102,20 @@ pub fn bellman_ford(
   for i = 0; i < n; i = i + 1 {
     if reachable[i] {
       let d = dist[i]
-      let clamped = if d > int_max { 2147483647 }
-                    else if d < int_min { -2147483648 }
-                    else { d.to_int() }
+      let clamped = if d > int_max {
+        2147483647
+      } else if d < int_min {
+        -2147483648
+      } else {
+        d.to_int()
+      }
       result[i] = Some(clamped)
     }
   }
   Some(Distances(result))
 }
 
+///|
 /// Floyd-Warshall: all-pairs shortest paths.
 ///
 /// `graph` is an `n * n` adjacency matrix where `graph[i * n + j]` is the
@@ -129,10 +136,7 @@ pub fn bellman_ford(
 ///
 /// **Overflow safety**: internal computation uses `Int64`, so paths up to
 /// ~9.2×10¹⁸ are safe from overflow regardless of graph size.
-pub fn floyd_warshall(
-  graph : FixedArray[Int],
-  n : Int,
-) -> SPResult? {
+pub fn floyd_warshall(graph : FixedArray[Int], n : Int) -> SPResult? {
   if n <= 0 || graph.length() < n * n {
     return None
   }
@@ -198,6 +202,7 @@ pub fn floyd_warshall(
 // Bellman-Ford tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bellman_ford: basic path graph" {
   let n = 4
   let graph = FixedArray::make(n * n, 0)
@@ -218,6 +223,7 @@ test "bellman_ford: basic path graph" {
   assert_eq(dist[3], Some(6))
 }
 
+///|
 test "bellman_ford: negative weights, no cycle" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -234,6 +240,7 @@ test "bellman_ford: negative weights, no cycle" {
   assert_eq(dist[2], Some(1)) // 0 -> 1 -> 2 = 4 + (-3) = 1
 }
 
+///|
 test "bellman_ford: unreachable vertices" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -249,6 +256,7 @@ test "bellman_ford: unreachable vertices" {
   assert_true(dist[2] is None)
 }
 
+///|
 test "bellman_ford: negative cycle detection" {
   // 0 -> 1 (1), 1 -> 2 (-3), 2 -> 1 (-3): cycle 1->2->1 has weight -6.
   let n = 3
@@ -260,6 +268,7 @@ test "bellman_ford: negative cycle detection" {
   assert_true(result is Some(NegativeCycle))
 }
 
+///|
 test "bellman_ford: negative cycle unreachable from src is not reported" {
   // Standard Bellman-Ford only flags negative cycles reachable from src.
   let n = 4
@@ -279,6 +288,7 @@ test "bellman_ford: negative cycle unreachable from src is not reported" {
   assert_true(dist[3] is None)
 }
 
+///|
 test "bellman_ford: single node" {
   let graph = FixedArray::make(1, 0)
   let result = bellman_ford(graph, 1, 0)
@@ -289,6 +299,7 @@ test "bellman_ford: single node" {
   assert_eq(dist[0], Some(0))
 }
 
+///|
 test "bellman_ford: shorter path through intermediate" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -306,6 +317,7 @@ test "bellman_ford: shorter path through intermediate" {
   assert_eq(dist[2], Some(2)) // 0 -> 1 -> 2 = 2 < direct 5
 }
 
+///|
 test "bellman_ford: directed graph" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -328,6 +340,7 @@ test "bellman_ford: directed graph" {
   assert_eq(dist1[2], Some(3))
 }
 
+///|
 test "bellman_ford: disconnected graph" {
   let n = 4
   let graph = FixedArray::make(n * n, 0)
@@ -347,6 +360,7 @@ test "bellman_ford: disconnected graph" {
   assert_true(dist[3] is None)
 }
 
+///|
 test "bellman_ford: invalid input returns None" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -360,6 +374,7 @@ test "bellman_ford: invalid input returns None" {
 // Floyd-Warshall tests
 // ---------------------------------------------------------------------------
 
+///|
 test "floyd_warshall: basic path graph" {
   let n = 4
   let graph = FixedArray::make(n * n, 0)
@@ -382,6 +397,7 @@ test "floyd_warshall: basic path graph" {
   assert_eq(d[2 * n + 2], Some(0))
 }
 
+///|
 test "floyd_warshall: with negative edges" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -402,6 +418,7 @@ test "floyd_warshall: with negative edges" {
   assert_true(d[2 * n + 1] is None)
 }
 
+///|
 test "floyd_warshall: negative cycle" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -412,6 +429,7 @@ test "floyd_warshall: negative cycle" {
   assert_true(result is Some(NegativeCycle))
 }
 
+///|
 test "floyd_warshall: single node" {
   let graph = FixedArray::make(1, 0)
   let result = floyd_warshall(graph, 1)
@@ -422,6 +440,7 @@ test "floyd_warshall: single node" {
   assert_eq(d[0], Some(0))
 }
 
+///|
 test "floyd_warshall: disconnected graph" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -442,6 +461,7 @@ test "floyd_warshall: disconnected graph" {
   assert_eq(d[2 * n + 2], Some(0))
 }
 
+///|
 test "floyd_warshall: complete graph K3" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -465,6 +485,7 @@ test "floyd_warshall: complete graph K3" {
   }
 }
 
+///|
 test "floyd_warshall: directed graph" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -483,11 +504,13 @@ test "floyd_warshall: directed graph" {
   assert_true(d[2 * n + 1] is None)
 }
 
+///|
 test "floyd_warshall: invalid input returns None" {
   assert_true(floyd_warshall(FixedArray::make(0, 0), 0) is None)
   assert_true(floyd_warshall(FixedArray::make(4, 0), 3) is None)
 }
 
+///|
 test "bellman_ford and floyd_warshall agree" {
   // On a graph with no negative cycle, the single-source row from
   // floyd_warshall must match bellman_ford exactly.

@@ -11,6 +11,7 @@
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
 
+///|
 /// Build the Longest Proper Prefix which is also Suffix (LPS) array.
 /// lps[i] = length of the longest proper prefix of pattern[0..i]
 /// which is also a suffix of pattern[0..i].
@@ -38,15 +39,13 @@ pub fn build_lps(pattern : String) -> FixedArray[Int] {
   lps
 }
 
+///|
 /// Search for pattern in text using KMP algorithm.
 ///
 /// Returns `Some(index)` for the first match, or `None` if not found.
 /// Empty pattern returns `None` (no meaningful search), consistent with
 /// `kmp_search_all` returning an empty array for empty pattern.
-pub fn kmp_search(
-  text : String,
-  pattern : String,
-) -> Int? {
+pub fn kmp_search(text : String, pattern : String) -> Int? {
   let n = text.length()
   let m = pattern.length()
   if m == 0 {
@@ -74,12 +73,10 @@ pub fn kmp_search(
   None
 }
 
+///|
 /// Search for all occurrences of pattern in text.
 /// Returns a FixedArray of starting indices (may be empty).
-pub fn kmp_search_all(
-  text : String,
-  pattern : String,
-) -> FixedArray[Int] {
+pub fn kmp_search_all(text : String, pattern : String) -> FixedArray[Int] {
   let n = text.length()
   let m = pattern.length()
   if m == 0 || n < m {
@@ -127,48 +124,59 @@ pub fn kmp_search_all(
   result
 }
 
+///|
 test "kmp_search: basic match" {
   assert_eq(kmp_search("hello world", "world"), Some(6))
   assert_eq(kmp_search("hello world", "hello"), Some(0))
 }
 
+///|
 test "kmp_search: no match" {
   assert_true(kmp_search("hello world", "xyz") is None)
 }
 
+///|
 test "kmp_search: empty pattern returns None" {
   assert_true(kmp_search("hello", "") is None)
 }
 
+///|
 test "kmp_search: empty text" {
   assert_true(kmp_search("", "abc") is None)
 }
 
+///|
 test "kmp_search: pattern longer than text" {
   assert_true(kmp_search("hi", "hello") is None)
 }
 
+///|
 test "kmp_search: overlapping matches" {
   assert_eq(kmp_search("AAAAAA", "AAAA"), Some(0))
 }
 
+///|
 test "kmp_search: single char" {
   assert_eq(kmp_search("abcdef", "d"), Some(3))
   assert_true(kmp_search("abcdef", "z") is None)
 }
 
+///|
 test "kmp_search: repeated pattern" {
   assert_eq(kmp_search("abababab", "abab"), Some(0))
 }
 
+///|
 test "kmp_search: at end" {
   assert_eq(kmp_search("abcdefghij", "hij"), Some(7))
 }
 
+///|
 test "kmp_search: full match" {
   assert_eq(kmp_search("hello", "hello"), Some(0))
 }
 
+///|
 test "kmp_search_all: basic" {
   let result = kmp_search_all("abababab", "ab")
   assert_eq(result.length(), 4)
@@ -178,11 +186,13 @@ test "kmp_search_all: basic" {
   assert_eq(result[3], 6)
 }
 
+///|
 test "kmp_search_all: no match" {
   let result = kmp_search_all("hello world", "xyz")
   assert_eq(result.length(), 0)
 }
 
+///|
 test "kmp_search_all: overlapping" {
   let result = kmp_search_all("aaaa", "aa")
   assert_eq(result.length(), 3)
@@ -191,12 +201,14 @@ test "kmp_search_all: overlapping" {
   assert_eq(result[2], 2)
 }
 
+///|
 test "kmp_search_all: single occurrence" {
   let result = kmp_search_all("hello world", "world")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 6)
 }
 
+///|
 test "build_lps: basic" {
   let lps = build_lps("AABAACAABAA")
   assert_eq(lps[0], 0)
@@ -208,6 +220,7 @@ test "build_lps: basic" {
   assert_eq(lps[9], 4)
 }
 
+///|
 test "build_lps: all same" {
   let lps = build_lps("AAAA")
   assert_eq(lps[0], 0)
@@ -216,6 +229,7 @@ test "build_lps: all same" {
   assert_eq(lps[3], 3)
 }
 
+///|
 test "build_lps: empty" {
   let lps = build_lps("")
   assert_eq(lps.length(), 0)

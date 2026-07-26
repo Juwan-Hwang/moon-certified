@@ -1,13 +1,14 @@
+///|
 /// Concurrent Hash Map — Open Addressing (Single-Threaded Simulation).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 pub struct Slot[K, V] {
   mut key : K?
   mut value : V?
   mut state : Int
 }
 
+///|
 pub struct ConcurrentHashMap[K, V] {
   priv mut slots : FixedArray[Slot[K, V]]
   priv mut size : Int
@@ -17,16 +18,20 @@ pub struct ConcurrentHashMap[K, V] {
   priv eq_fn : (K, K) -> Bool
 }
 
+///|
 pub fn[K, V] concurrent_hash_map_new(
   capacity : Int,
   hash_fn : (K) -> Int,
   eq_fn : (K, K) -> Bool,
 ) -> ConcurrentHashMap[K, V] {
   let cap = if capacity < 8 { 8 } else { next_pow2(capacity) }
-  let slots = FixedArray::makei(cap, fn(_) { Slot::{ key: None, value: None, state: 0 } })
+  let slots = FixedArray::makei(cap, fn(_) {
+    Slot::{ key: None, value: None, state: 0 }
+  })
   { slots, size: 0, used: 0, capacity: cap, hash_fn, eq_fn }
 }
 
+///|
 fn next_pow2(n : Int) -> Int {
   let mut p = 1
   while p < n {
@@ -35,6 +40,7 @@ fn next_pow2(n : Int) -> Int {
   p
 }
 
+///|
 fn[K, V] ConcurrentHashMap::find_slot(
   self : ConcurrentHashMap[K, V],
   key : K,
@@ -56,10 +62,7 @@ fn[K, V] ConcurrentHashMap::find_slot(
     }
     if slot.state == 1 {
       match slot.key {
-        Some(k) =>
-          if (self.eq_fn)(k, key) {
-            return (idx, true)
-          }
+        Some(k) => if (self.eq_fn)(k, key) { return (idx, true) }
         None => ()
       }
     } else if slot.state == 2 && first_tombstone < 0 {
@@ -73,6 +76,7 @@ fn[K, V] ConcurrentHashMap::find_slot(
   (-1, false)
 }
 
+///|
 pub fn[K, V] ConcurrentHashMap::put(
   self : ConcurrentHashMap[K, V],
   key : K,
@@ -99,6 +103,7 @@ pub fn[K, V] ConcurrentHashMap::put(
   }
 }
 
+///|
 pub fn[K, V] ConcurrentHashMap::get(
   self : ConcurrentHashMap[K, V],
   key : K,
@@ -110,6 +115,7 @@ pub fn[K, V] ConcurrentHashMap::get(
   self.slots[idx].value
 }
 
+///|
 pub fn[K, V] ConcurrentHashMap::remove(
   self : ConcurrentHashMap[K, V],
   key : K,
@@ -125,19 +131,26 @@ pub fn[K, V] ConcurrentHashMap::remove(
   true
 }
 
+///|
 pub fn[K, V] ConcurrentHashMap::len(self : ConcurrentHashMap[K, V]) -> Int {
   self.size
 }
 
-pub fn[K, V] ConcurrentHashMap::is_empty(self : ConcurrentHashMap[K, V]) -> Bool {
+///|
+pub fn[K, V] ConcurrentHashMap::is_empty(
+  self : ConcurrentHashMap[K, V],
+) -> Bool {
   self.size == 0
 }
 
+///|
 fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   let old_slots = self.slots
   let old_cap = self.capacity
   let new_cap = old_cap * 2
-  let new_slots = FixedArray::makei(new_cap, fn(_) { Slot::{ key: None, value: None, state: 0 } })
+  let new_slots = FixedArray::makei(new_cap, fn(_) {
+    Slot::{ key: None, value: None, state: 0 }
+  })
   self.slots = new_slots
   self.capacity = new_cap
   self.size = 0
@@ -157,6 +170,7 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   }
 }
 
+///|
 fn str_hash(s : String) -> Int {
   let mut h = 0
   for i = 0; i < s.length(); i = i + 1 {
@@ -169,6 +183,7 @@ fn str_hash(s : String) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "concurrent_hash_map: basic put and get" {
   let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
   m.put("a", 1)
@@ -181,6 +196,7 @@ test "concurrent_hash_map: basic put and get" {
   assert_eq(m.len(), 3)
 }
 
+///|
 test "concurrent_hash_map: update existing key" {
   let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
   m.put("x", 10)
@@ -189,6 +205,7 @@ test "concurrent_hash_map: update existing key" {
   assert_eq(m.len(), 1)
 }
 
+///|
 test "concurrent_hash_map: delete" {
   let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
   m.put("a", 1)
@@ -200,6 +217,7 @@ test "concurrent_hash_map: delete" {
   assert_false(m.remove("z"))
 }
 
+///|
 test "concurrent_hash_map: resize" {
   let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
   for i = 0; i < 100; i = i + 1 {
@@ -211,6 +229,7 @@ test "concurrent_hash_map: resize" {
   }
 }
 
+///|
 test "concurrent_hash_map: delete and reinsert" {
   let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
   m.put("a", 1)
@@ -220,6 +239,7 @@ test "concurrent_hash_map: delete and reinsert" {
   assert_eq(m.len(), 1)
 }
 
+///|
 test "concurrent_hash_map: many operations" {
   let m = concurrent_hash_map_new(16, fn(k) { k }, fn(a, b) { a == b })
   for i = 0; i < 50; i = i + 1 {
@@ -237,9 +257,12 @@ test "concurrent_hash_map: many operations" {
   }
 }
 
+///|
 test "concurrent_hash_map: empty" {
   let m : ConcurrentHashMap[String, Int] = concurrent_hash_map_new(
-    8, str_hash, fn(a, b) { a == b },
+    8,
+    str_hash,
+    fn(a, b) { a == b },
   )
   assert_true(m.is_empty())
   assert_eq(m.get("nothing"), None)

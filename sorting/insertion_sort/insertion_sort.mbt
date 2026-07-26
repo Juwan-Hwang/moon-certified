@@ -1,3 +1,4 @@
+///|
 /// Generic in-place insertion sort on a FixedArray[T].
 /// Not formally verified (proof-enabled: false).
 /// Correctness ensured by comprehensive tests including permutation checks.
@@ -7,10 +8,7 @@
 ///
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
-pub fn[T] insertion_sort(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Unit {
+pub fn[T] insertion_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
@@ -34,6 +32,7 @@ pub fn[T] insertion_sort(
   }
 }
 
+///|
 test "insertion_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -44,6 +43,7 @@ test "insertion_sort: basic" {
   assert_eq(xs[4], 5)
 }
 
+///|
 test "insertion_sort: already sorted" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -52,6 +52,7 @@ test "insertion_sort: already sorted" {
   }
 }
 
+///|
 test "insertion_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -60,18 +61,21 @@ test "insertion_sort: reverse sorted" {
   }
 }
 
+///|
 test "insertion_sort: single element" {
   let xs = FixedArray::make(1, 42)
   insertion_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "insertion_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   insertion_sort(xs, fn(a, b) { a - b })
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "insertion_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -85,6 +89,7 @@ test "insertion_sort: duplicates" {
   assert_eq(xs[7], 2)
 }
 
+///|
 test "insertion_sort: negative values" {
   let xs = FixedArray::makei(5, fn(i) { i - 2 }) // [-2, -1, 0, 1, 2]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -93,6 +98,7 @@ test "insertion_sort: negative values" {
   }
 }
 
+///|
 test "insertion_sort: all equal" {
   let xs = FixedArray::make(6, 7)
   insertion_sort(xs, fn(a, b) { a - b })
@@ -101,6 +107,7 @@ test "insertion_sort: all equal" {
   }
 }
 
+///|
 test "insertion_sort: two elements" {
   let xs = FixedArray::makei(2, fn(i) { 1 - i }) // [1, 0]
   insertion_sort(xs, fn(a, b) { a - b })
@@ -108,6 +115,7 @@ test "insertion_sort: two elements" {
   assert_eq(xs[1], 1)
 }
 
+///|
 test "insertion_sort: large random-like" {
   let xs = FixedArray::makei(20, fn(i) { (i * 7 + 3) % 13 })
   insertion_sort(xs, fn(a, b) { a - b })
@@ -116,6 +124,7 @@ test "insertion_sort: large random-like" {
   }
 }
 
+///|
 test "insertion_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -136,6 +145,7 @@ test "insertion_sort: permutation check" {
   }
 }
 
+///|
 test "insertion_sort: generic with String" {
   let xs = FixedArray::make(4, "")
   xs[0] = "date"

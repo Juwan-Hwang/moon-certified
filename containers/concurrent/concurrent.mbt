@@ -35,6 +35,7 @@
 // RingBuffer[T]: SPSC bounded ring buffer
 // ---------------------------------------------------------------------------
 
+///|
 /// A single-producer single-consumer (SPSC) bounded ring buffer.
 ///
 /// The buffer has a fixed capacity (rounded up to the next power of two
@@ -56,15 +57,23 @@ pub struct RingBuffer[T] {
   priv capacity : Int
 }
 
+///|
 /// Create a ring buffer with at least `min_capacity` slots.
 ///
 /// The actual capacity is rounded up to the next power of two for
 /// O(1) modular indexing (`index & mask` instead of `index % capacity`).
 pub fn[T] RingBuffer::new(min_capacity : Int) -> RingBuffer[T] {
   let cap = next_power_of_two(if min_capacity < 1 { 1 } else { min_capacity })
-  { buf: Array::make(cap, None), head: 0, tail: 0, mask: cap - 1, capacity: cap }
+  {
+    buf: Array::make(cap, None),
+    head: 0,
+    tail: 0,
+    mask: cap - 1,
+    capacity: cap,
+  }
 }
 
+///|
 /// Try to enqueue `val`. Returns `false` if the buffer is full.
 pub fn[T] RingBuffer::push(rb : RingBuffer[T], val : T) -> Bool {
   let next_tail = (rb.tail + 1) & rb.mask
@@ -76,6 +85,7 @@ pub fn[T] RingBuffer::push(rb : RingBuffer[T], val : T) -> Bool {
   true
 }
 
+///|
 /// Try to dequeue an element. Returns `None` if the buffer is empty.
 pub fn[T] RingBuffer::pop(rb : RingBuffer[T]) -> T? {
   if rb.head == rb.tail {
@@ -87,6 +97,7 @@ pub fn[T] RingBuffer::pop(rb : RingBuffer[T]) -> T? {
   val
 }
 
+///|
 /// Current number of elements in the buffer. O(1).
 pub fn[T] RingBuffer::size(rb : RingBuffer[T]) -> Int {
   let tail = rb.tail
@@ -98,16 +109,19 @@ pub fn[T] RingBuffer::size(rb : RingBuffer[T]) -> Int {
   }
 }
 
+///|
 /// Maximum number of elements the buffer can hold.
 pub fn[T] RingBuffer::capacity(rb : RingBuffer[T]) -> Int {
   rb.capacity - 1 // one slot wasted to distinguish full from empty
 }
 
+///|
 /// True if the buffer is empty.
 pub fn[T] RingBuffer::is_empty(rb : RingBuffer[T]) -> Bool {
   rb.head == rb.tail
 }
 
+///|
 /// True if the buffer is full (cannot accept more elements).
 pub fn[T] RingBuffer::is_full(rb : RingBuffer[T]) -> Bool {
   ((rb.tail + 1) & rb.mask) == rb.head
@@ -117,6 +131,7 @@ pub fn[T] RingBuffer::is_full(rb : RingBuffer[T]) -> Bool {
 // BoundedQueue[T]: MPMC bounded queue
 // ---------------------------------------------------------------------------
 
+///|
 /// A multi-producer multi-consumer bounded queue with capacity enforcement.
 ///
 /// Uses a dynamic circular array. `try_push` enqueues only if space is
@@ -135,12 +150,14 @@ pub struct BoundedQueue[T] {
   priv capacity : Int
 }
 
+///|
 /// Create a bounded queue with the given capacity.
 pub fn[T] BoundedQueue::new(capacity : Int) -> BoundedQueue[T] {
   let cap = if capacity < 1 { 1 } else { capacity }
   { buf: Array::make(cap, None), head: 0, tail: 0, count: 0, capacity: cap }
 }
 
+///|
 /// Try to enqueue `val`. Returns `false` if the queue is full.
 pub fn[T] BoundedQueue::try_push(q : BoundedQueue[T], val : T) -> Bool {
   if q.count >= q.capacity {
@@ -152,6 +169,7 @@ pub fn[T] BoundedQueue::try_push(q : BoundedQueue[T], val : T) -> Bool {
   true
 }
 
+///|
 /// Try to dequeue an element. Returns `None` if the queue is empty.
 pub fn[T] BoundedQueue::try_pop(q : BoundedQueue[T]) -> T? {
   if q.count == 0 {
@@ -164,21 +182,25 @@ pub fn[T] BoundedQueue::try_pop(q : BoundedQueue[T]) -> T? {
   val
 }
 
+///|
 /// Current number of elements. O(1).
 pub fn[T] BoundedQueue::size(q : BoundedQueue[T]) -> Int {
   q.count
 }
 
+///|
 /// Maximum capacity.
 pub fn[T] BoundedQueue::capacity(q : BoundedQueue[T]) -> Int {
   q.capacity
 }
 
+///|
 /// True if the queue is empty.
 pub fn[T] BoundedQueue::is_empty(q : BoundedQueue[T]) -> Bool {
   q.count == 0
 }
 
+///|
 /// True if the queue is full.
 pub fn[T] BoundedQueue::is_full(q : BoundedQueue[T]) -> Bool {
   q.count >= q.capacity
@@ -188,6 +210,7 @@ pub fn[T] BoundedQueue::is_full(q : BoundedQueue[T]) -> Bool {
 // SnapshotMap[K, V]: Copy-on-write hash map
 // ---------------------------------------------------------------------------
 
+///|
 /// A copy-on-write hash map optimized for read-heavy workloads.
 ///
 /// Reads (`get`) are direct hash lookups with no overhead. Writes (`put`,
@@ -207,6 +230,7 @@ pub struct SnapshotMap[K, V] {
   priv mut bucket_count : Int
 }
 
+///|
 /// Create an empty `SnapshotMap` with the given initial bucket count.
 ///
 /// The bucket count should be a prime number for best distribution. If
@@ -220,17 +244,17 @@ pub fn[K, V] SnapshotMap::new(bucket_count : Int) -> SnapshotMap[K, V] {
   { buckets, size: 0, bucket_count: bc }
 }
 
+///|
 /// Create an empty `SnapshotMap` with a default bucket count of 16.
 pub fn[K, V] SnapshotMap::default() -> SnapshotMap[K, V] {
   SnapshotMap::new(16)
 }
 
+///|
 /// Look up the value for key `k`. Returns `None` if not found. O(1) amortised.
-pub fn[K : Hash + Eq, V] SnapshotMap::get(
-  map : SnapshotMap[K, V],
-  k : K,
-) -> V? {
-  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) % map.bucket_count
+pub fn[K : Hash + Eq, V] SnapshotMap::get(map : SnapshotMap[K, V], k : K) -> V? {
+  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) %
+    map.bucket_count
   let bucket = map.buckets[h]
   for i = 0; i < bucket.length(); i = i + 1 {
     let (key, val) = bucket[i]
@@ -241,6 +265,7 @@ pub fn[K : Hash + Eq, V] SnapshotMap::get(
   None
 }
 
+///|
 /// Insert or update key `k` with value `v`.
 ///
 /// Triggers copy-on-write: a new bucket array is created (shallow copy
@@ -253,7 +278,8 @@ pub fn[K : Hash + Eq, V] SnapshotMap::put(
   k : K,
   v : V,
 ) -> Unit {
-  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) % map.bucket_count
+  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) %
+    map.bucket_count
   // Copy-on-write: clone the buckets array, then replace the target bucket.
   let new_buckets : Array[Array[(K, V)]] = []
   for i = 0; i < map.bucket_count; i = i + 1 {
@@ -288,6 +314,7 @@ pub fn[K : Hash + Eq, V] SnapshotMap::put(
   }
 }
 
+///|
 /// Remove key `k` if present. Returns `true` if the key was found.
 ///
 /// Triggers copy-on-write (same as `put`).
@@ -295,7 +322,8 @@ pub fn[K : Hash + Eq, V] SnapshotMap::remove(
   map : SnapshotMap[K, V],
   k : K,
 ) -> Bool {
-  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) % map.bucket_count
+  let h = (Hash::hash(k) % map.bucket_count + map.bucket_count) %
+    map.bucket_count
   let old_bucket = map.buckets[h]
   let mut found = false
   let new_bucket : Array[(K, V)] = []
@@ -324,6 +352,7 @@ pub fn[K : Hash + Eq, V] SnapshotMap::remove(
   found
 }
 
+///|
 /// Create a snapshot of the current map state. O(1).
 ///
 /// The snapshot shares the bucket array with the original. Both maps can
@@ -341,20 +370,19 @@ pub fn[K, V] SnapshotMap::snapshot(
   { buckets: buckets_copy, size: map.size, bucket_count: map.bucket_count }
 }
 
+///|
 /// Number of key-value pairs. O(1).
-pub fn[K, V] SnapshotMap::size(
-  map : SnapshotMap[K, V],
-) -> Int {
+pub fn[K, V] SnapshotMap::size(map : SnapshotMap[K, V]) -> Int {
   map.size
 }
 
+///|
 /// True if the map contains no entries.
-pub fn[K, V] SnapshotMap::is_empty(
-  map : SnapshotMap[K, V],
-) -> Bool {
+pub fn[K, V] SnapshotMap::is_empty(map : SnapshotMap[K, V]) -> Bool {
   map.size == 0
 }
 
+///|
 /// Check if key `k` is present.
 pub fn[K : Hash + Eq, V] SnapshotMap::contains(
   map : SnapshotMap[K, V],
@@ -366,6 +394,7 @@ pub fn[K : Hash + Eq, V] SnapshotMap::contains(
   }
 }
 
+///|
 /// Resize the map to double the current bucket count (rehash all entries).
 fn[K : Hash, V] resize(map : SnapshotMap[K, V]) -> Unit {
   let new_bc = map.bucket_count * 2
@@ -389,6 +418,7 @@ fn[K : Hash, V] resize(map : SnapshotMap[K, V]) -> Unit {
 // Utility
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the next power of two ≥ n. Returns 1 for n ≤ 1.
 fn next_power_of_two(n : Int) -> Int {
   if n <= 1 {
@@ -405,6 +435,7 @@ fn next_power_of_two(n : Int) -> Int {
 // Tests: RingBuffer
 // ---------------------------------------------------------------------------
 
+///|
 test "ring_buffer: basic push and pop" {
   let rb : RingBuffer[Int] = RingBuffer::new(8)
   assert_true(RingBuffer::is_empty(rb))
@@ -417,6 +448,7 @@ test "ring_buffer: basic push and pop" {
   assert_eq(RingBuffer::pop(rb), None)
 }
 
+///|
 test "ring_buffer: capacity is power of 2 minus 1" {
   let rb : RingBuffer[Int] = RingBuffer::new(5) // 5 rounded to 8, capacity = 7
   assert_eq(RingBuffer::capacity(rb), 7)
@@ -431,6 +463,7 @@ test "ring_buffer: capacity is power of 2 minus 1" {
   assert_true(RingBuffer::push(rb, 99))
 }
 
+///|
 test "ring_buffer: wraparound" {
   let rb : RingBuffer[Int] = RingBuffer::new(4) // capacity = 3
   ignore(RingBuffer::push(rb, 1))
@@ -445,6 +478,7 @@ test "ring_buffer: wraparound" {
   assert_true(RingBuffer::is_empty(rb))
 }
 
+///|
 test "ring_buffer: string elements" {
   let rb : RingBuffer[String] = RingBuffer::new(4)
   ignore(RingBuffer::push(rb, "hello"))
@@ -458,6 +492,7 @@ test "ring_buffer: string elements" {
 // Tests: BoundedQueue
 // ---------------------------------------------------------------------------
 
+///|
 test "bounded_queue: basic operations" {
   let q : BoundedQueue[Int] = BoundedQueue::new(3)
   assert_true(BoundedQueue::is_empty(q))
@@ -474,6 +509,7 @@ test "bounded_queue: basic operations" {
   assert_true(BoundedQueue::is_empty(q))
 }
 
+///|
 test "bounded_queue: wraparound" {
   let q : BoundedQueue[Int] = BoundedQueue::new(3)
   ignore(BoundedQueue::try_push(q, 1))
@@ -487,6 +523,7 @@ test "bounded_queue: wraparound" {
   assert_eq(BoundedQueue::try_pop(q), Some(4))
 }
 
+///|
 test "bounded_queue: generic types" {
   let q : BoundedQueue[(Int, String)] = BoundedQueue::new(2)
   ignore(BoundedQueue::try_push(q, (1, "a")))
@@ -499,6 +536,7 @@ test "bounded_queue: generic types" {
 // Tests: SnapshotMap
 // ---------------------------------------------------------------------------
 
+///|
 test "snapshot_map: basic put and get" {
   let m : SnapshotMap[Int, String] = SnapshotMap::default()
   ignore(SnapshotMap::put(m, 1, "one"))
@@ -513,6 +551,7 @@ test "snapshot_map: basic put and get" {
   assert_false(SnapshotMap::contains(m, 99))
 }
 
+///|
 test "snapshot_map: update existing key" {
   let m : SnapshotMap[Int, String] = SnapshotMap::default()
   ignore(SnapshotMap::put(m, 1, "old"))
@@ -521,6 +560,7 @@ test "snapshot_map: update existing key" {
   assert_eq(SnapshotMap::get(m, 1), Some("new"))
 }
 
+///|
 test "snapshot_map: remove" {
   let m : SnapshotMap[Int, String] = SnapshotMap::default()
   ignore(SnapshotMap::put(m, 1, "one"))
@@ -531,6 +571,7 @@ test "snapshot_map: remove" {
   assert_false(SnapshotMap::remove(m, 99))
 }
 
+///|
 test "snapshot_map: snapshot isolation" {
   let m : SnapshotMap[Int, Int] = SnapshotMap::default()
   ignore(SnapshotMap::put(m, 1, 100))
@@ -553,6 +594,7 @@ test "snapshot_map: snapshot isolation" {
   assert_eq(SnapshotMap::size(m), 2)
 }
 
+///|
 test "snapshot_map: resize on many entries" {
   let m : SnapshotMap[Int, Int] = SnapshotMap::new(4) // small initial size to trigger resize
   for i = 0; i < 100; i = i + 1 {
@@ -564,6 +606,7 @@ test "snapshot_map: resize on many entries" {
   }
 }
 
+///|
 test "snapshot_map: string keys" {
   let m : SnapshotMap[String, Int] = SnapshotMap::default()
   ignore(SnapshotMap::put(m, "alice", 30))
@@ -573,6 +616,7 @@ test "snapshot_map: string keys" {
   assert_eq(SnapshotMap::get(m, "charlie"), None)
 }
 
+///|
 test "snapshot_map: is_empty" {
   let m : SnapshotMap[Int, Int] = SnapshotMap::default()
   assert_true(SnapshotMap::is_empty(m))

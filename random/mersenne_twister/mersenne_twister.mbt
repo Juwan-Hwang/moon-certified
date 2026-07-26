@@ -1,3 +1,4 @@
+///|
 /// Mersenne Twister MT19937 — high-quality PRNG.
 ///
 /// The Mersenne Twister is the default PRNG in Python, Ruby, R, and many
@@ -19,23 +20,24 @@
 /// - Passes Diehard and most BigCrush tests.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 pub struct MT19937 {
   priv mt : FixedArray[UInt]
   priv mut index : Int
 }
 
+///|
 /// Create a new MT19937 PRNG seeded with `seed`.
 pub fn new(seed : UInt) -> MT19937 {
   let mt = FixedArray::make(624, 0U)
   mt[0] = seed
   for i = 1; i < 624; i = i + 1 {
     let prev = mt[i - 1]
-    mt[i] = (1812433253U * (prev ^ (prev >> 30)) + i.reinterpret_as_uint())
+    mt[i] = 1812433253U * (prev ^ (prev >> 30)) + i.reinterpret_as_uint()
   }
   { mt, index: 624 }
 }
 
+///|
 /// Generate the next 32-bit random number.
 pub fn next(mt : MT19937) -> UInt {
   if mt.index >= 624 {
@@ -51,14 +53,16 @@ pub fn next(mt : MT19937) -> UInt {
   y3 ^ (y3 >> 18)
 }
 
+///|
 /// Generate a random Int in [0, n).
 pub fn next_int(mt : MT19937, n : Int) -> Int {
   if n <= 0 {
     return 0
   }
-  ((next(mt) >> 1).reinterpret_as_int()) % n
+  (next(mt) >> 1).reinterpret_as_int() % n
 }
 
+///|
 /// Generate a random Double in [0.0, 1.0).
 pub fn next_double(mt : MT19937) -> Double {
   let a = (next(mt) >> 5).reinterpret_as_int()
@@ -66,6 +70,7 @@ pub fn next_double(mt : MT19937) -> Double {
   (a.to_double() * 67108864.0 + b.to_double()) * (1.0 / 9007199254740992.0)
 }
 
+///|
 /// Twist (generate next 624 values).
 fn twist(mt : MT19937) -> Unit {
   for i = 0; i < 624; i = i + 1 {
@@ -82,6 +87,7 @@ fn twist(mt : MT19937) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mt19937: deterministic with same seed" {
   let rng1 = new(5489U)
   let rng2 = new(5489U)
@@ -90,6 +96,7 @@ test "mt19937: deterministic with same seed" {
   }
 }
 
+///|
 test "mt19937: different seeds produce different sequences" {
   let rng1 = new(1U)
   let rng2 = new(2U)
@@ -102,6 +109,7 @@ test "mt19937: different seeds produce different sequences" {
   assert_true(diff > 90)
 }
 
+///|
 test "mt19937: next_int in range" {
   let rng = new(42U)
   for _ in 0..<1000 {
@@ -110,6 +118,7 @@ test "mt19937: next_int in range" {
   }
 }
 
+///|
 test "mt19937: next_double in [0,1)" {
   let rng = new(42U)
   for _ in 0..<1000 {
@@ -118,6 +127,7 @@ test "mt19937: next_double in [0,1)" {
   }
 }
 
+///|
 test "mt19937: known values (seed=5489)" {
   // Reference values from the original MT19937 implementation.
   let rng = new(5489U)
@@ -130,6 +140,7 @@ test "mt19937: known values (seed=5489)" {
   assert_eq(v2, 3890346734U)
 }
 
+///|
 test "mt19937: period check (no immediate repeat)" {
   let rng = new(12345U)
   let first = next(rng)
@@ -143,6 +154,7 @@ test "mt19937: period check (no immediate repeat)" {
   assert_true(different)
 }
 
+///|
 test "mt19937: uniformity" {
   let rng = new(999U)
   let bins = 10

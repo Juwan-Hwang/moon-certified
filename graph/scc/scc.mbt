@@ -19,14 +19,12 @@
 // and two_sat. The shared implementation is in
 // graph/graph_utils/graph_utils.mbt.
 
+///|
 /// Convert a flat adjacency matrix to an adjacency list.
 ///
 /// `graph[i * n + j] != 0` means edge `i -> j`. The resulting `adj[i]` is an
 /// array of neighbor indices.
-fn matrix_to_adj_list(
-  graph : FixedArray[Int],
-  n : Int,
-) -> Array[Array[Int]] {
+fn matrix_to_adj_list(graph : FixedArray[Int], n : Int) -> Array[Array[Int]] {
   let adj : Array[Array[Int]] = []
   for _i = 0; _i < n; _i = _i + 1 {
     adj.push([])
@@ -41,6 +39,7 @@ fn matrix_to_adj_list(
   adj
 }
 
+///|
 /// Compute the strongly connected components of a directed graph.
 ///
 /// # Parameters
@@ -89,6 +88,7 @@ pub fn tarjan_scc(
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Return the index of the SCC containing vertex v, or -1 if not found.
 fn scc_of(result : FixedArray[FixedArray[Int]], v : Int) -> Int {
   for i = 0; i < result.length(); i = i + 1 {
@@ -102,11 +102,13 @@ fn scc_of(result : FixedArray[FixedArray[Int]], v : Int) -> Int {
   -1
 }
 
+///|
 /// True when vertices a and b belong to the same SCC.
 fn same_scc(result : FixedArray[FixedArray[Int]], a : Int, b : Int) -> Bool {
   scc_of(result, a) == scc_of(result, b)
 }
 
+///|
 /// Count the total number of vertices across all SCCs.
 fn total_vertices(result : FixedArray[FixedArray[Int]]) -> Int {
   let mut total = 0
@@ -120,6 +122,7 @@ fn total_vertices(result : FixedArray[FixedArray[Int]]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "scc: single node" {
   let graph = FixedArray::make(1, 0)
   let result = tarjan_scc(graph, 1)
@@ -128,6 +131,7 @@ test "scc: single node" {
   assert_eq(result[0][0], 0)
 }
 
+///|
 test "scc: DAG (each node its own SCC)" {
   // 0 -> 1 -> 2
   let n = 3
@@ -143,6 +147,7 @@ test "scc: DAG (each node its own SCC)" {
   assert_eq(same_scc(result, 0, 2), false)
 }
 
+///|
 test "scc: simple cycle" {
   // 0 -> 1 -> 2 -> 0
   let n = 3
@@ -158,6 +163,7 @@ test "scc: simple cycle" {
   assert_eq(same_scc(result, 0, 2), true)
 }
 
+///|
 test "scc: two separate cycles" {
   // 0 -> 1 -> 0  and  2 -> 3 -> 2
   let n = 4
@@ -174,19 +180,25 @@ test "scc: two separate cycles" {
   assert_eq(same_scc(result, 0, 2), false)
 }
 
+///|
 test "scc: complete graph" {
   // Every pair has edges both ways: one big SCC.
   let n = 4
   let graph = FixedArray::makei(n * n, fn(i) {
     let row = i / n
     let col = i % n
-    if row != col { 1 } else { 0 }
+    if row != col {
+      1
+    } else {
+      0
+    }
   })
   let result = tarjan_scc(graph, n)
   assert_eq(result.length(), 1)
   assert_eq(result[0].length(), 4)
 }
 
+///|
 test "scc: disconnected components" {
   // Component A: 0 -> 1 -> 0 (cycle). Component B: 2 -> 3 (DAG).
   let n = 4
@@ -201,6 +213,7 @@ test "scc: disconnected components" {
   assert_eq(same_scc(result, 2, 3), false)
 }
 
+///|
 test "scc: self-loop" {
   // A single node with a self-loop is still an SCC of size 1.
   let n = 1
@@ -212,6 +225,7 @@ test "scc: self-loop" {
   assert_eq(result[0][0], 0)
 }
 
+///|
 test "scc: self-loop among other nodes" {
   // 0 -> 0 (self-loop), 0 -> 1 -> 2 -> 1 (cycle between 1 and 2).
   let n = 3
@@ -227,18 +241,21 @@ test "scc: self-loop among other nodes" {
   assert_eq(same_scc(result, 0, 2), false)
 }
 
+///|
 test "scc: invalid n returns empty" {
   let graph = FixedArray::make(9, 0)
   assert_eq(tarjan_scc(graph, 0).length(), 0)
   assert_eq(tarjan_scc(graph, -1).length(), 0)
 }
 
+///|
 test "scc: graph too small returns empty" {
   // n=3 needs 9 entries; provide only 4.
   let graph = FixedArray::make(4, 0)
   assert_eq(tarjan_scc(graph, 3).length(), 0)
 }
 
+///|
 test "scc: large graph (8 nodes, mixed structure)" {
   // 0 -> 1 -> 0        (cycle: {0, 1})
   // 1 -> 2 -> 3 -> 2   (cycle: {2, 3}, reachable from {0,1})
@@ -269,6 +286,7 @@ test "scc: large graph (8 nodes, mixed structure)" {
   assert_eq(same_scc(result, 1, 4), false)
 }
 
+///|
 test "scc: reverse topological order" {
   // 0 -> 1 -> 2 -> 0 (cycle C1) and 3 -> 0 (3 reaches C1).
   // Tarjan emits SCCs in reverse topological order: {0,1,2} before {3}.

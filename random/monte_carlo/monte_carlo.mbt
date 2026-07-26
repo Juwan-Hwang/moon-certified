@@ -31,6 +31,7 @@
 // PRNG: xorshift64
 // ---------------------------------------------------------------------------
 
+///|
 /// A 64-bit xorshift PRNG state.
 ///
 /// xorshift64 uses the sequence x ^= x << 13; x ^= x >> 7; x ^= x << 17
@@ -40,6 +41,7 @@ pub struct XorShift64 {
   priv mut state : Int64
 }
 
+///|
 /// Create a new PRNG with the given seed. A seed of 0 is replaced by a
 /// fixed nonzero constant to avoid the degenerate all-zero state.
 pub fn XorShift64::new(seed : Int64) -> XorShift64 {
@@ -47,6 +49,7 @@ pub fn XorShift64::new(seed : Int64) -> XorShift64 {
   { state: s }
 }
 
+///|
 /// Generate the next 64-bit value as a Double in [0, 1).
 ///
 /// Uses the top 53 bits (mantissa width of f64) to produce a value with
@@ -62,6 +65,7 @@ pub fn XorShift64::uniform(self : XorShift64) -> Double {
   (abs_x & 0x001FFFFFFFFFFFFFL).to_double() / 9007199254740992.0
 }
 
+///|
 /// Generate a uniform double in [a, b).
 pub fn XorShift64::uniform_range(
   self : XorShift64,
@@ -71,6 +75,7 @@ pub fn XorShift64::uniform_range(
   a + self.uniform() * (b - a)
 }
 
+///|
 /// Generate a random Int64 in [0, n). Uses rejection-free modulo.
 pub fn XorShift64::rand_int64(self : XorShift64, n : Int64) -> Int64 {
   if n <= 0L {
@@ -89,6 +94,7 @@ pub fn XorShift64::rand_int64(self : XorShift64, n : Int64) -> Int64 {
 // Monte Carlo Integration
 // ---------------------------------------------------------------------------
 
+///|
 /// Approximate the definite integral of `f` over [a, b] using N random samples.
 ///
 /// Each sample draws x ~ Uniform[a, b] and accumulates f(x). The estimate is:
@@ -117,6 +123,7 @@ pub fn monte_carlo_integrate(
   width * (sum / n.to_double())
 }
 
+///|
 /// Approximate the definite integral with an error estimate.
 ///
 /// Returns `(estimate, standard_error)` where `standard_error` is the
@@ -148,6 +155,7 @@ pub fn monte_carlo_integrate_with_error(
   (width * mean, std_err)
 }
 
+///|
 /// Square root via Newton's method (Heron's formula).
 ///
 /// Converges quadratically: ~6 iterations for double precision.
@@ -171,16 +179,15 @@ fn sqrt_double(x : Double) -> Double {
       if -diff < 1.0e-15 * guess {
         return next
       }
-    } else {
-      if diff < 1.0e-15 * guess {
-        return next
-      }
+    } else if diff < 1.0e-15 * guess {
+      return next
     }
     guess = next
   }
   guess
 }
 
+///|
 /// Approximate a 2D integral ∫∫ f(x, y) dx dy over [x_lo, x_hi] × [y_lo, y_hi].
 ///
 /// Uses N random (x, y) pairs. Returns the estimated integral.
@@ -207,6 +214,7 @@ pub fn monte_carlo_integrate_2d(
 // π Estimation
 // ---------------------------------------------------------------------------
 
+///|
 /// Estimate π by throwing darts at a unit square and counting the fraction
 /// that land inside the inscribed unit circle (center at origin, radius 1).
 ///
@@ -226,6 +234,7 @@ pub fn estimate_pi(n : Int, rng : XorShift64) -> Double {
   4.0 * hits.to_double() / n.to_double()
 }
 
+///|
 /// Estimate π using Buffon's needle: drop needles of length L on a plane
 /// with parallel lines spaced D apart (L ≤ D). The probability of a needle
 /// crossing a line is 2L / (πD), so:
@@ -249,7 +258,7 @@ pub fn buffon_needle(
     // Angle of needle with the lines, uniform in [0, π/2).
     let theta = rng.uniform() * 1.5707963267948966 // π/2
     // Needle crosses a line if y ≤ (l/2) * sin(θ).
-    if y <= (l / 2.0) * @math.sin(theta) {
+    if y <= l / 2.0 * @math.sin(theta) {
       crossings = crossings + 1
     }
   }
@@ -263,6 +272,7 @@ pub fn buffon_needle(
 // Monte Carlo Primality (Fermat test)
 // ---------------------------------------------------------------------------
 
+///|
 /// Modular exponentiation: base^exp mod m. Uses binary exponentiation.
 /// All arithmetic is done in Int64 with mul_mod to prevent overflow.
 fn mod_pow(base : Int64, exp : Int64, m : Int64) -> Int64 {
@@ -279,6 +289,7 @@ fn mod_pow(base : Int64, exp : Int64, m : Int64) -> Int64 {
   result
 }
 
+///|
 /// Overflow-safe modular multiplication for Int64.
 /// Uses the identity: a*b mod m = a*b - floor(a*b/m)*m
 /// with 128-bit intermediate via splitting.
@@ -288,7 +299,7 @@ fn mul_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
     let am = a % m
     let bm = b % m
     // am, bm < 2^31, so am*bm < 2^62, fits in Int64.
-    return (am * bm) % m
+    return am * bm % m
   }
   // For larger moduli, use the binary method (Russian peasant multiplication).
   let mut result = 0L
@@ -304,12 +315,13 @@ fn mul_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
     if (b_mod & 1L) != 0L {
       result = (result + a_mod) % m
     }
-    a_mod = (a_mod * 2L) % m
+    a_mod = a_mod * 2L % m
     b_mod = b_mod >> 1
   }
   result
 }
 
+///|
 /// Fermat primality test: a one-sided Monte Carlo test for compositeness.
 ///
 /// By Fermat's little theorem, if p is prime and a is not divisible by p,
@@ -330,11 +342,7 @@ fn mul_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
 /// ## Returns
 /// - `true`: n is "probably prime" (or a Carmichael number).
 /// - `false`: n is definitely composite.
-pub fn fermat_is_prime(
-  n : Int64,
-  rounds : Int,
-  rng : XorShift64,
-) -> Bool {
+pub fn fermat_is_prime(n : Int64, rounds : Int, rng : XorShift64) -> Bool {
   if n < 2L {
     return false
   }
@@ -385,6 +393,7 @@ pub fn fermat_is_prime(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "xorshift64: uniform distribution" {
   let rng = XorShift64::new(42L)
   let mut sum = 0.0
@@ -399,6 +408,7 @@ test "xorshift64: uniform distribution" {
   assert_true((mean - 0.5).abs() < 0.01)
 }
 
+///|
 test "xorshift64: uniform_range" {
   let rng = XorShift64::new(123L)
   for i = 0; i < 1000; i = i + 1 {
@@ -407,6 +417,7 @@ test "xorshift64: uniform_range" {
   }
 }
 
+///|
 test "monte_carlo_integrate: constant function" {
   let rng = XorShift64::new(999L)
   // ∫ 5 dx from 0 to 10 = 50.
@@ -414,6 +425,7 @@ test "monte_carlo_integrate: constant function" {
   assert_true((result - 50.0).abs() < 0.5)
 }
 
+///|
 test "monte_carlo_integrate: linear function" {
   let rng = XorShift64::new(42L)
   // ∫ x dx from 0 to 1 = 0.5.
@@ -421,6 +433,7 @@ test "monte_carlo_integrate: linear function" {
   assert_true((result - 0.5).abs() < 0.02)
 }
 
+///|
 test "monte_carlo_integrate: sin function" {
   let rng = XorShift64::new(777L)
   // ∫ sin(x) dx from 0 to π = 2.
@@ -434,6 +447,7 @@ test "monte_carlo_integrate: sin function" {
   assert_true((result - 2.0).abs() < 0.05)
 }
 
+///|
 test "monte_carlo_integrate_with_error: error decreases with N" {
   let rng1 = XorShift64::new(42L)
   let rng2 = XorShift64::new(42L)
@@ -455,6 +469,7 @@ test "monte_carlo_integrate_with_error: error decreases with N" {
   assert_true(err2 < err1)
 }
 
+///|
 test "monte_carlo_integrate_2d: constant" {
   let rng = XorShift64::new(42L)
   // ∫∫ 1 dx dy over [0,2]×[0,3] = 6.
@@ -470,6 +485,7 @@ test "monte_carlo_integrate_2d: constant" {
   assert_true((result - 6.0).abs() < 0.1)
 }
 
+///|
 test "estimate_pi: converges to π" {
   let rng = XorShift64::new(42L)
   let pi_est = estimate_pi(1000000, rng)
@@ -478,6 +494,7 @@ test "estimate_pi: converges to π" {
   assert_true((pi_est - pi).abs() < 0.02)
 }
 
+///|
 test "buffon_needle: roughly estimates π" {
   let rng = XorShift64::new(42L)
   // Very slow convergence — just check it's in a reasonable range.
@@ -485,6 +502,7 @@ test "buffon_needle: roughly estimates π" {
   assert_true(pi_est > 2.5 && pi_est < 4.0)
 }
 
+///|
 test "fermat_is_prime: known primes" {
   let rng = XorShift64::new(42L)
   assert_true(fermat_is_prime(2L, 10, rng))
@@ -497,6 +515,7 @@ test "fermat_is_prime: known primes" {
   assert_true(fermat_is_prime(2147483647L, 20, rng)) // Mersenne prime 2^31-1
 }
 
+///|
 test "fermat_is_prime: known composites" {
   let rng = XorShift64::new(42L)
   assert_false(fermat_is_prime(1L, 10, rng))
@@ -508,6 +527,7 @@ test "fermat_is_prime: known composites" {
   assert_false(fermat_is_prime(1001L, 10, rng))
 }
 
+///|
 test "fermat_is_prime: Carmichael number (known limitation)" {
   // 561 = 3 * 11 * 17 is the smallest Carmichael number.
   // Fermat test may pass it as "probably prime" — this is a known limitation.
@@ -519,6 +539,7 @@ test "fermat_is_prime: Carmichael number (known limitation)" {
   ignore(result)
 }
 
+///|
 test "monte_carlo: reproducible with same seed" {
   let rng1 = XorShift64::new(42L)
   let rng2 = XorShift64::new(42L)

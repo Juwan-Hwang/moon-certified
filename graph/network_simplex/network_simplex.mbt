@@ -45,6 +45,7 @@
 // Public types
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of a minimum cost flow computation.
 pub struct MCFResult {
   /// Total cost of the minimum cost flow.
@@ -57,6 +58,7 @@ pub struct MCFResult {
 // Main algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the minimum cost flow.
 ///
 /// # Parameters
@@ -80,10 +82,7 @@ pub fn min_cost_flow(
   supply : FixedArray[Int],
 ) -> MCFResult? {
   if n <= 0 {
-    return Some(MCFResult::{
-      total_cost: 0L,
-      flows: FixedArray::make(0, 0L),
-    })
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
   }
   // Check supply balance.
   let mut total_supply = 0L
@@ -101,10 +100,7 @@ pub fn min_cost_flow(
         return None
       }
     }
-    return Some(MCFResult::{
-      total_cost: 0L,
-      flows: FixedArray::make(0, 0L),
-    })
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
   }
   // Build residual graph.
   // Each arc i generates:
@@ -263,6 +259,7 @@ pub fn min_cost_flow(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "network_simplex: simple 2-node flow" {
   // Node 0: supply 5, Node 1: demand 5
   // Arc 0→1: cost 3, cap 10
@@ -284,6 +281,7 @@ test "network_simplex: simple 2-node flow" {
   }
 }
 
+///|
 test "network_simplex: two paths" {
   // Node 0: supply 10, Node 2: demand 10
   // Arc 0: 0→1, cost 1, cap 10
@@ -313,7 +311,13 @@ test "network_simplex: two paths" {
   })
   let cap = FixedArray::makei(3, fn(_i) { 10 })
   let sup = FixedArray::makei(3, fn(i) {
-    if i == 0 { 10 } else if i == 2 { -10 } else { 0 }
+    if i == 0 {
+      10
+    } else if i == 2 {
+      -10
+    } else {
+      0
+    }
   })
   let result = min_cost_flow(3, u, v, c, cap, sup)
   assert_true(result is Some(_))
@@ -328,6 +332,7 @@ test "network_simplex: two paths" {
   }
 }
 
+///|
 test "network_simplex: capacity constrained" {
   // Node 0: supply 10, Node 2: demand 10
   // Arc 0: 0→1, cost 1, cap 4
@@ -363,7 +368,13 @@ test "network_simplex: capacity constrained" {
     }
   })
   let sup = FixedArray::makei(3, fn(i) {
-    if i == 0 { 10 } else if i == 2 { -10 } else { 0 }
+    if i == 0 {
+      10
+    } else if i == 2 {
+      -10
+    } else {
+      0
+    }
   })
   let result = min_cost_flow(3, u, v, c, cap, sup)
   assert_true(result is Some(_))
@@ -378,6 +389,7 @@ test "network_simplex: capacity constrained" {
   }
 }
 
+///|
 test "network_simplex: infeasible supply" {
   let result = min_cost_flow(
     2,
@@ -390,6 +402,7 @@ test "network_simplex: infeasible supply" {
   assert_true(result is None)
 }
 
+///|
 test "network_simplex: single node no arcs" {
   let result = min_cost_flow(
     1,
@@ -406,6 +419,7 @@ test "network_simplex: single node no arcs" {
   }
 }
 
+///|
 test "network_simplex: empty graph" {
   let result = min_cost_flow(
     0,
@@ -418,6 +432,7 @@ test "network_simplex: empty graph" {
   assert_true(result is Some(_))
 }
 
+///|
 test "network_simplex: negative cost arc" {
   // Node 0: supply 3, Node 2: demand 3
   // Arc 0: 0→1, cost -2, cap 5  (negative cost is fine)
@@ -443,7 +458,13 @@ test "network_simplex: negative cost arc" {
   })
   let cap = FixedArray::makei(2, fn(_i) { 5 })
   let sup = FixedArray::makei(3, fn(i) {
-    if i == 0 { 3 } else if i == 2 { -3 } else { 0 }
+    if i == 0 {
+      3
+    } else if i == 2 {
+      -3
+    } else {
+      0
+    }
   })
   let result = min_cost_flow(3, u, v, c, cap, sup)
   assert_true(result is Some(_))
@@ -457,6 +478,7 @@ test "network_simplex: negative cost arc" {
   }
 }
 
+///|
 test "network_simplex: multiple sources and sinks" {
   // Nodes: 0 (supply 5), 1 (supply 3), 2 (demand 4), 3 (demand 4)
   // Arc 0: 0→2, cost 1, cap 10
@@ -523,13 +545,12 @@ test "network_simplex: multiple sources and sinks" {
   let result = min_cost_flow(4, u, v, c, cap, sup)
   assert_true(result is Some(_))
   match result {
-    Some(r) => {
-      assert_eq(r.total_cost, 10L)
-    }
+    Some(r) => assert_eq(r.total_cost, 10L)
     None => assert_true(false)
   }
 }
 
+///|
 test "network_simplex: zero supply feasible" {
   // All supplies zero — trivially feasible with zero flow.
   let result = min_cost_flow(

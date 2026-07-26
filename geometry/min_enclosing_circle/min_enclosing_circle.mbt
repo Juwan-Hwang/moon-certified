@@ -1,33 +1,55 @@
+///|
 /// Minimum enclosing circle via Welzl's algorithm (randomized, expected O(n)).
 /// Uses a fixed-seed LCG Fisher-Yates shuffle for reproducibility.
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 pub struct Circle {
   cx : Double
   cy : Double
   r : Double
 }
 
+///|
 fn dist2(ax : Double, ay : Double, bx : Double, by : Double) -> Double {
   let dx = ax - bx
   let dy = ay - by
   dx * dx + dy * dy
 }
+
+///|
 fn in_circle(c : Circle, px : Double, py : Double) -> Bool {
   dist2(c.cx, c.cy, px, py) <= c.r * c.r + 1.0e-10
 }
+
+///|
 fn circle_two(ax : Double, ay : Double, bx : Double, by : Double) -> Circle {
-  { cx: (ax + bx) / 2.0, cy: (ay + by) / 2.0, r: dist2(ax, ay, bx, by).sqrt() / 2.0 }
+  {
+    cx: (ax + bx) / 2.0,
+    cy: (ay + by) / 2.0,
+    r: dist2(ax, ay, bx, by).sqrt() / 2.0,
+  }
 }
-fn circle_three(ax : Double, ay : Double, bx : Double, by : Double, cx : Double, cy : Double) -> Circle {
+
+///|
+fn circle_three(
+  ax : Double,
+  ay : Double,
+  bx : Double,
+  by : Double,
+  cx : Double,
+  cy : Double,
+) -> Circle {
   let d = 2.0 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
   if d.abs() < 1.0e-12 {
     let dab = dist2(ax, ay, bx, by)
     let dac = dist2(ax, ay, cx, cy)
     let dbc = dist2(bx, by, cx, cy)
-    if dab >= dac && dab >= dbc { circle_two(ax, ay, bx, by) }
-    else if dac >= dbc { circle_two(ax, ay, cx, cy) }
-    else { circle_two(bx, by, cx, cy) }
+    if dab >= dac && dab >= dbc {
+      circle_two(ax, ay, bx, by)
+    } else if dac >= dbc {
+      circle_two(ax, ay, cx, cy)
+    } else {
+      circle_two(bx, by, cx, cy)
+    }
   } else {
     let a2 = ax * ax + ay * ay
     let b2 = bx * bx + by * by
@@ -37,10 +59,13 @@ fn circle_three(ax : Double, ay : Double, bx : Double, by : Double, cx : Double,
     { cx: ux, cy: uy, r: dist2(ux, uy, ax, ay).sqrt() }
   }
 }
+
+///|
 fn lcg_next(state : Int) -> Int {
   (state * 1103515245 + 12345) & 0x7fffffff
 }
 
+///|
 pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
   let n = points.length()
   if n == 0 {
@@ -78,20 +103,33 @@ pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
   c
 }
 
+///|
 test "min_enclosing_circle: single point" {
   let c = min_enclosing_circle([(3.0, 4.0)])
   assert_true((c.cx - 3.0).abs() < 1.0e-10)
   assert_true((c.cy - 4.0).abs() < 1.0e-10)
   assert_true(c.r < 1.0e-10)
 }
+
+///|
 test "min_enclosing_circle: triangle" {
   let c = min_enclosing_circle([(0.0, 0.0), (3.0, 0.0), (0.0, 4.0)])
   assert_true((c.cx - 1.5).abs() < 1.0e-10)
   assert_true((c.cy - 2.0).abs() < 1.0e-10)
   assert_true((c.r - 2.5).abs() < 1.0e-10)
 }
+
+///|
 test "min_enclosing_circle: many points" {
-  let pts = [(1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0), (0.5, 0.5), (-0.3, -0.3), (0.0, 0.0)]
+  let pts = [
+    (1.0, 0.0),
+    (0.0, 1.0),
+    (-1.0, 0.0),
+    (0.0, -1.0),
+    (0.5, 0.5),
+    (-0.3, -0.3),
+    (0.0, 0.0),
+  ]
   let c = min_enclosing_circle(pts)
   assert_true(c.cx.abs() < 1.0e-10)
   assert_true(c.cy.abs() < 1.0e-10)

@@ -1,3 +1,4 @@
+///|
 /// Find the index of the maximum element in a non-empty array.
 /// Verified: the returned index is valid and xs[result] >= xs[k] for all k.
 pub fn max_element(
@@ -21,7 +22,7 @@ pub fn max_element(
     proof_invariant: i <= xs.length(),
     proof_invariant: 0 <= best,
     proof_invariant: best < i,
-    proof_invariant: ∀ k : Int, (0 <= k) && (k < i) → xs[k] <= xs[best],
+    proof_invariant: ∀ k : Int, 0 <= k && k < i → xs[k] <= xs[best],
     proof_reasoning: (
       #| The loop maintains `best` as the index of the maximum element
       #| in the prefix `xs[0..i)`.
@@ -35,15 +36,13 @@ pub fn max_element(
   }
 }
 
+///|
 /// Generic max element. Returns index of the maximum element, or None if empty.
 /// Not formally verified (opaque comparator).
 ///
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
-pub fn[T] max_element_generic(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Int? {
+pub fn[T] max_element_generic(xs : FixedArray[T], cmp : (T, T) -> Int) -> Int? {
   if xs.length() == 0 {
     return None
   }
@@ -58,27 +57,32 @@ pub fn[T] max_element_generic(
   }
 }
 
+///|
 test "max_element: basic" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   assert_eq(max_element(xs), 4)
 }
 
+///|
 test "max_element: first element" {
   let xs = FixedArray::makei(4, fn(i) { 10 - i }) // [10, 9, 8, 7]
   assert_eq(max_element(xs), 0)
 }
 
+///|
 test "max_element: duplicates" {
   let xs = FixedArray::make(5, 7) // [7, 7, 7, 7, 7]
   let result = max_element(xs)
   assert_eq(xs[result], 7)
 }
 
+///|
 test "max_element: negative values" {
   let xs = FixedArray::makei(3, fn(i) { -(i + 1) }) // [-1, -2, -3]
   assert_eq(max_element(xs), 0)
 }
 
+///|
 test "max_element_generic: Int" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   assert_eq(max_element_generic(xs, fn(a, b) { a - b }).unwrap(), 4)
@@ -86,6 +90,7 @@ test "max_element_generic: Int" {
   assert_eq(max_element_generic(xs2, fn(a, b) { a - b }).unwrap(), 0)
 }
 
+///|
 test "max_element_generic: String" {
   let xs = FixedArray::make(3, "")
   xs[0] = "apple"
@@ -94,6 +99,7 @@ test "max_element_generic: String" {
   assert_eq(max_element_generic(xs, @test_utils.str_cmp).unwrap(), 1)
 }
 
+///|
 test "max_element_generic: empty array returns None" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_true(max_element_generic(xs, fn(a, b) { a - b }) is None)

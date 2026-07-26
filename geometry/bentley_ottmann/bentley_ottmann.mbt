@@ -1,3 +1,4 @@
+///|
 /// Segment intersection via brute-force O(n²) pairwise testing.
 ///
 /// A true Bentley-Ottmann sweep-line implementation uses a balanced BST to
@@ -8,10 +9,15 @@
 /// Each segment is (x1, y1, x2, y2). Returns all intersection points.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 fn segment_intersect(
-  x1 : Double, y1 : Double, x2 : Double, y2 : Double,
-  x3 : Double, y3 : Double, x4 : Double, y4 : Double,
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+  x3 : Double,
+  y3 : Double,
+  x4 : Double,
+  y4 : Double,
 ) -> (Double, Double)? {
   let denom = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3)
   if denom.abs() < 1.0e-12 {
@@ -27,6 +33,7 @@ fn segment_intersect(
   }
 }
 
+///|
 pub fn find_intersections(
   segments : Array[(Double, Double, Double, Double)],
 ) -> Array[(Double, Double)] {
@@ -45,6 +52,7 @@ pub fn find_intersections(
   result
 }
 
+///|
 test "bentley_ottmann: crossing segments" {
   let segs = [(0.0, 0.0, 2.0, 2.0), (0.0, 2.0, 2.0, 0.0)]
   let pts = find_intersections(segs)
@@ -54,18 +62,16 @@ test "bentley_ottmann: crossing segments" {
   assert_true((y - 1.0).abs() < 1.0e-10)
 }
 
+///|
 test "bentley_ottmann: no intersections" {
   let segs = [(0.0, 0.0, 1.0, 1.0), (3.0, 3.0, 4.0, 4.0)]
   let pts = find_intersections(segs)
   assert_eq(pts.length(), 0)
 }
 
+///|
 test "bentley_ottmann: multiple crossings" {
-  let segs = [
-    (0.0, 0.0, 4.0, 4.0),
-    (0.0, 4.0, 4.0, 0.0),
-    (0.0, 2.0, 4.0, 2.0),
-  ]
+  let segs = [(0.0, 0.0, 4.0, 4.0), (0.0, 4.0, 4.0, 0.0), (0.0, 2.0, 4.0, 2.0)]
   let pts = find_intersections(segs)
   // All three pairs cross at (2, 2).
   assert_eq(pts.length(), 3)

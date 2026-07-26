@@ -56,6 +56,7 @@
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Absolute value of a `Double`.
 ///
 /// Defined locally because `core/double::abs` is deprecated and would trip
@@ -72,6 +73,7 @@ fn abs(x : Double) -> Double {
 // Discrete ternary search (Int domain)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find `x` in the inclusive integer range `[lo, hi]` that **maximises** `f(x)`,
 /// assuming `f` is unimodal (single-peaked / concave) on `[lo, hi]`.
 ///
@@ -85,7 +87,7 @@ fn abs(x : Double) -> Double {
 /// `O(log n)` function evaluations, where `n = hi - lo + 1`.
 ///
 /// # Example
-/// ```moonbit
+/// ```moonbit nocheck
 /// // f(x) = -(x-5)^2 + 10 peaks at x = 5
 /// ternary_search_max(fn(x) { -(x - 5) * (x - 5) + 10 }, 0, 10) // => 5
 /// ```
@@ -120,6 +122,7 @@ pub fn ternary_search_max(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
   best
 }
 
+///|
 /// Find `x` in the inclusive integer range `[lo, hi]` that **minimises** `f(x)`,
 /// assuming `f` is unimodal (single-valleyed / convex) on `[lo, hi]`.
 ///
@@ -133,7 +136,7 @@ pub fn ternary_search_max(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
 /// `O(log n)` function evaluations, where `n = hi - lo + 1`.
 ///
 /// # Example
-/// ```moonbit
+/// ```moonbit nocheck
 /// // f(x) = (x-3)^2 bottoms at x = 3
 /// ternary_search_min(fn(x) { (x - 3) * (x - 3) }, 0, 10) // => 3
 /// ```
@@ -170,6 +173,7 @@ pub fn ternary_search_min(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
 // Continuous ternary search (Double domain)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find `x` in the real interval `[lo, hi]` that **maximises** `f(x)`,
 /// assuming `f` is unimodal on `[lo, hi]`. Returns the midpoint of the final
 /// bracket, whose width is at most `eps`.
@@ -183,7 +187,7 @@ pub fn ternary_search_min(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
 /// `O(log((hi - lo) / eps))` function evaluations.
 ///
 /// # Example
-/// ```moonbit
+/// ```moonbit nocheck
 /// // sin(x) on [0, pi] peaks at pi/2
 /// ternary_search_max_double(@math.sin, 0.0, @math.PI, 1.0e-10)
 /// ```
@@ -215,6 +219,7 @@ pub fn ternary_search_max_double(
   (lo + hi) / 2.0
 }
 
+///|
 /// Find `x` in the real interval `[lo, hi]` that **minimises** `f(x)`,
 /// assuming `f` is unimodal on `[lo, hi]`. Returns the midpoint of the final
 /// bracket, whose width is at most `eps`.
@@ -228,7 +233,7 @@ pub fn ternary_search_max_double(
 /// `O(log((hi - lo) / eps))` function evaluations.
 ///
 /// # Example
-/// ```moonbit
+/// ```moonbit nocheck
 /// // -sin(x) on [0, pi] bottoms at pi/2
 /// ternary_search_min_double(fn(x) { -@math.sin(x) }, 0.0, @math.PI, 1.0e-10)
 /// ```
@@ -262,6 +267,7 @@ pub fn ternary_search_min_double(
 // Tests — discrete maximisation
 // ---------------------------------------------------------------------------
 
+///|
 test "ternary_search_max: parabola peak at x=5" {
   // f(x) = -(x-5)^2 + 10, concave, unique maximum at x = 5 with f(5) = 10.
   let f = fn(x : Int) -> Int { -(x - 5) * (x - 5) + 10 }
@@ -271,18 +277,21 @@ test "ternary_search_max: parabola peak at x=5" {
   assert_eq(ternary_search_max(f, 4, 6), 5)
 }
 
+///|
 test "ternary_search_max: linear increasing (degenerate)" {
   // Monotone increasing: the maximum is the right endpoint.
   let f = fn(x : Int) -> Int { 2 * x + 1 }
   assert_eq(ternary_search_max(f, 0, 10), 10)
 }
 
+///|
 test "ternary_search_max: linear decreasing (degenerate)" {
   // Monotone decreasing: the maximum is the left endpoint.
   let f = fn(x : Int) -> Int { -3 * x }
   assert_eq(ternary_search_max(f, 0, 10), 0)
 }
 
+///|
 test "ternary_search_max: constant function (degenerate)" {
   // Every point is a maximum; the result must be a valid maximiser in range.
   let f = fn(_x : Int) -> Int { 42 }
@@ -291,11 +300,13 @@ test "ternary_search_max: constant function (degenerate)" {
   assert_eq(f(x), 42)
 }
 
+///|
 test "ternary_search_max: single point" {
   let f = fn(x : Int) -> Int { x * x }
   assert_eq(ternary_search_max(f, 7, 7), 7)
 }
 
+///|
 test "ternary_search_max: two points" {
   // Peak at the right of the two-point range.
   let f = fn(x : Int) -> Int { -(x - 1) * (x - 1) }
@@ -305,6 +316,7 @@ test "ternary_search_max: two points" {
   assert_eq(ternary_search_max(g, 0, 1), 0)
 }
 
+///|
 test "ternary_search_max: larger domain" {
   // Wide concave parabola peaking at x = 500.
   let f = fn(x : Int) -> Int { -(x - 500) * (x - 500) }
@@ -318,6 +330,7 @@ test "ternary_search_max: larger domain" {
 // Tests — discrete minimisation
 // ---------------------------------------------------------------------------
 
+///|
 test "ternary_search_min: parabola valley at x=3" {
   // f(x) = (x-3)^2, convex, unique minimum at x = 3 with f(3) = 0.
   let f = fn(x : Int) -> Int { (x - 3) * (x - 3) }
@@ -325,6 +338,7 @@ test "ternary_search_min: parabola valley at x=3" {
   assert_eq(ternary_search_min(f, 0, 100), 3)
 }
 
+///|
 test "ternary_search_min: linear and constant (degenerate)" {
   let inc = fn(x : Int) -> Int { 5 * x }
   assert_eq(ternary_search_min(inc, 0, 10), 0) // minimum at the left endpoint
@@ -336,6 +350,7 @@ test "ternary_search_min: linear and constant (degenerate)" {
   assert_eq(cst(x), 7)
 }
 
+///|
 test "ternary_search_min: single and two points" {
   let f = fn(x : Int) -> Int { (x - 5) * (x - 5) }
   assert_eq(ternary_search_min(f, 5, 5), 5)
@@ -346,6 +361,7 @@ test "ternary_search_min: single and two points" {
   assert_eq(ternary_search_min(g, 0, 1), 0)
 }
 
+///|
 test "ternary_search_min: larger domain" {
   let f = fn(x : Int) -> Int { (x - 314) * (x - 314) }
   assert_eq(ternary_search_min(f, 0, 1000), 314)
@@ -355,6 +371,7 @@ test "ternary_search_min: larger domain" {
 // Tests — continuous maximisation
 // ---------------------------------------------------------------------------
 
+///|
 test "ternary_search_max_double: sin(x) on [0, pi], max at pi/2" {
   // sin(x) is unimodal on [0, pi] with maximum 1 at x = pi/2.
   // (Note: -sin(x) has its *minimum* at pi/2, so the maximisation test uses
@@ -365,6 +382,7 @@ test "ternary_search_max_double: sin(x) on [0, pi], max at pi/2" {
   assert_true(abs(@math.sin(x) - 1.0) < 1.0e-6)
 }
 
+///|
 test "ternary_search_max_double: inverted parabola, max at x=2.5" {
   // f(x) = -(x-2.5)^2 + 7, smooth concave maximum at x = 2.5.
   let f = fn(x : Double) -> Double { -(x - 2.5) * (x - 2.5) + 7.0 }
@@ -372,6 +390,7 @@ test "ternary_search_max_double: inverted parabola, max at x=2.5" {
   assert_true(abs(x - 2.5) < 1.0e-6)
 }
 
+///|
 test "ternary_search_max_double: single-point interval" {
   let f = fn(x : Double) -> Double { -(x - 3.0) * (x - 3.0) }
   let x = ternary_search_max_double(f, 3.0, 3.0, 1.0e-6)
@@ -382,15 +401,17 @@ test "ternary_search_max_double: single-point interval" {
 // Tests — continuous minimisation
 // ---------------------------------------------------------------------------
 
+///|
 test "ternary_search_min_double: -sin(x) on [0, pi], min at pi/2" {
   // -sin(x) is unimodal on [0, pi] with minimum -1 at x = pi/2.
   let pi = @math.PI
   let f = fn(x : Double) -> Double { -@math.sin(x) }
   let x = ternary_search_min_double(f, 0.0, pi, 1.0e-12)
   assert_true(abs(x - pi / 2.0) < 1.0e-6)
-  assert_true(abs(f(x) - (-1.0)) < 1.0e-6)
+  assert_true(abs(f(x) - -1.0) < 1.0e-6)
 }
 
+///|
 test "ternary_search_min_double: parabola, min at x=1.5" {
   // f(x) = (x-1.5)^2, smooth convex minimum at x = 1.5.
   let f = fn(x : Double) -> Double { (x - 1.5) * (x - 1.5) }
@@ -398,6 +419,7 @@ test "ternary_search_min_double: parabola, min at x=1.5" {
   assert_true(abs(x - 1.5) < 1.0e-6)
 }
 
+///|
 test "ternary_search_min_double: single-point interval" {
   let f = fn(x : Double) -> Double { (x - 2.0) * (x - 2.0) }
   let x = ternary_search_min_double(f, 2.0, 2.0, 1.0e-6)

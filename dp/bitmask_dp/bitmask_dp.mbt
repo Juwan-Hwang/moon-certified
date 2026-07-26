@@ -38,9 +38,11 @@
 // Constants
 // ---------------------------------------------------------------------------
 
+///|
 /// Sentinel for "no valid value" in DP tables.
 let inf64 : Int64 = 9223372036854775807L
 
+///|
 /// Sentinel for "no valid value" in Int DP tables (used for chromatic number).
 let inf_int : Int = 2147483647
 
@@ -48,6 +50,7 @@ let inf_int : Int = 2147483647
 // Bitset graph utilities
 // ---------------------------------------------------------------------------
 
+///|
 /// A bit-set graph supporting up to 60 vertices.
 ///
 /// `adj[i]` is a bitmask where bit `j` is set iff edge (i, j) exists.
@@ -56,6 +59,7 @@ pub struct BitGraph {
   adj : Array[Int]
 }
 
+///|
 /// Create a new empty graph with `n` vertices (no edges).
 ///
 /// `n` must be in `1..=60`. Returns `None` for invalid sizes.
@@ -66,6 +70,7 @@ pub fn new_graph(n : Int) -> BitGraph? {
   Some({ n, adj: Array::make(n, 0) })
 }
 
+///|
 /// Add an undirected edge between `u` and `v`.
 ///
 /// Self-loops are ignored. Out-of-range vertices are silently skipped.
@@ -77,6 +82,7 @@ pub fn add_edge(graph : BitGraph, u : Int, v : Int) -> Unit {
   graph.adj[v] = graph.adj[v] | (1 << u)
 }
 
+///|
 /// Check whether edge (u, v) exists.
 pub fn has_edge(graph : BitGraph, u : Int, v : Int) -> Bool {
   if u < 0 || u >= graph.n || v < 0 || v >= graph.n {
@@ -85,6 +91,7 @@ pub fn has_edge(graph : BitGraph, u : Int, v : Int) -> Bool {
   (graph.adj[u] & (1 << v)) != 0
 }
 
+///|
 /// Count the number of set bits in an `Int` (population count).
 ///
 /// Uses Brian Kernighan's algorithm: each iteration clears the lowest set bit.
@@ -98,6 +105,7 @@ fn popcount(x : Int) -> Int {
   count
 }
 
+///|
 /// Return the index of the lowest set bit in `x` (0-based).
 ///
 /// Returns -1 if `x == 0`.
@@ -114,18 +122,20 @@ fn lowest_bit(x : Int) -> Int {
   pos
 }
 
+///|
 /// Bitwise NOT (complement) of an Int.
 ///
 /// MoonBit does not have a `~` operator, so we XOR with -1 (all bits set in
 /// two's complement) to achieve the same effect.
 fn lnot(x : Int) -> Int {
-  x ^ (-1)
+  x ^ -1
 }
 
 // ---------------------------------------------------------------------------
 // Traveling Salesman Problem (Held-Karp)
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve TSP using the Held-Karp dynamic programming algorithm.
 ///
 /// Given a complete directed graph with `n` vertices and a distance matrix
@@ -230,6 +240,7 @@ pub fn tsp(n : Int, dist : Array[Array[Int64]]) -> Int64? {
   }
 }
 
+///|
 /// Solve TSP and reconstruct the optimal tour.
 ///
 /// Returns `Some((cost, tour))` where `tour` is an array of vertex indices
@@ -324,6 +335,7 @@ pub fn tsp_path(n : Int, dist : Array[Array[Int64]]) -> (Int64, Array[Int])? {
 // Maximum Independent Set (meet-in-the-middle)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the size of the maximum independent set using meet-in-the-middle.
 ///
 /// An **independent set** is a subset of vertices with no edges between any
@@ -463,6 +475,7 @@ pub fn max_independent_set(adj : Array[Int], n : Int) -> Int {
   best
 }
 
+///|
 /// Find the maximum independent set and return the vertex set.
 ///
 /// Returns `(size, vertices)` where `vertices` is an array of vertex indices
@@ -582,6 +595,7 @@ pub fn max_independent_set_vertices(
 // Minimum Vertex Cover
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the size of the minimum vertex cover.
 ///
 /// A **vertex cover** is a set of vertices such that every edge has at least
@@ -610,6 +624,7 @@ pub fn min_vertex_cover(adj : Array[Int], n : Int) -> Int {
   n - max_independent_set(adj, n)
 }
 
+///|
 /// Find the minimum vertex cover and return the vertex set.
 ///
 /// Returns `(size, vertices)` where `vertices` is an array of vertex indices
@@ -637,6 +652,7 @@ pub fn min_vertex_cover_vertices(
 // Chromatic Number
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the chromatic number of a graph.
 ///
 /// The **chromatic number** χ(G) is the minimum number of colors needed to
@@ -689,11 +705,12 @@ pub fn chromatic_number(adj : Array[Int], n : Int) -> Int {
     let rest = mask ^ (1 << v)
     if !is_indep[rest] {
       is_indep[mask] = false
-    } else {
+    } else if (
       // Check v against all other vertices in mask.
-      if (adj[v] & mask) != 0 {
-        is_indep[mask] = false
-      }
+        adj[v] & mask
+      ) !=
+      0 {
+      is_indep[mask] = false
     }
   }
   // DP: chi[mask] = min colors for mask.
@@ -724,6 +741,7 @@ pub fn chromatic_number(adj : Array[Int], n : Int) -> Int {
 // Hamiltonian Path / Cycle
 // ---------------------------------------------------------------------------
 
+///|
 /// Check whether the graph contains a Hamiltonian path.
 ///
 /// A **Hamiltonian path** visits every vertex exactly once.
@@ -790,6 +808,7 @@ pub fn has_hamiltonian_path(adj : Array[Int], n : Int) -> Bool {
   dp[full] != 0
 }
 
+///|
 /// Check whether the graph contains a Hamiltonian cycle.
 ///
 /// A **Hamiltonian cycle** visits every vertex exactly once and returns to
@@ -867,6 +886,7 @@ pub fn has_hamiltonian_cycle(adj : Array[Int], n : Int) -> Bool {
 
 // --- TSP tests ---
 
+///|
 test "tsp: simple 4-city symmetric" {
   //     0 --1-- 1
   //     |       |
@@ -887,25 +907,24 @@ test "tsp: simple 4-city symmetric" {
   assert_eq(tsp(n, dist), Some(10L))
 }
 
+///|
 test "tsp: asymmetric" {
   // Asymmetric: going one direction is cheaper.
   //   0 → 1 (1), 1 → 2 (1), 2 → 0 (1)
   //   0 → 2 (10), 2 → 1 (10), 1 → 0 (10)
   // Optimal: 0 → 1 → 2 → 0 = 1+1+1 = 3
   let n = 3
-  let dist : Array[Array[Int64]] = [
-    [0L, 1L, 10L],
-    [10L, 0L, 1L],
-    [1L, 10L, 0L],
-  ]
+  let dist : Array[Array[Int64]] = [[0L, 1L, 10L], [10L, 0L, 1L], [1L, 10L, 0L]]
   assert_eq(tsp(n, dist), Some(3L))
 }
 
+///|
 test "tsp: two cities" {
   let dist : Array[Array[Int64]] = [[0L, 5L], [5L, 0L]]
   assert_eq(tsp(2, dist), Some(10L))
 }
 
+///|
 test "tsp: invalid inputs" {
   assert_true(tsp(1, [[0L]]) is None)
   assert_true(tsp(0, []) is None)
@@ -914,6 +933,7 @@ test "tsp: invalid inputs" {
   assert_true(tsp(2, bad) is None)
 }
 
+///|
 test "tsp: complete graph K5 unit weights" {
   // All distances 1. Any tour = 5.
   let n = 5
@@ -932,6 +952,7 @@ test "tsp: complete graph K5 unit weights" {
   assert_eq(tsp(n, dist), Some(5L))
 }
 
+///|
 test "tsp: path reconstruction" {
   // 4 cities, optimal tour 0 → 1 → 2 → 3 → 0 = 10.
   let n = 4
@@ -967,6 +988,7 @@ test "tsp: path reconstruction" {
   }
 }
 
+///|
 test "tsp: large weights no overflow" {
   // Weights near Int64 max / 4.
   let big = 2000000000000L
@@ -982,20 +1004,24 @@ test "tsp: large weights no overflow" {
 
 // --- Maximum Independent Set tests ---
 
+///|
 test "mis: empty graph" {
   assert_eq(max_independent_set([], 0), 0)
 }
 
+///|
 test "mis: single vertex" {
   assert_eq(max_independent_set([0], 1), 1)
 }
 
+///|
 test "mis: no edges (all independent)" {
   // 5 isolated vertices → MIS = 5.
   let adj = [0, 0, 0, 0, 0]
   assert_eq(max_independent_set(adj, 5), 5)
 }
 
+///|
 test "mis: complete graph K4" {
   // Every pair adjacent → MIS = 1.
   let n = 4
@@ -1010,6 +1036,7 @@ test "mis: complete graph K4" {
   assert_eq(max_independent_set(adj, n), 1)
 }
 
+///|
 test "mis: path graph P5" {
   // 0 - 1 - 2 - 3 - 4
   // MIS = {0, 2, 4} → size 3.
@@ -1023,6 +1050,7 @@ test "mis: path graph P5" {
   assert_eq(max_independent_set(adj, 5), 3)
 }
 
+///|
 test "mis: cycle C5" {
   // 0 - 1 - 2 - 3 - 4 - 0
   // MIS = 2 (e.g., {0, 2}).
@@ -1036,6 +1064,7 @@ test "mis: cycle C5" {
   assert_eq(max_independent_set(adj, 5), 2)
 }
 
+///|
 test "mis: star graph" {
   // Center 0 connected to 1, 2, 3, 4.
   // MIS = {1, 2, 3, 4} → size 4.
@@ -1049,14 +1078,12 @@ test "mis: star graph" {
   assert_eq(max_independent_set(adj, 5), 4)
 }
 
+///|
 test "mis: bipartite graph" {
   // Complete bipartite K_{2,3}: {0,1} vs {2,3,4}
   // MIS = max(2, 3) = 3.
   let adj = [0, 0, 0, 0, 0]
-  let edges = [
-    (0, 2), (0, 3), (0, 4),
-    (1, 2), (1, 3), (1, 4),
-  ]
+  let edges = [(0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4)]
   for e in edges {
     let (u, v) = e
     adj[u] = adj[u] | (1 << v)
@@ -1065,6 +1092,7 @@ test "mis: bipartite graph" {
   assert_eq(max_independent_set(adj, 5), 3)
 }
 
+///|
 test "mis: vertex set reconstruction" {
   // Path: 0 - 1 - 2 - 3 - 4
   // MIS = {0, 2, 4}, size 3.
@@ -1087,6 +1115,7 @@ test "mis: vertex set reconstruction" {
   }
 }
 
+///|
 test "mis: brute force cross-check n=10" {
   // Random graph with 10 vertices, cross-check against brute force.
   let n = 10
@@ -1096,7 +1125,7 @@ test "mis: brute force cross-check n=10" {
   for i = 0; i < n; i = i + 1 {
     for j = i + 1; j < n; j = j + 1 {
       st = (st * 1103515245 + 12345) & 0x7FFFFFFF
-      if (st % 100) < 40 {
+      if st % 100 < 40 {
         // 40% edge probability.
         adj[i] = adj[i] | (1 << j)
         adj[j] = adj[j] | (1 << i)
@@ -1106,7 +1135,7 @@ test "mis: brute force cross-check n=10" {
   let mis_size = max_independent_set(adj, n)
   // Brute force: try all 2^10 = 1024 subsets.
   let mut brute = 0
-  for mask = 0; mask < (1 << n); mask = mask + 1 {
+  for mask = 0; mask < 1 << n; mask = mask + 1 {
     let mut ok = true
     for i = 0; i < n && ok; i = i + 1 {
       if (mask & (1 << i)) != 0 {
@@ -1127,6 +1156,7 @@ test "mis: brute force cross-check n=10" {
 
 // --- Minimum Vertex Cover tests ---
 
+///|
 test "mvc: path graph P5" {
   // 0 - 1 - 2 - 3 - 4
   // MVC = {1, 3} → size 2. (n - MIS = 5 - 3 = 2)
@@ -1140,6 +1170,7 @@ test "mvc: path graph P5" {
   assert_eq(min_vertex_cover(adj, 5), 2)
 }
 
+///|
 test "mvc: complete graph K4" {
   let n = 4
   let adj = Array::make(n, 0)
@@ -1154,6 +1185,7 @@ test "mvc: complete graph K4" {
   assert_eq(min_vertex_cover(adj, n), 3)
 }
 
+///|
 test "mvc: vertex set reconstruction" {
   // Path: 0 - 1 - 2 - 3 - 4
   // MVC = {1, 3} or {0, 2, 4}... wait: MVC = n - MIS = 5 - 3 = 2.
@@ -1177,6 +1209,7 @@ test "mvc: vertex set reconstruction" {
   }
 }
 
+///|
 test "mvc: brute force cross-check n=10" {
   let n = 10
   let adj = Array::make(n, 0)
@@ -1184,7 +1217,7 @@ test "mvc: brute force cross-check n=10" {
   for i = 0; i < n; i = i + 1 {
     for j = i + 1; j < n; j = j + 1 {
       st = (st * 1103515245 + 12345) & 0x7FFFFFFF
-      if (st % 100) < 50 {
+      if st % 100 < 50 {
         adj[i] = adj[i] | (1 << j)
         adj[j] = adj[j] | (1 << i)
       }
@@ -1193,7 +1226,7 @@ test "mvc: brute force cross-check n=10" {
   let mvc_size = min_vertex_cover(adj, n)
   // Brute force: find minimum vertex cover.
   let mut brute = n
-  for mask = 0; mask < (1 << n); mask = mask + 1 {
+  for mask = 0; mask < 1 << n; mask = mask + 1 {
     let sz = popcount(mask)
     if sz >= brute {
       continue
@@ -1217,15 +1250,18 @@ test "mvc: brute force cross-check n=10" {
 
 // --- Chromatic Number tests ---
 
+///|
 test "chromatic: empty graph" {
   assert_eq(chromatic_number([], 0), 0)
 }
 
+///|
 test "chromatic: no edges" {
   let adj = [0, 0, 0, 0]
   assert_eq(chromatic_number(adj, 4), 1)
 }
 
+///|
 test "chromatic: complete graph K4" {
   let n = 4
   let adj = Array::make(n, 0)
@@ -1239,6 +1275,7 @@ test "chromatic: complete graph K4" {
   assert_eq(chromatic_number(adj, n), 4)
 }
 
+///|
 test "chromatic: bipartite graph" {
   // Path: 0 - 1 - 2 - 3
   // χ = 2.
@@ -1252,6 +1289,7 @@ test "chromatic: bipartite graph" {
   assert_eq(chromatic_number(adj, 4), 2)
 }
 
+///|
 test "chromatic: odd cycle C5" {
   // C5 needs 3 colors.
   let adj = [0, 0, 0, 0, 0]
@@ -1264,6 +1302,7 @@ test "chromatic: odd cycle C5" {
   assert_eq(chromatic_number(adj, 5), 3)
 }
 
+///|
 test "chromatic: even cycle C6" {
   // C6 needs 2 colors.
   let adj = [0, 0, 0, 0, 0, 0]
@@ -1276,13 +1315,22 @@ test "chromatic: even cycle C6" {
   assert_eq(chromatic_number(adj, 6), 2)
 }
 
+///|
 test "chromatic: wheel graph W5" {
   // Center 0 connected to cycle 1-2-3-4-5-1.
   // χ = 4 (odd cycle + hub).
   let adj = [0, 0, 0, 0, 0, 0]
   let edges = [
-    (0, 1), (0, 2), (0, 3), (0, 4), (0, 5),
-    (1, 2), (2, 3), (3, 4), (4, 5), (5, 1),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (0, 5),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (5, 1),
   ]
   for e in edges {
     let (u, v) = e
@@ -1294,6 +1342,7 @@ test "chromatic: wheel graph W5" {
 
 // --- Hamiltonian Path / Cycle tests ---
 
+///|
 test "hamiltonian: path in complete graph" {
   let n = 5
   let adj = Array::make(n, 0)
@@ -1308,6 +1357,7 @@ test "hamiltonian: path in complete graph" {
   assert_true(has_hamiltonian_cycle(adj, n))
 }
 
+///|
 test "hamiltonian: path in a chain" {
   // 0 - 1 - 2 - 3 - 4
   let adj = [0, 0, 0, 0, 0]
@@ -1322,6 +1372,7 @@ test "hamiltonian: path in a chain" {
   assert_false(has_hamiltonian_cycle(adj, 5))
 }
 
+///|
 test "hamiltonian: cycle in C5" {
   let adj = [0, 0, 0, 0, 0]
   let edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
@@ -1334,6 +1385,7 @@ test "hamiltonian: cycle in C5" {
   assert_true(has_hamiltonian_cycle(adj, 5))
 }
 
+///|
 test "hamiltonian: no path (disconnected)" {
   // 0 - 1, 2 - 3 (two components, 4 vertices).
   let adj = [0, 0, 0, 0]
@@ -1347,6 +1399,7 @@ test "hamiltonian: no path (disconnected)" {
   assert_false(has_hamiltonian_cycle(adj, 4))
 }
 
+///|
 test "hamiltonian: star graph has no Hamiltonian path for n > 3" {
   // Center 0, leaves 1, 2, 3, 4.
   // No Hamiltonian path for n=5 star (leaves can't be consecutive).
@@ -1362,6 +1415,7 @@ test "hamiltonian: star graph has no Hamiltonian path for n > 3" {
 
 // --- BitGraph API tests ---
 
+///|
 test "bitgraph: basic operations" {
   let g = match new_graph(5) {
     Some(g) => g
@@ -1376,6 +1430,7 @@ test "bitgraph: basic operations" {
   assert_false(has_edge(g, 0, 2))
 }
 
+///|
 test "bitgraph: invalid size rejected" {
   assert_true(new_graph(61) is None)
   assert_true(new_graph(-1) is None)
@@ -1383,6 +1438,7 @@ test "bitgraph: invalid size rejected" {
 
 // --- Cross-check: MIS + MVC = n ---
 
+///|
 test "duality: MIS + MVC = n" {
   // For any graph, max independent set + min vertex cover = n.
   let n = 12
@@ -1391,7 +1447,7 @@ test "duality: MIS + MVC = n" {
   for i = 0; i < n; i = i + 1 {
     for j = i + 1; j < n; j = j + 1 {
       st = (st * 1103515245 + 12345) & 0x7FFFFFFF
-      if (st % 100) < 45 {
+      if st % 100 < 45 {
         adj[i] = adj[i] | (1 << j)
         adj[j] = adj[j] | (1 << i)
       }

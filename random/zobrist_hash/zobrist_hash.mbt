@@ -1,3 +1,4 @@
+///|
 /// Zobrist hashing for game-state position encoding.
 ///
 /// Zobrist hashing assigns a random 64-bit key to every (position, piece)
@@ -11,10 +12,13 @@
 let num_piece_types : Int = 256
 
 // xorshift64 PRNG for deterministic table initialisation.
+
+///|
 priv struct Rng {
   mut state : Int64
 }
 
+///|
 fn make_rng(seed : Int64) -> () -> Int64 {
   let r = { state: if seed == 0L { 0x9E3779B97F4A7C15L } else { seed } }
   fn() {
@@ -27,12 +31,14 @@ fn make_rng(seed : Int64) -> () -> Int64 {
   }
 }
 
+///|
 /// The Zobrist hasher: a table of random Int64 keys indexed by
 /// [position][piece].
 pub struct ZobristHasher {
   priv table : Array[Array[Int64]]
 }
 
+///|
 /// Create a hasher for a board with `board_size` positions. The key table
 /// is filled with a fixed-seed xorshift64 PRNG so hashers are reproducible.
 pub fn new(board_size : Int) -> ZobristHasher {
@@ -46,9 +52,10 @@ pub fn new(board_size : Int) -> ZobristHasher {
       k
     })
   })
-  { table: table }
+  { table, }
 }
 
+///|
 /// Full hash of a board position. `pieces[i]` is the piece at square i;
 /// 0 means empty (skipped). Returns the XOR of all occupied keys.
 pub fn ZobristHasher::hash_position(
@@ -65,6 +72,7 @@ pub fn ZobristHasher::hash_position(
   h
 }
 
+///|
 /// Incrementally update a hash when the piece at `pos` changes from
 /// `old_piece` to `new_piece`. O(1): XOR out the old key, XOR in the new.
 pub fn ZobristHasher::incremental_update(
@@ -88,6 +96,7 @@ pub fn ZobristHasher::incremental_update(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "zobrist: same position gives same hash (deterministic)" {
   let h = new(64)
   let pos = [1, 2, 0, 3, 0, 0, 1, 0]
@@ -96,6 +105,7 @@ test "zobrist: same position gives same hash (deterministic)" {
   assert_true(h1 == h2)
 }
 
+///|
 test "zobrist: different positions give different hashes" {
   let h = new(64)
   let p1 = [1, 2, 3, 0, 0, 0, 0, 0]
@@ -105,6 +115,7 @@ test "zobrist: different positions give different hashes" {
   assert_true(h1 != h2)
 }
 
+///|
 test "zobrist: incremental update matches full rehash" {
   let h = new(64)
   let pieces = [1, 2, 0, 3, 0, 1, 0, 0]

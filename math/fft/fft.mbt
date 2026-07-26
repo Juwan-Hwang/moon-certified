@@ -46,6 +46,7 @@
 // Complex numbers
 // ---------------------------------------------------------------------------
 
+///|
 /// A complex number with `Double` real and imaginary parts.
 ///
 /// Fields are private: construct with [`complex`] and read with [`re`] /
@@ -57,31 +58,37 @@ pub struct Complex {
   priv imag : Double
 }
 
+///|
 /// Construct the complex number `real + imag * i`.
 pub fn complex(real : Double, imag : Double) -> Complex {
   { real, imag }
 }
 
+///|
 /// Real part of `c`.
 pub fn re(c : Complex) -> Double {
   c.real
 }
 
+///|
 /// Imaginary part of `c`.
 pub fn im(c : Complex) -> Double {
   c.imag
 }
 
+///|
 /// Complex addition: `(a + b)`.
 pub fn c_add(a : Complex, b : Complex) -> Complex {
   { real: a.real + b.real, imag: a.imag + b.imag }
 }
 
+///|
 /// Complex subtraction: `(a - b)`.
 pub fn c_sub(a : Complex, b : Complex) -> Complex {
   { real: a.real - b.real, imag: a.imag - b.imag }
 }
 
+///|
 /// Complex multiplication: `(a * b)`.
 ///
 /// Uses the identity
@@ -93,6 +100,7 @@ pub fn c_mul(a : Complex, b : Complex) -> Complex {
   }
 }
 
+///|
 /// Complex division: `(a / b)`.
 ///
 /// Multiplies numerator and denominator by the conjugate of `b` so the
@@ -110,11 +118,13 @@ pub fn c_div(a : Complex, b : Complex) -> Complex {
   }
 }
 
+///|
 /// Modulus (absolute value) `|c| = sqrt(real^2 + imag^2)`.
 pub fn c_abs(c : Complex) -> Double {
   (c.real * c.real + c.imag * c.imag).sqrt()
 }
 
+///|
 /// Complex conjugate `conj(a + bi) = a - bi`.
 pub fn c_conj(c : Complex) -> Complex {
   { real: c.real, imag: -c.imag }
@@ -124,6 +134,7 @@ pub fn c_conj(c : Complex) -> Complex {
 // Bit-reversal permutation
 // ---------------------------------------------------------------------------
 
+///|
 /// Reorder `a` so that element `i` moves to the position obtained by reversing
 /// the `log2(n)` low bits of `i`. This is the standard pre-processing step
 /// for the iterative (Cooley-Tukey) FFT.
@@ -156,6 +167,7 @@ fn bit_reverse(a : Array[Complex], n : Int) -> Unit {
 // Core FFT
 // ---------------------------------------------------------------------------
 
+///|
 /// In-place iterative Cooley-Tukey FFT.
 ///
 /// When `invert` is `false`, performs the forward transform: evaluates the
@@ -220,6 +232,7 @@ pub fn fft(a : Array[Complex], invert : Bool) -> Unit {
 // Polynomial multiplication
 // ---------------------------------------------------------------------------
 
+///|
 /// Multiply two polynomials with real (`Double`) coefficients.
 ///
 /// Given coefficient arrays `a` (degree `len(a) - 1`) and `b` (degree
@@ -281,15 +294,17 @@ pub fn multiply(a : Array[Double], b : Array[Double]) -> Array[Double] {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Tolerant equality for `Double`: passes if the difference is within an
 /// absolute bound (`1e-6`) or a relative bound (`1e-6` of the larger
 /// magnitude). Used everywhere FFT results are compared, since the transform
 /// accumulates a small amount of floating-point error.
 fn approx_eq(a : Double, b : Double) -> Bool {
   let diff = (a - b).abs()
-  (diff < 1.0e-6) || (diff < 1.0e-6 * (a.abs() + b.abs()))
+  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
 }
 
+///|
 /// Assert `a` and `b` are approximately equal, panicking with a message if
 /// not. The explicit message makes FFT round-off failures easy to diagnose.
 fn assert_approx(a : Double, b : Double) -> Unit {
@@ -298,6 +313,7 @@ fn assert_approx(a : Double, b : Double) -> Unit {
   }
 }
 
+///|
 /// Naive `O(n*m)` convolution, used as an independent oracle for the FFT
 /// multiplier in the tests below.
 fn brute_convolve(a : Array[Double], b : Array[Double]) -> Array[Double] {
@@ -320,6 +336,7 @@ fn brute_convolve(a : Array[Double], b : Array[Double]) -> Array[Double] {
   out
 }
 
+///|
 /// Direct `O(n^2)` DFT using the same `+2*pi*i` convention as
 /// `fft(_, false)`, used as an independent oracle for the transform itself.
 fn direct_dft(a : Array[Double]) -> Array[Complex] {
@@ -342,6 +359,7 @@ fn direct_dft(a : Array[Double]) -> Array[Complex] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fft: complex arithmetic" {
   // (1 + 2i) + (3 - i) = 4 + i
   let z1 = c_add(complex(1.0, 2.0), complex(3.0, -1.0))
@@ -367,6 +385,7 @@ test "fft: complex arithmetic" {
   assert_approx(im(z5), -4.0)
 }
 
+///|
 test "fft: forward and inverse round-trip" {
   let original = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]
   let a : Array[Complex] = []
@@ -382,6 +401,7 @@ test "fft: forward and inverse round-trip" {
   }
 }
 
+///|
 test "fft: known DFT values" {
   // DFT of [1, 1, 1, 1] is [4, 0, 0, 0] (sign-independent).
   let a : Array[Complex] = [
@@ -427,6 +447,7 @@ test "fft: known DFT values" {
   }
 }
 
+///|
 test "fft: polynomial multiply simple" {
   // (1 + x) * (1 + x) = 1 + 2x + x^2
   let c = multiply([1.0, 1.0], [1.0, 1.0])
@@ -436,6 +457,7 @@ test "fft: polynomial multiply simple" {
   assert_approx(c[2], 1.0)
 }
 
+///|
 test "fft: polynomial multiply larger" {
   // (1 + 2x + 3x^2) * (4 + 5x) = 4 + 13x + 22x^2 + 15x^3
   let c = multiply([1.0, 2.0, 3.0], [4.0, 5.0])
@@ -446,6 +468,7 @@ test "fft: polynomial multiply larger" {
   assert_approx(c[3], 15.0) // 3*5
 }
 
+///|
 test "fft: multiply degree 0" {
   // Constant * constant.
   let c = multiply([7.0], [3.0])
@@ -453,6 +476,7 @@ test "fft: multiply degree 0" {
   assert_approx(c[0], 21.0)
 }
 
+///|
 test "fft: empty input" {
   // Either operand empty -> empty result.
   assert_true(multiply([], [1.0, 2.0]).length() == 0)
@@ -460,6 +484,7 @@ test "fft: empty input" {
   assert_true(multiply([], []).length() == 0)
 }
 
+///|
 test "fft: single element" {
   // [5] * [3, 7, 11] = [15, 35, 55]
   let c = multiply([5.0], [3.0, 7.0, 11.0])
@@ -469,6 +494,7 @@ test "fft: single element" {
   assert_approx(c[2], 55.0)
 }
 
+///|
 test "fft: non-power-of-2 padding" {
   // Inputs whose convolution length is not a power of 2 exercise the
   // internal zero-padding. (1 + 2x + 3x^2) * (1 + x + x^2 + x^3 + x^4)
@@ -487,6 +513,7 @@ test "fft: non-power-of-2 padding" {
   assert_approx(c[6], 3.0)
 }
 
+///|
 test "fft: large input stress" {
   // 64 x 64 convolution: result length 127 (next power of 2 is 128).
   let a : Array[Double] = []
@@ -503,6 +530,7 @@ test "fft: large input stress" {
   }
 }
 
+///|
 test "fft: cross-check with brute force" {
   // Asymmetric lengths and mixed magnitudes, compared against the O(n^2)
   // oracle coefficient by coefficient.

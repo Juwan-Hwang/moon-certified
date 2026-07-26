@@ -47,12 +47,14 @@
 /// Time complexity: O(n).
 /// Space complexity: O(n).
 
+///|
 /// Sentinel value used in the transformed array.  It is outside the byte
 /// range [0, 255], so it can never collide with an actual input byte,
 /// making the algorithm correct for arbitrary byte content.  Conceptually
 /// it plays the role of the `#` separator in the standard formulation.
 const MANACHER_SENTINEL : Int = -1
 
+///|
 /// Build the transformed array `t` of length `2n + 1`:
 ///   t = [#, s[0], #, s[1], #, ..., #, s[n-1], #]
 /// Even positions hold the sentinel; odd positions hold the byte values
@@ -67,6 +69,7 @@ fn manacher_transform(s : String) -> FixedArray[Int] {
   t
 }
 
+///|
 /// Run Manacher's algorithm on the transformed array `t`.
 ///
 /// Returns the radius array `p` where `p[i]` is the radius of the longest
@@ -86,8 +89,8 @@ fn manacher_core(t : FixedArray[Int]) -> FixedArray[Int] {
     }
     // Expand the palindrome around `i` as far as possible.
     while i - p[i] - 1 >= 0 &&
-      i + p[i] + 1 < m &&
-      t[i - p[i] - 1] == t[i + p[i] + 1] {
+          i + p[i] + 1 < m &&
+          t[i - p[i] - 1] == t[i + p[i] + 1] {
       p[i] = p[i] + 1
     }
     // Update the rightmost palindrome if we expanded past `r`.
@@ -99,6 +102,7 @@ fn manacher_core(t : FixedArray[Int]) -> FixedArray[Int] {
   p
 }
 
+///|
 /// Return the palindrome radius array of `s`.
 ///
 /// The returned array has length `2 * s.length() + 1` and corresponds to
@@ -111,6 +115,7 @@ pub fn palindrome_radii(s : String) -> FixedArray[Int] {
   manacher_core(t)
 }
 
+///|
 /// Return the longest palindromic substring of `s`, or `None` if `s` is
 /// empty.  When several substrings share the maximum length, the one with
 /// the smallest center (and hence the smallest start index) is returned.
@@ -133,6 +138,7 @@ pub fn longest_palindrome(s : String) -> String? {
   Some(s[start:end].to_owned())
 }
 
+///|
 /// Count all palindromic substrings of `s`.
 ///
 /// Each center `i` contributes `(p[i] + 1) / 2` palindromes (the longest
@@ -151,6 +157,7 @@ pub fn count_palindromes(s : String) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "palindrome_radii: basic aba" {
   // t = # a # b # a #  ->  p = [0,1,0,3,0,1,0]
   let p = palindrome_radii("aba")
@@ -164,6 +171,7 @@ test "palindrome_radii: basic aba" {
   assert_eq(p[6], 0)
 }
 
+///|
 test "palindrome_radii: single char" {
   // t = # a #  ->  p = [0,1,0]
   let p = palindrome_radii("a")
@@ -173,6 +181,7 @@ test "palindrome_radii: single char" {
   assert_eq(p[2], 0)
 }
 
+///|
 test "palindrome_radii: empty string" {
   // t = #  ->  p = [0]
   let p = palindrome_radii("")
@@ -180,6 +189,7 @@ test "palindrome_radii: empty string" {
   assert_eq(p[0], 0)
 }
 
+///|
 test "palindrome_radii: aa (even palindrome)" {
   // t = # a # a #  ->  p = [0,1,2,1,0]
   let p = palindrome_radii("aa")
@@ -191,6 +201,7 @@ test "palindrome_radii: aa (even palindrome)" {
   assert_eq(p[4], 0)
 }
 
+///|
 test "palindrome_radii: aaaa" {
   // t = # a # a # a # a #  ->  p = [0,1,2,3,4,3,2,1,0]
   let p = palindrome_radii("aaaa")
@@ -206,10 +217,12 @@ test "palindrome_radii: aaaa" {
   assert_eq(p[8], 0)
 }
 
+///|
 test "longest_palindrome: basic aba" {
   assert_eq(longest_palindrome("aba"), Some("aba"))
 }
 
+///|
 test "longest_palindrome: babad accepts bab or aba" {
   // Both "bab" (start 0) and "aba" (start 1) are valid length-3 answers.
   let r = longest_palindrome("babad")
@@ -219,26 +232,32 @@ test "longest_palindrome: babad accepts bab or aba" {
   assert_true(v == "bab" || v == "aba")
 }
 
+///|
 test "longest_palindrome: cbbd -> bb" {
   assert_eq(longest_palindrome("cbbd"), Some("bb"))
 }
 
+///|
 test "longest_palindrome: single char" {
   assert_eq(longest_palindrome("a"), Some("a"))
 }
 
+///|
 test "longest_palindrome: empty string returns None" {
   assert_true(longest_palindrome("") is None)
 }
 
+///|
 test "longest_palindrome: all same chars aaaa" {
   assert_eq(longest_palindrome("aaaa"), Some("aaaa"))
 }
 
+///|
 test "longest_palindrome: even length abba" {
   assert_eq(longest_palindrome("abba"), Some("abba"))
 }
 
+///|
 test "longest_palindrome: no palindrome longer than 1" {
   // "abcd" has no palindrome longer than a single character.
   let r = longest_palindrome("abcd")
@@ -249,54 +268,64 @@ test "longest_palindrome: no palindrome longer than 1" {
   assert_true(v == "a" || v == "b" || v == "c" || v == "d")
 }
 
+///|
 test "longest_palindrome: longer string racecar" {
   assert_eq(longest_palindrome("racecar"), Some("racecar"))
 }
 
+///|
 test "longest_palindrome: palindrome in the middle" {
   assert_eq(longest_palindrome("xyzracecarabc"), Some("racecar"))
 }
 
+///|
 test "count_palindromes: aba" {
   // "a", "b", "a", "aba" -> 4
   assert_eq(count_palindromes("aba"), 4)
 }
 
+///|
 test "count_palindromes: aaa" {
   // "a","a","a","aa","aa","aaa" -> 6
   assert_eq(count_palindromes("aaa"), 6)
 }
 
+///|
 test "count_palindromes: abc (no palindrome longer than 1)" {
   // "a", "b", "c" -> 3
   assert_eq(count_palindromes("abc"), 3)
 }
 
+///|
 test "count_palindromes: empty string" {
   assert_eq(count_palindromes(""), 0)
 }
 
+///|
 test "count_palindromes: aa" {
   // "a", "a", "aa" -> 3
   assert_eq(count_palindromes("aa"), 3)
 }
 
+///|
 test "count_palindromes: aaaa" {
   // a(4) + aa(3) + aaa(2) + aaaa(1) = 10
   assert_eq(count_palindromes("aaaa"), 10)
 }
 
+///|
 test "count_palindromes: abba" {
   // "a","b","b","a","bb","abba" -> 6
   assert_eq(count_palindromes("abba"), 6)
 }
 
+///|
 test "manacher: cross-check against brute force" {
   // Verify longest_palindrome and count_palindromes against naive O(n^2)
   // implementations over several inputs.
   let inputs = [
-    "aba", "babad", "cbbd", "aaaa", "abba", "abcd", "racecar",
-    "bananas", "abacdfgdcaba", "a", "", "aaabaaa", "xabay",
+    "aba", "babad", "cbbd", "aaaa", "abba", "abcd", "racecar", "bananas", "abacdfgdcaba",
+    "a", "", "aaabaaa", "xabay",
   ]
   for k = 0; k < inputs.length(); k = k + 1 {
     let s = inputs[k]

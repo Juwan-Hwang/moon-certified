@@ -1,3 +1,4 @@
+///|
 /// Segment Tree Beats (ji driver segment tree) for range chmin/chmax/sum queries.
 ///
 /// An advanced segment tree that supports:
@@ -38,12 +39,15 @@
 // ---------------------------------------------------------------------------
 
 const NEG_INF : Int64 = -9223372036854775808L
+
+///|
 const POS_INF : Int64 = 9223372036854775807L
 
 // ---------------------------------------------------------------------------
 // Node structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A node in the Segment Tree Beats.
 ///
 /// Each node covers a range `[lo, hi]` and maintains:
@@ -70,6 +74,7 @@ struct Node {
   mut laz_chmax : Int64 // applied chmax value (NEG_INF = no pending chmax)
 }
 
+///|
 fn make_node() -> Node {
   {
     sum: 0L,
@@ -90,12 +95,14 @@ fn make_node() -> Node {
 // Segment Tree Beats
 // ---------------------------------------------------------------------------
 
+///|
 /// A Segment Tree Beats supporting range chmin, chmax, add, and sum queries.
 pub struct SegBeats {
   n : Int
   tree : FixedArray[Node]
 }
 
+///|
 /// Build a Segment Tree Beats from an initial `Int64` array.
 pub fn build(arr : FixedArray[Int64], n : Int) -> SegBeats {
   // FixedArray::make(size, val) evaluates val once and shares the reference
@@ -110,6 +117,7 @@ pub fn build(arr : FixedArray[Int64], n : Int) -> SegBeats {
   sb
 }
 
+///|
 fn build_rec(
   sb : SegBeats,
   node : Int,
@@ -135,6 +143,7 @@ fn build_rec(
   pull_up(sb, node)
 }
 
+///|
 /// Combine two children into the parent.
 fn pull_up(sb : SegBeats, node : Int) -> Unit {
   let l = sb.tree[node * 2]
@@ -173,6 +182,7 @@ fn pull_up(sb : SegBeats, node : Int) -> Unit {
   }
 }
 
+///|
 /// Apply an additive lazy tag to a node.
 fn apply_add(sb : SegBeats, node : Int, v : Int64) -> Unit {
   let n = sb.tree[node]
@@ -195,6 +205,7 @@ fn apply_add(sb : SegBeats, node : Int, v : Int64) -> Unit {
   }
 }
 
+///|
 /// Apply a chmin lazy tag to a node (decrease all values equal to max1 to x).
 fn apply_chmin(sb : SegBeats, node : Int, x : Int64) -> Unit {
   let n = sb.tree[node]
@@ -226,6 +237,7 @@ fn apply_chmin(sb : SegBeats, node : Int, x : Int64) -> Unit {
   }
 }
 
+///|
 /// Apply a chmax lazy tag to a node (increase all values equal to min1 to x).
 fn apply_chmax(sb : SegBeats, node : Int, x : Int64) -> Unit {
   let n = sb.tree[node]
@@ -252,6 +264,7 @@ fn apply_chmax(sb : SegBeats, node : Int, x : Int64) -> Unit {
   }
 }
 
+///|
 /// Push lazy tags down to children.
 fn push_down(sb : SegBeats, node : Int) -> Unit {
   let n = sb.tree[node]
@@ -279,11 +292,13 @@ fn push_down(sb : SegBeats, node : Int) -> Unit {
 // Public operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Range sum query on `[ql, qr]` (0-indexed, inclusive).
 pub fn range_sum(sb : SegBeats, ql : Int, qr : Int) -> Int64 {
   range_sum_rec(sb, 1, 0, sb.n - 1, ql, qr)
 }
 
+///|
 fn range_sum_rec(
   sb : SegBeats,
   node : Int,
@@ -304,11 +319,13 @@ fn range_sum_rec(
   range_sum_rec(sb, node * 2 + 1, mid + 1, hi, ql, qr)
 }
 
+///|
 /// Range chmin: set `a[i] = min(a[i], x)` for all `i` in `[ql, qr]`.
 pub fn range_chmin(sb : SegBeats, ql : Int, qr : Int, x : Int64) -> Unit {
   range_chmin_rec(sb, 1, 0, sb.n - 1, ql, qr, x)
 }
 
+///|
 fn range_chmin_rec(
   sb : SegBeats,
   node : Int,
@@ -332,11 +349,13 @@ fn range_chmin_rec(
   pull_up(sb, node)
 }
 
+///|
 /// Range chmax: set `a[i] = max(a[i], x)` for all `i` in `[ql, qr]`.
 pub fn range_chmax(sb : SegBeats, ql : Int, qr : Int, x : Int64) -> Unit {
   range_chmax_rec(sb, 1, 0, sb.n - 1, ql, qr, x)
 }
 
+///|
 fn range_chmax_rec(
   sb : SegBeats,
   node : Int,
@@ -360,11 +379,13 @@ fn range_chmax_rec(
   pull_up(sb, node)
 }
 
+///|
 /// Range add: add `x` to all `a[i]` for `i` in `[ql, qr]`.
 pub fn range_add(sb : SegBeats, ql : Int, qr : Int, x : Int64) -> Unit {
   range_add_rec(sb, 1, 0, sb.n - 1, ql, qr, x)
 }
 
+///|
 fn range_add_rec(
   sb : SegBeats,
   node : Int,
@@ -392,6 +413,7 @@ fn range_add_rec(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "beats: basic range sum" {
   let arr = FixedArray::make(5, 0L)
   for i = 0; i < 5; i = i + 1 {
@@ -404,6 +426,7 @@ test "beats: basic range sum" {
   assert_eq(range_sum(sb, 1, 3), 9L)
 }
 
+///|
 test "beats: range add" {
   let arr = FixedArray::make(5, 0L)
   for i = 0; i < 5; i = i + 1 {
@@ -418,6 +441,7 @@ test "beats: range add" {
   assert_eq(range_sum(sb, 0, 4), 80L)
 }
 
+///|
 test "beats: range chmin" {
   let arr = FixedArray::make(5, 0L)
   for i = 0; i < 5; i = i + 1 {
@@ -432,6 +456,7 @@ test "beats: range chmin" {
   assert_eq(range_sum(sb, 0, 4), 14L)
 }
 
+///|
 test "beats: range chmax" {
   let arr = FixedArray::make(5, 0L)
   for i = 0; i < 5; i = i + 1 {
@@ -446,6 +471,7 @@ test "beats: range chmax" {
   assert_eq(range_sum(sb, 0, 4), 39L)
 }
 
+///|
 test "beats: mixed operations" {
   let arr = FixedArray::make(5, 0L)
   for i = 0; i < 5; i = i + 1 {
@@ -466,6 +492,7 @@ test "beats: mixed operations" {
   assert_eq(range_sum(sb, 0, 4), 62L)
 }
 
+///|
 test "beats: chmin on subrange" {
   let arr = FixedArray::make(6, 0L)
   for i = 0; i < 6; i = i + 1 {
@@ -478,6 +505,7 @@ test "beats: chmin on subrange" {
   assert_eq(range_sum(sb, 2, 4), 9L)
 }
 
+///|
 test "beats: chmax on subrange" {
   let arr = FixedArray::make(6, 0L)
   for i = 0; i < 6; i = i + 1 {
@@ -489,6 +517,7 @@ test "beats: chmax on subrange" {
   assert_eq(range_sum(sb, 0, 5), 30L)
 }
 
+///|
 test "beats: stress test against brute force" {
   let n = 100
   let arr = FixedArray::make(n, 0L)
@@ -550,6 +579,7 @@ test "beats: stress test against brute force" {
   }
 }
 
+///|
 test "beats: single element" {
   let arr = FixedArray::make(1, 0L)
   arr[0] = 42L

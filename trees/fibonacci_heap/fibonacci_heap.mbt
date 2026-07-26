@@ -13,6 +13,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A node in the Fibonacci heap.
 priv struct FibNode {
   id : Int
@@ -23,6 +24,7 @@ priv struct FibNode {
   mut right : FibNode?
 }
 
+///|
 /// A Fibonacci heap (min-heap).
 pub struct FibHeap {
   priv mut min_node : FibNode?
@@ -30,11 +32,13 @@ pub struct FibHeap {
   priv mut next_id : Int
 }
 
+///|
 /// Create an empty Fibonacci heap.
 pub fn fib_heap_new() -> FibHeap {
   { min_node: None, node_count: 0, next_id: 0 }
 }
 
+///|
 /// Insert a key into the heap. O(1).
 pub fn FibHeap::insert(self : FibHeap, key : Int) -> Unit {
   let node = {
@@ -49,13 +53,13 @@ pub fn FibHeap::insert(self : FibHeap, key : Int) -> Unit {
   node.left = Some(node)
   node.right = Some(node)
   self.min_node = match self.min_node {
-    Some(min) =>
-      Some(meld_into_root_list(node, min))
+    Some(min) => Some(meld_into_root_list(node, min))
     None => Some(node)
   }
   self.node_count = self.node_count + 1
 }
 
+///|
 /// Find the minimum key. O(1).
 pub fn FibHeap::find_min(self : FibHeap) -> Int? {
   match self.min_node {
@@ -64,6 +68,7 @@ pub fn FibHeap::find_min(self : FibHeap) -> Int? {
   }
 }
 
+///|
 /// Extract the minimum element. Amortized O(log n).
 pub fn FibHeap::extract_min(self : FibHeap) -> Int? {
   match self.min_node {
@@ -116,26 +121,31 @@ pub fn FibHeap::extract_min(self : FibHeap) -> Int? {
   }
 }
 
+///|
 /// Number of elements in the heap.
 pub fn FibHeap::len(self : FibHeap) -> Int {
   self.node_count
 }
 
+///|
 /// Check if the heap is empty.
 pub fn FibHeap::is_empty(self : FibHeap) -> Bool {
   self.node_count == 0
 }
 
 // Consolidate root list: ensure no two roots have the same degree.
+
+///|
 fn FibHeap::consolidate(self : FibHeap) -> Unit {
   let max_degree = 64 // Upper bound for practical use.
-  let degree_arr : Array[FibNode?] = FixedArray::make(max_degree, None) |> fn(fa) {
-    let a : Array[FibNode?] = []
-    for i = 0; i < max_degree; i = i + 1 {
-      a.push(fa[i])
+  let degree_arr : Array[FibNode?] = FixedArray::make(max_degree, None)
+    |> fn(fa) {
+      let a : Array[FibNode?] = []
+      for i = 0; i < max_degree; i = i + 1 {
+        a.push(fa[i])
+      }
+      a
     }
-    a
-  }
   // Collect all root nodes.
   let roots : Array[FibNode] = []
   match self.min_node {
@@ -183,8 +193,7 @@ fn FibHeap::consolidate(self : FibHeap) -> Unit {
         node.left = Some(node)
         node.right = Some(node)
         self.min_node = match self.min_node {
-          Some(min) =>
-            Some(meld_into_root_list(node, min))
+          Some(min) => Some(meld_into_root_list(node, min))
           None => Some(node)
         }
       }
@@ -193,6 +202,7 @@ fn FibHeap::consolidate(self : FibHeap) -> Unit {
   }
 }
 
+///|
 fn link(y : FibNode, x : FibNode) -> Unit {
   // Remove y from root list.
   match (y.left, y.right) {
@@ -224,6 +234,7 @@ fn link(y : FibNode, x : FibNode) -> Unit {
   x.degree = x.degree + 1
 }
 
+///|
 fn meld_into_root_list(node : FibNode, min : FibNode) -> FibNode {
   node.left = Some(min)
   node.right = min.right
@@ -243,6 +254,7 @@ fn meld_into_root_list(node : FibNode, min : FibNode) -> FibNode {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fib_heap: basic insert and find_min" {
   let h = fib_heap_new()
   h.insert(5)
@@ -254,6 +266,7 @@ test "fib_heap: basic insert and find_min" {
   assert_eq(h.len(), 5)
 }
 
+///|
 test "fib_heap: extract_min sorted order" {
   let h = fib_heap_new()
   let values = [7, 3, 9, 1, 5, 2, 8, 4, 6, 0]
@@ -267,6 +280,7 @@ test "fib_heap: extract_min sorted order" {
   assert_true(h.is_empty())
 }
 
+///|
 test "fib_heap: empty heap" {
   let h = fib_heap_new()
   assert_true(h.is_empty())
@@ -274,6 +288,7 @@ test "fib_heap: empty heap" {
   assert_eq(h.extract_min(), None)
 }
 
+///|
 test "fib_heap: single element" {
   let h = fib_heap_new()
   h.insert(42)
@@ -282,6 +297,7 @@ test "fib_heap: single element" {
   assert_true(h.is_empty())
 }
 
+///|
 test "fib_heap: duplicates" {
   let h = fib_heap_new()
   h.insert(3)
@@ -294,6 +310,7 @@ test "fib_heap: duplicates" {
   assert_eq(h.extract_min(), Some(3))
 }
 
+///|
 test "fib_heap: large random" {
   let h = fib_heap_new()
   let mut seed = 42

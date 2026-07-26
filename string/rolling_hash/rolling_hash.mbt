@@ -35,16 +35,20 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// The first prime modulus: 1,000,000,007.
 const MOD1 : Int = 1_000_000_007
 
+///|
 /// The second prime modulus: 1,000,000,009.
 const MOD2 : Int = 1_000_000_009
 
+///|
 /// The base for polynomial hashing. Chosen as a prime larger than the
 /// alphabet size (256 for byte strings).
 const BASE : Int = 911_382_33
 
+///|
 /// A double-modulus rolling hash over a string.
 ///
 /// Precomputes forward and reverse hash arrays plus power tables for both
@@ -62,6 +66,7 @@ pub struct RollingHash {
   priv pow2 : FixedArray[Int]
 }
 
+///|
 /// Build a rolling hash over the given string.
 ///
 /// Preprocessing is O(n) where n = s.length().
@@ -93,19 +98,26 @@ pub fn RollingHash::new(s : String) -> RollingHash {
   { n, fwd1, fwd2, rev1, rev2, pow1, pow2 }
 }
 
+///|
 /// Modular multiplication using Int64 to avoid 32-bit overflow.
 /// `a * b mod m` where a, b < m ≈ 1e9; product ≈ 1e18 fits in Int64.
 fn mod_mul(a : Int, b : Int, m : Int) -> Int {
-  let r = (a.to_int64() * b.to_int64()) % m.to_int64()
+  let r = a.to_int64() * b.to_int64() % m.to_int64()
   r.to_int()
 }
 
+///|
 /// Modular subtraction: (a - b) mod m, always non-negative.
 fn mod_sub(a : Int, b : Int, m : Int) -> Int {
   let r = a - b
-  if r < 0 { r + m } else { r }
+  if r < 0 {
+    r + m
+  } else {
+    r
+  }
 }
 
+///|
 /// Compute the forward hash of substring s[l..r) under MOD1.
 /// O(1). `l` and `r` must satisfy 0 <= l <= r <= n.
 fn RollingHash::fwd_hash1(self : RollingHash, l : Int, r : Int) -> Int {
@@ -115,6 +127,7 @@ fn RollingHash::fwd_hash1(self : RollingHash, l : Int, r : Int) -> Int {
   mod_sub(self.fwd1[r], mod_mul(self.fwd1[l], self.pow1[r - l], MOD1), MOD1)
 }
 
+///|
 /// Compute the forward hash of substring s[l..r) under MOD2.
 /// O(1).
 fn RollingHash::fwd_hash2(self : RollingHash, l : Int, r : Int) -> Int {
@@ -124,6 +137,7 @@ fn RollingHash::fwd_hash2(self : RollingHash, l : Int, r : Int) -> Int {
   mod_sub(self.fwd2[r], mod_mul(self.fwd2[l], self.pow2[r - l], MOD2), MOD2)
 }
 
+///|
 /// Compute the reverse hash of substring s[l..r) under MOD1.
 ///
 /// The reverse hash treats the substring as if read right-to-left, so
@@ -140,6 +154,7 @@ fn RollingHash::rev_hash1(self : RollingHash, l : Int, r : Int) -> Int {
   mod_sub(self.rev1[i1], mod_mul(self.rev1[i2], self.pow1[r - l], MOD1), MOD1)
 }
 
+///|
 /// Compute the reverse hash of substring s[l..r) under MOD2.
 fn RollingHash::rev_hash2(self : RollingHash, l : Int, r : Int) -> Int {
   if l >= r {
@@ -150,6 +165,7 @@ fn RollingHash::rev_hash2(self : RollingHash, l : Int, r : Int) -> Int {
   mod_sub(self.rev2[i1], mod_mul(self.rev2[i2], self.pow2[r - l], MOD2), MOD2)
 }
 
+///|
 /// A 128-bit hash represented as a pair of (mod1_hash, mod2_hash).
 /// Two substrings with the same DoubleHash are almost certainly identical.
 pub struct DoubleHash {
@@ -157,6 +173,7 @@ pub struct DoubleHash {
   priv h2 : Int
 }
 
+///|
 /// Get the double hash of substring s[l..r).
 ///
 /// Returns a `DoubleHash` combining both moduli for collision resistance.
@@ -169,14 +186,11 @@ pub fn RollingHash::substring_hash(
   { h1: self.fwd_hash1(l, r), h2: self.fwd_hash2(l, r) }
 }
 
+///|
 /// Check if substring s[l..r) is a palindrome.
 ///
 /// Compares forward and reverse hashes under both moduli. O(1).
-pub fn RollingHash::is_palindrome(
-  self : RollingHash,
-  l : Int,
-  r : Int,
-) -> Bool {
+pub fn RollingHash::is_palindrome(self : RollingHash, l : Int, r : Int) -> Bool {
   if l >= r {
     return true
   }
@@ -184,6 +198,7 @@ pub fn RollingHash::is_palindrome(
   self.fwd_hash2(l, r) == self.rev_hash2(l, r)
 }
 
+///|
 /// Check if two substrings s[l1..r1) and s[l2..r2) are equal.
 ///
 /// O(1). The substrings must have the same length (r1-l1 == r2-l2).
@@ -201,6 +216,7 @@ pub fn RollingHash::equals(
   self.fwd_hash2(l1, r1) == self.fwd_hash2(l2, r2)
 }
 
+///|
 /// Find all starting positions of `pattern` in the hashed string.
 ///
 /// Returns an array of indices where pattern occurs. O(n + m) where
@@ -231,6 +247,7 @@ pub fn RollingHash::find_all(
   result
 }
 
+///|
 /// Length of the hashed string.
 pub fn RollingHash::length(self : RollingHash) -> Int {
   self.n
@@ -240,6 +257,7 @@ pub fn RollingHash::length(self : RollingHash) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "rolling_hash: basic substring hash" {
   let rh = RollingHash::new("hello")
   // Same substring should give same hash
@@ -249,6 +267,7 @@ test "rolling_hash: basic substring hash" {
   assert_eq(h1.h2, h2.h2)
 }
 
+///|
 test "rolling_hash: equal substrings" {
   let rh = RollingHash::new("ababcabab")
   // "ab" at positions 0,2,5,7 should all be equal
@@ -259,6 +278,7 @@ test "rolling_hash: equal substrings" {
   assert_false(rh.equals(0, 2, 1, 3))
 }
 
+///|
 test "rolling_hash: palindrome check" {
   let rh = RollingHash::new("racecar")
   assert_true(rh.is_palindrome(0, 7)) // "racecar"
@@ -269,6 +289,7 @@ test "rolling_hash: palindrome check" {
   assert_true(rh.is_palindrome(2, 5)) // "cec"
 }
 
+///|
 test "rolling_hash: find_all" {
   let rh = RollingHash::new("abracadabra")
   let pos = rh.find_all("abra")
@@ -277,6 +298,7 @@ test "rolling_hash: find_all" {
   assert_eq(pos[1], 7)
 }
 
+///|
 test "rolling_hash: find_all overlapping" {
   let rh = RollingHash::new("aaaa")
   let pos = rh.find_all("aa")
@@ -286,18 +308,21 @@ test "rolling_hash: find_all overlapping" {
   assert_eq(pos[2], 2)
 }
 
+///|
 test "rolling_hash: find_all no match" {
   let rh = RollingHash::new("hello world")
   let pos = rh.find_all("xyz")
   assert_eq(pos.length(), 0)
 }
 
+///|
 test "rolling_hash: find_all empty pattern" {
   let rh = RollingHash::new("hello")
   let pos = rh.find_all("")
   assert_eq(pos.length(), 0)
 }
 
+///|
 test "rolling_hash: full string palindrome" {
   let rh = RollingHash::new("level")
   assert_true(rh.is_palindrome(0, 5))
@@ -305,6 +330,7 @@ test "rolling_hash: full string palindrome" {
   assert_false(rh2.is_palindrome(0, 5))
 }
 
+///|
 test "rolling_hash: single char" {
   let rh = RollingHash::new("a")
   assert_eq(rh.length(), 1)
@@ -313,6 +339,7 @@ test "rolling_hash: single char" {
   assert_true(h.h1 >= 0)
 }
 
+///|
 test "rolling_hash: empty string" {
   let rh = RollingHash::new("")
   assert_eq(rh.length(), 0)
@@ -321,6 +348,7 @@ test "rolling_hash: empty string" {
   assert_eq(h.h2, 0)
 }
 
+///|
 test "rolling_hash: long string equality" {
   // Build "abcdefghij" repeated 10 times
   let buf = StringBuilder::new()
@@ -335,6 +363,7 @@ test "rolling_hash: long string equality" {
   }
 }
 
+///|
 test "rolling_hash: collision resistance" {
   // Two different substrings of same length should have different hashes
   let rh = RollingHash::new("abcdefgh")

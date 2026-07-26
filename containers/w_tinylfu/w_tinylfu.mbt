@@ -1,3 +1,4 @@
+///|
 /// W-TinyLFU Cache — a modern admission-based cache combining recency
 /// and frequency for superior hit rates.
 ///
@@ -32,14 +33,17 @@
 
 const SEG_WINDOW : Int = 0
 
+///|
 const SEG_PROBATIONARY : Int = 1
 
+///|
 const SEG_PROTECTED : Int = 2
 
 // ---------------------------------------------------------------------------
 // Data structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A W-TinyLFU cache with `Int` keys and `Int` values.
 pub struct WTinyLFU {
   /// Node pool: parallel arrays indexed by node id.
@@ -69,6 +73,7 @@ pub struct WTinyLFU {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a W-TinyLFU cache with the given total `capacity`.
 ///
 /// The capacity is split: 1% for the Window, 80% of the remainder for
@@ -109,6 +114,7 @@ pub fn new(capacity : Int) -> WTinyLFU {
   }
 }
 
+///|
 /// Total number of entries currently in the cache.
 pub fn size(cache : WTinyLFU) -> Int {
   cache.counts[SEG_WINDOW] +
@@ -120,6 +126,7 @@ pub fn size(cache : WTinyLFU) -> Int {
 // Linked-list helpers (shared by all three segments)
 // ---------------------------------------------------------------------------
 
+///|
 /// Detach node `idx` from segment `seg`. Decrements the segment count.
 fn detach(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
   let p = cache.prevs[idx]
@@ -139,6 +146,7 @@ fn detach(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
   cache.counts[seg] = cache.counts[seg] - 1
 }
 
+///|
 /// Attach node `idx` at the tail of segment `seg`. Increments the count.
 fn insert_tail(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
   cache.segs[idx] = seg
@@ -156,6 +164,7 @@ fn insert_tail(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
   cache.counts[seg] = cache.counts[seg] + 1
 }
 
+///|
 /// Remove and return the head (LRU) node of segment `seg`.
 fn remove_head(cache : WTinyLFU, seg : Int) -> Int {
   let idx = cache.heads[seg]
@@ -163,6 +172,7 @@ fn remove_head(cache : WTinyLFU, seg : Int) -> Int {
   idx
 }
 
+///|
 /// Move node `idx` to the tail of its current segment. No-op if already tail.
 fn move_to_tail(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
   if cache.tails[seg] == idx {
@@ -176,6 +186,7 @@ fn move_to_tail(cache : WTinyLFU, seg : Int, idx : Int) -> Unit {
 // Node allocation
 // ---------------------------------------------------------------------------
 
+///|
 /// Allocate a fresh node index, reusing the free list when available.
 fn alloc_node(cache : WTinyLFU) -> Int {
   match cache.free.pop() {
@@ -192,6 +203,7 @@ fn alloc_node(cache : WTinyLFU) -> Int {
   }
 }
 
+///|
 /// Return node `idx` to the free list for future reuse.
 fn free_node(cache : WTinyLFU, idx : Int) -> Unit {
   cache.free.push(idx)
@@ -201,6 +213,7 @@ fn free_node(cache : WTinyLFU, idx : Int) -> Unit {
 // Frequency estimator (Count-Min Sketch with aging)
 // ---------------------------------------------------------------------------
 
+///|
 /// Int64 modulo returning a non-negative residue in `[0, m)` for `m > 0`.
 fn mod_nonneg(h : Int64, m : Int64) -> Int64 {
   let r = h % m
@@ -211,6 +224,7 @@ fn mod_nonneg(h : Int64, m : Int64) -> Int64 {
   }
 }
 
+///|
 /// Double-hash an Int key into `(h1, h2)` for the Count-Min Sketch.
 ///
 /// `h2` is forced odd so the double-hashing sequence visits distinct columns.
@@ -221,6 +235,7 @@ fn freq_hash(key : Int) -> (Int64, Int64) {
   (h, (h >> 16) | 1L)
 }
 
+///|
 /// Record one access to `key` in the frequency sketch.
 fn freq_add(cache : WTinyLFU, key : Int) -> Unit {
   let (h1, h2) = freq_hash(key)
@@ -237,6 +252,7 @@ fn freq_add(cache : WTinyLFU, key : Int) -> Unit {
   }
 }
 
+///|
 /// Estimate the frequency of `key` (minimum across all rows).
 fn freq_est(cache : WTinyLFU, key : Int) -> Int {
   let (h1, h2) = freq_hash(key)
@@ -254,6 +270,7 @@ fn freq_est(cache : WTinyLFU, key : Int) -> Int {
   min_val
 }
 
+///|
 /// Halve all frequency counters (aging / reset).
 fn freq_age(cache : WTinyLFU) -> Unit {
   for i = 0; i < cache.freq_depth; i = i + 1 {
@@ -268,6 +285,7 @@ fn freq_age(cache : WTinyLFU) -> Unit {
 // Core API
 // ---------------------------------------------------------------------------
 
+///|
 /// Look up `key`. On hit, returns the value and promotes the entry within
 /// the segment hierarchy. On miss, returns `None`.
 ///
@@ -283,6 +301,7 @@ pub fn get(cache : WTinyLFU, key : Int) -> Int? {
   }
 }
 
+///|
 /// Insert or update `key` → `value`.
 ///
 /// On a new key, the entry enters the Window; if the Window overflows, the
@@ -305,6 +324,7 @@ pub fn put(cache : WTinyLFU, key : Int, value : Int) -> Unit {
   }
 }
 
+///|
 /// Promote a node based on which segment it currently resides in.
 ///
 /// - Window → refresh position in Window.
@@ -332,6 +352,7 @@ fn promote_on_access(cache : WTinyLFU, idx : Int) -> Unit {
   }
 }
 
+///|
 /// When the Window exceeds its capacity, evict the LRU item and attempt to
 /// admit it to Probationary via the TinyLFU admission policy.
 fn handle_window_overflow(cache : WTinyLFU) -> Unit {
@@ -348,7 +369,10 @@ fn handle_window_overflow(cache : WTinyLFU) -> Unit {
   // case), there is no victim to compare against — evict the candidate.
   if cache.counts[SEG_PROBATIONARY] == 0 {
     let _ = @hash_table.remove(
-      cache.index, cache.keys[candidate], int_hash, int_eq,
+      cache.index,
+      cache.keys[candidate],
+      int_hash,
+      int_eq,
     )
     free_node(cache, candidate)
     return
@@ -360,14 +384,20 @@ fn handle_window_overflow(cache : WTinyLFU) -> Unit {
   if cand_freq >= vic_freq {
     // Candidate wins: evict victim, admit candidate.
     let _ = @hash_table.remove(
-      cache.index, cache.keys[victim], int_hash, int_eq,
+      cache.index,
+      cache.keys[victim],
+      int_hash,
+      int_eq,
     )
     free_node(cache, victim)
     insert_tail(cache, SEG_PROBATIONARY, candidate)
   } else {
     // Victim wins: evict candidate, reinstate victim.
     let _ = @hash_table.remove(
-      cache.index, cache.keys[candidate], int_hash, int_eq,
+      cache.index,
+      cache.keys[candidate],
+      int_hash,
+      int_eq,
     )
     free_node(cache, candidate)
     insert_tail(cache, SEG_PROBATIONARY, victim)
@@ -378,6 +408,7 @@ fn handle_window_overflow(cache : WTinyLFU) -> Unit {
 // Hash / equality for Int keys
 // ---------------------------------------------------------------------------
 
+///|
 fn int_hash(k : Int) -> Int {
   // fmix32 — a proper integer hash to avoid clustering on sequential keys.
   let mut h = k
@@ -389,6 +420,7 @@ fn int_hash(k : Int) -> Int {
   h
 }
 
+///|
 fn int_eq(a : Int, b : Int) -> Bool {
   a == b
 }
@@ -397,6 +429,7 @@ fn int_eq(a : Int, b : Int) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "basic put and get" {
   let cache = new(100)
   put(cache, 1, 100)
@@ -408,12 +441,14 @@ test "basic put and get" {
   assert_eq(size(cache), 3)
 }
 
+///|
 test "miss returns None" {
   let cache = new(100)
   put(cache, 1, 10)
   assert_true(get(cache, 99) is None)
 }
 
+///|
 test "update existing key" {
   let cache = new(100)
   put(cache, 1, 10)
@@ -422,6 +457,7 @@ test "update existing key" {
   assert_eq(size(cache), 1)
 }
 
+///|
 test "eviction: low-frequency items evicted first" {
   // With capacity 10, window=1, main=9, probationary=7, protected=2.
   let cache = new(10)
@@ -451,6 +487,7 @@ test "eviction: low-frequency items evicted first" {
   assert_true(hot_survivors >= 1)
 }
 
+///|
 test "recency: new items get a chance (window)" {
   let cache = new(100)
   // Fill with hot items.
@@ -466,6 +503,7 @@ test "recency: new items get a chance (window)" {
   assert_eq(get(cache, 999), Some(42))
 }
 
+///|
 test "aging decays old frequencies" {
   let cache = new(10)
   // Item 0 is hot.
@@ -480,6 +518,7 @@ test "aging decays old frequencies" {
   assert_true(f2 < f1)
 }
 
+///|
 test "size never exceeds capacity" {
   let cache = new(20)
   for i = 0; i < 100; i = i + 1 {
@@ -488,6 +527,7 @@ test "size never exceeds capacity" {
   }
 }
 
+///|
 test "capacity 1" {
   let cache = new(1)
   put(cache, 1, 10)
@@ -501,6 +541,7 @@ test "capacity 1" {
   assert_true(!(has1 && has2))
 }
 
+///|
 test "stress: random access pattern" {
   let cache = new(50)
   for i = 0; i < 500; i = i + 1 {
@@ -517,6 +558,7 @@ test "stress: random access pattern" {
   }
 }
 
+///|
 test "frequency estimation tracks access counts" {
   let cache = new(100)
   for _r = 0; _r < 10; _r = _r + 1 {
@@ -529,6 +571,7 @@ test "frequency estimation tracks access counts" {
   assert_true(freq_est(cache, 42) > freq_est(cache, 7))
 }
 
+///|
 test "promotion: probationary to protected on access" {
   let cache = new(50)
   for i = 0; i < 10; i = i + 1 {

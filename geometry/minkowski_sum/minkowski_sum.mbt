@@ -24,12 +24,14 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A 2D point with integer coordinates.
 priv struct Point {
   x : Int
   y : Int
 }
 
+///|
 /// Compute the cross product of vectors OA and OB.
 /// Positive = left turn (CCW), negative = right turn (CW), zero = colinear.
 /// Ensure a convex polygon is CCW (counter-clockwise).
@@ -55,17 +57,20 @@ fn ensure_ccw(poly : Array[Point]) -> Array[Point] {
   }
 }
 
+///|
 /// Find the index of the bottommost (then leftmost) vertex.
 fn bottommost(poly : Array[Point]) -> Int {
   let mut best = 0
   for i = 1; i < poly.length(); i = i + 1 {
-    if poly[i].y < poly[best].y || (poly[i].y == poly[best].y && poly[i].x < poly[best].x) {
+    if poly[i].y < poly[best].y ||
+      (poly[i].y == poly[best].y && poly[i].x < poly[best].x) {
       best = i
     }
   }
   best
 }
 
+///|
 /// Compute the Minkowski sum of two convex polygons.
 ///
 /// Both polygons must be convex. The result is a convex polygon with at
@@ -158,6 +163,7 @@ pub fn minkowski_sum(
   out
 }
 
+///|
 /// Check if the origin is inside a convex polygon (CCW).
 /// Used for collision detection: two shapes collide iff the origin is
 /// inside their Minkowski difference.
@@ -182,6 +188,7 @@ pub fn contains_origin(poly : Array[(Int, Int)]) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "minkowski_sum: two squares" {
   // Square A: [(0,0), (2,0), (2,2), (0,2)]
   // Square B: [(0,0), (1,0), (1,1), (0,1)]
@@ -214,6 +221,7 @@ test "minkowski_sum: two squares" {
   assert_eq(max_y - min_y, 3)
 }
 
+///|
 test "minkowski_sum: point and polygon" {
   // Sum with a point (0,0) should return the original polygon.
   let a = [(0, 0), (1, 0), (0, 1)]
@@ -223,6 +231,7 @@ test "minkowski_sum: point and polygon" {
   assert_eq(result.length(), 3)
 }
 
+///|
 test "minkowski_sum: two triangles" {
   let a = [(0, 0), (3, 0), (0, 3)]
   let b = [(0, 0), (1, 0), (0, 1)]
@@ -231,6 +240,7 @@ test "minkowski_sum: two triangles" {
   assert_true(result.length() >= 3)
 }
 
+///|
 test "minkowski_sum: contains_origin for collision" {
   // A triangle containing the origin.
   let tri = [(-1, -1), (1, -1), (0, 1)]
@@ -240,6 +250,7 @@ test "minkowski_sum: contains_origin for collision" {
   assert_false(contains_origin(tri2))
 }
 
+///|
 test "minkowski_sum: single point polygons" {
   let a = [(0, 0)]
   let b = [(5, 5)]

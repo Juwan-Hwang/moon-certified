@@ -1,3 +1,4 @@
+///|
 /// Newton's method (Newton-Raphson iteration) for finding roots of
 /// univariate real-valued functions.
 ///
@@ -30,13 +31,18 @@
 // ---------------------------------------------------------------------------
 
 const EPS : Double = 1.0e-300
+
+///|
 const DEFAULT_TOL : Double = 1.0e-12
+
+///|
 const DEFAULT_MAX_ITER : Int = 100
 
 // ---------------------------------------------------------------------------
 // Result type
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of a Newton's method iteration.
 pub enum NewtonResult {
   /// Converged to a root within the requested tolerance.
@@ -51,6 +57,7 @@ pub enum NewtonResult {
   Diverged
 }
 
+///|
 /// Extract the root from a [`NewtonResult`], returning the last iterate on
 /// failure. Useful when the caller is confident convergence will occur and
 /// wants to treat partial results gracefully.
@@ -67,6 +74,7 @@ pub fn unwrap_or(result : NewtonResult, default : Double) -> Double {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Absolute value of a `Double`.
 fn abs(x : Double) -> Double {
   if x < 0.0 {
@@ -76,6 +84,7 @@ fn abs(x : Double) -> Double {
   }
 }
 
+///|
 /// Check whether a `Double` is finite (not NaN, not infinite).
 ///
 /// - NaN is the only floating-point value not equal to itself.
@@ -95,6 +104,7 @@ fn is_finite(x : Double) -> Bool {
 // Core solver
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve `f(x) = 0` using Newton's method.
 ///
 /// Parameters:
@@ -112,7 +122,7 @@ pub fn solve(
   df : (Double) -> Double,
   x0 : Double,
   tol : Double,
-  max_iter : Int
+  max_iter : Int,
 ) -> NewtonResult {
   if tol <= 0.0 {
     return Diverged
@@ -146,12 +156,13 @@ pub fn solve(
   MaxIterations(x)
 }
 
+///|
 /// Like [`solve`] but with default tolerance (`1e-12`) and max iterations
 /// (`100`).
 pub fn solve_default(
   f : (Double) -> Double,
   df : (Double) -> Double,
-  x0 : Double
+  x0 : Double,
 ) -> NewtonResult {
   solve(f, df, x0, DEFAULT_TOL, DEFAULT_MAX_ITER)
 }
@@ -160,6 +171,7 @@ pub fn solve_default(
 // Applications: nth root
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the `n`-th root of `x` (`x^(1/n)`) using Newton's method.
 ///
 /// Solves `r^n = x` via the iteration
@@ -180,6 +192,7 @@ fn fast_pow(base : Double, exp : Int) -> Double {
   result
 }
 
+///|
 /// **Precondition**: `n >= 1`. For even `n`, `x` must be non-negative; for
 /// odd `n`, negative `x` is supported. Returns `NaN` on invalid input
 /// (even root of a negative number).
@@ -222,6 +235,7 @@ pub fn nth_root(x : Double, n : Int) -> Double {
   }
 }
 
+///|
 /// Compute the square root of `x` using Newton's method.
 ///
 /// Equivalent to [`nth_root`] with `n = 2`. For `x < 0` returns `NaN`.
@@ -249,6 +263,7 @@ pub fn sqrt(x : Double) -> Double {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "solve: sqrt(2) via x^2 - 2 = 0" {
   let f = fn(x : Double) -> Double { x * x - 2.0 }
   let df = fn(x : Double) -> Double { 2.0 * x }
@@ -258,6 +273,7 @@ test "solve: sqrt(2) via x^2 - 2 = 0" {
   }
 }
 
+///|
 test "solve: cube root of 8 via x^3 - 8 = 0" {
   let f = fn(x : Double) -> Double { x * x * x - 8.0 }
   let df = fn(x : Double) -> Double { 3.0 * x * x }
@@ -267,6 +283,7 @@ test "solve: cube root of 8 via x^3 - 8 = 0" {
   }
 }
 
+///|
 test "solve: root of x^3 - x - 2 = 0" {
   // Known root ≈ 1.521379707
   let f = fn(x : Double) -> Double { x * x * x - x - 2.0 }
@@ -277,6 +294,7 @@ test "solve: root of x^3 - x - 2 = 0" {
   }
 }
 
+///|
 test "solve: negative root" {
   // x^2 - 4 = 0, root at -2
   let f = fn(x : Double) -> Double { x * x - 4.0 }
@@ -290,6 +308,7 @@ test "solve: negative root" {
   }
 }
 
+///|
 test "solve: zero derivative returns ZeroDerivative" {
   // f(x) = 5 (constant), df = 0
   let f = fn(_x : Double) -> Double { 5.0 }
@@ -300,6 +319,7 @@ test "solve: zero derivative returns ZeroDerivative" {
   }
 }
 
+///|
 test "solve: immediate convergence when f(x0) = 0" {
   let f = fn(x : Double) -> Double { x * x - 9.0 }
   let df = fn(x : Double) -> Double { 2.0 * x }
@@ -309,6 +329,7 @@ test "solve: immediate convergence when f(x0) = 0" {
   }
 }
 
+///|
 test "solve: divergence detected" {
   // f(x) = x^3, df = 3x^2; starting at a tiny x, derivative is tiny,
   // but not below EPS. Step = x^3/(3x^2) = x/3, so it converges.
@@ -327,6 +348,7 @@ test "solve: divergence detected" {
   assert_true(true)
 }
 
+///|
 test "solve: custom tolerance and iterations" {
   let f = fn(x : Double) -> Double { x * x - 2.0 }
   let df = fn(x : Double) -> Double { 2.0 * x }
@@ -336,6 +358,7 @@ test "solve: custom tolerance and iterations" {
   }
 }
 
+///|
 test "solve: max iterations reached" {
   // f(x) = x^2 - 2, root at sqrt(2) ≈ 1.41421...
   // Starting at x0 = 1.0 with only 1 iteration: step to 1.5, not yet converged.
@@ -347,16 +370,19 @@ test "solve: max iterations reached" {
   }
 }
 
+///|
 test "unwrap_or: extracts converged value" {
   let r : NewtonResult = Converged(1.41421356)
   assert_true(abs(unwrap_or(r, 0.0) - 1.41421356) < 1.0e-15)
 }
 
+///|
 test "unwrap_or: returns default on Diverged" {
   let r : NewtonResult = Diverged
   assert_eq(unwrap_or(r, 42.0), 42.0)
 }
 
+///|
 test "sqrt: perfect squares" {
   assert_true(abs(sqrt(4.0) - 2.0) < 1.0e-10)
   assert_true(abs(sqrt(9.0) - 3.0) < 1.0e-10)
@@ -364,6 +390,7 @@ test "sqrt: perfect squares" {
   assert_true(abs(sqrt(100.0) - 10.0) < 1.0e-10)
 }
 
+///|
 test "sqrt: irrational" {
   let r = sqrt(2.0)
   assert_true(abs(r * r - 2.0) < 1.0e-10)
@@ -371,54 +398,64 @@ test "sqrt: irrational" {
   assert_true(abs(r2 * r2 - 3.0) < 1.0e-10)
 }
 
+///|
 test "sqrt: zero and one" {
   assert_eq(sqrt(0.0), 0.0)
   assert_eq(sqrt(1.0), 1.0)
 }
 
+///|
 test "sqrt: small and large values" {
   assert_true(abs(sqrt(0.25) - 0.5) < 1.0e-10)
   assert_true(abs(sqrt(1.0e6) - 1000.0) < 1.0e-6)
 }
 
+///|
 test "sqrt: negative returns NaN" {
   let r = sqrt(-1.0)
   assert_true(!(r == r)) // NaN != NaN
 }
 
+///|
 test "nth_root: cube roots" {
   assert_true(abs(nth_root(8.0, 3) - 2.0) < 1.0e-10)
   assert_true(abs(nth_root(27.0, 3) - 3.0) < 1.0e-10)
   assert_true(abs(nth_root(1000.0, 3) - 10.0) < 1.0e-10)
 }
 
+///|
 test "nth_root: negative cube root (odd n)" {
   let r = nth_root(-8.0, 3)
-  assert_true(abs(r - (-2.0)) < 1.0e-10)
+  assert_true(abs(r - -2.0) < 1.0e-10)
   let r2 = nth_root(-27.0, 3)
-  assert_true(abs(r2 - (-3.0)) < 1.0e-10)
+  assert_true(abs(r2 - -3.0) < 1.0e-10)
 }
 
+///|
 test "nth_root: fourth root" {
   assert_true(abs(nth_root(16.0, 4) - 2.0) < 1.0e-10)
   assert_true(abs(nth_root(81.0, 4) - 3.0) < 1.0e-10)
 }
 
+///|
 test "nth_root: negative even root returns NaN" {
   let r = nth_root(-16.0, 4)
   assert_true(!(r == r)) // NaN
 }
 
+///|
 test "nth_root: n = 1 returns x" {
   assert_eq(nth_root(42.0, 1), 42.0)
   assert_eq(nth_root(-7.0, 1), -7.0)
 }
 
+///|
 test "nth_root: zero" {
   assert_eq(nth_root(0.0, 3), 0.0)
   assert_eq(nth_root(0.0, 5), 0.0)
 }
 
+///|
 test "nth_root: large n" {
   // 2^10 = 1024, so 1024^(1/10) = 2
   assert_true(abs(nth_root(1024.0, 10) - 2.0) < 1.0e-9)

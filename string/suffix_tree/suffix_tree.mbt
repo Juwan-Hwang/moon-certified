@@ -29,6 +29,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A node in the suffix tree.
 ///
 /// - `children`: array of `(char_code, child_index, edge_start, edge_end)`.
@@ -42,6 +43,7 @@ priv struct STNode {
   mut leaf_count : Int
 }
 
+///|
 /// The suffix tree.
 ///
 /// - `text`: byte values of the original string, with sentinel (-1) appended.
@@ -60,6 +62,7 @@ pub struct SuffixTree {
 // Helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Effective end of an edge: resolve -1 to `global_end`.
 fn eff_end(st : SuffixTree, end : Int) -> Int {
   if end == -1 {
@@ -69,11 +72,13 @@ fn eff_end(st : SuffixTree, end : Int) -> Int {
   }
 }
 
+///|
 /// Edge length: `[start, eff_end)`.
 fn edge_len(st : SuffixTree, start : Int, end : Int) -> Int {
   eff_end(st, end) - start
 }
 
+///|
 /// Find a child by character code.
 /// Returns its index in the children array, or -1 if not found.
 fn find_child(children : Array[(Int, Int, Int, Int)], ch : Int) -> Int {
@@ -87,6 +92,7 @@ fn find_child(children : Array[(Int, Int, Int, Int)], ch : Int) -> Int {
   -1
 }
 
+///|
 /// Create a fresh node (no children, no suffix link, zero leaf count).
 fn new_node() -> STNode {
   { children: [], link: -1, leaf_count: 0 }
@@ -96,6 +102,7 @@ fn new_node() -> STNode {
 // Construction — Ukkonen's algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Build a suffix tree for `s`.
 ///
 /// Processes each byte of `s` left to right, creating at most 2 new nodes per
@@ -195,15 +202,13 @@ pub fn build(s : String) -> SuffixTree {
               ch, internal_idx, start, split_pos,
             )
             // The old child becomes a child of the internal node.
-            st.nodes[internal_idx].children.push((
-              text[split_pos], child, split_pos, old_end,
-            ))
+            st.nodes[internal_idx].children.push(
+              (text[split_pos], child, split_pos, old_end),
+            )
             // Create a new leaf for the current suffix.
             let leaf_idx = st.nodes.length()
             st.nodes.push(new_node())
-            st.nodes[internal_idx].children.push((
-              text[i], leaf_idx, i, -1,
-            ))
+            st.nodes[internal_idx].children.push((text[i], leaf_idx, i, -1))
 
             // Suffix link: chain from the previous new internal node.
             if last_new != -1 {
@@ -232,6 +237,7 @@ pub fn build(s : String) -> SuffixTree {
   st
 }
 
+///|
 /// Recursively compute the number of leaves in each subtree.
 fn compute_leaf_counts(st : SuffixTree, node_idx : Int) -> Int {
   let node = st.nodes[node_idx]
@@ -252,11 +258,13 @@ fn compute_leaf_counts(st : SuffixTree, node_idx : Int) -> Int {
 // Queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Return the length of the original string (without the sentinel).
 pub fn text_length(st : SuffixTree) -> Int {
   st.length
 }
 
+///|
 /// Check if `pattern` is a substring of the original string.
 ///
 /// Walks the tree from the root following edges for each byte of `pattern`.
@@ -269,6 +277,7 @@ pub fn contains(st : SuffixTree, pattern : String) -> Bool {
   }
 }
 
+///|
 /// Find the node at which the pattern path ends.
 ///
 /// Returns `Some(node_index)` if the pattern exists, `None` otherwise.
@@ -307,6 +316,7 @@ fn find_node(st : SuffixTree, pattern : String) -> Int? {
   Some(node)
 }
 
+///|
 /// Count the number of occurrences of `pattern` in the original string.
 ///
 /// Walks the tree to the endpoint of `pattern`, then returns the
@@ -319,6 +329,7 @@ pub fn count_occurrences(st : SuffixTree, pattern : String) -> Int {
   }
 }
 
+///|
 /// Count the number of distinct non-empty substrings of the original string.
 ///
 /// Computed as the sum of all edge lengths minus the number of leaves (each
@@ -337,6 +348,7 @@ pub fn count_distinct_substrings(st : SuffixTree) -> Int {
   total - st.nodes[0].leaf_count
 }
 
+///|
 /// Find the length of the longest substring that appears at least twice.
 ///
 /// The answer is the depth of the deepest internal node (a node with at least
@@ -352,6 +364,7 @@ pub fn longest_repeated_substring_length(st : SuffixTree) -> Int? {
   }
 }
 
+///|
 /// Recursively find the deepest internal node.
 ///
 /// Returns `(depth, node_index)`. A depth of 0 means no internal node below
@@ -383,6 +396,7 @@ fn find_deepest_internal(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "suffix_tree: empty string" {
   let st = build("")
   assert_true(contains(st, ""))
@@ -392,6 +406,7 @@ test "suffix_tree: empty string" {
   assert_true(longest_repeated_substring_length(st) is None)
 }
 
+///|
 test "suffix_tree: single char" {
   let st = build("a")
   assert_true(contains(st, "a"))
@@ -403,6 +418,7 @@ test "suffix_tree: single char" {
   assert_true(longest_repeated_substring_length(st) is None)
 }
 
+///|
 test "suffix_tree: two same chars" {
   let st = build("aa")
   assert_true(contains(st, "a"))
@@ -414,6 +430,7 @@ test "suffix_tree: two same chars" {
   assert_eq(longest_repeated_substring_length(st), Some(1))
 }
 
+///|
 test "suffix_tree: abac" {
   let st = build("abac")
   assert_true(contains(st, "a"))
@@ -434,6 +451,7 @@ test "suffix_tree: abac" {
   assert_eq(longest_repeated_substring_length(st), Some(1))
 }
 
+///|
 test "suffix_tree: banana" {
   let st = build("banana")
   assert_true(contains(st, "banana"))
@@ -455,6 +473,7 @@ test "suffix_tree: banana" {
   assert_eq(longest_repeated_substring_length(st), Some(3))
 }
 
+///|
 test "suffix_tree: mississippi" {
   let st = build("mississippi")
   assert_true(contains(st, "mississippi"))
@@ -472,6 +491,7 @@ test "suffix_tree: mississippi" {
   assert_eq(longest_repeated_substring_length(st), Some(4))
 }
 
+///|
 test "suffix_tree: all distinct chars" {
   let st = build("abcdef")
   assert_eq(count_distinct_substrings(st), 21) // 6*7/2 = 21
@@ -481,6 +501,7 @@ test "suffix_tree: all distinct chars" {
   assert_eq(count_occurrences(st, "xyz"), 0)
 }
 
+///|
 test "suffix_tree: repeated string" {
   let st = build("abcabc")
   assert_true(contains(st, "abcabc"))
@@ -496,6 +517,7 @@ test "suffix_tree: repeated string" {
   assert_eq(longest_repeated_substring_length(st), Some(3))
 }
 
+///|
 test "suffix_tree: aaaaa" {
   let st = build("aaaaa")
   assert_true(contains(st, "aaaaa"))
@@ -510,6 +532,7 @@ test "suffix_tree: aaaaa" {
   assert_eq(longest_repeated_substring_length(st), Some(4))
 }
 
+///|
 test "suffix_tree: abababab" {
   let st = build("abababab")
   assert_eq(count_occurrences(st, "ab"), 4)
@@ -521,6 +544,7 @@ test "suffix_tree: abababab" {
   assert_eq(longest_repeated_substring_length(st), Some(6))
 }
 
+///|
 test "suffix_tree: abcab" {
   let st = build("abcab")
   assert_true(contains(st, "abcab"))
@@ -536,6 +560,7 @@ test "suffix_tree: abcab" {
   assert_eq(longest_repeated_substring_length(st), Some(2))
 }
 
+///|
 test "suffix_tree: occurrences edge cases" {
   let st = build("ababa")
   assert_eq(count_occurrences(st, "aba"), 2)

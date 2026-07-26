@@ -10,6 +10,7 @@
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
 
+///|
 /// Swap two elements in an array.
 fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -17,6 +18,7 @@ fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
+///|
 /// Select the median of xs[lo], xs[mid], xs[hi] and place it at xs[hi]
 /// as the pivot for Lomuto partition.
 fn[T] median_of_three(
@@ -40,6 +42,7 @@ fn[T] median_of_three(
   swap(xs, mid, hi)
 }
 
+///|
 /// Partition subroutine: uses median-of-three pivot selection,
 /// places pivot at correct position, with smaller elements to left
 /// and larger to right. Returns the pivot's final index.
@@ -66,12 +69,14 @@ fn[T] partition(
   i + 1
 }
 
+///|
 /// Recursive quick sort helper.
 /// Uses insertion sort for small partitions (≤ 16 elements) to reduce
 /// recursion depth and improve cache performance.
 /// The INSERTION_THRESHOLD limits recursion depth to O(log n) in practice.
 const INSERTION_THRESHOLD : Int = 16
 
+///|
 /// Insertion sort for small subarrays.
 fn[T] insertion_sort_range(
   xs : FixedArray[T],
@@ -90,6 +95,7 @@ fn[T] insertion_sort_range(
   }
 }
 
+///|
 fn[T] quick_sort_range(
   xs : FixedArray[T],
   lo : Int,
@@ -113,12 +119,10 @@ fn[T] quick_sort_range(
   }
 }
 
+///|
 /// Top-level quick sort. Sorts entire array in ascending order
 /// according to the provided comparator.
-pub fn[T] quick_sort(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Unit {
+pub fn[T] quick_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
@@ -126,6 +130,7 @@ pub fn[T] quick_sort(
   quick_sort_range(xs, 0, n - 1, cmp)
 }
 
+///|
 test "quick_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5,4,3,2,1]
   quick_sort(xs, fn(a, b) { a - b })
@@ -134,6 +139,7 @@ test "quick_sort: basic" {
   }
 }
 
+///|
 test "quick_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i })
   quick_sort(xs, fn(a, b) { a - b })
@@ -142,6 +148,7 @@ test "quick_sort: already sorted" {
   }
 }
 
+///|
 test "quick_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i })
   quick_sort(xs, fn(a, b) { a - b })
@@ -150,18 +157,21 @@ test "quick_sort: reverse sorted" {
   }
 }
 
+///|
 test "quick_sort: single element" {
   let xs = FixedArray::make(1, 42)
   quick_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "quick_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   quick_sort(xs, fn(a, b) { a - b })
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "quick_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 })
   quick_sort(xs, fn(a, b) { a - b })
@@ -175,6 +185,7 @@ test "quick_sort: duplicates" {
   assert_eq(xs[7], 2)
 }
 
+///|
 test "quick_sort: negative values" {
   let xs = FixedArray::makei(5, fn(i) { 2 - i }) // [2,1,0,-1,-2]
   quick_sort(xs, fn(a, b) { a - b })
@@ -183,6 +194,7 @@ test "quick_sort: negative values" {
   }
 }
 
+///|
 test "quick_sort: all equal" {
   let xs = FixedArray::make(6, 7)
   quick_sort(xs, fn(a, b) { a - b })
@@ -191,6 +203,7 @@ test "quick_sort: all equal" {
   }
 }
 
+///|
 test "quick_sort: two elements" {
   let xs = FixedArray::makei(2, fn(i) { 1 - i }) // [1, 0]
   quick_sort(xs, fn(a, b) { a - b })
@@ -198,6 +211,7 @@ test "quick_sort: two elements" {
   assert_eq(xs[1], 1)
 }
 
+///|
 test "quick_sort: large random-like" {
   let xs = FixedArray::makei(30, fn(i) { (i * 7 + 3) % 17 })
   quick_sort(xs, fn(a, b) { a - b })
@@ -206,6 +220,7 @@ test "quick_sort: large random-like" {
   }
 }
 
+///|
 test "quick_sort: two elements equal" {
   let xs = FixedArray::make(2, 5)
   quick_sort(xs, fn(a, b) { a - b })
@@ -213,6 +228,7 @@ test "quick_sort: two elements equal" {
   assert_eq(xs[1], 5)
 }
 
+///|
 test "quick_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -233,6 +249,7 @@ test "quick_sort: permutation check" {
   }
 }
 
+///|
 test "quick_sort: sorted 100 elements (no O(n²) degradation)" {
   // This test specifically catches the old vulnerability where sorted
   // input caused O(n²) behavior. With median-of-three it stays O(n log n).
@@ -244,6 +261,7 @@ test "quick_sort: sorted 100 elements (no O(n²) degradation)" {
   }
 }
 
+///|
 test "quick_sort: reverse sorted 100 elements" {
   let n = 100
   let xs = FixedArray::makei(n, fn(i) { n - 1 - i })
@@ -253,6 +271,7 @@ test "quick_sort: reverse sorted 100 elements" {
   }
 }
 
+///|
 test "quick_sort: generic with String" {
   let xs = FixedArray::make(4, "")
   xs[0] = "cherry"

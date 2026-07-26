@@ -50,6 +50,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Sentinel for "infinity" in distance arrays (Int64).
 const J_INF : Int64 = 9223372036854775807L
 
@@ -58,6 +59,7 @@ const J_INF : Int64 = 9223372036854775807L
 // johnson and dijkstra_heap. The shared implementation is in
 // graph/graph_utils/graph_utils.mbt.
 
+///|
 /// Run Bellman-Ford with all potentials initialized to 0. This is equivalent to
 /// adding a virtual source with a zero-weight edge to every vertex (relaxing
 /// those edges sets every `h[v]` to 0). Fills `h` with the vertex potentials.
@@ -101,6 +103,7 @@ fn bellman_ford_potentials(
   false
 }
 
+///|
 /// Dijkstra from `src` on the reweighted graph. Edge weights are computed on
 /// the fly as `w + h[u] - h[v]`, which are non-negative by the potential
 /// property, so Dijkstra is valid. Lazy deletion skips stale heap entries.
@@ -156,12 +159,14 @@ fn dijkstra_reweighted(
   result
 }
 
+///|
 /// An empty distance matrix, returned for a negative cycle or invalid input.
 fn empty_matrix() -> FixedArray[FixedArray[Int?]] {
   let inner : FixedArray[Int?] = FixedArray::make(0, None)
   FixedArray::make(0, inner)
 }
 
+///|
 /// Compute all-pairs shortest paths using Johnson's algorithm.
 ///
 /// `graph[i]` is an `Array` of `(neighbor, weight)` pairs. Returns an `n x n`
@@ -188,6 +193,7 @@ pub fn johnson(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "johnson: basic weighted graph" {
   // Undirected weighted graph:
   //   0 --1-- 1 --2-- 2 --3-- 3
@@ -226,6 +232,7 @@ test "johnson: basic weighted graph" {
   assert_eq(d[3][3], Some(0))
 }
 
+///|
 test "johnson: negative weights, no negative cycle" {
   // Directed graph with a negative edge (1 -> 2 : -3) but no cycle at all.
   //   0 ->1-> 5      0 ->2-> 2
@@ -262,6 +269,7 @@ test "johnson: negative weights, no negative cycle" {
   assert_eq(d[3][3], Some(0))
 }
 
+///|
 test "johnson: no path between some vertices" {
   // Directed chain 0 -> 1 -> 2, vertex 3 isolated.
   let n = 4
@@ -280,6 +288,7 @@ test "johnson: no path between some vertices" {
   assert_eq(d[3][3], Some(0))
 }
 
+///|
 test "johnson: single node" {
   let graph : Array[Array[(Int, Int)]] = [[]]
   let d = johnson(graph, 1)
@@ -287,6 +296,7 @@ test "johnson: single node" {
   assert_eq(d[0][0], Some(0))
 }
 
+///|
 test "johnson: disconnected graph" {
   // Two undirected components: {0,1} and {2,3}.
   let n = 4
@@ -306,6 +316,7 @@ test "johnson: disconnected graph" {
   assert_eq(d[3][3], Some(0))
 }
 
+///|
 test "johnson: negative cycle detection" {
   // 0 ->1-> 1, 1 ->2-> -3, 2 ->0-> 1  =>  cycle sum = -1 < 0.
   let n = 3
@@ -318,6 +329,7 @@ test "johnson: negative cycle detection" {
   assert_eq(d.length(), 0)
 }
 
+///|
 test "johnson: zero-weight cycle is not negative" {
   // 0 ->1-> 1, 1 ->2-> -1, 2 ->0-> 0  =>  cycle sum = 0 (allowed).
   let n = 3
@@ -333,6 +345,7 @@ test "johnson: zero-weight cycle is not negative" {
   assert_eq(d[1][2], Some(-1))
 }
 
+///|
 test "johnson: diagonal is zero and negative edges respected" {
   // Directed acyclic graph with a negative edge (acyclic => no negative cycle).
   //   0 ->1-> 2     0 ->2-> 5     1 ->2-> -1
@@ -353,6 +366,7 @@ test "johnson: diagonal is zero and negative edges respected" {
   assert_true(d[2][0] is None)
 }
 
+///|
 test "johnson: invalid input returns empty matrix" {
   let graph : Array[Array[(Int, Int)]] = []
   assert_eq(johnson(graph, 0).length(), 0)
@@ -362,6 +376,7 @@ test "johnson: invalid input returns empty matrix" {
   assert_eq(johnson(small, 3).length(), 0)
 }
 
+///|
 test "johnson: complete graph K4 with unit weights" {
   let n = 4
   let graph : Array[Array[(Int, Int)]] = []
@@ -387,6 +402,7 @@ test "johnson: complete graph K4 with unit weights" {
   }
 }
 
+///|
 test "johnson: chain 30 nodes directed" {
   let n = 30
   let graph : Array[Array[(Int, Int)]] = []

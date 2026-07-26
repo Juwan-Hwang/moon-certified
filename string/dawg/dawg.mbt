@@ -17,28 +17,33 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A DAWG state.
 priv struct DAWGState {
   mut is_final : Bool
   transitions : Map[Int, DAWGState]
 }
 
+///|
 /// A DAWG (directed acyclic word graph).
 pub struct DAWG {
   priv root : DAWGState
   priv mut word_count : Int
 }
 
+///|
 /// Create a new empty DAWG.
 pub fn new() -> DAWG {
   let root = { is_final: false, transitions: Map([]) }
   { root, word_count: 0 }
 }
 
+///|
 fn new_state() -> DAWGState {
   { is_final: false, transitions: Map([]) }
 }
 
+///|
 /// Add a word to the DAWG.
 pub fn add(dawg : DAWG, word : String) -> Unit {
   let mut current = dawg.root
@@ -56,6 +61,7 @@ pub fn add(dawg : DAWG, word : String) -> Unit {
   }
 }
 
+///|
 /// Check if a word is in the DAWG. O(m).
 pub fn contains(dawg : DAWG, word : String) -> Bool {
   let mut current = dawg.root
@@ -69,11 +75,13 @@ pub fn contains(dawg : DAWG, word : String) -> Bool {
   current.is_final
 }
 
+///|
 /// Number of words stored.
 pub fn word_count(dawg : DAWG) -> Int {
   dawg.word_count
 }
 
+///|
 /// Check if any word starts with the given prefix. O(m).
 pub fn has_prefix(dawg : DAWG, prefix : String) -> Bool {
   let mut current = dawg.root
@@ -91,6 +99,7 @@ pub fn has_prefix(dawg : DAWG, prefix : String) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dawg: basic insert and lookup" {
   let d = new()
   add(d, "cat")
@@ -107,6 +116,7 @@ test "dawg: basic insert and lookup" {
   assert_eq(word_count(d), 4)
 }
 
+///|
 test "dawg: prefix lookup" {
   let d = new()
   add(d, "hello")
@@ -117,6 +127,7 @@ test "dawg: prefix lookup" {
   assert_false(has_prefix(d, "xyz"))
 }
 
+///|
 test "dawg: empty string" {
   let d = new()
   assert_false(contains(d, ""))
@@ -124,6 +135,7 @@ test "dawg: empty string" {
   assert_true(contains(d, ""))
 }
 
+///|
 test "dawg: duplicate insert" {
   let d = new()
   add(d, "test")
@@ -132,9 +144,12 @@ test "dawg: duplicate insert" {
   assert_true(contains(d, "test"))
 }
 
+///|
 test "dawg: many words" {
   let d = new()
-  let words = ["apple", "application", "apply", "app", "banana", "band", "bandana"]
+  let words = [
+    "apple", "application", "apply", "app", "banana", "band", "bandana",
+  ]
   for i = 0; i < words.length(); i = i + 1 {
     add(d, words[i])
   }

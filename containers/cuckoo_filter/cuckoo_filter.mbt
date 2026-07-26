@@ -49,6 +49,7 @@
 // Data structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A cuckoo filter.
 ///
 /// - `buckets` is a `capacity`-element `FixedArray`, each entry a
@@ -73,30 +74,37 @@ pub struct CuckooFilter {
 // Constants
 // ---------------------------------------------------------------------------
 
+///|
 /// Seed for the index hash `hash(key)`. `0x5bd1e995` is the MurmurHash2
 /// mixing constant; it fits in a positive 32-bit `Int`.
 const CF_INDEX_SEED : Int = 0x5bd1e995
 
+///|
 /// Seed for the fingerprint hash. Distinct from `CF_INDEX_SEED` so the index
 /// and fingerprint of a key are effectively independent.
 const CF_FP_SEED : Int = 0x1b873593
 
+///|
 /// Avalanche mixing constant (same one used by the bloom filter in this
 /// collection). `0x45d9f3b = 73_260_923` is an odd multiplier, so it is
 /// coprime to `2^32` and preserves full period when iterated.
 const CF_MIX : Int = 0x45d9f3b
 
+///|
 /// LCG multiplier (≡ 1 mod 4) and increment (odd); with the `& 0x7FFFFFFF`
 /// mask they form a full-period generator mod `2^31`. Shared with the
 /// reservoir sampler and treap elsewhere in this collection.
 const CF_LCG_A : Int = 1103515245
 
+///|
 const CF_LCG_C : Int = 12345
 
+///|
 /// Fixed LCG seed so every default filter behaves deterministically and
 /// independently of test execution order.
 const CF_RNG_SEED : Int = 0x1A2B3C4D
 
+///|
 /// Maximum number of cuckoo kicks per insert before declaring the table full.
 /// 500 is the value used by the original cuckoo filter paper.
 const CF_MAX_KICKS : Int = 500
@@ -105,6 +113,7 @@ const CF_MAX_KICKS : Int = 500
 // Hashing
 // ---------------------------------------------------------------------------
 
+///|
 /// Polynomial rolling hash with a seed, followed by avalanche mixing.
 ///   h = seed; for each byte b: h = h * 31 + b
 /// then xor-shift-multiply. The avalanche step decorrelates seed-varied
@@ -119,12 +128,13 @@ fn hash_key(key : String, seed : Int) -> Int {
   for i = 0; i < key.length(); i = i + 1 {
     h = h * 31 + key[i].to_int()
   }
-  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
+  h = h ^ (h.reinterpret_as_uint() >> 16).reinterpret_as_int()
   h = h * CF_MIX
-  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
+  h = h ^ (h.reinterpret_as_uint() >> 16).reinterpret_as_int()
   h
 }
 
+///|
 /// Avalanche-mix a fingerprint integer into a well-distributed `Int`.
 ///
 /// This is the "partial key" hash: it depends only on the fingerprint `f`,
@@ -132,12 +142,13 @@ fn hash_key(key : String, seed : Int) -> Int {
 /// fingerprint to recompute its alternate bucket.
 fn hash_fp(f : Int) -> Int {
   let mut h = f
-  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
+  h = h ^ (h.reinterpret_as_uint() >> 16).reinterpret_as_int()
   h = h * CF_MIX
-  h = h ^ ((h.reinterpret_as_uint() >> 16).reinterpret_as_int())
+  h = h ^ (h.reinterpret_as_uint() >> 16).reinterpret_as_int()
   h
 }
 
+///|
 /// Fingerprint of a key: a non-zero `Int`.
 ///
 /// `0` is reserved as the empty-slot marker, so a hash that avalanches to `0`
@@ -156,6 +167,7 @@ fn make_fingerprint(key : String) -> Int {
 // Indexing
 // ---------------------------------------------------------------------------
 
+///|
 /// Smallest power of two `>= n` (and `>= 1`). Powers of two make the XOR
 /// alternate-index an exact involution under bit-masked modulo.
 fn next_pow2(n : Int) -> Int {
@@ -166,6 +178,7 @@ fn next_pow2(n : Int) -> Int {
   p
 }
 
+///|
 /// Primary bucket index of `key`: the masked index hash. Because `capacity`
 /// is a power of two, `& (capacity - 1)` is a non-negative modulo that also
 /// clears the sign bit of a negative hash.
@@ -173,6 +186,7 @@ fn index1(cf : CuckooFilter, key : String) -> Int {
   hash_key(key, CF_INDEX_SEED) & (cf.capacity - 1)
 }
 
+///|
 /// Alternate bucket index of a fingerprint stored at index `i`.
 ///
 ///   alt(i, f) = (i XOR hash(f)) AND (capacity - 1)
@@ -188,6 +202,7 @@ fn alt_index(i : Int, f : Int, capacity : Int) -> Int {
 // Random victim selection (inline LCG, Lemire range mapping)
 // ---------------------------------------------------------------------------
 
+///|
 /// Advance the LCG one step and map the result uniformly into `[0, m)`.
 ///
 /// Lemire's method `(state * m) >> 31` uses the high bits of the state,
@@ -202,6 +217,7 @@ fn rand_below(cf : CuckooFilter, m : Int) -> Int {
 // Bucket slot helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Place `f` in the first empty (`0`) slot of bucket `i`. Returns `true` if
 /// placed, `false` if the bucket is full.
 fn try_insert(cf : CuckooFilter, i : Int, f : Int) -> Bool {
@@ -215,6 +231,7 @@ fn try_insert(cf : CuckooFilter, i : Int, f : Int) -> Bool {
   false
 }
 
+///|
 /// Return `true` if fingerprint `f` is present in bucket `i`.
 fn find_in_bucket(cf : CuckooFilter, i : Int, f : Int) -> Bool {
   let bucket = cf.buckets[i]
@@ -226,6 +243,7 @@ fn find_in_bucket(cf : CuckooFilter, i : Int, f : Int) -> Bool {
   false
 }
 
+///|
 /// Remove the first occurrence of fingerprint `f` from bucket `i` (set the
 /// slot back to `0`). Returns `true` if an occurrence was removed.
 fn remove_from_bucket(cf : CuckooFilter, i : Int, f : Int) -> Bool {
@@ -243,6 +261,7 @@ fn remove_from_bucket(cf : CuckooFilter, i : Int, f : Int) -> Bool {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a cuckoo filter with `capacity` buckets, each holding `bucket_size`
 /// fingerprints.
 ///
@@ -257,7 +276,7 @@ pub fn new(capacity : Int, bucket_size : Int) -> CuckooFilter {
   // never alias one shared array (which `make(cap, inner)` would do).
   let buckets = FixedArray::makei(cap, fn(_i) { FixedArray::make(bs, 0) })
   {
-    buckets: buckets,
+    buckets,
     capacity: cap,
     bucket_size: bs,
     count: 0,
@@ -265,6 +284,7 @@ pub fn new(capacity : Int, bucket_size : Int) -> CuckooFilter {
   }
 }
 
+///|
 /// Insert `key` into the filter. Returns `false` if the table is too full
 /// (the 500-kick budget was exhausted).
 ///
@@ -309,6 +329,7 @@ pub fn add(cf : CuckooFilter, key : String) -> Bool {
   false
 }
 
+///|
 /// Check whether `key` might be in the filter. False positives are possible
 /// (fingerprint collision); false negatives are impossible for keys that were
 /// added and not displaced by a failed `add`.
@@ -319,6 +340,7 @@ pub fn contains(cf : CuckooFilter, key : String) -> Bool {
   find_in_bucket(cf, i1, f) || find_in_bucket(cf, i2, f)
 }
 
+///|
 /// Remove one occurrence of `key` from the filter. Returns `true` if an
 /// occurrence was found and deleted, `false` if the key was not present.
 ///
@@ -340,6 +362,7 @@ pub fn remove(cf : CuckooFilter, key : String) -> Bool {
   false
 }
 
+///|
 /// Number of items currently stored (successful inserts minus successful
 /// deletes). O(1).
 pub fn size(cf : CuckooFilter) -> Int {
@@ -350,6 +373,7 @@ pub fn size(cf : CuckooFilter) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "cuckoo: basic add and contains" {
   let cf = new(100, 4)
   assert_true(add(cf, "hello"))
@@ -360,6 +384,7 @@ test "cuckoo: basic add and contains" {
   assert_eq(size(cf), 2)
 }
 
+///|
 test "cuckoo: remove existing item" {
   let cf = new(100, 4)
   assert_true(add(cf, "apple"))
@@ -372,6 +397,7 @@ test "cuckoo: remove existing item" {
   assert_eq(size(cf), 1)
 }
 
+///|
 test "cuckoo: remove non-existent item" {
   let cf = new(100, 4)
   assert_true(add(cf, "apple"))
@@ -384,11 +410,12 @@ test "cuckoo: remove non-existent item" {
   assert_eq(size(cf2), 0)
 }
 
+///|
 test "cuckoo: no false negatives" {
   let cf = new(1000, 4)
   let words = [
-    "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta",
-    "iota", "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi",
+    "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota",
+    "kappa", "lambda", "mu", "nu", "xi", "omicron", "pi",
   ]
   for i = 0; i < words.length(); i = i + 1 {
     assert_true(add(cf, words[i]))
@@ -400,6 +427,7 @@ test "cuckoo: no false negatives" {
   assert_eq(size(cf), words.length())
 }
 
+///|
 test "cuckoo: false positive rate is reasonable" {
   // 2000 buckets rounded up to 2048, 4 slots each => 8192 slots. With 32-bit
   // fingerprints the per-query false-positive probability is on the order of
@@ -420,6 +448,7 @@ test "cuckoo: false positive rate is reasonable" {
   assert_true(rate < 0.10)
 }
 
+///|
 test "cuckoo: duplicate add" {
   let cf = new(100, 4)
   assert_true(add(cf, "dup"))
@@ -437,6 +466,7 @@ test "cuckoo: duplicate add" {
   assert_eq(size(cf), 0)
 }
 
+///|
 test "cuckoo: large number of items" {
   // 1000 items in a 2000-bucket (=> 2048) filter, 4 slots per bucket: ~12%
   // load, well within capacity, so every insert must succeed.
@@ -456,6 +486,7 @@ test "cuckoo: large number of items" {
   }
 }
 
+///|
 test "cuckoo: insert returns false when nearly full" {
   // Tiny filter: 8 buckets * 2 slots = 16 slots. Inserting far more distinct
   // keys than slots must eventually exhaust the 500-kick budget and fail.

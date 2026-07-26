@@ -11,10 +11,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Lagrange polynomial interpolation through (x, y) points.
 pub fn lagrange_interpolate(
   points : Array[(Double, Double)],
-  x : Double
+  x : Double,
 ) -> Double {
   let n = points.length()
   let mut result = 0.0
@@ -30,10 +31,11 @@ pub fn lagrange_interpolate(
   result
 }
 
+///|
 /// Newton divided-difference interpolation through (x, y) points.
 pub fn newton_interpolate(
   points : Array[(Double, Double)],
-  x : Double
+  x : Double,
 ) -> Double {
   let n = points.length()
   // In-place divided-difference table; coeff stores the top diagonal.
@@ -59,13 +61,14 @@ pub fn newton_interpolate(
   result
 }
 
+///|
 /// Simple linear interpolation between two points.
 pub fn linear_interpolate(
   x0 : Double,
   y0 : Double,
   x1 : Double,
   y1 : Double,
-  x : Double
+  x : Double,
 ) -> Double {
   y0 + (y1 - y0) * (x - x0) / (x1 - x0)
 }
@@ -74,17 +77,20 @@ pub fn linear_interpolate(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "exact polynomial fit" {
   // Points from y = x²: Lagrange recovers the polynomial exactly.
   let points = [(0.0, 0.0), (1.0, 1.0), (2.0, 4.0)]
   assert_eq(lagrange_interpolate(points, 1.5), 2.25)
 }
 
+///|
 test "linear case" {
   let points = [(0.0, 0.0), (2.0, 6.0)]
   assert_eq(lagrange_interpolate(points, 1.0), 3.0)
 }
 
+///|
 test "Newton equals Lagrange" {
   let points = [(0.0, 1.0), (1.0, 2.0), (2.0, 5.0), (3.0, 10.0)]
   let by_newton = newton_interpolate(points, 1.5)
@@ -92,6 +98,7 @@ test "Newton equals Lagrange" {
   assert_true((by_newton - by_lagrange).abs() < 0.0000000001)
 }
 
+///|
 test "linear interpolate" {
   assert_eq(linear_interpolate(0.0, 0.0, 10.0, 100.0, 5.0), 50.0)
 }

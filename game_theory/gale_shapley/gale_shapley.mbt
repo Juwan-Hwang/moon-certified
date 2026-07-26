@@ -1,4 +1,9 @@
-fn stable_matching(n: Int, men_prefs: Array[Array[Int]], women_prefs: Array[Array[Int]]) -> Array[Int] {
+///|
+fn stable_matching(
+  n : Int,
+  men_prefs : Array[Array[Int]],
+  women_prefs : Array[Array[Int]],
+) -> Array[Int] {
   let result = Array::make(n, -1)
   let woman_match = Array::make(n, -1)
   let next_proposal = Array::make(n, 0)
@@ -47,18 +52,21 @@ fn stable_matching(n: Int, men_prefs: Array[Array[Int]], women_prefs: Array[Arra
   result
 }
 
+///|
 test "basic match" {
   let men = [[0, 1, 2], [1, 0, 2], [0, 1, 2]]
   let women = [[0, 1, 2], [1, 0, 2], [0, 1, 2]]
   assert_eq(stable_matching(3, men, women), [0, 1, 2])
 }
 
+///|
 test "stability check" {
   let men = [[0, 1, 2], [2, 0, 1], [1, 0, 2]]
   let women = [[1, 0, 2], [0, 2, 1], [1, 0, 2]]
   assert_eq(stable_matching(3, men, women), [0, 2, 1])
 }
 
+///|
 test "n=1" {
   let men = [[0]]
   let women = [[0]]

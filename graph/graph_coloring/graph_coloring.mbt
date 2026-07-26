@@ -30,6 +30,7 @@
 // Result type
 // ---------------------------------------------------------------------------
 
+///|
 /// A graph colouring result.
 ///
 /// `colors[v]` is the colour assigned to vertex `v` (0-indexed), or `-1` if
@@ -40,11 +41,13 @@ pub struct Coloring {
   num_colors : Int
 }
 
+///|
 /// Accessor: the colour of vertex `v`.
 pub fn color_of(c : Coloring, v : Int) -> Int {
   c.colors[v]
 }
 
+///|
 /// The total number of colours used.
 pub fn color_count(c : Coloring) -> Int {
   c.num_colors
@@ -54,6 +57,7 @@ pub fn color_count(c : Coloring) -> Int {
 // DSATUR colouring
 // ---------------------------------------------------------------------------
 
+///|
 /// Colour the graph using the DSATUR heuristic.
 ///
 /// DSATUR (Degree of Saturation) repeatedly selects the uncoloured vertex
@@ -132,6 +136,7 @@ pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
 // Greedy sequential colouring
 // ---------------------------------------------------------------------------
 
+///|
 /// Colour the graph using the greedy algorithm in the natural vertex order
 /// 0, 1, 2, ..., n-1. Each vertex gets the smallest colour not used by any
 /// already-coloured neighbour.
@@ -178,6 +183,7 @@ pub fn greedy_color(adj : Array[Array[Int]], n : Int) -> Coloring {
 // Welsh-Powell colouring (greedy on descending degree order)
 // ---------------------------------------------------------------------------
 
+///|
 /// Colour the graph using the Welsh-Powell algorithm: sort vertices by
 /// descending degree, then apply the greedy algorithm in that order.
 ///
@@ -227,6 +233,7 @@ pub fn welsh_powell(adj : Array[Array[Int]], n : Int) -> Coloring {
 // Validation
 // ---------------------------------------------------------------------------
 
+///|
 /// Verify that a colouring is valid: no two adjacent vertices share a colour.
 /// Returns `true` if valid, `false` otherwise.
 pub fn is_valid_coloring(
@@ -252,6 +259,7 @@ pub fn is_valid_coloring(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dsatur: triangle needs 3 colours" {
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1]]
   let c = dsatur(adj, 3)
@@ -259,6 +267,7 @@ test "dsatur: triangle needs 3 colours" {
   assert_true(is_valid_coloring(adj, 3, c))
 }
 
+///|
 test "dsatur: bipartite graph needs 2 colours" {
   // 0-1, 0-3, 2-1, 2-3: a 4-cycle
   let adj : Array[Array[Int]] = [[1, 3], [0, 2], [1, 3], [0, 2]]
@@ -267,15 +276,15 @@ test "dsatur: bipartite graph needs 2 colours" {
   assert_true(is_valid_coloring(adj, 4, c))
 }
 
+///|
 test "dsatur: complete graph K4 needs 4 colours" {
-  let adj : Array[Array[Int]] = [
-    [1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2],
-  ]
+  let adj : Array[Array[Int]] = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
   let c = dsatur(adj, 4)
   assert_eq(c.num_colors, 4)
   assert_true(is_valid_coloring(adj, 4, c))
 }
 
+///|
 test "dsatur: path graph needs 2 colours" {
   // 0-1-2-3-4
   let adj : Array[Array[Int]] = [[1], [0, 2], [1, 3], [2, 4], [3]]
@@ -284,6 +293,7 @@ test "dsatur: path graph needs 2 colours" {
   assert_true(is_valid_coloring(adj, 5, c))
 }
 
+///|
 test "dsatur: star graph needs 2 colours" {
   let adj : Array[Array[Int]] = [[1, 2, 3, 4], [0], [0], [0], [0]]
   let c = dsatur(adj, 5)
@@ -291,6 +301,7 @@ test "dsatur: star graph needs 2 colours" {
   assert_true(is_valid_coloring(adj, 5, c))
 }
 
+///|
 test "dsatur: empty graph needs 0 colours" {
   let adj : Array[Array[Int]] = [[], [], []]
   let c = dsatur(adj, 3)
@@ -298,6 +309,7 @@ test "dsatur: empty graph needs 0 colours" {
   assert_true(is_valid_coloring(adj, 3, c))
 }
 
+///|
 test "greedy: triangle" {
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1]]
   let c = greedy_color(adj, 3)
@@ -305,6 +317,7 @@ test "greedy: triangle" {
   assert_true(is_valid_coloring(adj, 3, c))
 }
 
+///|
 test "greedy: bipartite" {
   let adj : Array[Array[Int]] = [[1, 3], [0, 2], [1, 3], [0, 2]]
   let c = greedy_color(adj, 4)
@@ -312,6 +325,7 @@ test "greedy: bipartite" {
   assert_true(is_valid_coloring(adj, 4, c))
 }
 
+///|
 test "welsh_powell: triangle" {
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1]]
   let c = welsh_powell(adj, 3)
@@ -319,15 +333,15 @@ test "welsh_powell: triangle" {
   assert_true(is_valid_coloring(adj, 3, c))
 }
 
+///|
 test "welsh_powell: K4" {
-  let adj : Array[Array[Int]] = [
-    [1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2],
-  ]
+  let adj : Array[Array[Int]] = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
   let c = welsh_powell(adj, 4)
   assert_eq(c.num_colors, 4)
   assert_true(is_valid_coloring(adj, 4, c))
 }
 
+///|
 test "dsatur: Petersen graph (3-regular, chromatic number 3)" {
   // The Petersen graph is 3-regular and has chromatic number 3.
   // Outer 5-cycle: 0-1-2-3-4-0
@@ -351,31 +365,34 @@ test "dsatur: Petersen graph (3-regular, chromatic number 3)" {
   assert_true(is_valid_coloring(adj, 10, c))
 }
 
+///|
 test "dsatur: cycle of length 5 needs 3 colours" {
   // Odd cycle: chromatic number is 3
-  let adj : Array[Array[Int]] = [
-    [1, 4], [0, 2], [1, 3], [2, 4], [3, 0],
-  ]
+  let adj : Array[Array[Int]] = [[1, 4], [0, 2], [1, 3], [2, 4], [3, 0]]
   let c = dsatur(adj, 5)
   assert_eq(c.num_colors, 3)
   assert_true(is_valid_coloring(adj, 5, c))
 }
 
+///|
 test "dsatur: cycle of length 6 needs 2 colours" {
   // Even cycle: chromatic number is 2
-  let adj : Array[Array[Int]] = [
-    [1, 5], [0, 2], [1, 3], [2, 4], [3, 5], [4, 0],
-  ]
+  let adj : Array[Array[Int]] = [[1, 5], [0, 2], [1, 3], [2, 4], [3, 5], [4, 0]]
   let c = dsatur(adj, 6)
   assert_eq(c.num_colors, 2)
   assert_true(is_valid_coloring(adj, 6, c))
 }
 
+///|
 test "dsatur: wheel graph W5 (5-cycle + hub)" {
   // Hub 0 connected to all of 1-5, plus 1-2-3-4-5-1 cycle
   let adj : Array[Array[Int]] = [
     [1, 2, 3, 4, 5], // hub
-    [0, 2, 5], [0, 1, 3], [0, 2, 4], [0, 3, 5], [0, 1, 4],
+    [0, 2, 5],
+    [0, 1, 3],
+    [0, 2, 4],
+    [0, 3, 5],
+    [0, 1, 4],
   ]
   let c = dsatur(adj, 6)
   assert_true(is_valid_coloring(adj, 6, c))
@@ -383,12 +400,14 @@ test "dsatur: wheel graph W5 (5-cycle + hub)" {
   assert_true(c.num_colors >= 3)
 }
 
+///|
 test "is_valid_coloring: rejects invalid colouring" {
   let adj : Array[Array[Int]] = [[1], [0]]
   let bad = { colors: FixedArray::make(2, 0), num_colors: 1 }
   assert_false(is_valid_coloring(adj, 2, bad))
 }
 
+///|
 test "is_valid_coloring: accepts valid colouring" {
   let adj : Array[Array[Int]] = [[1], [0]]
   let good = { colors: FixedArray::make(2, 0), num_colors: 2 }

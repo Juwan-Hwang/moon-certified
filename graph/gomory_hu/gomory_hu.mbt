@@ -45,6 +45,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A Gomory-Hu tree: a weighted tree on the same vertex set as the input
 /// graph, where the minimum edge weight on the path between u and v equals
 /// the min-cut value between u and v in the original graph.
@@ -58,6 +59,7 @@ pub struct GomoryHuTree {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the Gomory-Hu tree of an undirected graph.
 ///
 /// # Parameters
@@ -72,10 +74,7 @@ pub struct GomoryHuTree {
 ///
 /// # Complexity
 /// O(n · V · E²) using Edmonds-Karp for each of the n-1 max-flow calls.
-pub fn build(
-  graph : FixedArray[Int],
-  n : Int,
-) -> GomoryHuTree? {
+pub fn build(graph : FixedArray[Int], n : Int) -> GomoryHuTree? {
   if n <= 0 || graph.length() < n * n {
     return None
   }
@@ -113,6 +112,7 @@ pub fn build(
   Some({ parent, weight, n })
 }
 
+///|
 /// After computing max-flow(s, t), find all vertices reachable from s in the
 /// residual graph. These vertices form the "s side" of the min-cut.
 ///
@@ -177,6 +177,7 @@ fn find_reachable(
   reachable
 }
 
+///|
 /// BFS augmenting path (same logic as max_flow's bfs_augmenting_path,
 /// duplicated here to access the residual after augmentation).
 fn bfs_path(
@@ -220,6 +221,7 @@ fn bfs_path(
 // Queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the minimum cut value between vertices `u` and `v`.
 ///
 /// This traverses the tree path from `u` to `v` and returns the minimum
@@ -291,6 +293,7 @@ pub fn min_cut(tree : GomoryHuTree, u : Int, v : Int) -> Int64 {
   9223372036854775807L // v not reachable (shouldn't happen in a tree)
 }
 
+///|
 /// The parent of vertex `v` in the Gomory-Hu tree. Vertex 0 is the root
 /// (parent = -1). For v >= 1, parent[v] is the tree parent.
 pub fn parent_of(tree : GomoryHuTree, v : Int) -> Int {
@@ -300,6 +303,7 @@ pub fn parent_of(tree : GomoryHuTree, v : Int) -> Int {
   tree.parent[v]
 }
 
+///|
 /// The weight of the tree edge between `v` and `parent(v)`.
 pub fn edge_weight(tree : GomoryHuTree, v : Int) -> Int64 {
   if v < 0 || v >= tree.n {
@@ -308,6 +312,7 @@ pub fn edge_weight(tree : GomoryHuTree, v : Int) -> Int64 {
   tree.weight[v]
 }
 
+///|
 /// Number of vertices in the tree.
 pub fn vertex_count(tree : GomoryHuTree) -> Int {
   tree.n
@@ -317,13 +322,17 @@ pub fn vertex_count(tree : GomoryHuTree) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "gomory_hu: triangle graph" {
   // Triangle: 0-1 (3), 1-2 (4), 0-2 (5)
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 3; graph[1 * n + 0] = 3
-  graph[1 * n + 2] = 4; graph[2 * n + 1] = 4
-  graph[0 * n + 2] = 5; graph[2 * n + 0] = 5
+  graph[0 * n + 1] = 3
+  graph[1 * n + 0] = 3
+  graph[1 * n + 2] = 4
+  graph[2 * n + 1] = 4
+  graph[0 * n + 2] = 5
+  graph[2 * n + 0] = 5
   let tree = match build(graph, n) {
     Some(t) => t
     None => abort("expected tree")
@@ -351,13 +360,17 @@ test "gomory_hu: triangle graph" {
   assert_eq(mc12, @max_flow.max_flow(graph, n, 1, 2).unwrap())
 }
 
+///|
 test "gomory_hu: path graph" {
   // Path: 0 - 1 - 2 - 3, each edge capacity 10
   let n = 4
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 10; graph[1 * n + 0] = 10
-  graph[1 * n + 2] = 10; graph[2 * n + 1] = 10
-  graph[2 * n + 3] = 10; graph[3 * n + 2] = 10
+  graph[0 * n + 1] = 10
+  graph[1 * n + 0] = 10
+  graph[1 * n + 2] = 10
+  graph[2 * n + 1] = 10
+  graph[2 * n + 3] = 10
+  graph[3 * n + 2] = 10
   let tree = match build(graph, n) {
     Some(t) => t
     None => abort("expected tree")
@@ -376,6 +389,7 @@ test "gomory_hu: path graph" {
   }
 }
 
+///|
 test "gomory_hu: star graph" {
   // Star: center 0, leaves 1,2,3. Each edge capacity 5.
   let n = 4
@@ -403,6 +417,7 @@ test "gomory_hu: star graph" {
   }
 }
 
+///|
 test "gomory_hu: complete graph K4" {
   // K4: all edges capacity 1
   let n = 4
@@ -426,12 +441,15 @@ test "gomory_hu: complete graph K4" {
   }
 }
 
+///|
 test "gomory_hu: disconnected graph" {
   // Two components: {0, 1} and {2, 3}
   let n = 4
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 5; graph[1 * n + 0] = 5
-  graph[2 * n + 3] = 3; graph[3 * n + 2] = 3
+  graph[0 * n + 1] = 5
+  graph[1 * n + 0] = 5
+  graph[2 * n + 3] = 3
+  graph[3 * n + 2] = 3
   let tree = match build(graph, n) {
     Some(t) => t
     None => abort("expected tree")
@@ -444,6 +462,7 @@ test "gomory_hu: disconnected graph" {
   assert_eq(min_cut(tree, 1, 3), 0L)
 }
 
+///|
 test "gomory_hu: single vertex" {
   let graph = FixedArray::make(1, 0)
   let tree = match build(graph, 1) {
@@ -454,10 +473,12 @@ test "gomory_hu: single vertex" {
   assert_eq(parent_of(tree, 0), -1)
 }
 
+///|
 test "gomory_hu: two vertices" {
   let n = 2
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 7; graph[1 * n + 0] = 7
+  graph[0 * n + 1] = 7
+  graph[1 * n + 0] = 7
   let tree = match build(graph, n) {
     Some(t) => t
     None => abort("expected tree")
@@ -467,6 +488,7 @@ test "gomory_hu: two vertices" {
   assert_eq(edge_weight(tree, 1), 7L)
 }
 
+///|
 test "gomory_hu: cross-check with max_flow on random graph" {
   // 6-vertex graph with pseudo-random capacities.
   let n = 6
@@ -494,6 +516,7 @@ test "gomory_hu: cross-check with max_flow on random graph" {
   }
 }
 
+///|
 test "gomory_hu: invalid inputs" {
   assert_true(build(FixedArray::make(0, 0), 0) is None)
   assert_true(build(FixedArray::make(2, 0), 2) is None) // too small

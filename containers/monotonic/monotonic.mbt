@@ -27,6 +27,7 @@
 // Monotonic Stack
 // ---------------------------------------------------------------------------
 
+///|
 /// A monotonic stack that maintains elements in non-decreasing or
 /// non-increasing order.
 ///
@@ -42,6 +43,7 @@ pub struct MonotonicStack {
   priv increasing : Bool // true = non-decreasing, false = non-increasing
 }
 
+///|
 /// Create an empty monotonic stack.
 ///
 /// - `increasing = true`: the stack maintains a non-decreasing sequence.
@@ -52,6 +54,7 @@ fn MonotonicStack::new(increasing : Bool) -> MonotonicStack {
   { data: [], increasing }
 }
 
+///|
 /// Push `(value, index)` onto the stack, popping all elements that violate
 /// the monotonicity condition.
 ///
@@ -85,6 +88,7 @@ fn MonotonicStack::push(
   popped
 }
 
+///|
 /// Peek at the top of the stack without removing it.
 /// Returns `None` if the stack is empty.
 pub fn MonotonicStack::peek(self : MonotonicStack) -> (Int, Int)? {
@@ -95,6 +99,7 @@ pub fn MonotonicStack::peek(self : MonotonicStack) -> (Int, Int)? {
   }
 }
 
+///|
 /// Number of elements in the stack.
 pub fn MonotonicStack::len(self : MonotonicStack) -> Int {
   self.data.length()
@@ -104,6 +109,7 @@ pub fn MonotonicStack::len(self : MonotonicStack) -> Int {
 // Public API: Next Greater / Smaller Element
 // ---------------------------------------------------------------------------
 
+///|
 /// For each element in `arr`, find the index of the next element to its right
 /// that is strictly greater.
 ///
@@ -136,6 +142,7 @@ pub fn next_greater_element(arr : FixedArray[Int]) -> FixedArray[Int] {
   result
 }
 
+///|
 /// For each element in `arr`, find the index of the next element to its right
 /// that is strictly smaller.
 ///
@@ -165,6 +172,7 @@ pub fn next_smaller_element(arr : FixedArray[Int]) -> FixedArray[Int] {
 // Public API: Sliding Window
 // ---------------------------------------------------------------------------
 
+///|
 /// For each sliding window of size `k` over `arr`, compute the minimum.
 ///
 /// Returns a `FixedArray[Int]` of length `n - k + 1` where `result[i]` is
@@ -219,6 +227,7 @@ pub fn sliding_window_minimum(
   result
 }
 
+///|
 /// For each sliding window of size `k` over `arr`, compute the maximum.
 ///
 /// Returns a `FixedArray[Int]` of length `n - k + 1` where `result[i]` is
@@ -268,6 +277,7 @@ pub fn sliding_window_maximum(
 // Public API: Largest Rectangle in Histogram
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the area of the largest rectangle in a histogram.
 ///
 /// Given `heights[i]` = height of bar `i`, finds the maximum rectangular area
@@ -334,6 +344,7 @@ pub fn largest_rectangle_area(heights : FixedArray[Int]) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "next_greater: basic" {
   let arr = FixedArray::makei(8, fn(i) { [3, 1, 4, 1, 5, 9, 2, 6][i] })
   let result = next_greater_element(arr)
@@ -348,6 +359,7 @@ test "next_greater: basic" {
   assert_eq(result[7], -1)
 }
 
+///|
 test "next_greater: strictly increasing" {
   let arr = FixedArray::makei(5, fn(i) { i }) // [0,1,2,3,4]
   let result = next_greater_element(arr)
@@ -359,6 +371,7 @@ test "next_greater: strictly increasing" {
   assert_eq(result[4], -1) // last element has no next greater
 }
 
+///|
 test "next_greater: strictly decreasing" {
   let arr = FixedArray::makei(5, fn(i) { 4 - i }) // [4,3,2,1,0]
   let result = next_greater_element(arr)
@@ -368,6 +381,7 @@ test "next_greater: strictly decreasing" {
   }
 }
 
+///|
 test "next_greater: all same" {
   let arr = FixedArray::make(5, 7)
   let result = next_greater_element(arr)
@@ -377,12 +391,14 @@ test "next_greater: all same" {
   }
 }
 
+///|
 test "next_greater: empty" {
   let arr : FixedArray[Int] = FixedArray::make(0, 0)
   let result = next_greater_element(arr)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "next_smaller: basic" {
   let arr = FixedArray::makei(6, fn(i) { [3, 1, 4, 1, 5, 2][i] })
   let result = next_smaller_element(arr)
@@ -395,6 +411,7 @@ test "next_smaller: basic" {
   assert_eq(result[5], -1)
 }
 
+///|
 test "sliding_window_min: basic" {
   let arr = FixedArray::makei(8, fn(i) { [1, 3, -1, -3, 5, 3, 6, 7][i] })
   let result = sliding_window_minimum(arr, 3)
@@ -409,6 +426,7 @@ test "sliding_window_min: basic" {
   assert_eq(result[5], 3)
 }
 
+///|
 test "sliding_window_min: k=1" {
   let arr = FixedArray::makei(5, fn(i) { i }) // [0,1,2,3,4]
   let result = sliding_window_minimum(arr, 1)
@@ -418,6 +436,7 @@ test "sliding_window_min: k=1" {
   }
 }
 
+///|
 test "sliding_window_min: k=n" {
   let arr = FixedArray::makei(5, fn(i) { 5 - i }) // [5,4,3,2,1]
   let result = sliding_window_minimum(arr, 5)
@@ -425,12 +444,14 @@ test "sliding_window_min: k=n" {
   assert_eq(result[0], 1) // min of all
 }
 
+///|
 test "sliding_window_min: invalid k" {
   let arr = FixedArray::makei(5, fn(i) { i })
   assert_eq(sliding_window_minimum(arr, 0).length(), 0)
   assert_eq(sliding_window_minimum(arr, 6).length(), 0)
 }
 
+///|
 test "sliding_window_min: all same" {
   let arr = FixedArray::make(6, 42)
   let result = sliding_window_minimum(arr, 3)
@@ -440,6 +461,7 @@ test "sliding_window_min: all same" {
   }
 }
 
+///|
 test "sliding_window_max: basic" {
   let arr = FixedArray::makei(8, fn(i) { [1, 3, -1, -3, 5, 3, 6, 7][i] })
   let result = sliding_window_maximum(arr, 3)
@@ -454,6 +476,7 @@ test "sliding_window_max: basic" {
   assert_eq(result[5], 7)
 }
 
+///|
 test "sliding_window_max: k=1" {
   let arr = FixedArray::makei(5, fn(i) { i })
   let result = sliding_window_maximum(arr, 1)
@@ -463,6 +486,7 @@ test "sliding_window_max: k=1" {
   }
 }
 
+///|
 test "sliding_window_max: k=n" {
   let arr = FixedArray::makei(5, fn(i) { i })
   let result = sliding_window_maximum(arr, 5)
@@ -470,6 +494,7 @@ test "sliding_window_max: k=n" {
   assert_eq(result[0], 4) // max of all
 }
 
+///|
 test "largest_rectangle: basic" {
   let heights = FixedArray::makei(6, fn(i) { [2, 1, 5, 6, 2, 3][i] })
   // The largest rectangle uses bars 2-3 (heights 5,6) with height 5:
@@ -477,17 +502,20 @@ test "largest_rectangle: basic" {
   assert_eq(largest_rectangle_area(heights), 10L)
 }
 
+///|
 test "largest_rectangle: single bar" {
   let heights = FixedArray::make(1, 5)
   assert_eq(largest_rectangle_area(heights), 5L)
 }
 
+///|
 test "largest_rectangle: all same" {
   let heights = FixedArray::make(5, 3)
   // All bars height 3, width 5: area = 15.
   assert_eq(largest_rectangle_area(heights), 15L)
 }
 
+///|
 test "largest_rectangle: strictly increasing" {
   let heights = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   // The best rectangle is 3*3=9 (bars 2,3,4 with height 3).
@@ -495,11 +523,13 @@ test "largest_rectangle: strictly increasing" {
   assert_eq(largest_rectangle_area(heights), 9L)
 }
 
+///|
 test "largest_rectangle: empty" {
   let heights : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(largest_rectangle_area(heights), 0L)
 }
 
+///|
 test "largest_rectangle: two bars" {
   let heights = FixedArray::make(2, 0)
   // All zero heights: area = 0.
@@ -509,6 +539,7 @@ test "largest_rectangle: two bars" {
   assert_eq(largest_rectangle_area(heights2), 8L)
 }
 
+///|
 test "largest_rectangle: large values (overflow check)" {
   // Heights near Int32::max, width 3.
   let heights = FixedArray::make(3, 2000000000)

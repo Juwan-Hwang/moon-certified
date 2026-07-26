@@ -1,7 +1,0 @@
-{
-  "proof-enabled": false,
-  "import": [
-    "moon-certified/geometry/delaunay",
-    "moonbitlang/core/math"
-  ]
-}

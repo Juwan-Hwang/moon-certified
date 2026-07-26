@@ -1,11 +1,15 @@
-fn compute_dp(dims: Array[Int], n: Int) -> (Array[Array[Int]], Array[Array[Int]]) {
+///|
+fn compute_dp(
+  dims : Array[Int],
+  n : Int,
+) -> (Array[Array[Int]], Array[Array[Int]]) {
   let m : Array[Array[Int]] = []
   let s : Array[Array[Int]] = []
   for _ in 0..<n {
     m.push(Array::make(n, 0))
     s.push(Array::make(n, 0))
   }
-  for chain_len in 2..=n {
+  for chain_len in 2..<=n {
     for i in 0..<(n - chain_len + 1) {
       let j = i + chain_len - 1
       m[i][j] = 999999999
@@ -21,7 +25,8 @@ fn compute_dp(dims: Array[Int], n: Int) -> (Array[Array[Int]], Array[Array[Int]]
   (m, s)
 }
 
-fn matrix_chain_order(dims: Array[Int]) -> Int {
+///|
+fn matrix_chain_order(dims : Array[Int]) -> Int {
   let n = dims.length() - 1
   if n <= 1 {
     return 0
@@ -30,7 +35,8 @@ fn matrix_chain_order(dims: Array[Int]) -> Int {
   m[0][n - 1]
 }
 
-fn matrix_chain_parenthesization(dims: Array[Int]) -> String {
+///|
+fn matrix_chain_parenthesization(dims : Array[Int]) -> String {
   let n = dims.length() - 1
   if n <= 0 {
     return ""
@@ -42,7 +48,8 @@ fn matrix_chain_parenthesization(dims: Array[Int]) -> String {
   build_parenthesization(0, n - 1, s)
 }
 
-fn build_parenthesization(i: Int, j: Int, s: Array[Array[Int]]) -> String {
+///|
+fn build_parenthesization(i : Int, j : Int, s : Array[Array[Int]]) -> String {
   if i == j {
     "A" + i.to_string()
   } else {
@@ -52,24 +59,28 @@ fn build_parenthesization(i: Int, j: Int, s: Array[Array[Int]]) -> String {
   }
 }
 
+///|
 test "basic chain of 3" {
   let dims = [10, 30, 5, 60]
   assert_eq(matrix_chain_order(dims), 4500)
   assert_eq(matrix_chain_parenthesization(dims), "((A0*A1)*A2)")
 }
 
+///|
 test "chain of 2" {
   let dims = [10, 20, 30]
   assert_eq(matrix_chain_order(dims), 6000)
   assert_eq(matrix_chain_parenthesization(dims), "(A0*A1)")
 }
 
+///|
 test "chain of 4" {
   let dims = [40, 20, 30, 10, 30]
   assert_eq(matrix_chain_order(dims), 26000)
   assert_eq(matrix_chain_parenthesization(dims), "((A0*(A1*A2))*A3)")
 }
 
+///|
 test "single matrix" {
   let dims = [10, 20]
   assert_eq(matrix_chain_order(dims), 0)

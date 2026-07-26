@@ -25,15 +25,18 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Default prime modulus: 998244353 (commonly used in competitive programming).
 const DEFAULT_MOD : Int = 998_244_353
 
+///|
 /// Modular multiplication using Int64 to avoid overflow.
 fn mod_mul(a : Int, b : Int, p : Int) -> Int {
-  let r = (a.to_int64() * b.to_int64()) % p.to_int64()
+  let r = a.to_int64() * b.to_int64() % p.to_int64()
   r.to_int()
 }
 
+///|
 /// Modular exponentiation: a^b mod p. O(log b).
 fn mod_pow(a : Int, b : Int, p : Int) -> Int {
   let mut result = 1
@@ -52,12 +55,14 @@ fn mod_pow(a : Int, b : Int, p : Int) -> Int {
   result
 }
 
+///|
 /// Modular inverse: a^(-1) mod p, using Fermat's little theorem.
 /// Requires p to be prime. O(log p).
 fn mod_inv(a : Int, p : Int) -> Int {
   mod_pow(a, p - 2, p)
 }
 
+///|
 /// Find the shortest linear recurrence of a sequence modulo a prime.
 ///
 /// Given `a = [a[0], a[1], ..., a[n-1]]` and prime modulus `p`, returns the
@@ -129,16 +134,13 @@ pub fn berlekamp_massey(a : Array[Int], p : Int) -> Array[Int] {
   // So the coefficients are: [-cur[1], -cur[2], ..., -cur[rec_len]]
   let result : Array[Int] = []
   for j = 1; j <= rec_len; j = j + 1 {
-    let val = if j < cur.length() {
-      (p - cur[j]) % p
-    } else {
-      0
-    }
+    let val = if j < cur.length() { (p - cur[j]) % p } else { 0 }
     result.push(val)
   }
   result
 }
 
+///|
 /// Find the shortest linear recurrence of a sequence modulo 998244353.
 ///
 /// Convenience wrapper around `berlekamp_massey` with the default modulus.
@@ -146,6 +148,7 @@ pub fn berlekamp_massey_default(a : Array[Int]) -> Array[Int] {
   berlekamp_massey(a, DEFAULT_MOD)
 }
 
+///|
 /// Compute the n-th term of a linear recurrence given the first `L` terms
 /// and the recurrence coefficients, using polynomial exponentiation (Kitamasa).
 ///
@@ -193,10 +196,12 @@ pub fn linear_recurrence_nth(
 
 // Polynomial helpers for Kitamasa method.
 
+///|
 fn poly_zero() -> Array[Int] {
   [0]
 }
 
+///|
 fn poly_set(poly : Array[Int], idx : Int, val : Int) -> Array[Int] {
   let result : Array[Int] = []
   for i = 0; i < poly.length(); i = i + 1 {
@@ -209,6 +214,7 @@ fn poly_set(poly : Array[Int], idx : Int, val : Int) -> Array[Int] {
   result
 }
 
+///|
 /// Multiply two polynomials and reduce modulo the characteristic polynomial.
 /// The characteristic polynomial is: x^l - c[0]*x^(l-1) - ... - c[l-1]
 /// i.e., x^l = c[0]*x^(l-1) + ... + c[l-1]
@@ -264,6 +270,7 @@ fn poly_mul_mod(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "berlekamp_massey: fibonacci sequence" {
   // Fibonacci: 1, 1, 2, 3, 5, 8, 13, 21, ...
   // Recurrence: a[i] = a[i-1] + a[i-2]
@@ -274,6 +281,7 @@ test "berlekamp_massey: fibonacci sequence" {
   assert_eq(rec[1], 1) // c[1] = 1
 }
 
+///|
 test "berlekamp_massey: arithmetic progression" {
   // 2, 5, 8, 11, 14, ...
   // a[i] = 2*a[i-1] - a[i-2]
@@ -284,6 +292,7 @@ test "berlekamp_massey: arithmetic progression" {
   assert_eq(rec[1], 998_244_353 - 1) // -1 mod p
 }
 
+///|
 test "berlekamp_massey: geometric sequence" {
   // 3, 6, 12, 24, 48, ...
   // a[i] = 2*a[i-1]
@@ -293,6 +302,7 @@ test "berlekamp_massey: geometric sequence" {
   assert_eq(rec[0], 2)
 }
 
+///|
 test "berlekamp_massey: constant sequence" {
   // 7, 7, 7, 7, ...
   // a[i] = a[i-1]
@@ -302,12 +312,14 @@ test "berlekamp_massey: constant sequence" {
   assert_eq(rec[0], 1)
 }
 
+///|
 test "berlekamp_massey: zero sequence" {
   let seq = [0, 0, 0, 0, 0]
   let rec = berlekamp_massey_default(seq)
   assert_eq(rec.length(), 0)
 }
 
+///|
 test "berlekamp_massey: verify recurrence" {
   // Generate a sequence with known recurrence, then verify
   let p = 998_244_353
@@ -323,6 +335,7 @@ test "berlekamp_massey: verify recurrence" {
   assert_eq(rec[1], 2)
 }
 
+///|
 test "linear_recurrence_nth: fibonacci" {
   let p = 998_244_353
   let init = [1, 1]
@@ -332,6 +345,7 @@ test "linear_recurrence_nth: fibonacci" {
   assert_eq(linear_recurrence_nth(init, coef, 20, p), 10946)
 }
 
+///|
 test "linear_recurrence_nth: within init" {
   let p = 998_244_353
   let init = [5, 10, 15]
@@ -342,6 +356,7 @@ test "linear_recurrence_nth: within init" {
   assert_eq(linear_recurrence_nth(init, coef, 2, p), 15)
 }
 
+///|
 test "linear_recurrence_nth: large exponent" {
   let p = 998_244_353
   // Fib(100) mod p — compute expected by iterating
@@ -358,6 +373,7 @@ test "linear_recurrence_nth: large exponent" {
   assert_eq(linear_recurrence_nth(init, coef, 100, p), expected)
 }
 
+///|
 test "berlekamp_massey: tribonacci" {
   // Tribonacci: 1, 1, 2, 4, 7, 13, 24, 44, ...
   // a[i] = a[i-1] + a[i-2] + a[i-3]

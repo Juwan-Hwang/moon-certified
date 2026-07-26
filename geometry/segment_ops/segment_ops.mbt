@@ -19,31 +19,46 @@
 // @geometry_utils.Point and point are imported from @geometry_utils.
 // This eliminates code duplication across geometry packages.
 
+///|
 /// A line segment from `p` to `q`.
 pub struct Segment {
   p : @geometry_utils.Point
   q : @geometry_utils.Point
 }
 
+///|
 /// Convenience constructor — delegates to @geometry_utils.point.
 pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
   @geometry_utils.point(x, y)
 }
 
+///|
 /// Construct a segment.
 pub fn segment(p : @geometry_utils.Point, q : @geometry_utils.Point) -> Segment {
   { p, q }
 }
 
+///|
 /// Orientation of the triplet (O, A, B):
 /// - `1`  = counterclockwise (left turn)
 /// - `-1` = clockwise (right turn)
 /// - `0`  = collinear
-fn orientation(o : @geometry_utils.Point, a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
+fn orientation(
+  o : @geometry_utils.Point,
+  a : @geometry_utils.Point,
+  b : @geometry_utils.Point,
+) -> Int {
   let c = @geometry_utils.cross64(o, a, b)
-  if c > 0L { 1 } else if c < 0L { -1 } else { 0 }
+  if c > 0L {
+    1
+  } else if c < 0L {
+    -1
+  } else {
+    0
+  }
 }
 
+///|
 /// Check if point `p` lies on segment `s` (assuming collinearity).
 /// Tests bounding box containment.
 fn on_segment_collinear(p : @geometry_utils.Point, s : Segment) -> Bool {
@@ -54,6 +69,7 @@ fn on_segment_collinear(p : @geometry_utils.Point, s : Segment) -> Bool {
   p.x >= min_x && p.x <= max_x && p.y >= min_y && p.y <= max_y
 }
 
+///|
 /// Check if two line segments intersect (including endpoints and overlaps).
 ///
 /// Returns `true` if the segments share any point. O(1) time.
@@ -82,11 +98,13 @@ pub fn segments_intersect(s1 : Segment, s2 : Segment) -> Bool {
   false
 }
 
+///|
 /// Check if point `p` lies on segment `s`. O(1).
 pub fn point_on_segment(p : @geometry_utils.Point, s : Segment) -> Bool {
   orientation(s.p, s.q, p) == 0 && on_segment_collinear(p, s)
 }
 
+///|
 /// Check if a point is strictly inside a simple polygon using ray casting
 /// (even-odd rule). The polygon is given as a list of vertices in order
 /// (clockwise or counterclockwise). The polygon is assumed to be simple
@@ -96,7 +114,10 @@ pub fn point_on_segment(p : @geometry_utils.Point, s : Segment) -> Bool {
 /// "inside" — use `point_on_polygon_boundary` for boundary checks.
 ///
 /// O(n) time.
-pub fn point_in_polygon(p : @geometry_utils.Point, polygon : Array[@geometry_utils.Point]) -> Bool {
+pub fn point_in_polygon(
+  p : @geometry_utils.Point,
+  polygon : Array[@geometry_utils.Point],
+) -> Bool {
   let n = polygon.length()
   if n < 3 {
     return false
@@ -125,8 +146,12 @@ pub fn point_in_polygon(p : @geometry_utils.Point, polygon : Array[@geometry_uti
   inside
 }
 
+///|
 /// Check if a point lies exactly on the boundary of the polygon. O(n).
-pub fn point_on_polygon_boundary(p : @geometry_utils.Point, polygon : Array[@geometry_utils.Point]) -> Bool {
+pub fn point_on_polygon_boundary(
+  p : @geometry_utils.Point,
+  polygon : Array[@geometry_utils.Point],
+) -> Bool {
   let n = polygon.length()
   if n < 2 {
     return false
@@ -140,6 +165,7 @@ pub fn point_on_polygon_boundary(p : @geometry_utils.Point, polygon : Array[@geo
   false
 }
 
+///|
 /// Compute the signed area of a simple polygon using the shoelace formula.
 ///
 /// Returns the area as `Int64` (twice the actual area, maintaining exact
@@ -164,6 +190,7 @@ pub fn polygon_signed_area_2x(polygon : Array[@geometry_utils.Point]) -> Int64 {
   sum
 }
 
+///|
 /// Compute the absolute area of a simple polygon.
 ///
 /// Uses the shoelace formula. The result is a `Double` because the area
@@ -177,6 +204,7 @@ pub fn polygon_area(polygon : Array[@geometry_utils.Point]) -> Double {
   abs_area2.to_double() / 2.0
 }
 
+///|
 /// Check if a simple polygon is convex. O(n).
 ///
 /// The polygon is convex if all turns are in the same direction (all left
@@ -223,54 +251,63 @@ pub fn polygon_is_convex(polygon : Array[@geometry_utils.Point]) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "segment_ops: crossing segments" {
   let s1 = segment(point(0, 0), point(4, 4))
   let s2 = segment(point(0, 4), point(4, 0))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: non-crossing segments" {
   let s1 = segment(point(0, 0), point(2, 2))
   let s2 = segment(point(3, 3), point(5, 5))
   assert_false(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: collinear non-overlapping" {
   let s1 = segment(point(0, 0), point(2, 0))
   let s2 = segment(point(3, 0), point(5, 0))
   assert_false(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: collinear overlapping" {
   let s1 = segment(point(0, 0), point(4, 0))
   let s2 = segment(point(2, 0), point(6, 0))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: endpoint touching" {
   let s1 = segment(point(0, 0), point(2, 2))
   let s2 = segment(point(2, 2), point(4, 0))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: shared endpoint" {
   let s1 = segment(point(0, 0), point(2, 0))
   let s2 = segment(point(0, 0), point(0, 2))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: T-junction" {
   let s1 = segment(point(0, 0), point(4, 0))
   let s2 = segment(point(2, -2), point(2, 2))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: parallel segments" {
   let s1 = segment(point(0, 0), point(4, 0))
   let s2 = segment(point(0, 1), point(4, 1))
   assert_false(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: point on segment" {
   let s = segment(point(0, 0), point(6, 6))
   assert_true(point_on_segment(point(3, 3), s))
@@ -280,6 +317,7 @@ test "segment_ops: point on segment" {
   assert_false(point_on_segment(point(3, 4), s))
 }
 
+///|
 test "segment_ops: point on horizontal segment" {
   let s = segment(point(0, 5), point(10, 5))
   assert_true(point_on_segment(point(5, 5), s))
@@ -288,6 +326,7 @@ test "segment_ops: point on horizontal segment" {
   assert_false(point_on_segment(point(11, 5), s))
 }
 
+///|
 test "point_in_polygon: square interior" {
   let square = [point(0, 0), point(10, 0), point(10, 10), point(0, 10)]
   assert_true(point_in_polygon(point(5, 5), square))
@@ -297,6 +336,7 @@ test "point_in_polygon: square interior" {
   assert_false(point_in_polygon(point(5, 11), square))
 }
 
+///|
 test "point_in_polygon: triangle interior" {
   let tri = [point(0, 0), point(10, 0), point(5, 10)]
   assert_true(point_in_polygon(point(5, 3), tri))
@@ -306,11 +346,16 @@ test "point_in_polygon: triangle interior" {
   assert_false(point_in_polygon(point(5, 11), tri))
 }
 
+///|
 test "point_in_polygon: concave polygon" {
   // L-shaped polygon
   let poly = [
-    point(0, 0), point(4, 0), point(4, 2), point(2, 2),
-    point(2, 4), point(0, 4),
+    point(0, 0),
+    point(4, 0),
+    point(4, 2),
+    point(2, 2),
+    point(2, 4),
+    point(0, 4),
   ]
   assert_true(point_in_polygon(point(1, 1), poly))
   assert_true(point_in_polygon(point(3, 1), poly))
@@ -318,17 +363,23 @@ test "point_in_polygon: concave polygon" {
   assert_true(point_in_polygon(point(1, 3), poly)) // in the left arm
 }
 
+///|
 test "point_in_polygon: clockwise square" {
   let square = [point(0, 0), point(0, 10), point(10, 10), point(10, 0)]
   assert_true(point_in_polygon(point(5, 5), square))
   assert_false(point_in_polygon(point(-1, -1), square))
 }
 
+///|
 test "point_in_polygon: large polygon" {
   // Convex hexagon centered at origin
   let hex = [
-    point(100, 0), point(50, 87), point(-50, 87),
-    point(-100, 0), point(-50, -87), point(50, -87),
+    point(100, 0),
+    point(50, 87),
+    point(-50, 87),
+    point(-100, 0),
+    point(-50, -87),
+    point(50, -87),
   ]
   assert_true(point_in_polygon(point(0, 0), hex))
   assert_true(point_in_polygon(point(50, 0), hex))
@@ -336,11 +387,13 @@ test "point_in_polygon: large polygon" {
   assert_false(point_in_polygon(point(0, 88), hex))
 }
 
+///|
 test "point_in_polygon: degenerate (too few vertices)" {
   let degenerate = [point(0, 0), point(1, 1)]
   assert_false(point_in_polygon(point(0, 0), degenerate))
 }
 
+///|
 test "point_in_polygon: point on boundary" {
   let square = [point(0, 0), point(10, 0), point(10, 10), point(0, 10)]
   // Ray casting may or may not count boundary as inside,
@@ -353,94 +406,122 @@ test "point_in_polygon: point on boundary" {
   assert_false(point_on_polygon_boundary(point(-1, 0), square))
 }
 
+///|
 test "polygon_area: unit square" {
   let square = [point(0, 0), point(1, 0), point(1, 1), point(0, 1)]
   assert_eq(polygon_area(square), 1.0)
 }
 
+///|
 test "polygon_area: larger square" {
   let square = [point(0, 0), point(10, 0), point(10, 10), point(0, 10)]
   assert_eq(polygon_area(square), 100.0)
 }
 
+///|
 test "polygon_area: triangle" {
   let tri = [point(0, 0), point(10, 0), point(5, 10)]
   assert_eq(polygon_area(tri), 50.0)
 }
 
+///|
 test "polygon_area: triangle half-integer" {
   let tri = [point(0, 0), point(3, 0), point(0, 1)]
   assert_eq(polygon_area(tri), 1.5)
 }
 
+///|
 test "polygon_area: clockwise gives same absolute area" {
   let tri_cw = [point(0, 0), point(0, 10), point(5, 0)]
   assert_eq(polygon_area(tri_cw), 25.0)
 }
 
+///|
 test "polygon_area: hexagon" {
   // Hexagon centered at origin (not regular, but integer coordinates)
   // Vertices: (2,0), (1,2), (-1,2), (-2,0), (-1,-2), (1,-2)
   let hex = [
-    point(2, 0), point(1, 2), point(-1, 2),
-    point(-2, 0), point(-1, -2), point(1, -2),
+    point(2, 0),
+    point(1, 2),
+    point(-1, 2),
+    point(-2, 0),
+    point(-1, -2),
+    point(1, -2),
   ]
   let area = polygon_area(hex)
   assert_eq(area, 12.0)
 }
 
+///|
 test "polygon_area: degenerate" {
   let line = [point(0, 0), point(5, 5)]
   assert_eq(polygon_area(line), 0.0)
 }
 
+///|
 test "polygon_is_convex: convex square" {
   let square = [point(0, 0), point(10, 0), point(10, 10), point(0, 10)]
   assert_true(polygon_is_convex(square))
 }
 
+///|
 test "polygon_is_convex: concave L-shape" {
   let l_shape = [
-    point(0, 0), point(4, 0), point(4, 2), point(2, 2),
-    point(2, 4), point(0, 4),
+    point(0, 0),
+    point(4, 0),
+    point(4, 2),
+    point(2, 2),
+    point(2, 4),
+    point(0, 4),
   ]
   assert_false(polygon_is_convex(l_shape))
 }
 
+///|
 test "polygon_is_convex: convex pentagon" {
-  let pent = [
-    point(0, 0), point(4, 0), point(6, 3), point(3, 6), point(-1, 3),
-  ]
+  let pent = [point(0, 0), point(4, 0), point(6, 3), point(3, 6), point(-1, 3)]
   assert_true(polygon_is_convex(pent))
 }
 
+///|
 test "polygon_is_convex: triangle is always convex" {
   let tri = [point(0, 0), point(10, 0), point(5, 10)]
   assert_true(polygon_is_convex(tri))
 }
 
+///|
 test "polygon_is_convex: clockwise convex" {
   let square = [point(0, 0), point(0, 10), point(10, 10), point(10, 0)]
   assert_true(polygon_is_convex(square))
 }
 
+///|
 test "polygon_is_convex: collinear vertices" {
-  let poly = [point(0, 0), point(5, 0), point(10, 0), point(10, 10), point(0, 10)]
+  let poly = [
+    point(0, 0),
+    point(5, 0),
+    point(10, 0),
+    point(10, 10),
+    point(0, 10),
+  ]
   assert_true(polygon_is_convex(poly))
 }
 
+///|
 test "segment_ops: vertical and horizontal crossing" {
   let v = segment(point(5, 0), point(5, 10))
   let h = segment(point(0, 5), point(10, 5))
   assert_true(segments_intersect(v, h))
 }
 
+///|
 test "segment_ops: nearly touching" {
   let s1 = segment(point(0, 0), point(3, 3))
   let s2 = segment(point(3, 3), point(6, 0))
   assert_true(segments_intersect(s1, s2))
 }
 
+///|
 test "segment_ops: large coordinates" {
   // Coordinates near sqrt(Int32_MAX) ≈ 46340
   let s1 = segment(point(0, 0), point(40000, 40000))

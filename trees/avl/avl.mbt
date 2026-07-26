@@ -20,6 +20,7 @@
 /// Not formally verified. Correctness ensured by comprehensive tests
 /// including balance verification and large random insertion checks.
 
+///|
 /// AVL tree node.
 /// - 4th field: cached height (Empty = -1, leaf = 0)
 /// - 5th field: cached subtree size (number of nodes)
@@ -29,11 +30,13 @@ pub enum AvlNode[T] {
   Node(AvlNode[T], T, AvlNode[T], Int, Int)
 }
 
+///|
 /// Public constructor for an empty AVL tree.
 pub fn[T] empty() -> AvlNode[T] {
   Empty
 }
 
+///|
 /// Return the maximum of two integers.
 fn max2(a : Int, b : Int) -> Int {
   if a >= b {
@@ -43,6 +46,7 @@ fn max2(a : Int, b : Int) -> Int {
   }
 }
 
+///|
 /// Defensive ceiling on recursion depth. The AVL invariant bounds the height
 /// (and thus the recursion depth of every operation) at ~1.44*log2(n+2), so
 /// this guard only fires if a balancing bug produces an illegally tall tree or
@@ -50,15 +54,19 @@ fn max2(a : Int, b : Int) -> Int {
 /// caches its `height`.
 let avl_max_depth : Int = 1000
 
+///|
 /// Abort if the tree is too tall to recurse into safely. O(1) via cached height.
 /// Because AVL recursion depth equals the tree height, a single entry check on
 /// the root suffices to bound the whole descent.
 fn[T] guard_depth(root : AvlNode[T]) -> Unit {
   if height(root) >= avl_max_depth {
-    abort("avl: tree height exceeds safe recursion depth; balancing invariant broken or tree too large")
+    abort(
+      "avl: tree height exceeds safe recursion depth; balancing invariant broken or tree too large",
+    )
   }
 }
 
+///|
 /// Return the height of a node. Empty = -1, leaf = 0. O(1).
 pub fn[T] height(root : AvlNode[T]) -> Int {
   match root {
@@ -67,6 +75,7 @@ pub fn[T] height(root : AvlNode[T]) -> Int {
   }
 }
 
+///|
 /// Return the number of nodes in the tree. O(1) via cached size.
 pub fn[T] size(root : AvlNode[T]) -> Int {
   match root {
@@ -75,6 +84,7 @@ pub fn[T] size(root : AvlNode[T]) -> Int {
   }
 }
 
+///|
 /// Recompute and cache both height and size from children. O(1).
 fn[T] update_meta(root : AvlNode[T]) -> AvlNode[T] {
   match root {
@@ -87,6 +97,7 @@ fn[T] update_meta(root : AvlNode[T]) -> AvlNode[T] {
   }
 }
 
+///|
 /// Compute the balance factor: height(left) - height(right).
 fn[T] balance_factor(root : AvlNode[T]) -> Int {
   match root {
@@ -95,6 +106,7 @@ fn[T] balance_factor(root : AvlNode[T]) -> Int {
   }
 }
 
+///|
 /// Right rotation (for LL case).
 fn[T] rotate_right(root : AvlNode[T]) -> AvlNode[T] {
   match root {
@@ -106,6 +118,7 @@ fn[T] rotate_right(root : AvlNode[T]) -> AvlNode[T] {
   }
 }
 
+///|
 /// Left rotation (for RR case).
 fn[T] rotate_left(root : AvlNode[T]) -> AvlNode[T] {
   match root {
@@ -117,6 +130,7 @@ fn[T] rotate_left(root : AvlNode[T]) -> AvlNode[T] {
   }
 }
 
+///|
 /// Rebalance a node if its balance factor is outside [-1, 1].
 fn[T] rebalance(root : AvlNode[T]) -> AvlNode[T] {
   let node = update_meta(root)
@@ -154,12 +168,9 @@ fn[T] rebalance(root : AvlNode[T]) -> AvlNode[T] {
   }
 }
 
+///|
 /// Insert a value into the AVL tree. Duplicates are ignored.
-pub fn[T] insert(
-  root : AvlNode[T],
-  val : T,
-  cmp : (T, T) -> Int,
-) -> AvlNode[T] {
+pub fn[T] insert(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
   guard_depth(root)
   match root {
     Empty => Node(Empty, val, Empty, 0, 1)
@@ -176,6 +187,7 @@ pub fn[T] insert(
   }
 }
 
+///|
 /// Search for a value in the AVL tree.
 pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
   guard_depth(root)
@@ -194,6 +206,7 @@ pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
   }
 }
 
+///|
 /// Find the minimum value in an AVL tree. Returns None if the tree is empty.
 pub fn[T] find_min(root : AvlNode[T]) -> T? {
   guard_depth(root)
@@ -204,12 +217,9 @@ pub fn[T] find_min(root : AvlNode[T]) -> T? {
   }
 }
 
+///|
 /// Delete a value from the AVL tree.
-pub fn[T] delete(
-  root : AvlNode[T],
-  val : T,
-  cmp : (T, T) -> Int,
-) -> AvlNode[T] {
+pub fn[T] delete(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
   guard_depth(root)
   match root {
     Empty => Empty
@@ -239,6 +249,7 @@ pub fn[T] delete(
   }
 }
 
+///|
 /// In-order traversal, returning a sorted FixedArray of all values.
 pub fn[T] inorder(root : AvlNode[T]) -> FixedArray[T] {
   let buf : Array[T] = []
@@ -246,6 +257,7 @@ pub fn[T] inorder(root : AvlNode[T]) -> FixedArray[T] {
   FixedArray::from_array(buf.view())
 }
 
+///|
 /// Fill the buffer array in-order.
 fn[T] inorder_fill(root : AvlNode[T], buf : Array[T]) -> Unit {
   match root {
@@ -258,6 +270,7 @@ fn[T] inorder_fill(root : AvlNode[T], buf : Array[T]) -> Unit {
   }
 }
 
+///|
 /// Check if the tree is balanced (all nodes have |balance_factor| <= 1).
 fn[T] is_balanced(root : AvlNode[T]) -> Bool {
   match root {
@@ -269,6 +282,7 @@ fn[T] is_balanced(root : AvlNode[T]) -> Bool {
   }
 }
 
+///|
 /// Check if the tree satisfies BST ordering (in-order is sorted).
 fn[T] is_bst(root : AvlNode[T], cmp : (T, T) -> Int) -> Bool {
   let arr = inorder(root)
@@ -284,6 +298,7 @@ fn[T] is_bst(root : AvlNode[T], cmp : (T, T) -> Int) -> Bool {
   ok
 }
 
+///|
 test "avl: basic insert and search" {
   let tree : AvlNode[Int] = empty()
   let t1 = insert(tree, 5, fn(a, b) { a - b })
@@ -296,11 +311,15 @@ test "avl: basic insert and search" {
   assert_true(search(t3, 5, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: duplicate insert ignored" {
-  let tree = insert(insert(empty(), 5, fn(a, b) { a - b }), 5, fn(a, b) { a - b })
+  let tree = insert(insert(empty(), 5, fn(a, b) { a - b }), 5, fn(a, b) {
+    a - b
+  })
   assert_eq(size(tree), 1)
 }
 
+///|
 test "avl: sequential insert maintains balance" {
   // Insert 1,2,3,4,5,6,7 -- should produce height 2, not 6
   let mut tree : AvlNode[Int] = empty()
@@ -313,6 +332,7 @@ test "avl: sequential insert maintains balance" {
   assert_true(is_bst(tree, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: reverse insert maintains balance" {
   let mut tree : AvlNode[Int] = empty()
   for k = 7; k >= 1; k = k - 1 {
@@ -324,6 +344,7 @@ test "avl: reverse insert maintains balance" {
   assert_true(is_bst(tree, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: delete leaf" {
   let tree = insert(
     insert(insert(empty(), 5, fn(a, b) { a - b }), 3, fn(a, b) { a - b }),
@@ -338,6 +359,7 @@ test "avl: delete leaf" {
   assert_true(is_balanced(t2))
 }
 
+///|
 test "avl: delete node with one child" {
   let tree = insert(
     insert(
@@ -355,6 +377,7 @@ test "avl: delete node with one child" {
   assert_true(is_bst(t2, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: delete node with two children" {
   let mut tree : AvlNode[Int] = empty()
   for k = 1; k <= 7; k = k + 1 {
@@ -367,6 +390,7 @@ test "avl: delete node with two children" {
   assert_true(is_bst(t2, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: delete root" {
   let tree = insert(
     insert(
@@ -389,6 +413,7 @@ test "avl: delete root" {
   assert_true(is_bst(t2, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: inorder produces sorted output" {
   let mut tree : AvlNode[Int] = empty()
   let vals = [5, 3, 7, 1, 4, 6, 8, 2]
@@ -402,6 +427,7 @@ test "avl: inorder produces sorted output" {
   }
 }
 
+///|
 test "avl: size tracking" {
   let mut tree : AvlNode[Int] = empty()
   assert_eq(size(tree), 0)
@@ -414,6 +440,7 @@ test "avl: size tracking" {
   assert_eq(size(tree), 2)
 }
 
+///|
 test "avl: height after deletions" {
   let mut tree : AvlNode[Int] = empty()
   for k = 1; k <= 15; k = k + 1 {
@@ -429,6 +456,7 @@ test "avl: height after deletions" {
   assert_true(is_bst(tree, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: large random insert" {
   let mut tree : AvlNode[Int] = empty()
   let n = 100
@@ -442,6 +470,7 @@ test "avl: large random insert" {
   assert_true(height(tree) <= 14)
 }
 
+///|
 test "avl: empty tree operations" {
   let tree : AvlNode[Int] = empty()
   assert_eq(size(tree), 0)
@@ -452,6 +481,7 @@ test "avl: empty tree operations" {
   assert_eq(size(t2), 0)
 }
 
+///|
 test "avl: single node operations" {
   let tree = insert(empty(), 42, fn(a, b) { a - b })
   assert_eq(size(tree), 1)
@@ -465,6 +495,7 @@ test "avl: single node operations" {
   assert_false(search(t2, 42, fn(a, b) { a - b }))
 }
 
+///|
 test "avl: delete all elements one by one" {
   let mut tree : AvlNode[Int] = empty()
   for k = 1; k <= 10; k = k + 1 {
@@ -478,6 +509,7 @@ test "avl: delete all elements one by one" {
   assert_eq(size(tree), 0)
 }
 
+///|
 test "avl: LR rotation case" {
   // Insert 3, 1, 2: should trigger LR rotation
   let tree = insert(
@@ -493,6 +525,7 @@ test "avl: LR rotation case" {
   assert_eq(sorted[2], 3)
 }
 
+///|
 test "avl: RL rotation case" {
   // Insert 1, 3, 2: should trigger RL rotation
   let tree = insert(

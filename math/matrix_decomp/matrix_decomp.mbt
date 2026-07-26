@@ -1,3 +1,4 @@
+///|
 /// Matrix decompositions for `Double` matrices stored in row-major flat
 /// `FixedArray[Double]`.
 ///
@@ -22,6 +23,7 @@ fn abs(x : Double) -> Double {
   }
 }
 
+///|
 fn sgn(x : Double) -> Double {
   if x >= 0.0 {
     1.0
@@ -30,6 +32,7 @@ fn sgn(x : Double) -> Double {
   }
 }
 
+///|
 fn sqrt_d(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -46,6 +49,7 @@ fn sqrt_d(x : Double) -> Double {
   r
 }
 
+///|
 /// Multiply `Double` matrix `A` (m×k) by `B` (k×n) → m×n.
 fn matmul(
   a : FixedArray[Double],
@@ -71,6 +75,7 @@ fn matmul(
 // LU decomposition (partial pivoting)
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of LU decomposition: `PA = LU`.
 ///
 /// `lu` stores both `L` (unit lower triangular, diagonal not stored) and `U`
@@ -82,6 +87,7 @@ pub struct LU {
   sign : Int
 }
 
+///|
 /// LU-decompose an `n×n` matrix `a` with partial pivoting.
 ///
 /// Returns `Some(LU)` on success, or `None` if the matrix is (numerically)
@@ -134,13 +140,11 @@ pub fn lu_decompose(a : FixedArray[Double], n : Int) -> LU? {
   Some({ lu, piv, sign })
 }
 
+///|
 /// Solve `Ax = b` using a precomputed LU decomposition.
 ///
 /// Returns `Some(x)` on success, or `None` if the decomposition is singular.
-pub fn lu_solve(
-  decomp : LU,
-  b : FixedArray[Double],
-) -> FixedArray[Double]? {
+pub fn lu_solve(decomp : LU, b : FixedArray[Double]) -> FixedArray[Double]? {
   let n = decomp.piv.length()
   // Apply permutation: y = Pb
   let y = FixedArray::make(n, 0.0)
@@ -168,12 +172,14 @@ pub fn lu_solve(
 // QR decomposition (Householder)
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of QR decomposition: `A = QR`.
 pub struct QR {
   q : FixedArray[Double] // m×m orthogonal
   r : FixedArray[Double] // m×n upper triangular
 }
 
+///|
 /// QR-decompose an `m×n` matrix `a` via Householder reflections.
 ///
 /// Produces `Q` (m×m orthogonal) and `R` (m×n upper triangular) such that
@@ -243,6 +249,7 @@ pub fn qr_decompose(a : FixedArray[Double], m : Int, n : Int) -> QR {
 // SVD (one-sided Jacobi)
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of SVD: `A = U·Σ·V^T`.
 pub struct SVD {
   u : FixedArray[Double] // m×n, left singular vectors (column-normalized)
@@ -250,6 +257,7 @@ pub struct SVD {
   v : FixedArray[Double] // n×n, right singular vectors
 }
 
+///|
 /// SVD-decompose an `m×n` matrix `a` via one-sided Jacobi rotations.
 ///
 /// Iterates Jacobi rotations on column pairs until all columns are mutually
@@ -356,6 +364,7 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
 // Eigenvalue computation (QR iteration with Wilkinson shift)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the eigenvalues of a real square matrix using the unshifted QR
 /// iteration algorithm.
 ///
@@ -434,6 +443,7 @@ pub fn eigenvalues(
   Some(result)
 }
 
+///|
 /// Reduce a matrix to upper Hessenberg form via Householder reflections.
 ///
 /// After this transformation, `work[i][j] = 0` for all `i > j + 1`.
@@ -499,6 +509,7 @@ fn hessenberg(a : FixedArray[Double], n : Int) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "LU: 2x2 decomposition and solve" {
   // [4 3] [x]   [10]
   // [6 3] [y] = [12]
@@ -521,6 +532,7 @@ test "LU: 2x2 decomposition and solve" {
   }
 }
 
+///|
 test "LU: 3x3 solve" {
   // [2 1 1] [x]   [5]
   // [1 3 2] [y] = [15]
@@ -546,6 +558,7 @@ test "LU: 3x3 solve" {
   assert_true(abs(x[2] - 3.0) < 1.0e-10)
 }
 
+///|
 test "LU: pivoting handles zero diagonal" {
   // [0 1] [x]   [2]     x = 1
   // [1 0] [y] = [1]  => y = 2
@@ -565,6 +578,7 @@ test "LU: pivoting handles zero diagonal" {
   }
 }
 
+///|
 test "LU: singular matrix returns None" {
   let a = FixedArray::make(4, 0.0)
   a[0] = 1.0
@@ -574,6 +588,7 @@ test "LU: singular matrix returns None" {
   assert_true(lu_decompose(a, 2) is None)
 }
 
+///|
 test "LU: determinant via diagonal product" {
   // [4 3; 6 3] det = 4*3 - 3*6 = -6
   let a = FixedArray::make(4, 0.0)
@@ -586,9 +601,10 @@ test "LU: determinant via diagonal product" {
   for i = 0; i < 2; i = i + 1 {
     det = det * lu.lu[i * 2 + i]
   }
-  assert_true(abs(det - (-6.0)) < 1.0e-10)
+  assert_true(abs(det - -6.0) < 1.0e-10)
 }
 
+///|
 test "QR: 3x3 identity reconstructs A = QR" {
   let a = FixedArray::make(9, 0.0)
   a[0] = 1.0
@@ -609,6 +625,7 @@ test "QR: 3x3 identity reconstructs A = QR" {
   }
 }
 
+///|
 test "QR: 3x3 matrix reconstructs A = QR" {
   // [1 2 3]
   // [4 5 6]
@@ -632,6 +649,7 @@ test "QR: 3x3 matrix reconstructs A = QR" {
   }
 }
 
+///|
 test "QR: Q is orthogonal" {
   let a = FixedArray::make(9, 0.0)
   a[0] = 12.0
@@ -660,6 +678,7 @@ test "QR: Q is orthogonal" {
   }
 }
 
+///|
 test "QR: R is upper triangular" {
   let a = FixedArray::make(9, 0.0)
   a[0] = 1.0
@@ -679,6 +698,7 @@ test "QR: R is upper triangular" {
   }
 }
 
+///|
 test "QR: rectangular 3x2" {
   let a = FixedArray::make(6, 0.0)
   a[0] = 1.0
@@ -696,6 +716,7 @@ test "QR: rectangular 3x2" {
   }
 }
 
+///|
 test "SVD: 2x2 square matrix" {
   // [3 0]
   // [0 4]
@@ -708,6 +729,7 @@ test "SVD: 2x2 square matrix" {
   assert_true(abs(svd.s[1] - 3.0) < 1.0e-8)
 }
 
+///|
 test "SVD: reconstructs A = U*S*V^T" {
   // [1 2]
   // [3 4]
@@ -736,6 +758,7 @@ test "SVD: reconstructs A = U*S*V^T" {
   }
 }
 
+///|
 test "SVD: singular values of known matrix" {
   // [3 0 0]
   // [0 4 0]
@@ -751,6 +774,7 @@ test "SVD: singular values of known matrix" {
   assert_true(abs(svd.s[2] - 3.0) < 1.0e-7)
 }
 
+///|
 test "SVD: rank-deficient matrix" {
   // [1 2]   rank 1: [1] * [1 2]
   // [2 4]
@@ -766,6 +790,7 @@ test "SVD: rank-deficient matrix" {
   assert_true(svd.s[1] < 1.0e-7)
 }
 
+///|
 test "SVD: columns of U are orthonormal" {
   let a = FixedArray::make(6, 0.0)
   a[0] = 1.0
@@ -788,6 +813,7 @@ test "SVD: columns of U are orthonormal" {
   }
 }
 
+///|
 test "LU: 4x4 solve" {
   // [1 0 0 0] [x]   [1]
   // [0 1 0 0] [y] = [2]
@@ -809,6 +835,7 @@ test "LU: 4x4 solve" {
   }
 }
 
+///|
 test "eigenvalues: 2x2 diagonal matrix" {
   // [3 0]
   // [0 5]  → eigenvalues 3 and 5
@@ -821,8 +848,12 @@ test "eigenvalues: 2x2 diagonal matrix" {
       let mut has3 = false
       let mut has5 = false
       for i = 0; i < 2; i = i + 1 {
-        if abs(eigs[i] - 3.0) < 1.0e-6 { has3 = true }
-        if abs(eigs[i] - 5.0) < 1.0e-6 { has5 = true }
+        if abs(eigs[i] - 3.0) < 1.0e-6 {
+          has3 = true
+        }
+        if abs(eigs[i] - 5.0) < 1.0e-6 {
+          has5 = true
+        }
       }
       assert_true(has3)
       assert_true(has5)
@@ -831,6 +862,7 @@ test "eigenvalues: 2x2 diagonal matrix" {
   }
 }
 
+///|
 test "eigenvalues: 2x2 symmetric matrix" {
   // [4 1]
   // [1 3]  → eigenvalues (7±√5)/2 ≈ 4.618 and 2.382
@@ -851,6 +883,7 @@ test "eigenvalues: 2x2 symmetric matrix" {
   }
 }
 
+///|
 test "eigenvalues: 3x3 diagonal" {
   // [1 0 0]
   // [0 2 0]
@@ -865,9 +898,15 @@ test "eigenvalues: 3x3 diagonal" {
       let mut has2 = false
       let mut has3 = false
       for i = 0; i < 3; i = i + 1 {
-        if abs(eigs[i] - 1.0) < 1.0e-6 { has1 = true }
-        if abs(eigs[i] - 2.0) < 1.0e-6 { has2 = true }
-        if abs(eigs[i] - 3.0) < 1.0e-6 { has3 = true }
+        if abs(eigs[i] - 1.0) < 1.0e-6 {
+          has1 = true
+        }
+        if abs(eigs[i] - 2.0) < 1.0e-6 {
+          has2 = true
+        }
+        if abs(eigs[i] - 3.0) < 1.0e-6 {
+          has3 = true
+        }
       }
       assert_true(has1)
       assert_true(has2)
@@ -877,6 +916,7 @@ test "eigenvalues: 3x3 diagonal" {
   }
 }
 
+///|
 test "eigenvalues: 3x3 symmetric" {
   // [2 1 0]
   // [1 2 1]
@@ -898,6 +938,7 @@ test "eigenvalues: 3x3 symmetric" {
   }
 }
 
+///|
 test "eigenvalues: invalid input returns None" {
   assert_true(eigenvalues(FixedArray::make(0, 0.0), 0, 100, 1.0e-10) is None)
   assert_true(eigenvalues(FixedArray::make(2, 0.0), 2, 100, 1.0e-10) is None)

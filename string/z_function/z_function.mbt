@@ -39,6 +39,7 @@
 /// Time complexity: O(n) for `z_array`, O(n + m) for `z_search`.
 /// Space complexity: O(n) / O(n + m).
 
+///|
 /// Compute the Z-array of `s`.
 ///
 /// `z[i]` is the length of the longest common prefix of `s` and `s[i..]`.
@@ -74,6 +75,7 @@ pub fn z_array(s : String) -> FixedArray[Int] {
   z
 }
 
+///|
 /// Find all occurrences of `pattern` in `text` using the Z-algorithm.
 ///
 /// Returns a `FixedArray[Int]` of starting indices in ascending order
@@ -109,6 +111,7 @@ pub fn z_search(pattern : String, text : String) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "z_array: classic example aabcaab" {
   // s = a a b c a a b
   // Z[4] = 3 because s[4..] = "aab" is a prefix of s.
@@ -123,6 +126,7 @@ test "z_array: classic example aabcaab" {
   assert_eq(z[6], 0)
 }
 
+///|
 test "z_array: all same characters aaaa" {
   let z = z_array("aaaa")
   assert_eq(z.length(), 4)
@@ -132,6 +136,7 @@ test "z_array: all same characters aaaa" {
   assert_eq(z[3], 1)
 }
 
+///|
 test "z_array: no repeated prefix abcde" {
   let z = z_array("abcde")
   assert_eq(z.length(), 5)
@@ -140,17 +145,20 @@ test "z_array: no repeated prefix abcde" {
   }
 }
 
+///|
 test "z_array: single char" {
   let z = z_array("a")
   assert_eq(z.length(), 1)
   assert_eq(z[0], 0)
 }
 
+///|
 test "z_array: empty string" {
   let z = z_array("")
   assert_eq(z.length(), 0)
 }
 
+///|
 test "z_array: abababab" {
   // s = a b a b a b a b
   // Z[1]=0, Z[2]=6, Z[3]=0, Z[4]=4, Z[5]=0, Z[6]=2, Z[7]=0
@@ -165,6 +173,7 @@ test "z_array: abababab" {
   assert_eq(z[7], 0)
 }
 
+///|
 test "z_search: basic match" {
   // "ab" occurs at positions 0, 2, 5 in "ababcab"
   let result = z_search("ab", "ababcab")
@@ -174,11 +183,13 @@ test "z_search: basic match" {
   assert_eq(result[2], 5)
 }
 
+///|
 test "z_search: no matches" {
   let result = z_search("xyz", "hello world")
   assert_eq(result.length(), 0)
 }
 
+///|
 test "z_search: single char pattern" {
   let result = z_search("a", "banana")
   assert_eq(result.length(), 3)
@@ -190,6 +201,7 @@ test "z_search: single char pattern" {
   assert_eq(none.length(), 0)
 }
 
+///|
 test "z_search: empty pattern returns empty" {
   let result = z_search("", "hello")
   assert_eq(result.length(), 0)
@@ -197,12 +209,14 @@ test "z_search: empty pattern returns empty" {
   assert_eq(z_search("", "").length(), 0)
 }
 
+///|
 test "z_search: pattern equals text" {
   let result = z_search("hello", "hello")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 0)
 }
 
+///|
 test "z_search: overlapping matches" {
   // "aa" in "aaaa" matches at 0, 1, 2
   let result = z_search("aa", "aaaa")
@@ -212,6 +226,7 @@ test "z_search: overlapping matches" {
   assert_eq(result[2], 2)
 }
 
+///|
 test "z_search: repeated pattern" {
   // "ab" in "abababab" matches at 0, 2, 4, 6
   let result = z_search("ab", "abababab")
@@ -222,6 +237,7 @@ test "z_search: repeated pattern" {
   assert_eq(result[3], 6)
 }
 
+///|
 test "z_search: all same characters" {
   // "aaa" in "aaaaaa" matches at 0, 1, 2, 3 (overlapping)
   let result = z_search("aaa", "aaaaaa")
@@ -232,17 +248,20 @@ test "z_search: all same characters" {
   assert_eq(result[3], 3)
 }
 
+///|
 test "z_search: pattern longer than text" {
   assert_eq(z_search("hello", "hi").length(), 0)
   assert_eq(z_search("abcdef", "abc").length(), 0)
 }
 
+///|
 test "z_search: match at end" {
   let result = z_search("xyz", "abcdefghijxyz")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 10)
 }
 
+///|
 test "z_search: cross-check against z_array definition" {
   // Verify z_search agrees with a brute-force scan over many small inputs.
   let haystack = "ababcababababcab"
@@ -266,6 +285,7 @@ test "z_search: cross-check against z_array definition" {
   }
 }
 
+///|
 test "z_search: large periodic text" {
   // 100 repetitions of "ab" -> "ab" occurs at every even index 0..198
   let mut text = ""

@@ -35,6 +35,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Heavy-Light Decomposition of a rooted tree.
 pub struct HLD {
   n : Int
@@ -50,6 +51,7 @@ pub struct HLD {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the Heavy-Light Decomposition of a tree.
 ///
 /// # Parameters
@@ -146,6 +148,7 @@ pub fn build(adj : Array[Array[Int]], root : Int, n : Int) -> HLD {
 // Path decomposition
 // ---------------------------------------------------------------------------
 
+///|
 /// A range `[l, r]` (inclusive) in the linearised order corresponding to a
 /// chain segment on the path between two vertices.
 pub struct PathSegment {
@@ -153,6 +156,7 @@ pub struct PathSegment {
   r : Int
 }
 
+///|
 /// Decompose the path from `u` to `v` into a sequence of contiguous ranges
 /// in the linearised order. Each range corresponds to a chain segment.
 ///
@@ -186,6 +190,7 @@ pub fn path_segments(hld : HLD, u_in : Int, v_in : Int) -> Array[PathSegment] {
   segments
 }
 
+///|
 /// Decompose the path from `u` to `v` into segments, with each segment
 /// oriented consistently from `u` towards `v`. This version returns segments
 /// where `l <= r` always, and the direction is tracked separately.
@@ -220,6 +225,7 @@ pub fn path_directed(
   (u_segs, v_segs)
 }
 
+///|
 /// Get the range `[pos[v], pos[v] + size[v] - 1]` corresponding to the
 /// entire subtree of `v`. This is a single contiguous range because the
 /// HLD linearisation is a DFS order.
@@ -227,6 +233,7 @@ pub fn subtree_range(hld : HLD, v : Int) -> PathSegment {
   { l: hld.pos[v], r: hld.pos[v] + hld.size[v] - 1 }
 }
 
+///|
 /// Compute the LCA (lowest common ancestor) of `u` and `v` using the HLD.
 ///
 /// # Complexity
@@ -253,6 +260,7 @@ pub fn lca(hld : HLD, u_in : Int, v_in : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hld: simple chain" {
   // 0 - 1 - 2 - 3 - 4 (linear tree, root = 0)
   let adj : Array[Array[Int]] = [[1], [0, 2], [1, 3], [2, 4], [3]]
@@ -268,14 +276,21 @@ test "hld: simple chain" {
   assert_eq(hld.head[4], 0)
 }
 
+///|
 test "hld: balanced binary tree" {
   //       0
-    //      / \
-    //     1   2
-    //    / \ / \
-    //   3  4 5  6
+  //      / \
+  //     1   2
+  //    / \ / \
+  //   3  4 5  6
   let adj : Array[Array[Int]] = [
-    [1, 2], [0, 3, 4], [0, 5, 6], [1], [1], [2], [2],
+    [1, 2],
+    [0, 3, 4],
+    [0, 5, 6],
+    [1],
+    [1],
+    [2],
+    [2],
   ]
   let hld = build(adj, 0, 7)
   assert_eq(hld.size[0], 7)
@@ -292,6 +307,7 @@ test "hld: balanced binary tree" {
   }
 }
 
+///|
 test "hld: path segments on chain" {
   // Linear tree: 0-1-2-3-4
   let adj : Array[Array[Int]] = [[1], [0, 2], [1, 3], [2, 4], [3]]
@@ -303,15 +319,14 @@ test "hld: path segments on chain" {
   assert_eq(segs[0].r, 4)
 }
 
+///|
 test "hld: path segments on balanced tree" {
   //       0
-    //      / \
-    //     1   2
-    //    / \
-    //   3   4
-  let adj : Array[Array[Int]] = [
-    [1, 2], [0, 3, 4], [0], [1], [1],
-  ]
+  //      / \
+  //     1   2
+  //    / \
+  //   3   4
+  let adj : Array[Array[Int]] = [[1, 2], [0, 3, 4], [0], [1], [1]]
   let hld = build(adj, 0, 5)
   // Path from 3 to 2 should traverse at most 2 chains
   let segs = path_segments(hld, 3, 2)
@@ -319,15 +334,14 @@ test "hld: path segments on balanced tree" {
   // Verify segments cover the full path
 }
 
+///|
 test "hld: LCA" {
   //       0
-    //      / \
-    //     1   2
-    //    / \
-    //   3   4
-  let adj : Array[Array[Int]] = [
-    [1, 2], [0, 3, 4], [0], [1], [1],
-  ]
+  //      / \
+  //     1   2
+  //    / \
+  //   3   4
+  let adj : Array[Array[Int]] = [[1, 2], [0, 3, 4], [0], [1], [1]]
   let hld = build(adj, 0, 5)
   assert_eq(lca(hld, 3, 4), 1)
   assert_eq(lca(hld, 3, 2), 0)
@@ -335,15 +349,14 @@ test "hld: LCA" {
   assert_eq(lca(hld, 3, 3), 3)
 }
 
+///|
 test "hld: subtree range" {
   //       0
-    //      / \
-    //     1   2
-    //    / \
-    //   3   4
-  let adj : Array[Array[Int]] = [
-    [1, 2], [0, 3, 4], [0], [1], [1],
-  ]
+  //      / \
+  //     1   2
+  //    / \
+  //   3   4
+  let adj : Array[Array[Int]] = [[1, 2], [0, 3, 4], [0], [1], [1]]
   let hld = build(adj, 0, 5)
   let r0 = subtree_range(hld, 0)
   assert_eq(r0.r - r0.l + 1, 5) // entire tree
@@ -351,6 +364,7 @@ test "hld: subtree range" {
   assert_eq(r1.r - r1.l + 1, 3) // subtree {1, 3, 4}
 }
 
+///|
 test "hld: star graph" {
   // 0 is center, connected to 1, 2, 3, 4
   let adj : Array[Array[Int]] = [[1, 2, 3, 4], [0], [0], [0], [0]]
@@ -363,6 +377,7 @@ test "hld: star graph" {
   }
 }
 
+///|
 test "hld: deep chain (1000 nodes)" {
   let n = 1000
   let adj : Array[Array[Int]] = []
@@ -383,15 +398,14 @@ test "hld: deep chain (1000 nodes)" {
   assert_eq(segs.length(), 1)
 }
 
+///|
 test "hld: positions are a valid permutation" {
   //       0
-    //      /|\
-    //     1 2 3
-    //    / \
-    //   4   5
-  let adj : Array[Array[Int]] = [
-    [1, 2, 3], [0, 4, 5], [0], [0], [1], [1],
-  ]
+  //      /|\
+  //     1 2 3
+  //    / \
+  //   4   5
+  let adj : Array[Array[Int]] = [[1, 2, 3], [0, 4, 5], [0], [0], [1], [1]]
   let hld = build(adj, 0, 6)
   let seen = FixedArray::make(6, false)
   for i = 0; i < 6; i = i + 1 {

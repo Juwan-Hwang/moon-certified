@@ -1,14 +1,15 @@
+///|
 /// Union-Find (Disjoint Set Union) data structure.
 /// Implements path compression in find() and union by rank in union().
 /// Both optimizations together yield inverse-Ackermann amortized complexity,
 /// which is effectively constant for all practical input sizes.
-
 pub struct UnionFind {
   priv parent : FixedArray[Int]
   priv rank : FixedArray[Int]
   priv mut count : Int
 }
 
+///|
 /// Create a UnionFind with n singleton sets: {0}, {1}, ..., {n-1}.
 ///
 /// If `n < 0`, it is clamped to 0 (empty structure) instead of aborting.
@@ -25,6 +26,7 @@ pub fn new(n : Int) -> UnionFind {
   { parent, rank, count: n }
 }
 
+///|
 /// Find the root (representative) of the set containing x.
 /// Applies path compression: every node on the path to root is re-pointed
 /// directly at the root, flattening the tree for future queries.
@@ -49,6 +51,7 @@ pub fn find(uf : UnionFind, x : Int) -> Int? {
   return Some(root)
 }
 
+///|
 /// Union the sets containing x and y, using union by rank.
 /// The shorter tree is attached beneath the taller tree's root.
 /// When ranks are equal, y's root is attached under x's root and
@@ -78,6 +81,7 @@ pub fn union(uf : UnionFind, x : Int, y : Int) -> Bool {
   true
 }
 
+///|
 /// Check whether x and y belong to the same set.
 /// Returns false if either index is out of range.
 pub fn connected(uf : UnionFind, x : Int, y : Int) -> Bool {
@@ -89,11 +93,13 @@ pub fn connected(uf : UnionFind, x : Int, y : Int) -> Bool {
   rx.unwrap() == ry.unwrap()
 }
 
+///|
 /// Return the number of disjoint sets.
 pub fn count(uf : UnionFind) -> Int {
   uf.count
 }
 
+///|
 test "new: creates n singleton sets" {
   let uf = new(10)
   assert_eq(count(uf), 10)
@@ -102,11 +108,13 @@ test "new: creates n singleton sets" {
   }
 }
 
+///|
 test "new: zero elements" {
   let uf = new(0)
   assert_eq(count(uf), 0)
 }
 
+///|
 test "find: invalid index returns -1" {
   let uf = new(5)
   assert_true(find(uf, -1) is None)
@@ -114,6 +122,7 @@ test "find: invalid index returns -1" {
   assert_true(find(uf, 100) is None)
 }
 
+///|
 test "union: basic merge" {
   let uf = new(5)
   assert_eq(union(uf, 0, 1), true)
@@ -122,6 +131,7 @@ test "union: basic merge" {
   assert_eq(connected(uf, 0, 2), false)
 }
 
+///|
 test "union: already connected returns false" {
   let uf = new(5)
   let _ = union(uf, 0, 1)
@@ -130,6 +140,7 @@ test "union: already connected returns false" {
   assert_eq(count(uf), 4)
 }
 
+///|
 test "union: invalid indices return false" {
   let uf = new(5)
   assert_eq(union(uf, -1, 0), false)
@@ -138,6 +149,7 @@ test "union: invalid indices return false" {
   assert_eq(count(uf), 5)
 }
 
+///|
 test "union: transitive connectivity" {
   let uf = new(6)
   let _ = union(uf, 0, 1)
@@ -148,17 +160,20 @@ test "union: transitive connectivity" {
   assert_eq(count(uf), 3) // {0,1,2,3}, {4}, {5}
 }
 
+///|
 test "connected: same element" {
   let uf = new(5)
   assert_eq(connected(uf, 3, 3), true)
 }
 
+///|
 test "connected: invalid indices return false" {
   let uf = new(5)
   assert_eq(connected(uf, -1, 0), false)
   assert_eq(connected(uf, 0, 5), false)
 }
 
+///|
 test "count: decreases with each union" {
   let uf = new(10)
   assert_eq(count(uf), 10)
@@ -170,6 +185,7 @@ test "count: decreases with each union" {
   assert_eq(count(uf), 7)
 }
 
+///|
 test "path compression: deep node points to root" {
   let uf = new(4)
   // Build a tree of depth 2:
@@ -189,6 +205,7 @@ test "path compression: deep node points to root" {
   assert_eq(uf.parent[3], 0)
 }
 
+///|
 test "union by rank: rank tracking" {
   let uf = new(8)
   // Build two trees of rank 1:
@@ -215,6 +232,7 @@ test "union by rank: rank tracking" {
   assert_eq(count(uf), 1)
 }
 
+///|
 test "cycle detection: union same set returns false" {
   let uf = new(5)
   let _ = union(uf, 0, 1)
@@ -224,6 +242,7 @@ test "cycle detection: union same set returns false" {
   assert_eq(union(uf, 2, 0), false) // would create cycle
 }
 
+///|
 test "large sets: 100 element chain" {
   let uf = new(100)
   // Union consecutive: 0-1, 1-2, ..., 98-99
@@ -234,6 +253,7 @@ test "large sets: 100 element chain" {
   assert_eq(count(uf), 1)
 }
 
+///|
 test "large sets: star union" {
   let uf = new(8)
   // Star: union everything with 0
@@ -246,6 +266,7 @@ test "large sets: star union" {
   }
 }
 
+///|
 test "large sets: random-like unions" {
   let uf = new(50)
   // Union i with (i*7+3) % 50

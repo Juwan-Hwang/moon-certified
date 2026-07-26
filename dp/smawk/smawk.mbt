@@ -27,6 +27,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Find the column index of the minimum element in each row of a totally
 /// monotone matrix.
 ///
@@ -83,13 +84,12 @@ pub fn smawk_row_minima(
   result
 }
 
+///|
 /// Find the column index of the minimum element in each row of a totally
 /// monotone matrix, where the matrix is given as a `FixedArray[FixedArray[Int]]`.
 ///
 /// Convenience wrapper around [`smawk_row_minima`] for pre-materialised matrices.
-pub fn smawk_matrix(
-  matrix : FixedArray[FixedArray[Int]],
-) -> FixedArray[Int] {
+pub fn smawk_matrix(matrix : FixedArray[FixedArray[Int]]) -> FixedArray[Int] {
   let n = matrix.length()
   if n == 0 {
     return FixedArray::make(0, 0)
@@ -105,6 +105,7 @@ pub fn smawk_matrix(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "smawk: simple 3x3 identity" {
   // Totally monotone matrix (row minima move rightward):
   //   0  1  2
@@ -117,9 +118,15 @@ test "smawk: simple 3x3 identity" {
   let result = smawk_row_minima(
     fn(i, j) {
       match (i, j) {
-        (0, 0) => 1; (0, 1) => 2; (0, 2) => 3
-        (1, 0) => 2; (1, 1) => 1; (1, 2) => 3
-        (2, 0) => 3; (2, 1) => 2; (2, 2) => 1
+        (0, 0) => 1
+        (0, 1) => 2
+        (0, 2) => 3
+        (1, 0) => 2
+        (1, 1) => 1
+        (1, 2) => 3
+        (2, 0) => 3
+        (2, 1) => 2
+        (2, 2) => 1
         (_, _) => 999
       }
     },
@@ -131,6 +138,7 @@ test "smawk: simple 3x3 identity" {
   assert_eq(result[2], 2)
 }
 
+///|
 test "smawk: all same row" {
   // All values equal → leftmost minimum.
   let result = smawk_row_minima(fn(_i, _j) { 5 }, 3, 4)
@@ -139,6 +147,7 @@ test "smawk: all same row" {
   assert_eq(result[2], 0)
 }
 
+///|
 test "smawk: diagonal minimum" {
   // Matrix where diagonal is minimum:
   //   0  1  2  3
@@ -146,17 +155,14 @@ test "smawk: diagonal minimum" {
   // 1[9, 0, 9, 9]
   // 2[9, 9, 0, 9]
   // 3[9, 9, 9, 0]
-  let result = smawk_row_minima(
-    fn(i, j) { if i == j { 0 } else { 9 } },
-    4,
-    4,
-  )
+  let result = smawk_row_minima(fn(i, j) { if i == j { 0 } else { 9 } }, 4, 4)
   assert_eq(result[0], 0)
   assert_eq(result[1], 1)
   assert_eq(result[2], 2)
   assert_eq(result[3], 3)
 }
 
+///|
 test "smawk: monotone increasing" {
   // Matrix where f(i, j) = i + j (totally monotone).
   // Row i minimum is at column 0 for all rows.
@@ -166,6 +172,7 @@ test "smawk: monotone increasing" {
   }
 }
 
+///|
 test "smawk: more columns than rows" {
   // 2 rows, 5 columns.
   // f(i,j) = abs(j - target_i) where targets are [1, 3]
@@ -174,7 +181,11 @@ test "smawk: more columns than rows" {
     fn(i, j) {
       let target = if i == 0 { 1 } else { 3 }
       let d = j - target
-      if d < 0 { -d } else { d }
+      if d < 0 {
+        -d
+      } else {
+        d
+      }
     },
     2,
     5,
@@ -183,6 +194,7 @@ test "smawk: more columns than rows" {
   assert_eq(result[1], 3)
 }
 
+///|
 test "smawk: large Monge matrix" {
   // A Monge matrix: f(i,j) = i*j (convex, totally monotone).
   // Row i minimum: column 0 for all i (since i*j is increasing in j for i>0).
@@ -194,39 +206,53 @@ test "smawk: large Monge matrix" {
   }
 }
 
+///|
 test "smawk: matrix wrapper" {
   let matrix : FixedArray[FixedArray[Int]] = FixedArray::makei(3, fn(_i) {
     FixedArray::make(3, 0)
   })
-  matrix[0][0] = 1; matrix[0][1] = 2; matrix[0][2] = 3
-  matrix[1][0] = 3; matrix[1][1] = 1; matrix[1][2] = 2
-  matrix[2][0] = 2; matrix[2][1] = 3; matrix[2][2] = 1
+  matrix[0][0] = 1
+  matrix[0][1] = 2
+  matrix[0][2] = 3
+  matrix[1][0] = 3
+  matrix[1][1] = 1
+  matrix[1][2] = 2
+  matrix[2][0] = 2
+  matrix[2][1] = 3
+  matrix[2][2] = 1
   let result = smawk_matrix(matrix)
   assert_eq(result[0], 0)
   assert_eq(result[1], 1)
   assert_eq(result[2], 2)
 }
 
+///|
 test "smawk: empty matrix" {
   let result = smawk_row_minima(fn(_i, _j) { 0 }, 0, 0)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "smawk: single element" {
   let result = smawk_row_minima(fn(_i, _j) { 42 }, 1, 1)
   assert_eq(result.length(), 1)
   assert_eq(result[0], 0)
 }
 
+///|
 test "smawk: brute force cross-check" {
   // Generate a totally monotone matrix and compare with brute force.
   // f(i, j) = (i - j)^2 is totally monotone (convex).
   let n = 50
   let m = 80
-  let result = smawk_row_minima(fn(i, j) {
-    let d = i - j
-    d * d
-  }, n, m)
+  let result = smawk_row_minima(
+    fn(i, j) {
+      let d = i - j
+      d * d
+    },
+    n,
+    m,
+  )
   // Brute force.
   for i = 0; i < n; i = i + 1 {
     let mut bf_best = 0

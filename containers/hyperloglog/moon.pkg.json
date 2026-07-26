@@ -1,7 +1,0 @@
-{
-  "proof-enabled": false,
-  "import": [
-    "moonbitlang/core/math",
-    "moon-certified/containers/hash_utils"
-  ]
-}

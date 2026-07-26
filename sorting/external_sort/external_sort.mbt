@@ -20,32 +20,32 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Configuration for external sort.
 pub struct ExternalSortConfig {
-  priv buffer_size : Int    // Size of each in-memory run
-  priv merge_arity : Int   // Max runs to merge at once (k-way)
+  priv buffer_size : Int // Size of each in-memory run
+  priv merge_arity : Int // Max runs to merge at once (k-way)
 }
 
+///|
 /// Create a configuration with the given buffer size and merge arity.
 pub fn config(buffer_size : Int, merge_arity : Int) -> ExternalSortConfig {
   let bs = if buffer_size > 0 { buffer_size } else { 1024 }
   let ma = if merge_arity > 1 { merge_arity } else { 4 }
-  ExternalSortConfig::{ buffer_size : bs, merge_arity : ma }
+  ExternalSortConfig::{ buffer_size: bs, merge_arity: ma }
 }
 
 // ---------------------------------------------------------------------------
 // External merge sort
 // ---------------------------------------------------------------------------
 
+///|
 /// Sort an array using external merge sort simulation.
 ///
 /// This function sorts the entire array in-place using the external sort
 /// algorithm: it creates sorted runs of `buffer_size` elements, then
 /// merges them in `merge_arity`-way passes until a single sorted run remains.
-pub fn external_sort(
-  arr : FixedArray[Int],
-  cfg : ExternalSortConfig,
-) -> Unit {
+pub fn external_sort(arr : FixedArray[Int], cfg : ExternalSortConfig) -> Unit {
   let n = arr.length()
   if n <= 1 {
     return
@@ -54,7 +54,11 @@ pub fn external_sort(
   let runs : Array[FixedArray[Int]] = []
   let mut start = 0
   while start < n {
-    let end = if start + cfg.buffer_size < n { start + cfg.buffer_size } else { n }
+    let end = if start + cfg.buffer_size < n {
+      start + cfg.buffer_size
+    } else {
+      n
+    }
     let run_len = end - start
     let run = FixedArray::make(run_len, 0)
     for i = 0; i < run_len; i = i + 1 {
@@ -96,6 +100,7 @@ pub fn external_sort(
   }
 }
 
+///|
 /// K-way merge of sorted runs[start..start+k) using a binary min-heap.
 ///
 /// ## Complexity
@@ -204,18 +209,21 @@ fn k_way_merge(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "external_sort: empty array" {
   let arr = FixedArray::make(0, 0)
   external_sort(arr, config(4, 2))
   assert_eq(arr.length(), 0)
 }
 
+///|
 test "external_sort: single element" {
   let arr = FixedArray::make(1, 42)
   external_sort(arr, config(4, 2))
   assert_eq(arr[0], 42)
 }
 
+///|
 test "external_sort: sorted input" {
   let arr = FixedArray::makei(10, fn(i) { i })
   external_sort(arr, config(4, 2))
@@ -224,6 +232,7 @@ test "external_sort: sorted input" {
   }
 }
 
+///|
 test "external_sort: reverse input" {
   let arr = FixedArray::makei(10, fn(i) { 9 - i })
   external_sort(arr, config(4, 2))
@@ -232,6 +241,7 @@ test "external_sort: reverse input" {
   }
 }
 
+///|
 test "external_sort: random input" {
   let arr = FixedArray::makei(100, fn(i) { (i * 7 + 13) % 97 })
   external_sort(arr, config(16, 4))
@@ -240,6 +250,7 @@ test "external_sort: random input" {
   }
 }
 
+///|
 test "external_sort: multiple runs" {
   let arr = FixedArray::makei(50, fn(i) { (i * 3 + 7) % 50 })
   external_sort(arr, config(8, 3))
@@ -248,6 +259,7 @@ test "external_sort: multiple runs" {
   }
 }
 
+///|
 test "external_sort: large array" {
   let n = 1000
   let arr = FixedArray::makei(n, fn(i) { (i * 31 + 17) % n })
@@ -265,6 +277,7 @@ test "external_sort: large array" {
   }
 }
 
+///|
 test "external_sort: duplicates" {
   let arr = FixedArray::makei(20, fn(i) { i % 3 })
   external_sort(arr, config(5, 2))
@@ -273,6 +286,7 @@ test "external_sort: duplicates" {
   }
 }
 
+///|
 test "external_sort: single run" {
   let arr = FixedArray::makei(5, fn(i) { 4 - i })
   external_sort(arr, config(10, 2)) // buffer > n, single run

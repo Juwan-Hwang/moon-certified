@@ -34,6 +34,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Compute `F(m) = sum_{sub ⊆ m} f(sub)` for all masks `m`.
 ///
 /// Returns a new `Int64` array of the same length as the input. The input is
@@ -71,6 +72,7 @@ pub fn sos_sum(f : FixedArray[Int]) -> FixedArray[Int64] {
   dp
 }
 
+///|
 /// Compute `F(m) = sum_{super ⊇ m} f(super)` for all masks `m` (superset sum).
 ///
 /// This is the dual of [`sos_sum`]: instead of summing over subsets, we sum
@@ -101,6 +103,7 @@ pub fn sos_superset_sum(f : FixedArray[Int]) -> FixedArray[Int64] {
   dp
 }
 
+///|
 /// Compute `F(m) = count of sub ⊆ m with f[sub] != 0`.
 ///
 /// Convenience wrapper: treats each nonzero entry as 1 and sums over subsets.
@@ -119,6 +122,7 @@ pub fn sos_count_nonzero(f : FixedArray[Int]) -> FixedArray[Int64] {
 // Helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Floor of log2 for positive powers of two. Returns 0 for len <= 1.
 fn log2_floor(len : Int) -> Int {
   let mut n = 0
@@ -134,6 +138,7 @@ fn log2_floor(len : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "sos_dp: basic subset sum" {
   // f = [1, 2, 3, 4] (n=2, masks 0..3)
   // F(0) = f(0) = 1
@@ -152,6 +157,7 @@ test "sos_dp: basic subset sum" {
   assert_eq(result[3], 10L)
 }
 
+///|
 test "sos_dp: single element" {
   let f = FixedArray::make(1, 0)
   f[0] = 5
@@ -159,12 +165,14 @@ test "sos_dp: single element" {
   assert_eq(result[0], 5L)
 }
 
+///|
 test "sos_dp: empty input" {
   let f = FixedArray::make(0, 0)
   let result = sos_sum(f)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "sos_dp: all zeros" {
   let f = FixedArray::make(8, 0)
   let result = sos_sum(f)
@@ -173,6 +181,7 @@ test "sos_dp: all zeros" {
   }
 }
 
+///|
 test "sos_dp: n=3 (8 elements)" {
   // f = [1,1,1,1,1,1,1,1]; F(m) = 2^popcount(m)
   let f = FixedArray::make(8, 1)
@@ -188,12 +197,14 @@ test "sos_dp: n=3 (8 elements)" {
   assert_eq(result[7], 8L)
 }
 
+///|
 test "sos_dp: non-power-of-two rejected" {
   let f = FixedArray::make(3, 1)
   let result = sos_sum(f)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "sos_dp: input not modified" {
   let f = FixedArray::make(4, 0)
   f[0] = 1
@@ -208,6 +219,7 @@ test "sos_dp: input not modified" {
   assert_eq(f[3], 4)
 }
 
+///|
 test "sos_dp: superset sum basic" {
   // f = [1, 2, 3, 4] (n=2)
   // G(0) = sum of all = 10
@@ -226,6 +238,7 @@ test "sos_dp: superset sum basic" {
   assert_eq(result[3], 4L)
 }
 
+///|
 test "sos_dp: superset sum n=3" {
   // f = [1,0,0,0,0,0,0,0]; G(m) = sum of f(s) for s ⊇ m.
   // Only f(0)=1, and {0} is a superset of only the empty set.
@@ -239,6 +252,7 @@ test "sos_dp: superset sum n=3" {
   }
 }
 
+///|
 test "sos_dp: count nonzero" {
   // f = [0, 1, 0, 1] (n=2)
   // count(0)=1 (only f(1) is nonzero? no, count of subsets of 0 that are nonzero = 0)
@@ -260,6 +274,7 @@ test "sos_dp: count nonzero" {
   assert_eq(result[3], 2L)
 }
 
+///|
 test "sos_dp: overflow safety" {
   // Large values that would overflow Int32 when summed.
   let f = FixedArray::make(4, 0)
@@ -272,6 +287,7 @@ test "sos_dp: overflow safety" {
   assert_eq(result[3], 4000000000L)
 }
 
+///|
 test "sos_dp: brute force cross-check n=4" {
   // Cross-check with brute force O(3^n) on 16 elements.
   let n = 4

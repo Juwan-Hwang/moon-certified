@@ -30,6 +30,7 @@
 // State
 // ---------------------------------------------------------------------------
 
+///|
 /// The Link-Cut Tree state.
 pub struct LCT {
   n : Int
@@ -41,6 +42,7 @@ pub struct LCT {
   sum : Array[Int] // subtree sum in splay tree (including this node)
 }
 
+///|
 /// Create a new LCT with `n` nodes, each with value 0.
 pub fn new(n : Int) -> LCT {
   {
@@ -54,6 +56,7 @@ pub fn new(n : Int) -> LCT {
   }
 }
 
+///|
 /// Set the value of node `x`.
 ///
 /// Can be called at any time (before or after link operations).
@@ -63,6 +66,7 @@ pub fn set_value(lct : LCT, x : Int, v : Int) -> Unit {
   push_up(lct, x)
 }
 
+///|
 /// Get the value of node `x`.
 pub fn get_value(lct : LCT, x : Int) -> Int {
   lct.val[x]
@@ -72,6 +76,7 @@ pub fn get_value(lct : LCT, x : Int) -> Int {
 // Splay tree helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Check if `x` is the root of its splay tree.
 ///
 /// A node is the splay-tree root if it has no parent, or if its parent
@@ -81,6 +86,7 @@ fn is_root(lct : LCT, x : Int) -> Bool {
   p == -1 || (lct.left[p] != x && lct.right[p] != x)
 }
 
+///|
 /// Push up: update sum from children.
 fn push_up(lct : LCT, x : Int) -> Unit {
   lct.sum[x] = lct.val[x]
@@ -92,6 +98,7 @@ fn push_up(lct : LCT, x : Int) -> Unit {
   }
 }
 
+///|
 /// Push down: propagate lazy reversal flag.
 fn push_down(lct : LCT, x : Int) -> Unit {
   if lct.rev[x] {
@@ -110,6 +117,7 @@ fn push_down(lct : LCT, x : Int) -> Unit {
   }
 }
 
+///|
 /// Rotate node `x` up in its splay tree.
 fn rotate(lct : LCT, x : Int) -> Unit {
   let p = lct.parent[x]
@@ -144,6 +152,7 @@ fn rotate(lct : LCT, x : Int) -> Unit {
   push_up(lct, x)
 }
 
+///|
 /// Splay node `x` to the root of its splay tree.
 fn splay(lct : LCT, x : Int) -> Unit {
   // Collect path from x to root of splay tree for push_down.
@@ -182,6 +191,7 @@ fn splay(lct : LCT, x : Int) -> Unit {
 // Core operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Access: make the path from the root of x's tree to x a preferred path.
 /// Returns the last node visited (used for LCA computation).
 fn access(lct : LCT, x : Int) -> Int {
@@ -205,6 +215,7 @@ fn access(lct : LCT, x : Int) -> Int {
   last
 }
 
+///|
 /// Make `x` the root of its represented tree.
 pub fn make_root(lct : LCT, x : Int) -> Unit {
   let _ = access(lct, x)
@@ -213,6 +224,7 @@ pub fn make_root(lct : LCT, x : Int) -> Unit {
   lct.rev[x] = !lct.rev[x]
 }
 
+///|
 /// Find the root of the tree containing `x`.
 pub fn find_root(lct : LCT, x : Int) -> Int {
   let _ = access(lct, x)
@@ -228,6 +240,7 @@ pub fn find_root(lct : LCT, x : Int) -> Int {
   cur
 }
 
+///|
 /// Check if `u` and `v` are in the same tree.
 pub fn connected(lct : LCT, u : Int, v : Int) -> Bool {
   if u == v {
@@ -236,6 +249,7 @@ pub fn connected(lct : LCT, u : Int, v : Int) -> Bool {
   find_root(lct, u) == find_root(lct, v)
 }
 
+///|
 /// Add an edge between `u` and `v` (they must be in different trees).
 ///
 /// After linking, `u` becomes a child of `v` in the represented tree.
@@ -247,6 +261,7 @@ pub fn link(lct : LCT, u : Int, v : Int) -> Unit {
   }
 }
 
+///|
 /// Remove the edge between `u` and `v` (it must exist).
 ///
 /// If the edge does not exist, this is a no-op.
@@ -263,6 +278,7 @@ pub fn cut(lct : LCT, u : Int, v : Int) -> Unit {
   }
 }
 
+///|
 /// Query the sum of values on the path from `u` to `v`.
 pub fn query_path_sum(lct : LCT, u : Int, v : Int) -> Int {
   make_root(lct, u)
@@ -271,6 +287,7 @@ pub fn query_path_sum(lct : LCT, u : Int, v : Int) -> Int {
   lct.sum[v]
 }
 
+///|
 /// Find the lowest common ancestor of `u` and `v`.
 ///
 /// Returns -1 if they are not in the same tree.
@@ -286,6 +303,7 @@ pub fn lca(lct : LCT, u : Int, v : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "lct: basic link and connected" {
   let lct = new(5)
   assert_false(connected(lct, 0, 1))
@@ -300,6 +318,7 @@ test "lct: basic link and connected" {
   assert_true(connected(lct, 0, 4))
 }
 
+///|
 test "lct: cut" {
   let lct = new(5)
   link(lct, 0, 1)
@@ -312,6 +331,7 @@ test "lct: cut" {
   assert_false(connected(lct, 0, 3))
 }
 
+///|
 test "lct: cut non-existent edge" {
   let lct = new(4)
   link(lct, 0, 1)
@@ -323,6 +343,7 @@ test "lct: cut non-existent edge" {
   assert_false(connected(lct, 0, 3))
 }
 
+///|
 test "lct: path sum" {
   let lct = new(5)
   set_value(lct, 0, 10)
@@ -341,6 +362,7 @@ test "lct: path sum" {
   assert_eq(query_path_sum(lct, 1, 3), 90)
 }
 
+///|
 test "lct: update value" {
   let lct = new(3)
   set_value(lct, 0, 1)
@@ -353,6 +375,7 @@ test "lct: update value" {
   assert_eq(query_path_sum(lct, 0, 2), 14)
 }
 
+///|
 test "lct: find root" {
   let lct = new(5)
   link(lct, 0, 1)
@@ -368,6 +391,7 @@ test "lct: find root" {
   assert_eq(r0, r4)
 }
 
+///|
 test "lct: lca" {
   let lct = new(5)
   // Build tree:
@@ -386,6 +410,7 @@ test "lct: lca" {
   assert_eq(lca(lct, 3, 3), 3)
 }
 
+///|
 test "lct: complex" {
   let lct = new(6)
   set_value(lct, 0, 1)
@@ -412,6 +437,7 @@ test "lct: complex" {
   assert_eq(query_path_sum(lct, 0, 5), 21)
 }
 
+///|
 test "lct: star graph" {
   let lct = new(5)
   set_value(lct, 0, 100)
@@ -434,6 +460,7 @@ test "lct: star graph" {
   assert_eq(lca(lct, 1, 4), 0)
 }
 
+///|
 test "lct: single node" {
   let lct = new(1)
   set_value(lct, 0, 42)
@@ -442,6 +469,7 @@ test "lct: single node" {
   assert_eq(lca(lct, 0, 0), 0)
 }
 
+///|
 test "lct: two nodes" {
   let lct = new(2)
   set_value(lct, 0, 5)
@@ -453,6 +481,7 @@ test "lct: two nodes" {
   assert_false(connected(lct, 0, 1))
 }
 
+///|
 test "lct: relink after cut" {
   let lct = new(4)
   set_value(lct, 0, 1)

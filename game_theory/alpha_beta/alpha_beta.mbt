@@ -18,6 +18,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A game state interface for alpha-beta search.
 pub trait Game {
   fn is_terminal(Self) -> Bool
@@ -27,11 +28,17 @@ pub trait Game {
   fn current_player(Self) -> Int
 }
 
+///|
 /// Alpha-beta pruning search (negamax formulation).
 ///
 /// Returns the best value from the current player's perspective.
 /// `alpha` = lower bound, `beta` = upper bound.
-pub fn[T : Game] alpha_beta(state : T, depth : Int, alpha : Int, beta : Int) -> Int {
+pub fn[T : Game] alpha_beta(
+  state : T,
+  depth : Int,
+  alpha : Int,
+  beta : Int,
+) -> Int {
   if depth == 0 || state.is_terminal() {
     let v = state.evaluate()
     // Prefer sooner wins / later losses by adding depth bonus.
@@ -65,6 +72,7 @@ pub fn[T : Game] alpha_beta(state : T, depth : Int, alpha : Int, beta : Int) -> 
   best
 }
 
+///|
 /// Find the best move using alpha-beta search.
 ///
 /// Returns the move index that maximizes the current player's value.
@@ -91,6 +99,7 @@ pub fn[T : Game] best_move(state : T, depth : Int) -> Int {
   moves[best_idx]
 }
 
+///|
 /// Negamax search without pruning (for comparison/testing).
 pub fn[T : Game] negamax(state : T, depth : Int) -> Int {
   if depth == 0 || state.is_terminal() {
@@ -122,15 +131,18 @@ pub fn[T : Game] negamax(state : T, depth : Int) -> Int {
 // Tic-Tac-Toe test implementation
 // ---------------------------------------------------------------------------
 
+///|
 priv struct TicTacToe {
   board : FixedArray[Int] // 0=empty, 1=X, -1=O
-  mut player : Int        // 1 or -1
+  mut player : Int // 1 or -1
 }
 
+///|
 fn TicTacToe::new() -> TicTacToe {
   { board: FixedArray::make(9, 0), player: 1 }
 }
 
+///|
 fn TicTacToe::clone(self : TicTacToe) -> TicTacToe {
   let b = FixedArray::make(9, 0)
   for i = 0; i < 9; i = i + 1 {
@@ -139,6 +151,7 @@ fn TicTacToe::clone(self : TicTacToe) -> TicTacToe {
   { board: b, player: self.player }
 }
 
+///|
 fn check_win(board : FixedArray[Int]) -> Int {
   let lines = [
     [0, 1, 2],
@@ -161,6 +174,7 @@ fn check_win(board : FixedArray[Int]) -> Int {
   0
 }
 
+///|
 impl Game for TicTacToe with fn is_terminal(self) {
   if check_win(self.board) != 0 {
     return true
@@ -173,6 +187,7 @@ impl Game for TicTacToe with fn is_terminal(self) {
   true
 }
 
+///|
 impl Game for TicTacToe with fn evaluate(self) {
   let w = check_win(self.board)
   if w != 0 {
@@ -207,6 +222,7 @@ impl Game for TicTacToe with fn evaluate(self) {
   score
 }
 
+///|
 impl Game for TicTacToe with fn generate_moves(self) {
   let moves : Array[Int] = []
   for i = 0; i < 9; i = i + 1 {
@@ -217,6 +233,7 @@ impl Game for TicTacToe with fn generate_moves(self) {
   moves
 }
 
+///|
 impl Game for TicTacToe with fn make_move(self, mv) {
   let next = self.clone()
   next.board[mv] = self.player
@@ -224,16 +241,19 @@ impl Game for TicTacToe with fn make_move(self, mv) {
   next
 }
 
+///|
 impl Game for TicTacToe with fn current_player(self) {
   self.player
 }
 
-extend TicTacToe with Game::{ make_move, is_terminal, evaluate }
+///|
+extend TicTacToe with Game::{make_move, is_terminal, evaluate}
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "alpha_beta: tic-tac-toe win detection" {
   let g = TicTacToe::new()
   assert_false(g.is_terminal())
@@ -243,6 +263,7 @@ test "alpha_beta: tic-tac-toe win detection" {
   assert_false(g3.is_terminal())
 }
 
+///|
 test "alpha_beta: alpha-beta finds winning move" {
   let g = TicTacToe::new()
   let g1 = g.make_move(0)
@@ -253,16 +274,18 @@ test "alpha_beta: alpha-beta finds winning move" {
   assert_eq(m, 8)
 }
 
+///|
 test "alpha_beta: blocks opponent win" {
   let g = TicTacToe::new()
-  let g1 = g.make_move(4)   // X center
-  let g2 = g1.make_move(0)  // O corner
-  let g3 = g2.make_move(8)  // X corner (0-4-8 diagonal, but 0 is taken by O)
-  let g4 = g3.make_move(1)  // O edge — O threatens 0-1-2
+  let g1 = g.make_move(4) // X center
+  let g2 = g1.make_move(0) // O corner
+  let g3 = g2.make_move(8) // X corner (0-4-8 diagonal, but 0 is taken by O)
+  let g4 = g3.make_move(1) // O edge — O threatens 0-1-2
   let m = best_move(g4, 5)
   assert_eq(m, 2)
 }
 
+///|
 test "alpha_beta: alpha-beta equals negamax" {
   let g = TicTacToe::new()
   let g1 = g.make_move(4)
@@ -272,22 +295,24 @@ test "alpha_beta: alpha-beta equals negamax" {
   assert_eq(ab, nm)
 }
 
+///|
 test "alpha_beta: terminal draw" {
   let g = TicTacToe::new()
-  let g1 = g.make_move(0)   // X
-  let g2 = g1.make_move(1)  // O
-  let g3 = g2.make_move(2)   // X
-  let g4 = g3.make_move(4)  // O
-  let g5 = g4.make_move(3)  // X
-  let g6 = g5.make_move(5)  // O
-  let g7 = g6.make_move(7)  // X
-  let g8 = g7.make_move(6)  // O
-  let g9 = g8.make_move(8)  // X
+  let g1 = g.make_move(0) // X
+  let g2 = g1.make_move(1) // O
+  let g3 = g2.make_move(2) // X
+  let g4 = g3.make_move(4) // O
+  let g5 = g4.make_move(3) // X
+  let g6 = g5.make_move(5) // O
+  let g7 = g6.make_move(7) // X
+  let g8 = g7.make_move(6) // O
+  let g9 = g8.make_move(8) // X
   // Board: X O X / X O O / O X X — no winner, full board.
   assert_true(g9.is_terminal())
   assert_eq(g9.evaluate(), 0)
 }
 
+///|
 test "alpha_beta: center is best opening" {
   let g = TicTacToe::new()
   // With depth 3, heuristic evaluation differentiates center (val 3)

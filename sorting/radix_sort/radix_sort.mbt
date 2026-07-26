@@ -26,18 +26,25 @@
 ///
 /// Not formally verified (while loops with mutable state).
 
+///|
 /// Number of buckets per pass: base 256 = one byte.
 const RADIX : Int = 256
+
+///|
 /// Bits per digit (log2 of RADIX).
 const RADIX_BITS : Int = 8
+
+///|
 /// Mask to extract one byte.
 const RADIX_MASK : Int = 0xFF
 
+///|
 /// Extract byte `pos` (0 = least significant) of a non-negative integer.
 fn digit_of(value : Int, pos : Int) -> Int {
   (value >> (RADIX_BITS * pos)) & RADIX_MASK
 }
 
+///|
 /// One stable base-256 counting-sort pass on digit position `pos`.
 ///
 /// Reads from `src` and writes the elements into `dst`, stably ordered by
@@ -69,6 +76,7 @@ fn counting_pass(
   }
 }
 
+///|
 /// LSD radix sort for non-negative integers.
 ///
 /// Returns `Some` of a new, ascendingly-sorted `FixedArray[Int]`. Returns
@@ -129,6 +137,7 @@ pub fn radix_sort(xs : FixedArray[Int]) -> FixedArray[Int]? {
   Some(a)
 }
 
+///|
 test "radix_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
   let out = radix_sort(xs).unwrap()
@@ -137,6 +146,7 @@ test "radix_sort: basic" {
   }
 }
 
+///|
 test "radix_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i }) // [0, 1, ..., 9]
   let out = radix_sort(xs).unwrap()
@@ -145,6 +155,7 @@ test "radix_sort: already sorted" {
   }
 }
 
+///|
 test "radix_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
   let out = radix_sort(xs).unwrap()
@@ -153,6 +164,7 @@ test "radix_sort: reverse sorted" {
   }
 }
 
+///|
 test "radix_sort: single element" {
   let xs = FixedArray::make(1, 42)
   let out = radix_sort(xs).unwrap()
@@ -160,12 +172,14 @@ test "radix_sort: single element" {
   assert_eq(out[0], 42)
 }
 
+///|
 test "radix_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   let out = radix_sort(xs).unwrap()
   assert_eq(out.length(), 0)
 }
 
+///|
 test "radix_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   let out = radix_sort(xs).unwrap()
@@ -179,6 +193,7 @@ test "radix_sort: duplicates" {
   assert_eq(out[7], 2)
 }
 
+///|
 test "radix_sort: large values" {
   // Values spanning all four base-256 digits.
   let xs = FixedArray::make(8, 0)
@@ -201,6 +216,7 @@ test "radix_sort: large values" {
   assert_eq(out[7], 2147483647)
 }
 
+///|
 test "radix_sort: all same value" {
   let xs = FixedArray::make(6, 123456)
   let out = radix_sort(xs).unwrap()
@@ -209,6 +225,7 @@ test "radix_sort: all same value" {
   }
 }
 
+///|
 test "radix_sort: input is not modified" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 300
@@ -225,6 +242,7 @@ test "radix_sort: input is not modified" {
   assert_eq(xs[4], 1)
 }
 
+///|
 test "radix_sort: permutation check" {
   // Values span 0..999 (two base-256 digits) to exercise multi-byte passes.
   let n = 50
@@ -246,6 +264,7 @@ test "radix_sort: permutation check" {
   }
 }
 
+///|
 test "radix_sort: stability" {
   // LSD radix sort is stable. Encode elements as key * 10000 + tag where the
   // tag is the strictly-increasing original index, then sort by the whole
@@ -284,6 +303,7 @@ test "radix_sort: stability" {
   }
 }
 
+///|
 test "radix_sort: negative values rejected" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 3

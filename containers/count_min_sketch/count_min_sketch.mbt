@@ -29,6 +29,7 @@
 // Data structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A Count-Min Sketch frequency table.
 ///
 /// - `table` is a `depth`-element `FixedArray`, each row a `width`-element
@@ -43,17 +44,20 @@ pub struct CountMinSketch {
   priv depth : Int
 }
 
+///|
 /// Golden-ratio derived 64-bit seeds for the two base hash functions.
 /// Different seeds make `h1` and `h2` behave as independent hashes even
 /// though they share the same mixing function.
 const CMS_SEED1 : Int64 = 0x9e3779b97f4a7c15L
 
+///|
 const CMS_SEED2 : Int64 = 0xbf58476d1ce4e5b9L
 
 // ---------------------------------------------------------------------------
 // Hashing
 // ---------------------------------------------------------------------------
 
+///|
 /// FNV-1a-style polynomial hash of a `String`, seeded, then avalanched.
 ///
 ///   h = seed; for each char c: h = h * FNV_prime + c
@@ -67,6 +71,7 @@ fn hash64_str(data : String, seed : Int64) -> Int64 {
   @hash_utils.fmix64(h)
 }
 
+///|
 /// Hash of an `Int` key, seeded, then avalanched.
 ///
 /// Both the full value and its high 32 bits are folded in, so that nearby
@@ -78,6 +83,7 @@ fn hash64_int(x : Int64, seed : Int64) -> Int64 {
   @hash_utils.fmix64(h)
 }
 
+///|
 /// Int64 modulo returning a non-negative residue in `[0, m)` for `m > 0`.
 ///
 /// MoonBit's `%` follows truncated division (sign follows the dividend),
@@ -92,6 +98,7 @@ fn mod_nonneg(h : Int64, m : Int64) -> Int64 {
   }
 }
 
+///|
 /// Compute the two base hashes `(h1, h2)` for a `String` key.
 ///
 /// `h2` is forced **odd** (`| 1L`) so that, for any odd modulus, the
@@ -104,6 +111,7 @@ fn double_hash_str(key : String) -> (Int64, Int64) {
   (h1, h2)
 }
 
+///|
 /// Compute the two base hashes `(h1, h2)` for an `Int` key (odd-forced `h2`).
 fn double_hash_int(key : Int) -> (Int64, Int64) {
   let k = key.to_int64()
@@ -116,6 +124,7 @@ fn double_hash_int(key : Int) -> (Int64, Int64) {
 // Math helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Safe natural logarithm. Returns 0.0 for non-positive inputs.
 /// Uses the standard library's `@math.ln` instead of a custom implementation.
 fn safe_ln(x : Double) -> Double {
@@ -125,6 +134,7 @@ fn safe_ln(x : Double) -> Double {
   @math.ln(x)
 }
 
+///|
 /// Ceiling of a non-negative `Double`, returned as `Int`.
 ///
 /// `to_int` truncates toward zero (i.e. floor for positive values), so the
@@ -142,6 +152,7 @@ fn ceil_pos(x : Double) -> Int {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a Count-Min Sketch sized for the desired error guarantee.
 ///
 /// - `epsilon` controls the *additive error*: the estimate exceeds the true
@@ -160,9 +171,21 @@ pub fn new(epsilon : Double, delta : Double) -> CountMinSketch {
   let width = ceil_pos(1.0 / epsilon)
   let depth = ceil_pos(safe_ln(1.0 / delta))
   // Guard against degenerate inputs producing zero dimensions.
-  make_sketch(if width > 0 { width } else { 1 }, if depth > 0 { depth } else { 1 })
+  make_sketch(
+    if width > 0 {
+      width
+    } else {
+      1
+    },
+    if depth > 0 {
+      depth
+    } else {
+      1
+    },
+  )
 }
 
+///|
 /// Build a zeroed sketch with explicit dimensions.
 ///
 /// Each row is allocated independently via `makei` so that rows do not alias
@@ -172,11 +195,13 @@ fn make_sketch(width : Int, depth : Int) -> CountMinSketch {
   { table, width, depth }
 }
 
+///|
 /// The number of counters per row (`ceil(1 / epsilon)` at construction).
 pub fn width(cms : CountMinSketch) -> Int {
   cms.width
 }
 
+///|
 /// The number of hash rows (`ceil(ln(1 / delta))` at construction).
 pub fn depth(cms : CountMinSketch) -> Int {
   cms.depth
@@ -186,6 +211,7 @@ pub fn depth(cms : CountMinSketch) -> Int {
 // Core operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Increment every row's counter for the columns addressed by `(h1, h2)`.
 ///
 /// Reduces `h1` and `h2` into `[0, width)`; forces the reduced `h2` non-zero
@@ -204,6 +230,7 @@ fn add_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Unit {
   }
 }
 
+///|
 /// Point query: the minimum counter across all rows for `(h1, h2)`.
 ///
 /// Because every counter holding `key` also holds any colliding keys (whose
@@ -228,18 +255,21 @@ fn estimate_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Int64 {
   min_val
 }
 
+///|
 /// Increment the count for `key` by one.
 pub fn add(cms : CountMinSketch, key : String) -> Unit {
   let (h1, h2) = double_hash_str(key)
   add_hashes(cms, h1, h2)
 }
 
+///|
 /// Increment the count for the integer `key` by one.
 pub fn add_int(cms : CountMinSketch, key : Int) -> Unit {
   let (h1, h2) = double_hash_int(key)
   add_hashes(cms, h1, h2)
 }
 
+///|
 /// Estimate the frequency of `key`. Always `>=` the true count; with
 /// probability `>= 1 - delta` at most `true_count + epsilon * N` over.
 pub fn estimate(cms : CountMinSketch, key : String) -> Int64 {
@@ -247,6 +277,7 @@ pub fn estimate(cms : CountMinSketch, key : String) -> Int64 {
   estimate_hashes(cms, h1, h2)
 }
 
+///|
 /// Estimate the frequency of the integer `key`.
 pub fn estimate_int(cms : CountMinSketch, key : Int) -> Int64 {
   let (h1, h2) = double_hash_int(key)
@@ -257,6 +288,7 @@ pub fn estimate_int(cms : CountMinSketch, key : Int) -> Int64 {
 // Combinators
 // ---------------------------------------------------------------------------
 
+///|
 /// Merge two sketches into a fresh sketch whose counters are the pointwise
 /// sum of the inputs.
 ///
@@ -284,6 +316,7 @@ pub fn merge(cms1 : CountMinSketch, cms2 : CountMinSketch) -> CountMinSketch {
   result
 }
 
+///|
 /// Estimate the inner (dot) product of the frequency vectors represented by
 /// two sketches.
 ///
@@ -315,6 +348,7 @@ pub fn inner_product(cms1 : CountMinSketch, cms2 : CountMinSketch) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "single item count" {
   let cms = new(0.01, 0.01)
   add(cms, "apple")
@@ -326,6 +360,7 @@ test "single item count" {
   assert_eq(estimate(cms, "missing"), 0L)
 }
 
+///|
 test "multiple items with known counts" {
   let cms = new(0.001, 0.01) // wide enough that collisions are negligible
   for i = 0; i < 1; i = i + 1 {
@@ -346,6 +381,7 @@ test "multiple items with known counts" {
   assert_eq(estimate(cms, "d"), 10L)
 }
 
+///|
 test "overestimate property: estimate >= true count always" {
   let cms = new(0.01, 0.01)
   // Fill the sketch with many distinct items to create collisions.
@@ -366,6 +402,7 @@ test "overestimate property: estimate >= true count always" {
   assert_true(estimate(cms, "item_999") >= 1L)
 }
 
+///|
 test "frequency estimation with bounded error" {
   // epsilon=0.01, delta=0.001 -> width=100, depth=7.
   let eps = 0.01
@@ -387,6 +424,7 @@ test "frequency estimation with bounded error" {
   assert_true(est <= true_count + 15L)
 }
 
+///|
 test "merge two sketches" {
   let cms1 = new(0.01, 0.01)
   let cms2 = new(0.01, 0.01)
@@ -410,6 +448,7 @@ test "merge two sketches" {
   assert_eq(estimate(cms2, "z"), 3L)
 }
 
+///|
 test "inner product estimation" {
   // Wide sketch so collision noise is small.
   let cms1 = new(0.001, 0.01)
@@ -434,6 +473,7 @@ test "inner product estimation" {
   assert_true(ip < 22L + 30L) // bounded (generous margin)
 }
 
+///|
 test "heavy hitter identification" {
   let cms = new(0.001, 0.001) // width=1000, depth=7
   // "hot" is the clear heavy hitter: 500 occurrences.
@@ -456,6 +496,7 @@ test "heavy hitter identification" {
   assert_true(hot_est > other_est)
 }
 
+///|
 test "large stream test" {
   // epsilon=0.0001 -> width=10000; delta=0.01 -> depth=5.
   let cms = new(0.0001, 0.01)
@@ -476,6 +517,7 @@ test "large stream test" {
   }
 }
 
+///|
 test "int keys: add_int and estimate_int" {
   let cms = new(0.01, 0.01)
   add_int(cms, 42)
@@ -492,6 +534,7 @@ test "int keys: add_int and estimate_int" {
   assert_true(estimate_int(cms, 9999) >= 0L)
 }
 
+///|
 test "parameter sizing: width and depth from epsilon/delta" {
   // width = ceil(1/epsilon), depth = ceil(ln(1/delta)).
   let cms1 = new(0.01, 0.01)

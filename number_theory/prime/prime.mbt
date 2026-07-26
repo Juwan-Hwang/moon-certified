@@ -4,6 +4,7 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite below,
 /// which includes Bézout-identity and round-trip checks.
 
+///|
 /// Sieve of Eratosthenes: find all primes up to `n` (inclusive).
 ///
 /// Returns `Some` of a `FixedArray[Int]` of primes in ascending order.
@@ -59,6 +60,7 @@ pub fn sieve(n : Int) -> FixedArray[Int]? {
   Some(primes)
 }
 
+///|
 /// Check if `n` is prime. Returns `false` for `n < 2`.
 ///
 /// Trial division by 2 and then by odd candidates up to `sqrt(n)`. The bound
@@ -83,6 +85,7 @@ pub fn is_prime(n : Int) -> Bool {
   true
 }
 
+///|
 /// Extended Euclidean algorithm.
 ///
 /// Returns `(gcd, x, y)` such that `a * x + b * y == gcd(a, b)`. Works for
@@ -116,6 +119,7 @@ pub fn ext_gcd(a : Int, b : Int) -> (Int, Int, Int) {
   (old_r, old_s, old_t)
 }
 
+///|
 /// Modular inverse of `a` modulo `m`.
 ///
 /// Returns `Some(x)` for the unique `x` in `[0, m)` with `a * x ≡ 1 (mod m)`,
@@ -142,6 +146,7 @@ pub fn mod_inverse(a : Int, m : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "sieve: basic n=10" {
   let primes = sieve(10).unwrap()
   assert_eq(primes.length(), 4)
@@ -151,12 +156,14 @@ test "sieve: basic n=10" {
   assert_eq(primes[3], 7)
 }
 
+///|
 test "sieve: n=2 yields a single prime" {
   let primes = sieve(2).unwrap()
   assert_eq(primes.length(), 1)
   assert_eq(primes[0], 2)
 }
 
+///|
 test "sieve: n=100 has 25 primes" {
   let primes = sieve(100).unwrap()
   assert_eq(primes.length(), 25)
@@ -168,18 +175,21 @@ test "sieve: n=100 has 25 primes" {
   assert_eq(primes[20], 73)
 }
 
+///|
 test "sieve: n<2 returns empty" {
   assert_eq(sieve(1).unwrap().length(), 0)
   assert_eq(sieve(0).unwrap().length(), 0)
   assert_eq(sieve(-5).unwrap().length(), 0)
 }
 
+///|
 test "sieve: n > 10^7 rejected (OOM protection)" {
   // A too-large input is rejected with `None` rather than silently returning
   // an empty array indistinguishable from the n<2 case.
   assert_true(sieve(10000001) is None)
 }
 
+///|
 test "sieve: agrees with is_prime up to 50" {
   let primes = sieve(50).unwrap()
   let mut count = 0
@@ -194,6 +204,7 @@ test "sieve: agrees with is_prime up to 50" {
   }
 }
 
+///|
 test "is_prime: edge cases" {
   assert_eq(is_prime(0), false)
   assert_eq(is_prime(1), false)
@@ -204,6 +215,7 @@ test "is_prime: edge cases" {
   assert_eq(is_prime(-1), false)
 }
 
+///|
 test "is_prime: small primes and composites" {
   assert_eq(is_prime(7), true)
   assert_eq(is_prime(9), false)
@@ -215,6 +227,7 @@ test "is_prime: small primes and composites" {
   assert_eq(is_prime(100), false)
 }
 
+///|
 test "is_prime: perfect squares of primes" {
   // Squares of primes are composite; a buggy sqrt bound must still catch them.
   assert_eq(is_prime(121), false) // 11 * 11
@@ -222,6 +235,7 @@ test "is_prime: perfect squares of primes" {
   assert_eq(is_prime(289), false) // 17 * 17
 }
 
+///|
 test "ext_gcd: basic" {
   let (g, x, y) = ext_gcd(12, 8)
   assert_eq(g, 4)
@@ -230,12 +244,14 @@ test "ext_gcd: basic" {
   assert_eq(12 * x + 8 * y, 4)
 }
 
+///|
 test "ext_gcd: coprime" {
   let (g, x, y) = ext_gcd(7, 13)
   assert_eq(g, 1)
   assert_eq(7 * x + 13 * y, 1)
 }
 
+///|
 test "ext_gcd: one operand zero" {
   let (g0, x0, y0) = ext_gcd(5, 0)
   assert_eq(g0, 5)
@@ -245,11 +261,20 @@ test "ext_gcd: one operand zero" {
   assert_eq(0 * x1 + 5 * y1, 5)
 }
 
+///|
 test "ext_gcd: Bezout identity holds over many inputs" {
   // The defining invariant: a*x + b*y == g for all inputs.
   let cases = [
-    (12, 8), (7, 13), (1071, 462), (0, 5), (5, 0), (1, 1), (100, 75),
-    (17, 5), (5, 17), (270, 192),
+    (12, 8),
+    (7, 13),
+    (1071, 462),
+    (0, 5),
+    (5, 0),
+    (1, 1),
+    (100, 75),
+    (17, 5),
+    (5, 17),
+    (270, 192),
   ]
   for i = 0; i < cases.length(); i = i + 1 {
     let (a, b) = cases[i]
@@ -258,20 +283,22 @@ test "ext_gcd: Bezout identity holds over many inputs" {
   }
 }
 
+///|
 test "ext_gcd: negative inputs" {
   // Division truncates toward zero, so the gcd follows the sign of a.
   let (g, x, y) = ext_gcd(-12, 8)
   assert_eq(g, -4)
   assert_eq(x, 1)
   assert_eq(y, 1)
-  assert_eq((-12) * x + 8 * y, g)
+  assert_eq(-12 * x + 8 * y, g)
   let (g2, x2, y2) = ext_gcd(12, -8)
   assert_eq(g2, 4)
   assert_eq(x2, 1)
   assert_eq(y2, 1)
-  assert_eq(12 * x2 + (-8) * y2, g2)
+  assert_eq(12 * x2 + -8 * y2, g2)
 }
 
+///|
 test "mod_inverse: basic" {
   assert_eq(mod_inverse(3, 7), Some(5)) // 3*5 = 15 = 1 (mod 7)
   assert_eq(mod_inverse(10, 17), Some(12)) // 10*12 = 120 = 1 (mod 17)
@@ -279,6 +306,7 @@ test "mod_inverse: basic" {
   assert_eq(mod_inverse(2, 5), Some(3)) // 2*3 = 6 = 1 (mod 5)
 }
 
+///|
 test "mod_inverse: product is congruent to 1" {
   // a * mod_inverse(a, m) ≡ 1 (mod m) for coprime a, m.
   let cases = [(3, 7), (10, 17), (2, 5), (11, 26), (7, 100), (123, 997)]
@@ -286,13 +314,14 @@ test "mod_inverse: product is congruent to 1" {
     let (a, m) = cases[i]
     let inv = mod_inverse(a, m).unwrap()
     assert_true(inv >= 0)
-    let prod = (a % m) * inv
+    let prod = a % m * inv
     let residue = prod % m
     let norm = if residue < 0 { residue + m } else { residue }
     assert_eq(norm, 1)
   }
 }
 
+///|
 test "mod_inverse: no inverse when not coprime" {
   assert_true(mod_inverse(2, 4) is None) // gcd 2
   assert_true(mod_inverse(6, 9) is None) // gcd 3
@@ -300,12 +329,14 @@ test "mod_inverse: no inverse when not coprime" {
   assert_true(mod_inverse(7, 7) is None) // a ≡ 0 (mod m)
 }
 
+///|
 test "mod_inverse: invalid modulus" {
   assert_true(mod_inverse(3, 1) is None)
   assert_true(mod_inverse(3, 0) is None)
   assert_true(mod_inverse(3, -5) is None)
 }
 
+///|
 test "mod_inverse: negative operand" {
   // -3 ≡ 4 (mod 7); inverse of 4 mod 7 is 2, since 4*2 = 8 ≡ 1.
   assert_eq(mod_inverse(-3, 7), Some(2))

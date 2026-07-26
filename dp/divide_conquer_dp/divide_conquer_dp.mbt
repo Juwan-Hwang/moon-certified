@@ -32,6 +32,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Compute one row of the DP using divide-and-conquer optimisation.
 ///
 /// Given `prev` (the `dp[i-1]` array of length `m`), computes `dp[i]` where
@@ -105,6 +106,7 @@ pub fn[T] solve_row(
   dp
 }
 
+///|
 fn[T] solve_range(
   dp : FixedArray[T],
   prev : FixedArray[T],
@@ -139,15 +141,38 @@ fn[T] solve_range(
     dp[mid] = best_val
   }
   // Recurse left: [lo, mid-1], opt_hi = best_k
-  solve_range(dp, prev, lo, mid - 1, opt_lo, best_k, cost, add, compare, identity)
+  solve_range(
+    dp,
+    prev,
+    lo,
+    mid - 1,
+    opt_lo,
+    best_k,
+    cost,
+    add,
+    compare,
+    identity,
+  )
   // Recurse right: [mid+1, hi], opt_lo = best_k
-  solve_range(dp, prev, mid + 1, hi, best_k, opt_hi, cost, add, compare, identity)
+  solve_range(
+    dp,
+    prev,
+    mid + 1,
+    hi,
+    best_k,
+    opt_hi,
+    cost,
+    add,
+    compare,
+    identity,
+  )
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dnc_dp: basic partition" {
   // Partition array [1,2,3,4] into 2 groups to minimize sum of group costs.
   // cost(k, j) = sum of elements [k, j-1] squared.
@@ -173,7 +198,15 @@ test "dnc_dp: basic partition" {
     m + 1,
     cost_fn,
     fn(a : Int64, b : Int64) -> Int64 { a + b },
-    fn(a : Int64, b : Int64) -> Int { if a < b { -1 } else if a > b { 1 } else { 0 } },
+    fn(a : Int64, b : Int64) -> Int {
+      if a < b {
+        -1
+      } else if a > b {
+        1
+      } else {
+        0
+      }
+    },
     0L,
   )
   // dp[j] = min cost to partition first j elements into groups.
@@ -192,6 +225,7 @@ test "dnc_dp: basic partition" {
   assert_eq(dp[5], 25L)
 }
 
+///|
 test "dnc_dp: single element" {
   let prev = FixedArray::make(2, 0L)
   let cost_fn = fn(k : Int, j : Int) -> Int64 {
@@ -202,13 +236,22 @@ test "dnc_dp: single element" {
     2,
     cost_fn,
     fn(a : Int64, b : Int64) -> Int64 { a + b },
-    fn(a : Int64, b : Int64) -> Int { if a < b { -1 } else if a > b { 1 } else { 0 } },
+    fn(a : Int64, b : Int64) -> Int {
+      if a < b {
+        -1
+      } else if a > b {
+        1
+      } else {
+        0
+      }
+    },
     0L,
   )
   assert_eq(dp[0], 0L)
   assert_eq(dp[1], 1L) // cost(0, 1) = 1^2 = 1
 }
 
+///|
 test "dnc_dp: cross-check with brute force" {
   // Generate a random-ish array and verify D&C matches brute force.
   let arr = [7, 3, 8, 2, 5, 1, 9, 4, 6]
@@ -228,7 +271,15 @@ test "dnc_dp: cross-check with brute force" {
     m + 1,
     cost_fn,
     fn(a : Int64, b : Int64) -> Int64 { a + b },
-    fn(a : Int64, b : Int64) -> Int { if a < b { -1 } else if a > b { 1 } else { 0 } },
+    fn(a : Int64, b : Int64) -> Int {
+      if a < b {
+        -1
+      } else if a > b {
+        1
+      } else {
+        0
+      }
+    },
     0L,
   )
   // Brute force O(m^2).
@@ -250,6 +301,7 @@ test "dnc_dp: cross-check with brute force" {
   }
 }
 
+///|
 test "dnc_dp: multi-row dp" {
   // Partition [1,2,3,4,5] into at most 3 groups to minimize sum of (sum)^2.
   let arr = [1, 2, 3, 4, 5]
@@ -268,7 +320,13 @@ test "dnc_dp: multi-row dp" {
   prev[0] = 0L
   let add_fn = fn(a : Int64, b : Int64) -> Int64 { a + b }
   let cmp_fn = fn(a : Int64, b : Int64) -> Int {
-    if a < b { -1 } else if a > b { 1 } else { 0 }
+    if a < b {
+      -1
+    } else if a > b {
+      1
+    } else {
+      0
+    }
   }
   // 3 rows (at most 3 groups).
   for row = 0; row < 3; row = row + 1 {

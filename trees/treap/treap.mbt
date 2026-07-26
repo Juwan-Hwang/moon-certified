@@ -59,6 +59,7 @@
 /// suite below, which checks the BST and heap invariants, size consistency,
 /// and balance after large randomized workloads.
 
+///|
 /// A treap node.
 ///
 /// `Empty` is the empty tree. `Node(left, key, priority, right, size)` carries
@@ -69,6 +70,7 @@ pub enum TreapNode[T] {
   Node(TreapNode[T], T, Int, TreapNode[T], Int) // (left, key, priority, right, size)
 }
 
+///|
 /// A treap handle: the root node together with this instance's own LCG state.
 ///
 /// Because the RNG state is carried per-instance and threaded purely through
@@ -85,6 +87,7 @@ pub struct Treap[T] {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Public constructor for an empty treap. Each call yields a fresh `Treap`
 /// with the LCG seeded to a fixed value, so the priority sequence is
 /// deterministic yet local to the returned instance.
@@ -103,16 +106,19 @@ pub fn[T] empty() -> Treap[T] {
 // regardless of execution order.
 // ---------------------------------------------------------------------------
 
+///|
 /// Seed for every fresh `Treap`. Any fixed non-zero value makes the priority
 /// sequence — and therefore every test — deterministic.
 let rng_seed : Int = 0x1A2B3C4D
 
+///|
 /// Advance the LCG one step from `state` and return the new non-negative
 /// state, which doubles as the next node's priority.
 fn next_priority(state : Int) -> Int {
   (state * 1103515245 + 12345) & 0x7FFFFFFF
 }
 
+///|
 /// Defensive ceiling on recursion depth. A treap's expected height is O(log n)
 /// (~40 for n = 10^6), but the worst case is O(n) under adversarial priorities.
 /// The fixed LCG prevents adversarial sequences, so this guard is a safety net
@@ -124,11 +130,13 @@ let treap_max_depth : Int = 1000
 // Cached metadata
 // ---------------------------------------------------------------------------
 
+///|
 /// Number of nodes in the tree. O(1) via the cached size field.
 pub fn[T] size(t : Treap[T]) -> Int {
   size_node(t.root)
 }
 
+///|
 /// Number of nodes in a subtree. O(1) via the cached size field.
 fn[T] size_node(root : TreapNode[T]) -> Int {
   match root {
@@ -137,11 +145,13 @@ fn[T] size_node(root : TreapNode[T]) -> Int {
   }
 }
 
+///|
 /// Height of the tree. `Empty` = -1, a leaf = 0. O(n). Used by tests.
 pub fn[T] height(t : Treap[T]) -> Int {
   height_node(t.root)
 }
 
+///|
 fn[T] height_node(root : TreapNode[T]) -> Int {
   // Iterative post-order traversal to prevent stack overflow.
   let stack : Array[(TreapNode[T], Int)] = []
@@ -172,8 +182,14 @@ fn[T] height_node(root : TreapNode[T]) -> Int {
   max_h
 }
 
+///|
 /// Construct a node, computing the cached subtree size from its children. O(1).
-fn[T] mknode(l : TreapNode[T], k : T, p : Int, r : TreapNode[T]) -> TreapNode[T] {
+fn[T] mknode(
+  l : TreapNode[T],
+  k : T,
+  p : Int,
+  r : TreapNode[T],
+) -> TreapNode[T] {
   Node(l, k, p, r, size_node(l) + 1 + size_node(r))
 }
 
@@ -181,6 +197,7 @@ fn[T] mknode(l : TreapNode[T], k : T, p : Int, r : TreapNode[T]) -> TreapNode[T]
 // Insertion
 // ---------------------------------------------------------------------------
 
+///|
 /// Insert `key` into the treap. Duplicate keys are ignored (the original node
 /// and its priority are kept). Returns a new `Treap` whose root has `key`
 /// inserted and whose `rng` is advanced one step. Expected O(log n).
@@ -189,6 +206,7 @@ pub fn[T] insert(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
   { root: insert_node(t.root, key, p, cmp, 0), rng: p }
 }
 
+///|
 /// Recursive insertion that assigns the fixed priority `p` to the single new
 /// leaf. Exactly one priority is drawn per top-level `insert`, so this mirrors
 /// the original single-draw-per-insert behaviour. Expected O(log n).
@@ -250,11 +268,13 @@ fn[T] insert_node(
 // Search
 // ---------------------------------------------------------------------------
 
+///|
 /// Return `true` if `key` is present in the treap. Expected O(log n).
 pub fn[T] search(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Bool {
   search_node(t.root, key, cmp, 0)
 }
 
+///|
 fn[T] search_node(
   root : TreapNode[T],
   key : T,
@@ -283,6 +303,7 @@ fn[T] search_node(
 // Deletion
 // ---------------------------------------------------------------------------
 
+///|
 /// Delete `key` from the treap. If the key is absent the tree is unchanged.
 /// Returns a new `Treap` (the LCG state is carried over untouched, since
 /// deletion draws no priorities). Expected O(log n).
@@ -295,6 +316,7 @@ pub fn[T] delete(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
   { root: delete_node(t.root, key, cmp, 0), rng: t.rng }
 }
 
+///|
 fn[T] delete_node(
   root : TreapNode[T],
   key : T,
@@ -339,6 +361,7 @@ fn[T] delete_node(
 // Split / Merge
 // ---------------------------------------------------------------------------
 
+///|
 /// Split the treap into two treaps `(left, right)` where all keys in `left`
 /// are < `key` and all keys in `right` are >= `key`. Expected O(log n).
 ///
@@ -355,6 +378,7 @@ pub fn[T] split(
   ({ root: l, rng: t.rng }, { root: r, rng: right_rng })
 }
 
+///|
 /// Recursive split: returns `(left, right)` where `left` has keys < `key`
 /// and `right` has keys >= `key`.
 fn[T] split_node(
@@ -381,6 +405,7 @@ fn[T] split_node(
   }
 }
 
+///|
 /// Merge two treaps where every key in `left` is < every key in `right`.
 /// Expected O(log n). The caller must ensure the key ordering precondition;
 /// violations produce an undefined (but still memory-safe) tree.
@@ -390,9 +415,14 @@ pub fn[T] merge(left : Treap[T], right : Treap[T]) -> Treap[T] {
   { root: merge_node(left.root, right.root, 0), rng: left.rng }
 }
 
+///|
 /// Recursive merge: all keys in `a` < all keys in `b`.
 /// Uses priorities to decide which root stays on top.
-fn[T] merge_node(a : TreapNode[T], b : TreapNode[T], depth : Int) -> TreapNode[T] {
+fn[T] merge_node(
+  a : TreapNode[T],
+  b : TreapNode[T],
+  depth : Int,
+) -> TreapNode[T] {
   if depth > treap_max_depth {
     return a
   }
@@ -414,12 +444,14 @@ fn[T] merge_node(a : TreapNode[T], b : TreapNode[T], depth : Int) -> TreapNode[T
 // Order statistics (enabled by cached subtree sizes)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the `k`-th smallest key (0-indexed). Returns `None` if `k` is out of
 /// range or the tree is empty. O(log n) expected.
 pub fn[T] kth(t : Treap[T], k : Int) -> T? {
   kth_node(t.root, k, 0)
 }
 
+///|
 fn[T] kth_node(root : TreapNode[T], k : Int, depth : Int) -> T? {
   if depth > treap_max_depth {
     return None
@@ -439,11 +471,13 @@ fn[T] kth_node(root : TreapNode[T], k : Int, depth : Int) -> T? {
   }
 }
 
+///|
 /// Count the number of keys strictly less than `key`. O(log n) expected.
 pub fn[T] rank(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Int {
   rank_node(t.root, key, cmp, 0)
 }
 
+///|
 fn[T] rank_node(
   root : TreapNode[T],
   key : T,
@@ -468,6 +502,7 @@ fn[T] rank_node(
 // In-order traversal
 // ---------------------------------------------------------------------------
 
+///|
 /// Return all keys in ascending order as a `FixedArray[T]`. O(n).
 pub fn[T] inorder(t : Treap[T]) -> FixedArray[T] {
   let buf : Array[T] = []
@@ -475,6 +510,7 @@ pub fn[T] inorder(t : Treap[T]) -> FixedArray[T] {
   FixedArray::from_array(buf.view())
 }
 
+///|
 /// Fill `buf` in-order.
 fn[T] inorder_fill(root : TreapNode[T], buf : Array[T]) -> Unit {
   match root {
@@ -491,6 +527,7 @@ fn[T] inorder_fill(root : TreapNode[T], buf : Array[T]) -> Unit {
 // Internal invariants (used by tests)
 // ---------------------------------------------------------------------------
 
+///|
 /// True iff the in-order traversal is strictly ascending (BST property).
 fn[T] is_bst(t : Treap[T], cmp : (T, T) -> Int) -> Bool {
   let arr = inorder(t)
@@ -506,19 +543,25 @@ fn[T] is_bst(t : Treap[T], cmp : (T, T) -> Int) -> Bool {
   ok
 }
 
+///|
 /// True iff every node's priority is >= its children's (max-heap property).
 fn[T] is_heap(t : Treap[T]) -> Bool {
   is_heap_node(t.root)
 }
 
+///|
 fn[T] is_heap_node(root : TreapNode[T]) -> Bool {
   match root {
     Empty => true
     Node(l, _, p, r, _) =>
-      priority_le(l, p) && priority_le(r, p) && is_heap_node(l) && is_heap_node(r)
+      priority_le(l, p) &&
+      priority_le(r, p) &&
+      is_heap_node(l) &&
+      is_heap_node(r)
   }
 }
 
+///|
 /// True iff `node`'s priority (if any) is <= `p`.
 fn[T] priority_le(node : TreapNode[T], p : Int) -> Bool {
   match node {
@@ -527,11 +570,13 @@ fn[T] priority_le(node : TreapNode[T], p : Int) -> Bool {
   }
 }
 
+///|
 /// Recompute the true subtree size and verify it matches the cached field.
 fn[T] verify_sizes(t : Treap[T]) -> Bool {
   verify_sizes_node(t.root)
 }
 
+///|
 fn[T] verify_sizes_node(root : TreapNode[T]) -> Bool {
   match root {
     Empty => true
@@ -542,6 +587,7 @@ fn[T] verify_sizes_node(root : TreapNode[T]) -> Bool {
   }
 }
 
+///|
 /// Uncached node count, used only to validate the cached sizes.
 fn[T] real_count(root : TreapNode[T]) -> Int {
   match root {
@@ -554,6 +600,7 @@ fn[T] real_count(root : TreapNode[T]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "treap: basic insert and search" {
   let tree : Treap[Int] = empty()
   let t1 = insert(tree, 5, fn(a, b) { a - b })
@@ -568,16 +615,16 @@ test "treap: basic insert and search" {
   assert_true(is_heap(t3))
 }
 
+///|
 test "treap: duplicate insert ignored" {
-  let tree = insert(
-    insert(empty(), 5, fn(a, b) { a - b }),
-    5,
-    fn(a, b) { a - b },
-  )
+  let tree = insert(insert(empty(), 5, fn(a, b) { a - b }), 5, fn(a, b) {
+    a - b
+  })
   assert_eq(size(tree), 1)
   assert_true(search(tree, 5, fn(a, b) { a - b }))
 }
 
+///|
 test "treap: sequential insert maintains balance" {
   // Inserting 1..7 in order into a plain BST would give a chain of height 6;
   // the treap's random priorities keep it balanced.
@@ -593,6 +640,7 @@ test "treap: sequential insert maintains balance" {
   assert_true(height(tree) <= 5)
 }
 
+///|
 test "treap: reverse insert maintains balance" {
   let mut tree : Treap[Int] = empty()
   for k = 7; k >= 1; k = k - 1 {
@@ -605,6 +653,7 @@ test "treap: reverse insert maintains balance" {
   assert_true(height(tree) <= 5)
 }
 
+///|
 test "treap: delete leaf" {
   let tree = insert(
     insert(insert(empty(), 5, fn(a, b) { a - b }), 3, fn(a, b) { a - b }),
@@ -621,6 +670,7 @@ test "treap: delete leaf" {
   assert_true(verify_sizes(t2))
 }
 
+///|
 test "treap: delete root" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 7; k = k + 1 {
@@ -639,6 +689,7 @@ test "treap: delete root" {
   assert_true(verify_sizes(t2))
 }
 
+///|
 test "treap: delete all elements" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 15; k = k + 1 {
@@ -654,6 +705,7 @@ test "treap: delete all elements" {
   assert_eq(size(tree), 0)
 }
 
+///|
 test "treap: large random insert" {
   let mut tree : Treap[Int] = empty()
   let n = 200
@@ -671,6 +723,7 @@ test "treap: large random insert" {
   }
 }
 
+///|
 test "treap: inorder is sorted" {
   let mut tree : Treap[Int] = empty()
   let vals = [5, 3, 7, 1, 4, 6, 8, 2]
@@ -684,6 +737,7 @@ test "treap: inorder is sorted" {
   }
 }
 
+///|
 test "treap: size tracking" {
   let mut tree : Treap[Int] = empty()
   assert_eq(size(tree), 0)
@@ -701,6 +755,7 @@ test "treap: size tracking" {
   assert_eq(size(tree), 0)
 }
 
+///|
 test "treap: empty tree operations" {
   let tree : Treap[Int] = empty()
   assert_eq(size(tree), 0)
@@ -711,6 +766,7 @@ test "treap: empty tree operations" {
   assert_eq(size(t2), 0)
 }
 
+///|
 test "treap: delete non-existent key" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 10; k = k + 1 {
@@ -725,6 +781,7 @@ test "treap: delete non-existent key" {
   }
 }
 
+///|
 test "treap: interleave insert and delete" {
   let mut tree : Treap[Int] = empty()
   tree = insert(tree, 5, fn(a, b) { a - b })
@@ -746,6 +803,7 @@ test "treap: interleave insert and delete" {
   assert_true(search(tree, 9, fn(a, b) { a - b }))
 }
 
+///|
 test "treap: split by key" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 10; k = k + 1 {
@@ -772,6 +830,7 @@ test "treap: split by key" {
   assert_false(search(right, 4, fn(a, b) { a - b }))
 }
 
+///|
 test "treap: merge two treaps" {
   let mut left : Treap[Int] = empty()
   for k = 1; k <= 5; k = k + 1 {
@@ -793,6 +852,7 @@ test "treap: merge two treaps" {
   }
 }
 
+///|
 test "treap: kth smallest" {
   let mut tree : Treap[Int] = empty()
   // Insert in random order
@@ -812,6 +872,7 @@ test "treap: kth smallest" {
   assert_true(kth(empty_tree, 0) is None)
 }
 
+///|
 test "treap: rank" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 10; k = k + 1 {
@@ -827,6 +888,7 @@ test "treap: rank" {
   assert_eq(rank(empty(), 5, fn(a, b) { a - b }), 0)
 }
 
+///|
 test "treap: split and merge roundtrip" {
   let mut tree : Treap[Int] = empty()
   for k = 1; k <= 20; k = k + 1 {

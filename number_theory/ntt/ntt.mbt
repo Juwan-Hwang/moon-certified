@@ -27,9 +27,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// The default NTT prime: 998244353 = 119 * 2^23 + 1.
 pub const NTT_MOD : Int64 = 998244353L
 
+///|
 /// The primitive root modulo NTT_MOD.
 pub const NTT_G : Int64 = 3L
 
@@ -37,6 +39,7 @@ pub const NTT_G : Int64 = 3L
 // Bit-reversal permutation
 // ---------------------------------------------------------------------------
 
+///|
 /// Reorder `a` so that element `i` moves to the position obtained by reversing
 /// the bits of `i` in `log2(n)` bits. This is the standard pre-processing
 /// step for iterative (Cooley-Tukey) NTT.
@@ -67,6 +70,7 @@ fn bit_reverse(a : Array[Int64], n : Int) -> Unit {
 // Core NTT
 // ---------------------------------------------------------------------------
 
+///|
 /// In-place Number Theoretic Transform.
 ///
 /// When `invert` is `false`, performs the forward NTT: evaluates the
@@ -123,11 +127,7 @@ pub fn ntt(a : Array[Int64], invert : Bool) -> Unit {
   }
   if invert {
     // Divide by n (multiply by n^{-1} mod p).
-    let n_inv = @int64_utils.pow_mod64(
-      n.to_int64(),
-      p - 2L,
-      p,
-    )
+    let n_inv = @int64_utils.pow_mod64(n.to_int64(), p - 2L, p)
     for i = 0; i < n; i = i + 1 {
       a[i] = @int64_utils.mul_mod(a[i], n_inv, p)
     }
@@ -138,6 +138,7 @@ pub fn ntt(a : Array[Int64], invert : Bool) -> Unit {
 // Polynomial multiplication
 // ---------------------------------------------------------------------------
 
+///|
 /// Multiply two polynomials modulo NTT_MOD.
 ///
 /// Given coefficient arrays `a` (degree `deg_a`) and `b` (degree `deg_b`),
@@ -150,10 +151,7 @@ pub fn ntt(a : Array[Int64], invert : Bool) -> Unit {
 /// 2 ≥ `len(a) + len(b) - 1`.
 ///
 /// Returns an empty array if either input is empty.
-pub fn multiply(
-  a : Array[Int64],
-  b : Array[Int64]
-) -> Array[Int64] {
+pub fn multiply(a : Array[Int64], b : Array[Int64]) -> Array[Int64] {
   if a.length() == 0 || b.length() == 0 {
     return []
   }
@@ -195,6 +193,7 @@ pub fn multiply(
   result
 }
 
+///|
 /// Convolution of two `Int` arrays modulo NTT_MOD.
 ///
 /// Convenience wrapper around `multiply` that accepts and returns `Int`
@@ -221,6 +220,7 @@ pub fn convolve(a : Array[Int], b : Array[Int]) -> Array[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "ntt: forward and inverse round-trip" {
   let a : Array[Int64] = [1L, 2L, 3L, 4L]
   let original = [1L, 2L, 3L, 4L]
@@ -231,6 +231,7 @@ test "ntt: forward and inverse round-trip" {
   }
 }
 
+///|
 test "ntt: multiply simple polynomials" {
   // (1 + x) * (1 + x) = 1 + 2x + x^2
   let a : Array[Int64] = [1L, 1L]
@@ -242,6 +243,7 @@ test "ntt: multiply simple polynomials" {
   assert_eq(c[2], 1L)
 }
 
+///|
 test "ntt: multiply with larger polynomials" {
   // (1 + 2x + 3x^2) * (4 + 5x) = 4 + 13x + 22x^2 + 15x^3
   let a : Array[Int64] = [1L, 2L, 3L]
@@ -249,11 +251,12 @@ test "ntt: multiply with larger polynomials" {
   let c = multiply(a, b)
   assert_eq(c.length(), 4)
   assert_eq(c[0], 4L)
-  assert_eq(c[1], 13L)  // 1*5 + 2*4 = 13
-  assert_eq(c[2], 22L)  // 2*5 + 3*4 = 22
-  assert_eq(c[3], 15L)  // 3*5 = 15
+  assert_eq(c[1], 13L) // 1*5 + 2*4 = 13
+  assert_eq(c[2], 22L) // 2*5 + 3*4 = 22
+  assert_eq(c[3], 15L) // 3*5 = 15
 }
 
+///|
 test "ntt: multiply degree 0" {
   // Constant * constant
   let a : Array[Int64] = [7L]
@@ -263,6 +266,7 @@ test "ntt: multiply degree 0" {
   assert_eq(c[0], 21L)
 }
 
+///|
 test "ntt: multiply with zero coefficients" {
   let a : Array[Int64] = [0L, 1L, 0L]
   let b : Array[Int64] = [1L, 0L, 1L]
@@ -275,6 +279,7 @@ test "ntt: multiply with zero coefficients" {
   assert_eq(c[4], 0L)
 }
 
+///|
 test "ntt: multiply matches brute force" {
   // Verify against O(n^2) multiplication.
   let a : Array[Int64] = [1L, 2L, 3L, 4L, 5L]
@@ -295,17 +300,19 @@ test "ntt: multiply matches brute force" {
   }
 }
 
+///|
 test "ntt: convolve (Int wrapper)" {
   let a = [1, 2, 3]
   let b = [1, 1]
   let c = convolve(a, b)
   assert_eq(c.length(), 4)
   assert_eq(c[0], 1)
-  assert_eq(c[1], 3)  // 1*1 + 2*1
-  assert_eq(c[2], 5)  // 2*1 + 3*1
-  assert_eq(c[3], 3)  // 3*1
+  assert_eq(c[1], 3) // 1*1 + 2*1
+  assert_eq(c[2], 5) // 2*1 + 3*1
+  assert_eq(c[3], 3) // 3*1
 }
 
+///|
 test "ntt: large coefficients" {
   // Coefficients close to NTT_MOD.
   let a : Array[Int64] = [998244352L, 1L] // -1 mod p, 1
@@ -317,6 +324,7 @@ test "ntt: large coefficients" {
   assert_eq(c[2], 1L)
 }
 
+///|
 test "ntt: power-of-2 length enforcement" {
   let a : Array[Int64] = [1L, 2L, 3L] // length 3, not power of 2
   // ntt now returns silently (no-op) for non-power-of-2 length.
@@ -329,6 +337,7 @@ test "ntt: power-of-2 length enforcement" {
   }
 }
 
+///|
 test "ntt: multiply with single element" {
   let a : Array[Int64] = [5L]
   let b : Array[Int64] = [3L, 7L, 11L]
@@ -339,6 +348,7 @@ test "ntt: multiply with single element" {
   assert_eq(c[2], 55L)
 }
 
+///|
 test "ntt: stress test 64 coefficients" {
   let a : Array[Int64] = []
   let b : Array[Int64] = []

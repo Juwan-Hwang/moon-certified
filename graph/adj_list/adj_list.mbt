@@ -10,12 +10,14 @@
 ///
 /// All functions return `Option` types for error cases — no magic values.
 
+///|
 /// A directed weighted edge: `to` is the destination, `weight` the cost.
 pub struct Edge {
   priv to : Int
   priv weight : Int
 }
 
+///|
 /// Adjacency-list graph. `adj[v]` holds all outgoing edges from vertex `v`.
 ///
 /// Create with `new(n)` then add edges with `add_edge`. The number of
@@ -25,6 +27,7 @@ pub struct Graph {
   priv adj : FixedArray[Array[Edge]]
 }
 
+///|
 /// Create a new graph with `n` vertices and no edges.
 pub fn new(n : Int) -> Graph {
   // Each vertex gets its own independent Array; using makei ensures no
@@ -33,11 +36,13 @@ pub fn new(n : Int) -> Graph {
   { n, adj }
 }
 
+///|
 /// Number of vertices in the graph.
 pub fn num_vertices(g : Graph) -> Int {
   g.n
 }
 
+///|
 /// Count total number of edges.
 pub fn num_edges(g : Graph) -> Int {
   let mut total = 0
@@ -49,6 +54,7 @@ pub fn num_edges(g : Graph) -> Int {
   }
 }
 
+///|
 /// Add a directed edge from `u` to `v` with the given `weight`.
 ///
 /// Returns `false` (without modifying the graph) if `u` or `v` is
@@ -61,6 +67,7 @@ pub fn add_edge(g : Graph, u : Int, v : Int, weight : Int) -> Bool {
   true
 }
 
+///|
 /// Add an undirected edge (both directions).
 pub fn add_undirected_edge(g : Graph, u : Int, v : Int, weight : Int) -> Bool {
   let ok1 = add_edge(g, u, v, weight)
@@ -68,6 +75,7 @@ pub fn add_undirected_edge(g : Graph, u : Int, v : Int, weight : Int) -> Bool {
   ok1 && ok2
 }
 
+///|
 /// Get all outgoing edges from vertex `v`.
 /// Returns `None` if `v` is out of bounds.
 ///
@@ -89,6 +97,7 @@ pub fn neighbors(g : Graph, v : Int) -> Array[Edge]? {
 // BFS traversal
 // ---------------------------------------------------------------------------
 
+///|
 /// Count vertices reachable from `src` (including `src` itself) via BFS.
 /// Returns `None` for invalid `src`.
 pub fn bfs_count(g : Graph, src : Int) -> Int? {
@@ -118,6 +127,7 @@ pub fn bfs_count(g : Graph, src : Int) -> Int? {
   Some(count)
 }
 
+///|
 /// Compute shortest-path hop counts from `src` to all vertices via BFS.
 ///
 /// Returns `Some(dist)` where `dist[i]` is `Some(hops)` if reachable, or
@@ -148,6 +158,7 @@ pub fn bfs_distances(g : Graph, src : Int) -> FixedArray[Int?]? {
   Some(result)
 }
 
+///|
 /// Check whether `dst` is reachable from `src`.
 /// Returns `false` for invalid vertices or no path.
 pub fn has_path(g : Graph, src : Int, dst : Int) -> Bool {
@@ -185,6 +196,7 @@ pub fn has_path(g : Graph, src : Int, dst : Int) -> Bool {
 // DFS traversal
 // ---------------------------------------------------------------------------
 
+///|
 /// Count vertices reachable from `src` via iterative DFS.
 /// Returns `None` for invalid `src`.
 pub fn dfs_count(g : Graph, src : Int) -> Int? {
@@ -217,6 +229,7 @@ pub fn dfs_count(g : Graph, src : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "adj_list: create and add edges" {
   let g = new(5)
   assert_eq(num_vertices(g), 5)
@@ -227,6 +240,7 @@ test "adj_list: create and add edges" {
   assert_eq(num_edges(g), 3)
 }
 
+///|
 test "adj_list: invalid edges rejected" {
   let g = new(3)
   assert_eq(add_edge(g, 0, 1, 5), true)
@@ -236,6 +250,7 @@ test "adj_list: invalid edges rejected" {
   assert_eq(num_edges(g), 1)
 }
 
+///|
 test "adj_list: undirected edges" {
   let g = new(4)
   assert_eq(add_undirected_edge(g, 0, 1, 5), true)
@@ -248,6 +263,7 @@ test "adj_list: undirected edges" {
   assert_eq(n1[0].to, 0)
 }
 
+///|
 test "adj_list: neighbors" {
   let g = new(4)
   let _ = add_edge(g, 1, 0, 5)
@@ -264,6 +280,7 @@ test "adj_list: neighbors" {
   assert_true(neighbors(g, 5) is None)
 }
 
+///|
 test "adj_list: bfs_count path graph" {
   let g = new(4)
   let _ = add_edge(g, 0, 1, 1)
@@ -274,6 +291,7 @@ test "adj_list: bfs_count path graph" {
   assert_eq(bfs_count(g, 3), Some(1))
 }
 
+///|
 test "adj_list: bfs_count disconnected" {
   let g = new(4)
   let _ = add_edge(g, 0, 1, 1)
@@ -283,12 +301,14 @@ test "adj_list: bfs_count disconnected" {
   assert_eq(bfs_count(g, 3), Some(1))
 }
 
+///|
 test "adj_list: bfs_count invalid src" {
   let g = new(3)
   assert_true(bfs_count(g, -1) is None)
   assert_true(bfs_count(g, 3) is None)
 }
 
+///|
 test "adj_list: bfs_distances" {
   let g = new(4)
   let _ = add_edge(g, 0, 1, 1)
@@ -301,6 +321,7 @@ test "adj_list: bfs_distances" {
   assert_eq(dist[3], Some(2))
 }
 
+///|
 test "adj_list: bfs_distances unreachable" {
   let g = new(3)
   let _ = add_edge(g, 0, 1, 1)
@@ -310,12 +331,14 @@ test "adj_list: bfs_distances unreachable" {
   assert_true(dist[2] is None)
 }
 
+///|
 test "adj_list: bfs_distances invalid src" {
   let g = new(3)
   assert_true(bfs_distances(g, -1) is None)
   assert_true(bfs_distances(g, 5) is None)
 }
 
+///|
 test "adj_list: has_path" {
   let g = new(4)
   let _ = add_edge(g, 0, 1, 1)
@@ -326,6 +349,7 @@ test "adj_list: has_path" {
   assert_eq(has_path(g, 0, 3), false)
 }
 
+///|
 test "adj_list: has_path invalid" {
   let g = new(3)
   let _ = add_edge(g, 0, 1, 1)
@@ -334,6 +358,7 @@ test "adj_list: has_path invalid" {
   assert_eq(has_path(g, 5, 5), false)
 }
 
+///|
 test "adj_list: dfs_count" {
   let g = new(5)
   let _ = add_edge(g, 0, 1, 1)
@@ -345,12 +370,14 @@ test "adj_list: dfs_count" {
   assert_eq(dfs_count(g, 4), Some(1))
 }
 
+///|
 test "adj_list: dfs_count invalid" {
   let g = new(3)
   assert_true(dfs_count(g, -1) is None)
   assert_true(dfs_count(g, 3) is None)
 }
 
+///|
 test "adj_list: cycle" {
   let g = new(3)
   let _ = add_edge(g, 0, 1, 1)
@@ -362,6 +389,7 @@ test "adj_list: cycle" {
   assert_eq(has_path(g, 2, 0), true)
 }
 
+///|
 test "adj_list: single node" {
   let g = new(1)
   assert_eq(bfs_count(g, 0), Some(1))
@@ -371,6 +399,7 @@ test "adj_list: single node" {
   assert_eq(dist[0], Some(0))
 }
 
+///|
 test "adj_list: complete graph K4" {
   let g = new(4)
   for i = 0; i < 4; i = i + 1 {
@@ -389,6 +418,7 @@ test "adj_list: complete graph K4" {
   }
 }
 
+///|
 test "adj_list: star graph" {
   let g = new(4)
   let _ = add_undirected_edge(g, 0, 1, 1)
@@ -402,6 +432,7 @@ test "adj_list: star graph" {
   assert_eq(dist[3], Some(1))
 }
 
+///|
 test "adj_list: sparse graph space efficiency" {
   // A sparse graph with 1000 vertices and ~999 edges uses far less
   // memory than a 1000x1000 adjacency matrix (1M entries).
@@ -415,6 +446,7 @@ test "adj_list: sparse graph space efficiency" {
   assert_eq(dist[999], Some(999))
 }
 
+///|
 test "adj_list: weighted edges preserved" {
   let g = new(3)
   let _ = add_edge(g, 0, 1, 42)
@@ -425,6 +457,7 @@ test "adj_list: weighted edges preserved" {
   assert_eq(n1[0].weight, -7)
 }
 
+///|
 test "adj_list: self-loop" {
   let g = new(2)
   let _ = add_edge(g, 0, 0, 1)
@@ -433,6 +466,7 @@ test "adj_list: self-loop" {
   assert_eq(has_path(g, 0, 0), true)
 }
 
+///|
 test "adj_list: parallel edges" {
   let g = new(2)
   let _ = add_edge(g, 0, 1, 5)
@@ -442,6 +476,7 @@ test "adj_list: parallel edges" {
   assert_eq(n.length(), 2)
 }
 
+///|
 test "adj_list: bfs_distances consistent with has_path" {
   let g = new(5)
   let _ = add_edge(g, 0, 1, 1)

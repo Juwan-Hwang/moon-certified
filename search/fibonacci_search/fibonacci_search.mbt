@@ -10,6 +10,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Find the index of `target` in a sorted array.
 /// Returns `Some(index)` if found, `None` otherwise.
 pub fn fibonacci_search(arr : Array[Int], target : Int) -> Int? {
@@ -30,11 +31,7 @@ pub fn fibonacci_search(arr : Array[Int], target : Int) -> Int? {
   let mut offset = -1
   while fib > 1 {
     // Check if fib_m2 is a valid index.
-    let i = if offset + fib_m2 < n - 1 {
-      offset + fib_m2
-    } else {
-      n - 1
-    }
+    let i = if offset + fib_m2 < n - 1 { offset + fib_m2 } else { n - 1 }
     if arr[i] < target {
       fib = fib_m1
       fib_m1 = fib_m2
@@ -55,6 +52,7 @@ pub fn fibonacci_search(arr : Array[Int], target : Int) -> Int? {
   None
 }
 
+///|
 /// Find the first index where `target` could be inserted (lower bound).
 pub fn fibonacci_lower_bound(arr : Array[Int], target : Int) -> Int {
   let n = arr.length()
@@ -71,11 +69,7 @@ pub fn fibonacci_lower_bound(arr : Array[Int], target : Int) -> Int {
   }
   let mut offset = -1
   while fib > 1 {
-    let i = if offset + fib_m2 < n - 1 {
-      offset + fib_m2
-    } else {
-      n - 1
-    }
+    let i = if offset + fib_m2 < n - 1 { offset + fib_m2 } else { n - 1 }
     if arr[i] < target {
       fib = fib_m1
       fib_m1 = fib_m2
@@ -99,6 +93,7 @@ pub fn fibonacci_lower_bound(arr : Array[Int], target : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fibonacci_search: found" {
   let arr = [10, 22, 35, 40, 50, 60, 70, 80, 90, 100]
   assert_eq(fibonacci_search(arr, 10), Some(0))
@@ -107,6 +102,7 @@ test "fibonacci_search: found" {
   assert_eq(fibonacci_search(arr, 35), Some(2))
 }
 
+///|
 test "fibonacci_search: not found" {
   let arr = [1, 3, 5, 7, 9]
   assert_eq(fibonacci_search(arr, 0), None)
@@ -114,16 +110,19 @@ test "fibonacci_search: not found" {
   assert_eq(fibonacci_search(arr, 10), None)
 }
 
+///|
 test "fibonacci_search: empty" {
   let arr : Array[Int] = []
   assert_eq(fibonacci_search(arr, 5), None)
 }
 
+///|
 test "fibonacci_search: single element" {
   assert_eq(fibonacci_search([5], 5), Some(0))
   assert_eq(fibonacci_search([5], 3), None)
 }
 
+///|
 test "fibonacci_search: duplicates" {
   let arr = [1, 2, 2, 2, 3, 4, 4, 5]
   let result = fibonacci_search(arr, 2)
@@ -133,6 +132,7 @@ test "fibonacci_search: duplicates" {
   }
 }
 
+///|
 test "fibonacci_search: lower_bound" {
   let arr = [1, 3, 5, 7, 9, 11]
   assert_eq(fibonacci_lower_bound(arr, 5), 2)
@@ -141,6 +141,7 @@ test "fibonacci_search: lower_bound" {
   assert_eq(fibonacci_lower_bound(arr, 12), 6)
 }
 
+///|
 test "fibonacci_search: large array" {
   let arr : Array[Int] = []
   for i = 0; i < 1000; i = i + 1 {

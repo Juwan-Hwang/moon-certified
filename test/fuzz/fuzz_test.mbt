@@ -32,12 +32,14 @@
 // Deterministic pseudo-random number generator (for reproducible fuzzing)
 // ---------------------------------------------------------------------------
 
+///|
 /// A simple xorshift64 PRNG for reproducible fuzz test inputs.
 /// Seeds are fixed so failures are deterministic and debuggable.
 struct Prng {
   mut state : Int64
 }
 
+///|
 /// Create a PRNG with the given 64-bit seed.
 fn Prng::new(seed : Int64) -> Prng {
   if seed == 0L {
@@ -47,6 +49,7 @@ fn Prng::new(seed : Int64) -> Prng {
   }
 }
 
+///|
 /// Next random Int64.
 fn Prng::next(prng : Prng) -> Int64 {
   let mut x = prng.state
@@ -57,6 +60,7 @@ fn Prng::next(prng : Prng) -> Int64 {
   x
 }
 
+///|
 /// Next random Int in [0, bound).
 fn Prng::next_int(prng : Prng, bound : Int) -> Int {
   if bound <= 0 {
@@ -67,6 +71,7 @@ fn Prng::next_int(prng : Prng, bound : Int) -> Int {
   (r % bound.to_int64()).to_int()
 }
 
+///|
 /// Next random Int in [lo, hi] inclusive.
 fn Prng::range(prng : Prng, lo : Int, hi : Int) -> Int {
   if hi < lo {
@@ -79,6 +84,7 @@ fn Prng::range(prng : Prng, lo : Int, hi : Int) -> Int {
 // 1. Sorting adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: sort empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   @quick_sort.quick_sort(xs, fn(a, b) { a - b })
@@ -87,12 +93,14 @@ test "fuzz: sort empty array" {
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "fuzz: sort single element" {
   let xs = FixedArray::makei(1, fn(_i) { 42 })
   @quick_sort.quick_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "fuzz: sort two elements" {
   let pairs = [[3, 7], [7, 3], [5, 5], [0, -1]]
   for pair_idx = 0; pair_idx < 4; pair_idx = pair_idx + 1 {
@@ -109,6 +117,7 @@ test "fuzz: sort two elements" {
   }
 }
 
+///|
 test "fuzz: sort already sorted" {
   let n = 1000
   let xs = FixedArray::makei(n, fn(i) { i })
@@ -118,6 +127,7 @@ test "fuzz: sort already sorted" {
   }
 }
 
+///|
 test "fuzz: sort reverse sorted" {
   let n = 1000
   let xs = FixedArray::makei(n, fn(i) { n - 1 - i })
@@ -127,6 +137,7 @@ test "fuzz: sort reverse sorted" {
   }
 }
 
+///|
 test "fuzz: sort all equal" {
   let n = 500
   let xs = FixedArray::make(n, 7)
@@ -136,6 +147,7 @@ test "fuzz: sort all equal" {
   }
 }
 
+///|
 test "fuzz: sort with duplicates" {
   let prng = Prng::new(42L)
   let n = 500
@@ -148,11 +160,10 @@ test "fuzz: sort with duplicates" {
   assert_multiset_eq(original, xs)
 }
 
+///|
 test "fuzz: sort adversarial pivot pattern" {
   let n = 100
-  let xs = FixedArray::makei(n, fn(i) {
-    if i % 2 == 0 { n - i } else { i }
-  })
+  let xs = FixedArray::makei(n, fn(i) { if i % 2 == 0 { n - i } else { i } })
   let original = FixedArray::makei(n, fn(i) { xs[i] })
   @quick_sort.quick_sort(xs, fn(a, b) { a - b })
   for i = 0; i < n - 1; i = i + 1 {
@@ -161,12 +172,14 @@ test "fuzz: sort adversarial pivot pattern" {
   assert_multiset_eq(original, xs)
 }
 
+///|
 test "fuzz: counting_sort rejects negatives" {
   let xs = FixedArray::makei(5, fn(i) { i - 3 })
   // counting_sort only supports non-negative integers
   assert_true(@counting_sort.counting_sort(xs) is None)
 }
 
+///|
 test "fuzz: counting_sort non-negative" {
   let prng = Prng::new(123L)
   let n = 200
@@ -184,6 +197,7 @@ test "fuzz: counting_sort non-negative" {
   }
 }
 
+///|
 test "fuzz: radix_sort random" {
   let prng = Prng::new(999L)
   let n = 1000
@@ -201,11 +215,9 @@ test "fuzz: radix_sort random" {
   }
 }
 
+///|
 /// Assert that two arrays contain the same multiset of elements.
-fn assert_multiset_eq(
-  a : FixedArray[Int],
-  b : FixedArray[Int],
-) -> Unit raise {
+fn assert_multiset_eq(a : FixedArray[Int], b : FixedArray[Int]) -> Unit raise {
   assert_eq(a.length(), b.length())
   if a.length() == 0 {
     return
@@ -213,8 +225,12 @@ fn assert_multiset_eq(
   let mut lo = a[0]
   let mut hi = a[0]
   for i = 0; i < a.length(); i = i + 1 {
-    if a[i] < lo { lo = a[i] }
-    if a[i] > hi { hi = a[i] }
+    if a[i] < lo {
+      lo = a[i]
+    }
+    if a[i] > hi {
+      hi = a[i]
+    }
   }
   let range = hi - lo + 1
   let ca = FixedArray::make(range, 0)
@@ -232,6 +248,7 @@ fn assert_multiset_eq(
 // 2. Data structure adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: red_black_tree sequential insert and delete" {
   let cmp = fn(a : Int, b : Int) -> Int { a - b }
   let mut tree : @red_black_tree.RBNode[Int] = @red_black_tree.empty()
@@ -254,6 +271,7 @@ test "fuzz: red_black_tree sequential insert and delete" {
   assert_true(@red_black_tree.is_valid_rb(tree, cmp))
 }
 
+///|
 test "fuzz: avl sequential insert then reverse delete" {
   let mut root : @avl.AvlNode[Int] = @avl.empty()
   for i = 1; i <= 100; i = i + 1 {
@@ -265,6 +283,7 @@ test "fuzz: avl sequential insert then reverse delete" {
   assert_eq(@avl.size(root), 0)
 }
 
+///|
 test "fuzz: btree duplicate suppression" {
   let cmp = fn(a : Int, b : Int) -> Int { a - b }
   let tree = @btree.new()
@@ -275,6 +294,7 @@ test "fuzz: btree duplicate suppression" {
   assert_true(@btree.search(tree, 42, cmp))
 }
 
+///|
 test "fuzz: treap random insert delete" {
   let prng = Prng::new(777L)
   let mut root : @treap.Treap[Int] = @treap.empty()
@@ -297,6 +317,7 @@ test "fuzz: treap random insert delete" {
   assert_true(found > 0)
 }
 
+///|
 test "fuzz: union_find random unions" {
   let prng = Prng::new(2024L)
   let n = 100
@@ -311,14 +332,20 @@ test "fuzz: union_find random unions" {
     let b = prng.range(0, n - 1)
     let c = prng.range(0, n - 1)
     if @union_find.find(uf, a) == @union_find.find(uf, b) &&
-       @union_find.find(uf, b) == @union_find.find(uf, c) {
+      @union_find.find(uf, b) == @union_find.find(uf, c) {
       assert_eq(@union_find.find(uf, a), @union_find.find(uf, c))
     }
   }
 }
 
+///|
 test "fuzz: lru_cache thrashing" {
-  let cache : @lru_cache.LRUCache[Int, Int] = @lru_cache.new(5, fn(k) { k }, fn(a, b) { a == b })
+  let cache : @lru_cache.LRUCache[Int, Int] = @lru_cache.new(5, fn(k) { k }, fn(
+    a,
+    b,
+  ) {
+    a == b
+  })
   for i = 0; i < 100; i = i + 1 {
     @lru_cache.put(cache, i % 10, i)
   }
@@ -332,6 +359,7 @@ test "fuzz: lru_cache thrashing" {
 // 3. Graph adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: max_flow self-loop ignored" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -341,6 +369,7 @@ test "fuzz: max_flow self-loop ignored" {
   assert_eq(@max_flow.max_flow(graph, n, 0, 2), Some(10L))
 }
 
+///|
 test "fuzz: max_flow disconnected" {
   let n = 6
   let graph = FixedArray::make(n * n, 0)
@@ -349,6 +378,7 @@ test "fuzz: max_flow disconnected" {
   assert_eq(@max_flow.max_flow(graph, n, 0, 5), Some(0L))
 }
 
+///|
 test "fuzz: dinic chain no cycles" {
   let n = 50
   let edges : Array[(Int, Int, Int64)] = []
@@ -358,6 +388,7 @@ test "fuzz: dinic chain no cycles" {
   assert_eq(@dinic.max_flow(n, 0, n - 1, edges), Some(1L))
 }
 
+///|
 test "fuzz: scc single node" {
   let n = 1
   let graph = FixedArray::make(n * n, 0)
@@ -365,6 +396,7 @@ test "fuzz: scc single node" {
   assert_eq(sccs.length(), 1)
 }
 
+///|
 test "fuzz: topological_sort cycle detection" {
   let n = 2
   let adj : Array[Array[(Int, Int)]] = [[(1, 1)], [(0, 1)]]
@@ -372,6 +404,7 @@ test "fuzz: topological_sort cycle detection" {
   assert_true(result is None)
 }
 
+///|
 test "fuzz: gomory_hu trivial graph" {
   let n = 2
   let graph = FixedArray::make(n * n, 0)
@@ -390,6 +423,7 @@ test "fuzz: gomory_hu trivial graph" {
 // 4. String adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: kmp highly repetitive" {
   let text = "aaaaaaaaaa"
   let pat = "aaa"
@@ -397,11 +431,13 @@ test "fuzz: kmp highly repetitive" {
   assert_true(result.length() >= 8)
 }
 
+///|
 test "fuzz: kmp pattern longer than text" {
   let result = @kmp.kmp_search("ab", "abcdef")
   assert_true(result is None)
 }
 
+///|
 test "fuzz: boyer_moore unicode safety" {
   let text = "hello世界world"
   let pat = "世界"
@@ -411,11 +447,13 @@ test "fuzz: boyer_moore unicode safety" {
   }
 }
 
+///|
 test "fuzz: suffix_array single character" {
   let sa = @suffix_array.build("a")
   assert_eq(sa.length(), 1)
 }
 
+///|
 test "fuzz: suffix_array all same character" {
   let sa = @suffix_array.build("aaaaa")
   assert_eq(sa.length(), 5)
@@ -423,6 +461,7 @@ test "fuzz: suffix_array all same character" {
   assert_eq(sa[4], 0)
 }
 
+///|
 test "fuzz: fm_index empty text" {
   let fm = @fm_index.build("")
   assert_eq(@fm_index.count(fm, "anything"), 0)
@@ -432,12 +471,14 @@ test "fuzz: fm_index empty text" {
 // 5. Number theory adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: miller_rabin carmichael number" {
   assert_false(@miller_rabin.is_prime(561))
   assert_false(@miller_rabin.is_prime(1105))
   assert_false(@miller_rabin.is_prime(1729))
 }
 
+///|
 test "fuzz: miller_rabin perfect powers" {
   assert_false(@miller_rabin.is_prime(4))
   assert_false(@miller_rabin.is_prime(8))
@@ -446,6 +487,7 @@ test "fuzz: miller_rabin perfect powers" {
   assert_false(@miller_rabin.is_prime(49))
 }
 
+///|
 test "fuzz: miller_rabin edge cases" {
   assert_false(@miller_rabin.is_prime(0))
   assert_false(@miller_rabin.is_prime(1))
@@ -454,6 +496,7 @@ test "fuzz: miller_rabin edge cases" {
   assert_true(@miller_rabin.is_prime(2147483647))
 }
 
+///|
 test "fuzz: euler_sieve small" {
   let s2 = @euler_sieve.sieve(2)
   match s2 {
@@ -467,20 +510,21 @@ test "fuzz: euler_sieve small" {
   }
 }
 
+///|
 test "fuzz: reed_solomon no errors roundtrip" {
   let gf = @reed_solomon.gf256_new()
   let data = FixedArray::makei(4, fn(i) { (i + 1) * 17 % 256 })
   let codeword = @reed_solomon.rs_encode(gf, data, 2)
   match @reed_solomon.rs_decode(gf, codeword, 4, 2) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => abort("decode failed on clean codeword")
   }
 }
 
+///|
 test "fuzz: reed_solomon corrects 2 errors" {
   let gf = @reed_solomon.gf256_new()
   let data = FixedArray::makei(4, fn(i) { (i * 53 + 1) % 256 })
@@ -489,11 +533,10 @@ test "fuzz: reed_solomon corrects 2 errors" {
   corrupted[0] = corrupted[0] ^ 0x55
   corrupted[3] = corrupted[3] ^ 0xAA
   match @reed_solomon.rs_decode(gf, corrupted, 4, 2) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => abort("failed to correct 2 errors")
   }
 }
@@ -502,6 +545,7 @@ test "fuzz: reed_solomon corrects 2 errors" {
 // 6. Geometry adversarial inputs
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: convex_hull collinear points" {
   let points : Array[@geometry_utils.Point] = []
   for i = 0; i < 10; i = i + 1 {
@@ -511,6 +555,7 @@ test "fuzz: convex_hull collinear points" {
   assert_true(hull.length() <= 2)
 }
 
+///|
 test "fuzz: convex_hull duplicate points" {
   let points : Array[@geometry_utils.Point] = []
   for i = 0; i < 5; i = i + 1 {
@@ -522,6 +567,7 @@ test "fuzz: convex_hull duplicate points" {
   assert_true(hull.length() >= 3)
 }
 
+///|
 test "fuzz: andrew_hull large coordinates" {
   // Coordinates near ±2×10⁹ cause Int32 overflow in cross products.
   // Use ±2×10⁴ which is safe for Int32 cross products (max ~8×10⁸).
@@ -540,6 +586,7 @@ test "fuzz: andrew_hull large coordinates" {
 // 7. Concurrent data structure adversarial
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: ring_buffer overflow underflow" {
   let rb : @concurrent.RingBuffer[Int] = @concurrent.RingBuffer::new(4)
   assert_eq(@concurrent.RingBuffer::pop(rb), None)
@@ -553,6 +600,7 @@ test "fuzz: ring_buffer overflow underflow" {
   assert_eq(@concurrent.RingBuffer::pop(rb), None)
 }
 
+///|
 test "fuzz: snapshot_map snapshot consistency" {
   let m : @concurrent.SnapshotMap[Int, String] = @concurrent.SnapshotMap::default()
   ignore(@concurrent.SnapshotMap::put(m, 1, "v1"))
@@ -574,6 +622,7 @@ test "fuzz: snapshot_map snapshot consistency" {
 // 8. Randomized property-based tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: sort idempotent" {
   let prng = Prng::new(555L)
   let n = 100
@@ -586,6 +635,7 @@ test "fuzz: sort idempotent" {
   }
 }
 
+///|
 test "fuzz: fenwick inverse property" {
   let prng = Prng::new(888L)
   let n = 100
@@ -601,6 +651,7 @@ test "fuzz: fenwick inverse property" {
   }
 }
 
+///|
 test "fuzz: segment_tree range query consistency" {
   let prng = Prng::new(321L)
   let n = 50
@@ -618,6 +669,7 @@ test "fuzz: segment_tree range query consistency" {
   }
 }
 
+///|
 test "fuzz: lis strictly increasing" {
   let prng = Prng::new(654L)
   let n = 100
@@ -631,6 +683,7 @@ test "fuzz: lis strictly increasing" {
 // 9. Boundary input tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fuzz: bloom_filter false positive rate" {
   let str_hash = fn(s : String) -> Int {
     let mut h = 0
@@ -655,6 +708,7 @@ test "fuzz: bloom_filter false positive rate" {
   assert_true(false_positives < 100)
 }
 
+///|
 test "fuzz: ntt roundtrip" {
   let n = 8
   let a : Array[Int64] = []

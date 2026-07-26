@@ -24,11 +24,13 @@
 ///
 /// Time complexity: O(VE²)
 
+///|
 /// Sentinel value representing "infinite capacity" for the bottleneck search.
 /// Using `Int::max_value` means the bottleneck is bounded by the largest
 /// single edge capacity.
 let int_max : Int = 2147483647
 
+///|
 /// BFS to find an augmenting path from `src` to `sink` in the residual graph.
 ///
 /// `residual` is an `n × n` matrix of residual capacities.
@@ -68,6 +70,7 @@ fn bfs_augmenting_path(
   false
 }
 
+///|
 /// Compute the maximum flow from `src` to `sink` in a flow network.
 ///
 /// `graph` is an `n × n` adjacency matrix where `graph[i * n + j]` is the
@@ -134,6 +137,7 @@ pub fn max_flow(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "max_flow: simple chain" {
   // 0 -> 1 -> 2 -> 3, each with capacity 10
   let n = 4
@@ -144,6 +148,7 @@ test "max_flow: simple chain" {
   assert_eq(max_flow(graph, n, 0, 3), Some(10L))
 }
 
+///|
 test "max_flow: two parallel paths" {
   // 0 -> 1 (10), 0 -> 2 (5), 1 -> 3 (5), 2 -> 3 (10)
   // Max flow = 5 + 5 = 10
@@ -156,6 +161,7 @@ test "max_flow: two parallel paths" {
   assert_eq(max_flow(graph, n, 0, 3), Some(10L))
 }
 
+///|
 test "max_flow: bottleneck" {
   // 0 -> 1 (20), 1 -> 2 (5), 2 -> 3 (20)
   // Bottleneck is 1->2 with capacity 5
@@ -167,6 +173,7 @@ test "max_flow: bottleneck" {
   assert_eq(max_flow(graph, n, 0, 3), Some(5L))
 }
 
+///|
 test "max_flow: no path" {
   // 0 and 3 are disconnected; valid graph but max flow is 0.
   // This is distinct from invalid input (which returns None).
@@ -177,6 +184,7 @@ test "max_flow: no path" {
   assert_eq(max_flow(graph, n, 0, 3), Some(0L))
 }
 
+///|
 test "max_flow: single edge" {
   let n = 2
   let graph = FixedArray::make(n * n, 0)
@@ -184,6 +192,7 @@ test "max_flow: single edge" {
   assert_eq(max_flow(graph, n, 0, 1), Some(7L))
 }
 
+///|
 test "max_flow: classic CLRS example" {
   // CLRS Figure 26.1: s=0, t=5
   // Edges: s->1(16), s->2(13), 1->3(12), 2->1(4), 2->4(14),
@@ -202,6 +211,7 @@ test "max_flow: classic CLRS example" {
   assert_eq(max_flow(graph, n, 0, 5), Some(23L))
 }
 
+///|
 test "max_flow: undirected graph (bidirectional edges)" {
   // 0 <-> 1 <-> 2, each direction capacity 10
   let n = 3
@@ -213,6 +223,7 @@ test "max_flow: undirected graph (bidirectional edges)" {
   assert_eq(max_flow(graph, n, 0, 2), Some(10L))
 }
 
+///|
 test "max_flow: self-loop ignored" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -222,6 +233,7 @@ test "max_flow: self-loop ignored" {
   assert_eq(max_flow(graph, n, 0, 2), Some(10L))
 }
 
+///|
 test "max_flow: adding edge increases flow" {
   // 0 -> 1 (10), 1 -> 3 (5), 0 -> 2 (5), 2 -> 3 (10)
   // Without cross edge: max flow = 10 (5 via 0->1->3, 5 via 0->2->3)
@@ -238,6 +250,7 @@ test "max_flow: adding edge increases flow" {
   assert_eq(max_flow(graph, n, 0, 3), Some(15L))
 }
 
+///|
 test "max_flow: invalid inputs return None" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -251,6 +264,7 @@ test "max_flow: invalid inputs return None" {
   assert_true(max_flow(FixedArray::make(4, 0), n, 0, 2) is None)
 }
 
+///|
 test "max_flow: large chain 100 nodes" {
   let n = 100
   let graph = FixedArray::make(n * n, 0)
@@ -260,6 +274,7 @@ test "max_flow: large chain 100 nodes" {
   assert_eq(max_flow(graph, n, 0, n - 1), Some(10L))
 }
 
+///|
 test "max_flow: capacity not mutated" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)

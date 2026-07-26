@@ -18,6 +18,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// An interval [lo, hi).
 pub struct Interval {
   lo : Int
@@ -25,6 +26,7 @@ pub struct Interval {
   data : Int
 }
 
+///|
 /// A node in the interval tree (augmented BST).
 priv struct Node {
   interval : Interval
@@ -33,17 +35,20 @@ priv struct Node {
   mut right : Node?
 }
 
+///|
 /// An interval tree.
 pub struct IntervalTree {
   priv mut root : Node?
   priv mut size : Int
 }
 
+///|
 /// Create an empty interval tree.
 pub fn new() -> IntervalTree {
   { root: None, size: 0 }
 }
 
+///|
 /// Insert an interval [lo, hi) with associated data.
 pub fn insert(tree : IntervalTree, lo : Int, hi : Int, data : Int) -> Unit {
   if hi <= lo {
@@ -53,15 +58,10 @@ pub fn insert(tree : IntervalTree, lo : Int, hi : Int, data : Int) -> Unit {
   tree.size = tree.size + 1
 }
 
+///|
 fn insert_node(root : Node?, interval : Interval) -> Node? {
   match root {
-    None =>
-      Some({
-        interval,
-        max_hi: interval.hi,
-        left: None,
-        right: None,
-      })
+    None => Some({ interval, max_hi: interval.hi, left: None, right: None })
     Some(node) => {
       if interval.lo < node.interval.lo {
         node.left = insert_node(node.left, interval)
@@ -76,15 +76,24 @@ fn insert_node(root : Node?, interval : Interval) -> Node? {
   }
 }
 
+///|
 /// Query all intervals that overlap with [q_lo, q_hi).
-pub fn query_overlap(tree : IntervalTree, q_lo : Int, q_hi : Int) -> Array[Interval] {
+pub fn query_overlap(
+  tree : IntervalTree,
+  q_lo : Int,
+  q_hi : Int,
+) -> Array[Interval] {
   let result : Array[Interval] = []
   query_overlap_node(tree.root, q_lo, q_hi, result)
   result
 }
 
+///|
 fn query_overlap_node(
-  n : Node?, q_lo : Int, q_hi : Int, result : Array[Interval],
+  n : Node?,
+  q_lo : Int,
+  q_hi : Int,
+  result : Array[Interval],
 ) -> Unit {
   match n {
     None => ()
@@ -110,11 +119,13 @@ fn query_overlap_node(
   }
 }
 
+///|
 /// Query all intervals that contain point `q`.
 pub fn query_point(tree : IntervalTree, q : Int) -> Array[Interval] {
   query_overlap(tree, q, q + 1)
 }
 
+///|
 /// Number of intervals. O(1).
 pub fn size(tree : IntervalTree) -> Int {
   tree.size
@@ -124,6 +135,7 @@ pub fn size(tree : IntervalTree) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "interval_tree: basic insert and query" {
   let t = new()
   insert(t, 15, 20, 1)
@@ -134,6 +146,7 @@ test "interval_tree: basic insert and query" {
   assert_eq(size(t), 5)
 }
 
+///|
 test "interval_tree: query overlap" {
   let t = new()
   insert(t, 15, 20, 1)
@@ -145,6 +158,7 @@ test "interval_tree: query overlap" {
   assert_true(result.length() >= 3)
 }
 
+///|
 test "interval_tree: query point" {
   let t = new()
   insert(t, 15, 20, 1)
@@ -158,6 +172,7 @@ test "interval_tree: query point" {
   assert_eq(empty.length(), 0)
 }
 
+///|
 test "interval_tree: no overlaps" {
   let t = new()
   insert(t, 0, 5, 1)
@@ -166,12 +181,14 @@ test "interval_tree: no overlaps" {
   assert_eq(result.length(), 0)
 }
 
+///|
 test "interval_tree: empty tree" {
   let t = new()
   assert_eq(query_overlap(t, 0, 100).length(), 0)
   assert_eq(size(t), 0)
 }
 
+///|
 test "interval_tree: many intervals" {
   let t = new()
   for i = 0; i < 100; i = i + 1 {

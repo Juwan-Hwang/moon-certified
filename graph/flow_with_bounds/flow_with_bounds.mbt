@@ -27,6 +27,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A bounded edge: flow must be in `[lower, upper]`.
 pub struct BoundedEdge {
   from : Int
@@ -35,17 +36,25 @@ pub struct BoundedEdge {
   upper : Int
 }
 
+///|
 /// Construct a [`BoundedEdge`].
-pub fn bounded_edge(from : Int, to : Int, lower : Int, upper : Int) -> BoundedEdge {
+pub fn bounded_edge(
+  from : Int,
+  to : Int,
+  lower : Int,
+  upper : Int,
+) -> BoundedEdge {
   { from, to, lower, upper }
 }
 
+///|
 /// Internal mutable edge for Dinic.
 priv struct MEdge {
   to : Int
   mut cap : Int // residual capacity
 }
 
+///|
 /// Result of a bounded flow computation.
 pub struct BoundedFlowResult {
   priv feasible : Bool
@@ -54,11 +63,13 @@ pub struct BoundedFlowResult {
   priv edge_flows : FixedArray[Int] // Actual flow on each original edge
 }
 
+///|
 /// Whether the bounded flow is feasible.
 pub fn is_feasible(r : BoundedFlowResult) -> Bool {
   r.feasible
 }
 
+///|
 /// The actual flow on edge `i` (0-indexed into the original edge list).
 ///
 /// Returns the **real** flow (lower bound + additional flow pushed through
@@ -70,11 +81,13 @@ pub fn edge_flow(r : BoundedFlowResult, i : Int) -> Int {
   r.edge_flows[i]
 }
 
+///|
 /// Total flow from source to sink (for bounded max-flow).
 pub fn total_flow(r : BoundedFlowResult) -> Int {
   r.total_flow
 }
 
+///|
 /// Number of vertices in the flow network.
 pub fn vertex_count(r : BoundedFlowResult) -> Int {
   r.n
@@ -84,6 +97,7 @@ pub fn vertex_count(r : BoundedFlowResult) -> Int {
 // Dinic max-flow (internal, returns edge array for flow extraction)
 // ---------------------------------------------------------------------------
 
+///|
 /// Dinic context: edges + adjacency list + level/iter arrays.
 priv struct DinicCtx {
   edges : Array[MEdge]
@@ -93,6 +107,7 @@ priv struct DinicCtx {
   n : Int
 }
 
+///|
 /// Build the Dinic flow network from capacity edges.
 /// Returns the DinicCtx with the edge array.
 fn build_ctx(n : Int, edges : Array[(Int, Int, Int)]) -> DinicCtx {
@@ -101,20 +116,21 @@ fn build_ctx(n : Int, edges : Array[(Int, Int, Int)]) -> DinicCtx {
   let head : FixedArray[Array[Int]] = FixedArray::makei(n, fn(_i) { [] })
   for i = 0; i < m; i = i + 1 {
     let (u, v, c) = edges[i]
-    edge_arr.push(MEdge::{ to : v, cap : c })
-    edge_arr.push(MEdge::{ to : u, cap : 0 })
+    edge_arr.push(MEdge::{ to: v, cap: c })
+    edge_arr.push(MEdge::{ to: u, cap: 0 })
     head[u].push(2 * i)
     head[v].push(2 * i + 1)
   }
   {
-    edges : edge_arr,
+    edges: edge_arr,
     head,
-    level : FixedArray::make(n, -1),
-    iter : FixedArray::make(n, 0),
+    level: FixedArray::make(n, -1),
+    iter: FixedArray::make(n, 0),
     n,
   }
 }
 
+///|
 fn bfs_level(ctx : DinicCtx, s : Int, t : Int) -> Bool {
   for i = 0; i < ctx.n; i = i + 1 {
     ctx.level[i] = -1
@@ -137,6 +153,7 @@ fn bfs_level(ctx : DinicCtx, s : Int, t : Int) -> Bool {
   ctx.level[t] != -1
 }
 
+///|
 fn dfs_dinic(ctx : DinicCtx, u : Int, t : Int, f : Int) -> Int {
   if u == t {
     return f
@@ -147,7 +164,16 @@ fn dfs_dinic(ctx : DinicCtx, u : Int, t : Int, f : Int) -> Int {
     let eid = ctx.head[u][ctx.iter[u]]
     let e = ctx.edges[eid]
     if e.cap > 0 && ctx.level[e.to] == ctx.level[u] + 1 {
-      let d = dfs_dinic(ctx, e.to, t, if pushed < e.cap { pushed } else { e.cap })
+      let d = dfs_dinic(
+        ctx,
+        e.to,
+        t,
+        if pushed < e.cap {
+          pushed
+        } else {
+          e.cap
+        },
+      )
       if d > 0 {
         ctx.edges[eid].cap = ctx.edges[eid].cap - d
         ctx.edges[eid ^ 1].cap = ctx.edges[eid ^ 1].cap + d
@@ -162,6 +188,7 @@ fn dfs_dinic(ctx : DinicCtx, u : Int, t : Int, f : Int) -> Int {
   flow
 }
 
+///|
 /// Run Dinic max-flow from `s` to `t` on the given context.
 /// Modifies the context's edge array (residual capacities).
 /// Returns the total flow.
@@ -187,6 +214,7 @@ fn dinic_run(ctx : DinicCtx, s : Int, t : Int) -> Int {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Check if a feasible flow exists satisfying all edge bounds.
 ///
 /// # Parameters
@@ -207,10 +235,10 @@ pub fn feasible_flow(
   let m = bounded_edges.length()
   if n <= 0 || m == 0 {
     return BoundedFlowResult::{
-      feasible : true,
-      total_flow : 0,
-      n : 0,
-      edge_flows : FixedArray::make(0, 0),
+      feasible: true,
+      total_flow: 0,
+      n: 0,
+      edge_flows: FixedArray::make(0, 0),
     }
   }
   // Super source S = n, super sink T = n+1.
@@ -227,10 +255,10 @@ pub fn feasible_flow(
     let e = bounded_edges[i]
     if e.lower > e.upper || e.from < 0 || e.from >= n || e.to < 0 || e.to >= n {
       return BoundedFlowResult::{
-        feasible : false,
-        total_flow : 0,
-        n : 0,
-        edge_flows : FixedArray::make(0, 0),
+        feasible: false,
+        total_flow: 0,
+        n: 0,
+        edge_flows: FixedArray::make(0, 0),
       }
     }
     net_edges.push((e.from, e.to, e.upper - e.lower))
@@ -273,9 +301,10 @@ pub fn feasible_flow(
     let flow_pushed = initial_cap - fwd_edge.cap
     edge_flows[i] = edge_lower[i] + flow_pushed
   }
-  BoundedFlowResult::{ feasible, total_flow : flow, n, edge_flows }
+  BoundedFlowResult::{ feasible, total_flow: flow, n, edge_flows }
 }
 
+///|
 /// Compute the maximum flow from `s` to `t` with lower and upper bounds.
 ///
 /// After checking feasibility, this computes the additional max-flow that
@@ -294,10 +323,10 @@ pub fn bounded_max_flow(
   let m = bounded_edges.length()
   if n <= 0 || m == 0 {
     return BoundedFlowResult::{
-      feasible : true,
-      total_flow : 0,
-      n : 0,
-      edge_flows : FixedArray::make(0, 0),
+      feasible: true,
+      total_flow: 0,
+      n: 0,
+      edge_flows: FixedArray::make(0, 0),
     }
   }
   // Build the full network with t→s edge for circulation feasibility.
@@ -312,10 +341,10 @@ pub fn bounded_max_flow(
     let e = bounded_edges[i]
     if e.lower > e.upper || e.from < 0 || e.from >= n || e.to < 0 || e.to >= n {
       return BoundedFlowResult::{
-        feasible : false,
-        total_flow : 0,
-        n : 0,
-        edge_flows : FixedArray::make(0, 0),
+        feasible: false,
+        total_flow: 0,
+        n: 0,
+        edge_flows: FixedArray::make(0, 0),
       }
     }
     net_edges.push((e.from, e.to, e.upper - e.lower))
@@ -343,10 +372,10 @@ pub fn bounded_max_flow(
   let feasible = feas_flow >= required_total
   if !feasible {
     return BoundedFlowResult::{
-      feasible : false,
-      total_flow : 0,
+      feasible: false,
+      total_flow: 0,
       n,
-      edge_flows : FixedArray::make(m, 0),
+      edge_flows: FixedArray::make(m, 0),
     }
   }
   // Remove the t→s edge by setting its capacity to 0.
@@ -387,18 +416,14 @@ pub fn bounded_max_flow(
     }
   }
   let total = total_s_out - total_s_in
-  BoundedFlowResult::{
-    feasible : true,
-    total_flow : total,
-    n,
-    edge_flows,
-  }
+  BoundedFlowResult::{ feasible: true, total_flow: total, n, edge_flows }
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bounded_flow: feasible circulation" {
   // Simple cycle: 0→1 [1,3], 1→0 [1,3]. Always feasible.
   let n = 2
@@ -409,6 +434,7 @@ test "bounded_flow: feasible circulation" {
   assert_true(is_feasible(result))
 }
 
+///|
 test "bounded_flow: infeasible circulation" {
   // 0→1 [5,10], 1→0 [1,3]. Need 5 on 0→1 but only 3 back. Infeasible.
   let n = 2
@@ -419,6 +445,7 @@ test "bounded_flow: infeasible circulation" {
   assert_false(is_feasible(result))
 }
 
+///|
 test "bounded_flow: feasible s-t flow" {
   // 0→1 [2,5], 1→2 [2,5]. s=0, t=2. Feasible.
   let n = 3
@@ -429,6 +456,7 @@ test "bounded_flow: feasible s-t flow" {
   assert_true(is_feasible(result))
 }
 
+///|
 test "bounded_flow: infeasible s-t flow" {
   // 0→1 [5,10], 1→2 [1,3]. Lower bound on 0→1 exceeds capacity of 1→2.
   let n = 3
@@ -439,6 +467,7 @@ test "bounded_flow: infeasible s-t flow" {
   assert_false(is_feasible(result))
 }
 
+///|
 test "bounded_flow: simple path feasibility" {
   // Single edge 0→1 [0, 10]. Feasible.
   let n = 2
@@ -447,6 +476,7 @@ test "bounded_flow: simple path feasibility" {
   assert_true(is_feasible(result))
 }
 
+///|
 test "bounded_flow: triangle feasibility" {
   // 0→1 [1,3], 1→2 [1,3], 0→2 [1,3]. s=0, t=2.
   let n = 3
@@ -458,6 +488,7 @@ test "bounded_flow: triangle feasibility" {
   assert_true(is_feasible(result))
 }
 
+///|
 test "bounded_flow: edge_flow returns actual flow not lower bound" {
   // 0→1 [3,10], 1→2 [3,10]. s=0, t=2.
   // Feasible flow must send at least 3 on each edge.
@@ -478,6 +509,7 @@ test "bounded_flow: edge_flow returns actual flow not lower bound" {
   assert_eq(edge_flow(result, 0), edge_flow(result, 1))
 }
 
+///|
 test "bounded_flow: edge_flow respects bounds with nonzero lower" {
   // 0→1 [5,8], 1→2 [5,8], 0→2 [0,3]. s=0, t=2.
   // The actual flow must be in [5,8] for edges 0 and 1.
@@ -497,6 +529,7 @@ test "bounded_flow: edge_flow respects bounds with nonzero lower" {
   assert_true(edge_flow(result, 2) <= 3)
 }
 
+///|
 test "bounded_max_flow: simple path" {
   // 0→1 [0,10], 1→2 [0,10]. Max flow = 10.
   let n = 3
@@ -508,6 +541,7 @@ test "bounded_max_flow: simple path" {
   assert_eq(total_flow(result), 10)
 }
 
+///|
 test "bounded_max_flow: bottleneck edge" {
   // 0→1 [0,10], 1→2 [0,5]. Max flow = 5.
   let n = 3
@@ -519,6 +553,7 @@ test "bounded_max_flow: bottleneck edge" {
   assert_eq(total_flow(result), 5)
 }
 
+///|
 test "bounded_max_flow: with nonzero lower bounds" {
   // 0→1 [3,10], 1→2 [3,10]. Max flow = 10.
   // Total flow must be at least 3 (lower bound) and at most 10 (upper bound).
@@ -535,6 +570,7 @@ test "bounded_max_flow: with nonzero lower bounds" {
   assert_eq(edge_flow(result, 1), 10)
 }
 
+///|
 test "bounded_max_flow: infeasible returns false" {
   // 0→1 [5,10], 1→2 [1,3]. Lower bound 5 > capacity 3. Infeasible.
   let n = 3
@@ -545,6 +581,7 @@ test "bounded_max_flow: infeasible returns false" {
   assert_false(is_feasible(result))
 }
 
+///|
 test "bounded_max_flow: parallel paths" {
   // 0→1 [0,5], 0→2 [0,5], 1→3 [0,5], 2→3 [0,5]. Max flow = 10.
   let n = 4

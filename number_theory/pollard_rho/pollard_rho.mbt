@@ -30,11 +30,13 @@
 // Pollard-Rho core
 // ---------------------------------------------------------------------------
 
+///|
 /// One iteration of the Pollard-Rho sequence: f(x) = (x² + c) mod n.
 fn prho_f(x : Int64, c : Int64, n : Int64) -> Int64 {
   (x * x + c) % n
 }
 
+///|
 /// Attempt to find a non-trivial factor of n using Pollard-Rho with Brent's
 /// cycle detection.
 ///
@@ -61,11 +63,7 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
     }
     hare = prho_f(hare, c, n)
     lam = lam + 1L
-    let diff = if tortoise > hare {
-      tortoise - hare
-    } else {
-      hare - tortoise
-    }
+    let diff = if tortoise > hare { tortoise - hare } else { hare - tortoise }
     if diff == 0L {
       // Cycle found without a factor; this attempt failed.
       return n
@@ -83,6 +81,7 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
   n
 }
 
+///|
 /// Find one non-trivial factor of `n`.
 ///
 /// `n` must be a composite number greater than 1 (check with
@@ -120,6 +119,7 @@ pub fn pollard_rho(n : Int) -> Int? {
   None // Should not happen for genuine composites
 }
 
+///|
 /// Factorize `n` into its prime factors (with multiplicity), in ascending order.
 ///
 /// Returns an empty array for n < 2. For n >= 2, returns the complete list
@@ -141,8 +141,8 @@ pub fn factorize(n : Int) -> Array[Int] {
   let mut m = n
   // Trial division for small primes.
   let small_primes = [
-    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67,
-    71, 73, 79, 83, 89, 97,
+    2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
+    79, 83, 89, 97,
   ]
   for i = 0; i < small_primes.length(); i = i + 1 {
     let p = small_primes[i]
@@ -172,6 +172,7 @@ pub fn factorize(n : Int) -> Array[Int] {
   result
 }
 
+///|
 /// Recursively factor a cofactor `m` (all factors > 97) into `result`.
 ///
 /// If `m` is prime, it is pushed directly. Otherwise, Pollard-Rho is used
@@ -218,6 +219,7 @@ fn factor_rec(m : Int, result : Array[Int]) -> Unit {
   }
 }
 
+///|
 /// Integer square root: floor(sqrt(n)) for n >= 0.
 fn isqrt(n : Int) -> Int {
   if n <= 0 {
@@ -240,23 +242,27 @@ fn isqrt(n : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "pollard_rho: even number returns 2" {
   assert_eq(pollard_rho(100), Some(2))
   assert_eq(pollard_rho(6), Some(2))
   assert_eq(pollard_rho(2147483646), Some(2))
 }
 
+///|
 test "pollard_rho: semiprime 15 = 3 * 5" {
   let d = pollard_rho(15).unwrap()
   assert_true(d == 3 || d == 5)
   assert_eq(15 / d * d, 15) // d divides 15
 }
 
+///|
 test "pollard_rho: semiprime 49 = 7 * 7" {
   let d = pollard_rho(49).unwrap()
   assert_eq(d, 7)
 }
 
+///|
 test "pollard_rho: large semiprime" {
   // 10007 * 10009 = 100160063
   let n = 100160063
@@ -266,6 +272,7 @@ test "pollard_rho: large semiprime" {
   assert_true(d == 10007 || d == 10009)
 }
 
+///|
 test "pollard_rho: product of two large primes" {
   // 46337 * 46327 = 2146654199 (< 2^31)
   let n = 2146654199
@@ -274,18 +281,21 @@ test "pollard_rho: product of two large primes" {
   assert_eq(n % d, 0)
 }
 
+///|
 test "pollard_rho: Carmichael number 561 = 3 * 11 * 17" {
   let d = pollard_rho(561).unwrap()
   assert_true(d != 1 && d != 561)
   assert_eq(561 % d, 0)
 }
 
+///|
 test "pollard_rho: n <= 1 returns None" {
   assert_true(pollard_rho(0) is None)
   assert_true(pollard_rho(1) is None)
   assert_true(pollard_rho(-5) is None)
 }
 
+///|
 test "pollard_rho: prime returns None (no non-trivial factor)" {
   // A prime has no non-trivial factor; the result must be None rather than
   // a value indistinguishable from a real factor.
@@ -296,6 +306,7 @@ test "pollard_rho: prime returns None (no non-trivial factor)" {
   assert_true(pollard_rho(97) is None)
 }
 
+///|
 test "is_prime64: small primes" {
   assert_eq(@int64_utils.is_prime64(2L), true)
   assert_eq(@int64_utils.is_prime64(3L), true)
@@ -304,6 +315,7 @@ test "is_prime64: small primes" {
   assert_eq(@int64_utils.is_prime64(11L), true)
 }
 
+///|
 test "is_prime64: small composites" {
   assert_eq(@int64_utils.is_prime64(4L), false)
   assert_eq(@int64_utils.is_prime64(6L), false)
@@ -311,22 +323,26 @@ test "is_prime64: small composites" {
   assert_eq(@int64_utils.is_prime64(15L), false)
 }
 
+///|
 test "is_prime64: Mersenne prime" {
   assert_eq(@int64_utils.is_prime64(2147483647L), true)
 }
 
+///|
 test "is_prime64: Carmichael numbers" {
   assert_eq(@int64_utils.is_prime64(561L), false)
   assert_eq(@int64_utils.is_prime64(1105L), false)
   assert_eq(@int64_utils.is_prime64(1729L), false)
 }
 
+///|
 test "factorize: prime number" {
   let f = factorize(17)
   assert_eq(f.length(), 1)
   assert_eq(f[0], 17)
 }
 
+///|
 test "factorize: power of 2" {
   let f = factorize(1024)
   assert_eq(f.length(), 10)
@@ -335,6 +351,7 @@ test "factorize: power of 2" {
   }
 }
 
+///|
 test "factorize: semiprime" {
   let f = factorize(15)
   assert_eq(f.length(), 2)
@@ -342,6 +359,7 @@ test "factorize: semiprime" {
   assert_eq(f[1], 5)
 }
 
+///|
 test "factorize: perfect square of prime" {
   let f = factorize(49)
   assert_eq(f.length(), 2)
@@ -349,6 +367,7 @@ test "factorize: perfect square of prime" {
   assert_eq(f[1], 7)
 }
 
+///|
 test "factorize: 561 = 3 * 11 * 17" {
   let f = factorize(561)
   assert_eq(f.length(), 3)
@@ -357,6 +376,7 @@ test "factorize: 561 = 3 * 11 * 17" {
   assert_eq(f[2], 17)
 }
 
+///|
 test "factorize: large semiprime 100160063" {
   let f = factorize(100160063)
   assert_eq(f.length(), 2)
@@ -364,6 +384,7 @@ test "factorize: large semiprime 100160063" {
   assert_eq(f[1], 10009)
 }
 
+///|
 test "factorize: product of two large primes" {
   let n = 2146654199 // 46337 * 46327
   let f = factorize(n)
@@ -372,16 +393,19 @@ test "factorize: product of two large primes" {
   assert_eq(f[1], 46337)
 }
 
+///|
 test "factorize: one" {
   let f = factorize(1)
   assert_eq(f.length(), 0)
 }
 
+///|
 test "factorize: zero and negative" {
   assert_eq(factorize(0).length(), 0)
   assert_eq(factorize(-5).length(), 0)
 }
 
+///|
 test "factorize: factorial" {
   // 10! = 3628800 = 2^8 * 3^4 * 5^2 * 7
   let f = factorize(3628800)
@@ -396,12 +420,14 @@ test "factorize: factorial" {
   }
 }
 
+///|
 test "factorize: large prime stays as single factor" {
   let f = factorize(2147483647) // Mersenne prime M31
   assert_eq(f.length(), 1)
   assert_eq(f[0], 2147483647)
 }
 
+///|
 test "factorize: product verified for various n" {
   let cases = [12, 100, 999, 123456, 999983, 1048576]
   for i = 0; i < cases.length(); i = i + 1 {
@@ -419,14 +445,15 @@ test "factorize: product verified for various n" {
   }
 }
 
+///|
 test "factorize: all factors verified as prime (regression for composite push)" {
   // This test verifies the fix for factor_rec pushing composite numbers
   // when pollard_rho returns None. We factorize many numbers and verify
   // that every factor in the result is genuinely prime.
   let cases = [
-    121, 169, 289, 361, 529, 841, 961, 1369, 1681, 1849,
-    2209, 2809, 3481, 3721, 4489, 5041, 5329, 6241, 6889, 7921,
-    9409, 10201, 10609, 11449, 11881, 12769, 16129, 17161, 18769, 22201,
+    121, 169, 289, 361, 529, 841, 961, 1369, 1681, 1849, 2209, 2809, 3481, 3721,
+    4489, 5041, 5329, 6241, 6889, 7921, 9409, 10201, 10609, 11449, 11881, 12769,
+    16129, 17161, 18769, 22201,
   ]
   for i = 0; i < cases.length(); i = i + 1 {
     let n = cases[i]
@@ -441,6 +468,7 @@ test "factorize: all factors verified as prime (regression for composite push)" 
   }
 }
 
+///|
 test "factorize: product of three large primes" {
   // 101 * 103 * 107 = 1113121
   let n = 1113121
@@ -451,6 +479,7 @@ test "factorize: product of three large primes" {
   assert_eq(f[2], 107)
 }
 
+///|
 test "factorize: perfect cube of prime" {
   // 101^3 = 1030301
   let f = factorize(1030301)

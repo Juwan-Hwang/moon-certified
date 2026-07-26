@@ -50,6 +50,7 @@
 // Internal: generic iterative post-order DFS on a forest
 // ---------------------------------------------------------------------------
 
+///|
 /// Internal: post-order DFS on a forest.
 ///
 /// Walks every connected component of an undirected graph given by `adj`
@@ -123,6 +124,7 @@ fn[T] dfs_forest(
 // Maximum Independent Set on Trees
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the maximum independent set on a tree.
 ///
 /// Given an **undirected tree** as an adjacency list, selects a subset of
@@ -157,28 +159,23 @@ pub fn max_independent_set(
   // dp[v][1] = max weight in subtree of v, SELECTING v.
   let dp0 = FixedArray::make(n, 0L)
   let dp1 = FixedArray::make(n, 0L)
-  dfs_forest(
-    adj,
-    n,
-    fn(v) { v },
-    fn(u, parent, neighbors) {
-      // All children processed: compute DP for u.
-      let w = if u < weights.length() && weights[u] > 0 {
-        weights[u].to_int64()
-      } else {
-        0L
+  dfs_forest(adj, n, fn(v) { v }, fn(u, parent, neighbors) {
+    // All children processed: compute DP for u.
+    let w = if u < weights.length() && weights[u] > 0 {
+      weights[u].to_int64()
+    } else {
+      0L
+    }
+    dp1[u] = w
+    dp0[u] = 0L
+    for k = 0; k < neighbors.length(); k = k + 1 {
+      let v = neighbors[k]
+      if v != parent {
+        dp1[u] = dp1[u] + dp0[v]
+        dp0[u] = dp0[u] + (if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] })
       }
-      dp1[u] = w
-      dp0[u] = 0L
-      for k = 0; k < neighbors.length(); k = k + 1 {
-        let v = neighbors[k]
-        if v != parent {
-          dp1[u] = dp1[u] + dp0[v]
-          dp0[u] = dp0[u] + (if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] })
-        }
-      }
-    },
-  )
+    }
+  })
   // Answer: max over all roots.
   let mut result = 0L
   for v = 0; v < n; v = v + 1 {
@@ -194,6 +191,7 @@ pub fn max_independent_set(
 // Tree Diameter
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the diameter (longest path) of a tree.
 ///
 /// Given an **undirected tree** as an adjacency list, finds the maximum
@@ -212,10 +210,7 @@ pub fn max_independent_set(
 /// - Space: O(V) for the DFS stack and auxiliary arrays.
 ///
 /// Uses `Int64` for path length accumulation to prevent overflow.
-pub fn tree_diameter(
-  adj : Array[Array[(Int, Int)]],
-  n : Int,
-) -> Int64 {
+pub fn tree_diameter(adj : Array[Array[(Int, Int)]], n : Int) -> Int64 {
   if n <= 1 || adj.length() < n {
     return 0L
   }
@@ -223,32 +218,27 @@ pub fn tree_diameter(
   let max1 = FixedArray::make(n, 0L) // longest downward path from v
   let max2 = FixedArray::make(n, 0L) // second-longest downward path from v
   let mut diameter = 0L
-  dfs_forest(
-    adj,
-    n,
-    fn(pair) { pair.0 },
-    fn(u, parent, neighbors) {
-      // All children processed: compute max1, max2 for u.
-      max1[u] = 0L
-      max2[u] = 0L
-      for k = 0; k < neighbors.length(); k = k + 1 {
-        let (v, w) = neighbors[k]
-        if v != parent {
-          let path_len = max1[v] + w.to_int64()
-          if path_len > max1[u] {
-            max2[u] = max1[u]
-            max1[u] = path_len
-          } else if path_len > max2[u] {
-            max2[u] = path_len
-          }
+  dfs_forest(adj, n, fn(pair) { pair.0 }, fn(u, parent, neighbors) {
+    // All children processed: compute max1, max2 for u.
+    max1[u] = 0L
+    max2[u] = 0L
+    for k = 0; k < neighbors.length(); k = k + 1 {
+      let (v, w) = neighbors[k]
+      if v != parent {
+        let path_len = max1[v] + w.to_int64()
+        if path_len > max1[u] {
+          max2[u] = max1[u]
+          max1[u] = path_len
+        } else if path_len > max2[u] {
+          max2[u] = path_len
         }
       }
-      let through_u = max1[u] + max2[u]
-      if through_u > diameter {
-        diameter = through_u
-      }
-    },
-  )
+    }
+    let through_u = max1[u] + max2[u]
+    if through_u > diameter {
+      diameter = through_u
+    }
+  })
   diameter
 }
 
@@ -256,6 +246,7 @@ pub fn tree_diameter(
 // Maximum Matching on Trees
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the maximum matching (maximum set of non-adjacent edges) on a tree.
 ///
 /// Given an **undirected tree** as an adjacency list, finds the maximum number
@@ -287,10 +278,7 @@ pub fn tree_diameter(
 ///   `dp[v][0] - max(dp[c][0], dp[c][1]) + dp[c][0] + 1 > dp[v][0]`.
 ///   That is, we "downgrade" one child from "possibly matched" to
 ///   "definitely unmatched" and add the edge `(v, c)`.
-pub fn max_matching_on_tree(
-  adj : Array[Array[Int]],
-  n : Int,
-) -> Int {
+pub fn max_matching_on_tree(adj : Array[Array[Int]], n : Int) -> Int {
   if n <= 1 || adj.length() < n {
     return 0
   }
@@ -298,31 +286,26 @@ pub fn max_matching_on_tree(
   // dp1[v] = max matching in subtree of v, v IS matched to a child.
   let dp0 = FixedArray::make(n, 0)
   let dp1 = FixedArray::make(n, 0)
-  dfs_forest(
-    adj,
-    n,
-    fn(v) { v },
-    fn(u, parent, neighbors) {
-      // All children processed.
-      dp0[u] = 0
-      dp1[u] = 0
-      for k = 0; k < neighbors.length(); k = k + 1 {
-        let v = neighbors[k]
-        if v != parent {
-          // v is a child.
-          let child_best = if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] }
-          dp0[u] = dp0[u] + child_best
-          // dp1[u]: match u with v → gain 1 + dp0[v], lose child_best.
-          let match_gain = 1 + dp0[v] - child_best
-          if match_gain > dp1[u] {
-            dp1[u] = match_gain
-          }
+  dfs_forest(adj, n, fn(v) { v }, fn(u, parent, neighbors) {
+    // All children processed.
+    dp0[u] = 0
+    dp1[u] = 0
+    for k = 0; k < neighbors.length(); k = k + 1 {
+      let v = neighbors[k]
+      if v != parent {
+        // v is a child.
+        let child_best = if dp0[v] > dp1[v] { dp0[v] } else { dp1[v] }
+        dp0[u] = dp0[u] + child_best
+        // dp1[u]: match u with v → gain 1 + dp0[v], lose child_best.
+        let match_gain = 1 + dp0[v] - child_best
+        if match_gain > dp1[u] {
+          dp1[u] = match_gain
         }
       }
-      // dp1[u] now represents the gain from matching u with a child.
-      dp1[u] = dp0[u] + dp1[u]
-    },
-  )
+    }
+    // dp1[u] now represents the gain from matching u with a child.
+    dp1[u] = dp0[u] + dp1[u]
+  })
   // Answer: max over all roots of max(dp0[v], dp1[v]).
   let mut result = 0
   for v = 0; v < n; v = v + 1 {
@@ -338,6 +321,7 @@ pub fn max_matching_on_tree(
 // Tree Knapsack (Tree Backpack)
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve the tree knapsack problem: select items on a rooted tree subject to
 /// a capacity constraint. An item can only be selected if its parent is selected.
 ///
@@ -446,6 +430,7 @@ pub fn tree_knapsack(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "max_independent_set: path graph" {
   // Path: 0 - 1 - 2 - 3 - 4
   // Weights: all 1
@@ -466,6 +451,7 @@ test "max_independent_set: path graph" {
   assert_eq(max_independent_set(adj, 5, weights), 3L)
 }
 
+///|
 test "max_independent_set: star graph" {
   // Star: center 0 connected to 1, 2, 3, 4
   // Weights: all 1
@@ -482,6 +468,7 @@ test "max_independent_set: star graph" {
   assert_eq(max_independent_set(adj, 5, weights), 4L)
 }
 
+///|
 test "max_independent_set: weighted tree" {
   // Tree with varying weights.
   //     0(w=5)
@@ -516,18 +503,21 @@ test "max_independent_set: weighted tree" {
   assert_eq(max_independent_set(adj, 5, weights), 8L)
 }
 
+///|
 test "max_independent_set: single node" {
   let adj : Array[Array[Int]] = [[]]
   let weights = FixedArray::make(1, 10)
   assert_eq(max_independent_set(adj, 1, weights), 10L)
 }
 
+///|
 test "max_independent_set: empty" {
   let adj : Array[Array[Int]] = []
   let weights : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(max_independent_set(adj, 0, weights), 0L)
 }
 
+///|
 test "tree_diameter: path graph" {
   // Path: 0 - 1 - 2 - 3 - 4 (all edges weight 1)
   // Diameter = 4 (from 0 to 4)
@@ -546,6 +536,7 @@ test "tree_diameter: path graph" {
   assert_eq(tree_diameter(adj, 5), 4L)
 }
 
+///|
 test "tree_diameter: star graph" {
   // Star: center 0 connected to 1, 2, 3, 4
   // Diameter = 2 (through center, e.g. 1 - 0 - 2)
@@ -560,6 +551,7 @@ test "tree_diameter: star graph" {
   assert_eq(tree_diameter(adj, 5), 2L)
 }
 
+///|
 test "tree_diameter: weighted tree" {
   //     0
   //    / \
@@ -583,11 +575,13 @@ test "tree_diameter: weighted tree" {
   assert_eq(tree_diameter(adj, 5), 9L)
 }
 
+///|
 test "tree_diameter: single node" {
   let adj : Array[Array[(Int, Int)]] = [[]]
   assert_eq(tree_diameter(adj, 1), 0L)
 }
 
+///|
 test "max_matching: path graph" {
   // Path: 0 - 1 - 2 - 3 - 4
   // Max matching = 2 (e.g. edges 0-1 and 2-3)
@@ -606,6 +600,7 @@ test "max_matching: path graph" {
   assert_eq(max_matching_on_tree(adj, 5), 2)
 }
 
+///|
 test "max_matching: star graph" {
   // Star: center 0 connected to 1, 2, 3, 4
   // Max matching = 1 (can only match center with one leaf)
@@ -620,6 +615,7 @@ test "max_matching: star graph" {
   assert_eq(max_matching_on_tree(adj, 5), 1)
 }
 
+///|
 test "max_matching: single edge" {
   let adj : Array[Array[Int]] = [[], []]
   adj[0].push(1)
@@ -627,11 +623,13 @@ test "max_matching: single edge" {
   assert_eq(max_matching_on_tree(adj, 2), 1)
 }
 
+///|
 test "max_matching: single node" {
   let adj : Array[Array[Int]] = [[]]
   assert_eq(max_matching_on_tree(adj, 1), 0)
 }
 
+///|
 test "tree_knapsack: simple tree" {
   // Tree: 0 is root, children: 1, 2.
   // costs: [2, 1, 3], values: [3, 2, 5], capacity: 5
@@ -654,6 +652,7 @@ test "tree_knapsack: simple tree" {
   assert_eq(tree_knapsack(children, 3, costs, values, 5), 8L)
 }
 
+///|
 test "tree_knapsack: deep tree" {
   // Chain: 0 -> 1 -> 2 -> 3
   // costs: [1, 1, 1, 1], values: [1, 2, 3, 4], capacity: 3
@@ -673,6 +672,7 @@ test "tree_knapsack: deep tree" {
   assert_eq(tree_knapsack(children, 4, costs, values, 3), 6L)
 }
 
+///|
 test "tree_knapsack: single node" {
   let children : Array[Array[Int]] = [[]]
   let costs = FixedArray::make(1, 5)
@@ -683,6 +683,7 @@ test "tree_knapsack: single node" {
   assert_eq(tree_knapsack(children, 1, costs, values, 3), 0L)
 }
 
+///|
 test "tree_knapsack: empty" {
   let children : Array[Array[Int]] = []
   let costs : FixedArray[Int] = FixedArray::make(0, 0)
@@ -690,6 +691,7 @@ test "tree_knapsack: empty" {
   assert_eq(tree_knapsack(children, 0, costs, values, 10), 0L)
 }
 
+///|
 test "max_independent_set: deep path (stack safety)" {
   // Path graph with 5000 nodes to verify no stack overflow.
   let n = 5000
@@ -707,6 +709,7 @@ test "max_independent_set: deep path (stack safety)" {
   assert_eq(result, 2500L)
 }
 
+///|
 test "tree_diameter: deep path (stack safety)" {
   // Path graph with 5000 nodes.
   let n = 5000

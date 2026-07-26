@@ -32,6 +32,7 @@
 // Euler's criterion
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the Legendre symbol `(a / p)` for odd prime `p`.
 ///
 /// Returns:
@@ -54,6 +55,7 @@ pub fn legendre(a : Int64, p : Int64) -> Int {
   }
 }
 
+///|
 /// Check if `a` is a quadratic residue modulo the odd prime `p`.
 pub fn is_quadratic_residue(a : Int64, p : Int64) -> Bool {
   legendre(a, p) >= 0
@@ -63,6 +65,7 @@ pub fn is_quadratic_residue(a : Int64, p : Int64) -> Bool {
 // Tonelli-Shanks
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the modular square root `x` such that `x² ≡ a (mod p)`,
 /// where `p` is an odd prime.
 ///
@@ -137,6 +140,7 @@ pub fn sqrt_mod(a : Int64, p : Int64) -> Int64? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "legendre: basic" {
   // 1 is always a QR.
   assert_eq(legendre(1L, 7L), 1)
@@ -152,6 +156,7 @@ test "legendre: basic" {
   assert_eq(legendre(4L, 5L), 1)
 }
 
+///|
 test "sqrt_mod: p ≡ 3 (mod 4)" {
   // p = 7: QRs are 0,1,2,4. sqrt(2) mod 7 = 3 or 4 (3^2=9≡2, 4^2=16≡2)
   let r = sqrt_mod(2L, 7L)
@@ -174,6 +179,7 @@ test "sqrt_mod: p ≡ 3 (mod 4)" {
   assert_true(sqrt_mod(3L, 7L) is None)
 }
 
+///|
 test "sqrt_mod: p ≡ 1 (mod 4)" {
   // p = 5: QRs are 0,1,4. sqrt(4) mod 5 = 2 or 3.
   let r = sqrt_mod(4L, 5L)
@@ -193,11 +199,13 @@ test "sqrt_mod: p ≡ 1 (mod 4)" {
   assert_true(sqrt_mod(2L, 13L) is None)
 }
 
+///|
 test "sqrt_mod: a = 0" {
   assert_eq(sqrt_mod(0L, 7L), Some(0L))
   assert_eq(sqrt_mod(0L, 13L), Some(0L))
 }
 
+///|
 test "sqrt_mod: large prime" {
   // p = 1000000007 (prime, p ≡ 3 mod 4)
   let p = 1000000007L
@@ -208,54 +216,53 @@ test "sqrt_mod: large prime" {
   }
 }
 
+///|
 test "sqrt_mod: all QRs mod 7" {
   let p = 7L
   for a = 0L; a < p; a = a + 1L {
     match sqrt_mod(a, p) {
       Some(x) => assert_eq(@int64_utils.mul_mod(x, x, p), a)
-      None => {
+      None =>
         // a is not a QR.
         assert_eq(legendre(a, p), -1)
-      }
     }
   }
 }
 
+///|
 test "sqrt_mod: all QRs mod 13" {
   let p = 13L
   for a = 0L; a < p; a = a + 1L {
     match sqrt_mod(a, p) {
       Some(x) => assert_eq(@int64_utils.mul_mod(x, x, p), a)
-      None => {
-        assert_eq(legendre(a, p), -1)
-      }
+      None => assert_eq(legendre(a, p), -1)
     }
   }
 }
 
+///|
 test "sqrt_mod: stress test all primes up to 100" {
   // Test sqrt for all residues of primes up to 100.
   let primes = [
-    3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L, 43L, 47L, 53L,
-    59L, 61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L,
+    3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L, 43L, 47L, 53L, 59L,
+    61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L,
   ]
   for pi = 0; pi < primes.length(); pi = pi + 1 {
     let p = primes[pi]
     for a = 0L; a < p; a = a + 1L {
       match sqrt_mod(a, p) {
-        Some(x) => {
+        Some(x) =>
           // Verify x^2 ≡ a (mod p).
           assert_eq(@int64_utils.mul_mod(x, x, p), a)
-        }
-        None => {
+        None =>
           // a is not a QR.
           assert_eq(legendre(a, p), -1)
-        }
       }
     }
   }
 }
 
+///|
 test "is_quadratic_residue: basic" {
   assert_true(is_quadratic_residue(1L, 7L))
   assert_true(is_quadratic_residue(2L, 7L))
@@ -263,6 +270,7 @@ test "is_quadratic_residue: basic" {
   assert_true(is_quadratic_residue(0L, 7L))
 }
 
+///|
 test "legendre: p = 2" {
   // p = 2 is a special case (not handled by Euler's criterion).
   // legendre(1, 2) should still work via the function (a mod p = 1, exp = 0,

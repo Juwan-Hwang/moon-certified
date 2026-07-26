@@ -10,12 +10,14 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Edge representation.
 pub struct KEdge {
   to : Int
   weight : Int
 }
 
+///|
 /// Find the K shortest paths from `source` to `target`.
 /// Returns a list of (total_cost, path) pairs, sorted by cost.
 pub fn k_shortest_paths(
@@ -67,7 +69,7 @@ pub fn k_shortest_paths(
               for e = 0; e < adj[node].length(); e = e + 1 {
                 let edge = adj[node][e]
                 if !removed_nodes.contains(edge.to) &&
-                   !removed_edges.contains((node, edge.to)) {
+                  !removed_edges.contains((node, edge.to)) {
                   edges.push(edge)
                 }
               }
@@ -100,8 +102,13 @@ pub fn k_shortest_paths(
   }
 }
 
+///|
 /// Check if `path[0..i]` equals `root_path[0..i+1]`.
-fn paths_prefix_equal(path : Array[Int], root_path : Array[Int], i : Int) -> Bool {
+fn paths_prefix_equal(
+  path : Array[Int],
+  root_path : Array[Int],
+  i : Int,
+) -> Bool {
   for j = 0; j <= i; j = j + 1 {
     if path[j] != root_path[j] {
       return false
@@ -110,6 +117,7 @@ fn paths_prefix_equal(path : Array[Int], root_path : Array[Int], i : Int) -> Boo
   true
 }
 
+///|
 /// Check if a candidate (cost, path) already exists in the list.
 fn candidate_exists(
   candidates : Array[(Int, Array[Int])],
@@ -124,6 +132,7 @@ fn candidate_exists(
   false
 }
 
+///|
 fn dijkstra_path(
   n : Int,
   adj : Array[Array[KEdge]],
@@ -176,6 +185,7 @@ fn dijkstra_path(
   Some((dist[target], result))
 }
 
+///|
 fn path_cost(adj : Array[Array[KEdge]], path : Array[Int]) -> Int {
   let mut cost = 0
   for i = 0; i < path.length() - 1; i = i + 1 {
@@ -191,6 +201,7 @@ fn path_cost(adj : Array[Array[KEdge]], path : Array[Int]) -> Int {
   cost
 }
 
+///|
 fn concat_paths(root : Array[Int], spur : Array[Int]) -> Array[Int] {
   let result : Array[Int] = []
   for i = 0; i < root.length() - 1; i = i + 1 {
@@ -202,6 +213,7 @@ fn concat_paths(root : Array[Int], spur : Array[Int]) -> Array[Int] {
   result
 }
 
+///|
 fn paths_equal(a : Array[Int], b : Array[Int]) -> Bool {
   if a.length() != b.length() {
     return false
@@ -218,6 +230,7 @@ fn paths_equal(a : Array[Int], b : Array[Int]) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "k_shortest_paths: basic" {
   // Graph: 0->1 (1), 0->2 (2), 1->3 (2), 2->3 (1), 0->3 (10)
   let adj : Array[Array[KEdge]] = [
@@ -234,6 +247,7 @@ test "k_shortest_paths: basic" {
   assert_eq(paths[2].0, 10)
 }
 
+///|
 test "k_shortest_paths: single path" {
   let adj : Array[Array[KEdge]] = [[{ to: 1, weight: 5 }], []]
   let paths = k_shortest_paths(2, adj, 0, 1, 3)
@@ -241,6 +255,7 @@ test "k_shortest_paths: single path" {
   assert_eq(paths[0].0, 5)
 }
 
+///|
 test "k_shortest_paths: no path" {
   let adj : Array[Array[KEdge]] = [[], []]
   let paths = k_shortest_paths(2, adj, 0, 1, 1)

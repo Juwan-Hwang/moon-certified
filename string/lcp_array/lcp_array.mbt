@@ -45,6 +45,7 @@
 // LCP array construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the LCP array from a suffix array and the original string.
 ///
 /// # Parameters
@@ -103,6 +104,7 @@ pub fn build(sa : FixedArray[Int], s : String) -> FixedArray[Int] {
   lcp
 }
 
+///|
 /// Compute the LCP of two suffixes of `s` starting at positions `a` and `b`.
 ///
 /// This is a direct (non-amortised) comparison, used for verification and
@@ -124,6 +126,7 @@ fn lcp_direct(s : String, a : Int, b : Int) -> Int {
 // Derived queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the longest repeated substring in `s` using the LCP array.
 ///
 /// Returns `Some((start, length))` where `s[start..start+length]` is the
@@ -160,6 +163,7 @@ pub fn longest_repeated_substring(
   }
 }
 
+///|
 /// Count the number of distinct substrings of `s`.
 ///
 /// The total number of substrings of a string of length `n` is `n*(n+1)/2`.
@@ -195,6 +199,7 @@ pub fn count_distinct_substrings(
   total
 }
 
+///|
 /// Compare two suffixes of `s` lexicographically.
 /// Returns < 0 if suffix at `a` is smaller, 0 if equal, > 0 if greater.
 fn compare_suffix(s : String, a : Int, b : Int) -> Int {
@@ -221,6 +226,7 @@ fn compare_suffix(s : String, a : Int, b : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "lcp: banana" {
   // s = "banana", sa = [5, 3, 1, 0, 4, 2]
   // Suffixes sorted:
@@ -252,12 +258,14 @@ test "lcp: banana" {
   assert_eq(lcp[5], 2)
 }
 
+///|
 test "lcp: empty string" {
   let sa : FixedArray[Int] = FixedArray::make(0, 0)
   let lcp = build(sa, "")
   assert_eq(lcp.length(), 0)
 }
 
+///|
 test "lcp: single character" {
   let sa = FixedArray::make(1, 0)
   let lcp = build(sa, "a")
@@ -265,6 +273,7 @@ test "lcp: single character" {
   assert_eq(lcp[0], 0)
 }
 
+///|
 test "lcp: all same characters" {
   // s = "aaaa", sa = [3, 2, 1, 0]
   // Suffixes sorted:
@@ -285,6 +294,7 @@ test "lcp: all same characters" {
   assert_eq(lcp[3], 3)
 }
 
+///|
 test "lcp: all unique characters" {
   // s = "abcde", sa = [0, 1, 2, 3, 4]
   // Every suffix starts with a different character, so all LCPs are 0.
@@ -300,12 +310,14 @@ test "lcp: all unique characters" {
   }
 }
 
+///|
 test "lcp: mismatched sa length returns empty" {
   let sa = FixedArray::make(3, 0) // wrong length
   let lcp = build(sa, "banana") // length 6
   assert_eq(lcp.length(), 0)
 }
 
+///|
 test "lcp: verify against brute force" {
   // Verify the LCP array matches a direct comparison for "mississippi".
   let s = "mississippi"
@@ -334,6 +346,7 @@ test "lcp: verify against brute force" {
   }
 }
 
+///|
 test "lcp: longest repeated substring" {
   // s = "banana"
   // Longest repeated substring: "ana" (at positions 1 and 3)
@@ -359,6 +372,7 @@ test "lcp: longest repeated substring" {
   }
 }
 
+///|
 test "lcp: no repeated substring" {
   // s = "abcde" — all characters unique.
   let sa = FixedArray::make(5, 0)
@@ -372,6 +386,7 @@ test "lcp: no repeated substring" {
   assert_true(result is None)
 }
 
+///|
 test "lcp: count distinct substrings" {
   // s = "banana"
   // Total substrings: 6*7/2 = 21
@@ -390,6 +405,7 @@ test "lcp: count distinct substrings" {
   assert_eq(count, 15L)
 }
 
+///|
 test "lcp: count distinct substrings — all unique" {
   // s = "abc" — all unique, so 3*4/2 = 6 distinct substrings.
   let sa = FixedArray::make(3, 0)
@@ -401,6 +417,7 @@ test "lcp: count distinct substrings — all unique" {
   assert_eq(count, 6L) // 3*4/2 = 6
 }
 
+///|
 test "lcp: count distinct substrings — all same" {
   // s = "aaa" — distinct substrings are "a", "aa", "aaa" = 3.
   let sa = FixedArray::make(3, 0)
@@ -412,6 +429,7 @@ test "lcp: count distinct substrings — all same" {
   assert_eq(count, 3L) // 6 - 3 = 3 (lcp = [0, 1, 2], sum = 3)
 }
 
+///|
 test "lcp: large string consistency" {
   // Verify LCP array on a 100-character string against brute force.
   let mut s = ""

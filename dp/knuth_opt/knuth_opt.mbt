@@ -40,6 +40,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Solve the interval DP with Knuth optimisation.
 ///
 /// Computes `dp[i][j] = min_{i<k<j} { dp[i][k] + dp[k][j] } + cost(i, j)`
@@ -54,10 +55,7 @@
 /// The DP table as a flat `Int64` array of size `n * n` (row-major), where
 /// `dp[i * n + j]` is the optimal cost for interval `[i, j]`. Returns an
 /// empty array for `n < 2`.
-pub fn solve(
-  n : Int,
-  cost : (Int, Int) -> Int64,
-) -> FixedArray[Int64] {
+pub fn solve(n : Int, cost : (Int, Int) -> Int64) -> FixedArray[Int64] {
   if n < 2 {
     return FixedArray::make(0, 0L)
   }
@@ -99,6 +97,7 @@ pub fn solve(
   dp
 }
 
+///|
 /// Convenience: return only `dp[0][n-1]` (the answer for the full interval).
 pub fn solve_full(n : Int, cost : (Int, Int) -> Int64) -> Int64 {
   if n < 2 {
@@ -112,6 +111,7 @@ pub fn solve_full(n : Int, cost : (Int, Int) -> Int64) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "knuth: matrix chain multiplication" {
   // Classic example: matrix chain multiplication.
   // Matrices with dimensions p = [10, 100, 5, 50] (3 matrices).
@@ -140,18 +140,21 @@ test "knuth: matrix chain multiplication" {
   assert_eq(result[0 * n + (n - 1)], brute[0 * n + (n - 1)])
 }
 
+///|
 test "knuth: n=2" {
   let cost_fn = fn(i : Int, j : Int) -> Int64 { (i + j).to_int64() }
   let result = solve(2, cost_fn)
   assert_eq(result[0 * 2 + 1], 1L) // cost(0, 1) = 0+1 = 1
 }
 
+///|
 test "knuth: n<2 returns empty" {
   let cost_fn = fn(_ : Int, _ : Int) -> Int64 { 0L }
   let result = solve(1, cost_fn)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "knuth: cross-check with brute force (n=6)" {
   // Use a cost function that satisfies QI: cost(i, j) = sum of weights[i..j].
   let weights = [2, 3, 1, 4, 2, 5]
@@ -172,6 +175,7 @@ test "knuth: cross-check with brute force (n=6)" {
   }
 }
 
+///|
 test "knuth: cross-check with brute force (n=8)" {
   let weights = [5, 2, 8, 3, 6, 1, 4, 7]
   let n = weights.length()
@@ -191,6 +195,7 @@ test "knuth: cross-check with brute force (n=8)" {
   }
 }
 
+///|
 test "knuth: solve_full convenience" {
   let weights = [1, 2, 3]
   let n = weights.length()
@@ -210,6 +215,7 @@ test "knuth: solve_full convenience" {
 // Brute-force reference implementation for cross-checking.
 // ---------------------------------------------------------------------------
 
+///|
 fn compute_brute(n : Int, cost : (Int, Int) -> Int64) -> FixedArray[Int64] {
   let dp = FixedArray::make(n * n, 0L)
   for len = 2; len <= n; len = len + 1 {

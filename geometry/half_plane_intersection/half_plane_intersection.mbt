@@ -45,17 +45,20 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A 2D point with double-precision coordinates.
 pub struct DPoint {
   x : Double
   y : Double
 }
 
+///|
 /// Construct a [`DPoint`].
 pub fn dpoint(x : Double, y : Double) -> DPoint {
   { x, y }
 }
 
+///|
 /// A half-plane: the region to the left of the directed line `p -> q`.
 ///
 /// Concretely, a point `x` is in the half-plane iff
@@ -65,6 +68,7 @@ pub struct HalfPlane {
   q : DPoint
 }
 
+///|
 /// Construct a [`HalfPlane`] — the region to the left of the directed line
 /// `p -> q`.
 pub fn half_plane(p : DPoint, q : DPoint) -> HalfPlane {
@@ -75,8 +79,10 @@ pub fn half_plane(p : DPoint, q : DPoint) -> HalfPlane {
 // Constants & vector arithmetic
 // ---------------------------------------------------------------------------
 
+///|
 const EPS : Double = 1.0e-9
 
+///|
 /// Sign of `x` with epsilon tolerance: -1, 0, or 1.
 fn sign(x : Double) -> Int {
   if x > EPS {
@@ -88,21 +94,25 @@ fn sign(x : Double) -> Int {
   }
 }
 
+///|
 /// 2D cross product of two free vectors.
 fn cross_v(a : DPoint, b : DPoint) -> Double {
   a.x * b.y - a.y * b.x
 }
 
+///|
 /// Dot product of two free vectors.
 fn dot_v(a : DPoint, b : DPoint) -> Double {
   a.x * b.x + a.y * b.y
 }
 
+///|
 /// Direction vector of a half-plane (`q - p`).
 fn hp_dir(h : HalfPlane) -> DPoint {
   { x: h.q.x - h.p.x, y: h.q.y - h.p.y }
 }
 
+///|
 /// Signed cross of a half-plane's direction with the vector `x - h.p`.
 /// Positive => `x` lies to the left of the directed line.
 fn hp_cross(h : HalfPlane, x : DPoint) -> Double {
@@ -112,6 +122,7 @@ fn hp_cross(h : HalfPlane, x : DPoint) -> Double {
   d.x * dy - d.y * dx
 }
 
+///|
 /// Intersection point of the boundary lines of `a` and `b`.
 ///
 /// Uses the parametric formula `a.p + t * dir(a)` where
@@ -135,6 +146,7 @@ fn hp_intersect(a : HalfPlane, b : HalfPlane) -> DPoint {
 // Angle comparator (no atan2)
 // ---------------------------------------------------------------------------
 
+///|
 /// Half-plane index of a vector for polar sorting. Returns 0 for the upper
 /// open half (y > 0, or y == 0 && x > 0), 1 for the lower half. This induces
 /// a total order consistent with counterclockwise angle without calling any
@@ -147,6 +159,7 @@ fn half(v : DPoint) -> Int {
   }
 }
 
+///|
 /// Comparator: ascending polar angle (CCW) of the direction vectors.
 /// Returns a negative value when `a` should precede `b`. Two vectors in the
 /// same half are ordered by the sign of their cross product.
@@ -168,6 +181,7 @@ fn cmp_angle(a : HalfPlane, b : HalfPlane) -> Int {
   }
 }
 
+///|
 /// True iff `a` and `b` point in the same direction: parallel (cross ≈ 0)
 /// and same orientation (dot > 0).
 fn same_dir(a : HalfPlane, b : HalfPlane) -> Bool {
@@ -178,6 +192,7 @@ fn same_dir(a : HalfPlane, b : HalfPlane) -> Bool {
 // Main entry
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the intersection of `half_planes` (a convex polygon).
 ///
 /// Returns the polygon vertices in counterclockwise order. If the
@@ -248,8 +263,7 @@ pub fn intersect(half_planes : Array[HalfPlane]) -> Array[DPoint] {
     let h = uniq[idx]
     // Pop back while the last intersection point is strictly to the right of
     // `h` (i.e. outside the new half-plane).
-    while pts.length() > head &&
-      sign(hp_cross(h, pts[pts.length() - 1])) < 0 {
+    while pts.length() > head && sign(hp_cross(h, pts[pts.length() - 1])) < 0 {
       let _ = pts.pop()
       let _ = dq.pop()
     }
@@ -273,18 +287,16 @@ pub fn intersect(half_planes : Array[HalfPlane]) -> Array[DPoint] {
           }
           // Otherwise they overlap (a strip); push `h` normally. The
           // bounding box caps the strip to a finite polygon.
-        } else {
           // Same direction: keep the more restrictive (post-dedup this is
           // rare, but handled for numerical safety).
-          if cross_v(dh, h.p) > cross_v(dh, back.p) + EPS {
-            let _ = dq.pop()
-            if pts.length() > head {
-              let _ = pts.pop()
-            }
-            // Fall through: push `h` as the new back.
-          } else {
-            push_h = false
+        } else if cross_v(dh, h.p) > cross_v(dh, back.p) + EPS {
+          let _ = dq.pop()
+          if pts.length() > head {
+            let _ = pts.pop()
           }
+          // Fall through: push `h` as the new back.
+        } else {
+          push_h = false
         }
       }
     }
@@ -301,12 +313,12 @@ pub fn intersect(half_planes : Array[HalfPlane]) -> Array[DPoint] {
   // first half-plane, and pop front while the first intersection is right
   // of the last half-plane.
   while pts.length() - head >= 2 &&
-    sign(hp_cross(dq[head], pts[pts.length() - 1])) < 0 {
+        sign(hp_cross(dq[head], pts[pts.length() - 1])) < 0 {
     let _ = pts.pop()
     let _ = dq.pop()
   }
   while pts.length() - head >= 2 &&
-    sign(hp_cross(dq[dq.length() - 1], pts[head])) < 0 {
+        sign(hp_cross(dq[dq.length() - 1], pts[head])) < 0 {
     head = head + 1
   }
 
@@ -328,6 +340,7 @@ pub fn intersect(half_planes : Array[HalfPlane]) -> Array[DPoint] {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Signed area of a polygon (positive for CCW).
 fn polygon_area(poly : Array[DPoint]) -> Double {
   let n = poly.length()
@@ -342,11 +355,13 @@ fn polygon_area(poly : Array[DPoint]) -> Double {
   0.5 * s
 }
 
+///|
 /// True iff `p` lies inside (or on the boundary of) half-plane `h`.
 fn in_hp(h : HalfPlane, p : DPoint) -> Bool {
   hp_cross(h, p) >= -1.0e-7
 }
 
+///|
 /// True iff every vertex of `poly` lies inside every half-plane of `hps`.
 fn all_in(hps : Array[HalfPlane], poly : Array[DPoint]) -> Bool {
   for i = 0; i < poly.length(); i = i + 1 {
@@ -360,6 +375,7 @@ fn all_in(hps : Array[HalfPlane], poly : Array[DPoint]) -> Bool {
   true
 }
 
+///|
 /// Approximate equality for doubles within an absolute tolerance.
 fn approx(a : Double, b : Double) -> Bool {
   let d = a - b
@@ -371,6 +387,7 @@ fn approx(a : Double, b : Double) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "half_plane: unit square" {
   let hps = [
     half_plane(dpoint(0.0, 0.0), dpoint(0.0, -1.0)), // x >= 0
@@ -384,6 +401,7 @@ test "half_plane: unit square" {
   assert_true(all_in(hps, poly))
 }
 
+///|
 test "half_plane: triangle" {
   let hps = [
     half_plane(dpoint(0.0, 0.0), dpoint(0.0, -1.0)), // x >= 0
@@ -396,6 +414,7 @@ test "half_plane: triangle" {
   assert_true(all_in(hps, poly))
 }
 
+///|
 test "half_plane: empty intersection (disjoint strip)" {
   let hps = [
     half_plane(dpoint(1.0, 0.0), dpoint(1.0, -1.0)), // x >= 1
@@ -405,6 +424,7 @@ test "half_plane: empty intersection (disjoint strip)" {
   assert_eq(poly.length(), 0)
 }
 
+///|
 test "half_plane: clipped triangle (trapezoid)" {
   // x >= 0, y >= 0, x + y <= 2, x <= 1  =>  area 1.5
   let hps = [
@@ -419,6 +439,7 @@ test "half_plane: clipped triangle (trapezoid)" {
   assert_true(all_in(hps, poly))
 }
 
+///|
 test "half_plane: regular hexagon" {
   // Six half-planes, each with its boundary at distance 1 from the origin
   // (apothem 1). The intersection is a regular hexagon of area 2*sqrt(3)
@@ -443,6 +464,7 @@ test "half_plane: regular hexagon" {
   assert_true(all_in(hps, poly))
 }
 
+///|
 test "half_plane: redundant half-plane is ignored" {
   // x >= 0 plus a strictly weaker x >= -5: the result equals the box clipped
   // by x >= 0 only (a half-box). Check the leftmost vertex has x ~ 0.
@@ -460,6 +482,7 @@ test "half_plane: redundant half-plane is ignored" {
   }
 }
 
+///|
 test "half_plane: single half-plane (unbounded, clamped to box)" {
   // Only x >= 0: unbounded, clamped to the bounding box. The result is a
   // large polygon to the right of the y-axis.
@@ -472,6 +495,7 @@ test "half_plane: single half-plane (unbounded, clamped to box)" {
   assert_true(area > 1.0e17)
 }
 
+///|
 test "half_plane: point (degenerate, near-empty)" {
   // x >= 0, x <= 0, y >= 0, y <= 0 => the single point (0,0). With epsilon,
   // this yields an empty or near-empty polygon.
@@ -489,6 +513,7 @@ test "half_plane: point (degenerate, near-empty)" {
   assert_true(all_in(hps, poly))
 }
 
+///|
 test "half_plane: shifted square" {
   // Square [10, 20] x [-5, 5].
   let hps = [

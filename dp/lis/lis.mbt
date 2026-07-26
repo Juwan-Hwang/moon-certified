@@ -13,6 +13,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Length of the longest strictly-increasing subsequence of `xs`.
 ///
 /// Returns 0 for an empty array. Runs in O(n log n) time, O(n) space.
@@ -46,6 +47,7 @@ pub fn lis_length(xs : FixedArray[Int]) -> Int {
   len
 }
 
+///|
 /// Reconstruct one longest strictly-increasing subsequence of `xs`.
 ///
 /// Returns the values (not indices) of an actual LIS, in increasing order.
@@ -95,6 +97,7 @@ pub fn lis_sequence(xs : FixedArray[Int]) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Check that `seq` is a strictly-increasing subsequence of `xs`.
 fn is_valid_subsequence(xs : FixedArray[Int], seq : FixedArray[Int]) -> Bool {
   let n = xs.length()
@@ -118,6 +121,7 @@ fn is_valid_subsequence(xs : FixedArray[Int], seq : FixedArray[Int]) -> Bool {
   j == m
 }
 
+///|
 test "lis_length: basic" {
   // [10,9,2,5,3,7,101,18] -> LIS length 4 ([2,3,7,101] or [2,5,7,101]).
   let xs = FixedArray::make(8, 0)
@@ -132,32 +136,38 @@ test "lis_length: basic" {
   assert_eq(lis_length(xs), 4)
 }
 
+///|
 test "lis_length: empty" {
   let xs = FixedArray::make(0, 0)
   assert_eq(lis_length(xs), 0)
 }
 
+///|
 test "lis_length: single element" {
   let xs = FixedArray::make(1, 0)
   xs[0] = 42
   assert_eq(lis_length(xs), 1)
 }
 
+///|
 test "lis_length: all increasing" {
   let xs = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   assert_eq(lis_length(xs), 5)
 }
 
+///|
 test "lis_length: all decreasing" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5,4,3,2,1]
   assert_eq(lis_length(xs), 1)
 }
 
+///|
 test "lis_length: all equal" {
   let xs = FixedArray::make(4, 7) // [7,7,7,7]
   assert_eq(lis_length(xs), 1)
 }
 
+///|
 test "lis_length: with duplicates" {
   // [1,3,3,2] -> strictly-increasing LIS length 2 ([1,3] or [1,2]).
   let xs = FixedArray::make(4, 0)
@@ -168,6 +178,7 @@ test "lis_length: with duplicates" {
   assert_eq(lis_length(xs), 2)
 }
 
+///|
 test "lis_length: large random 100 elements" {
   let xs = FixedArray::makei(100, fn(i) { (i * 37 + 11) % 97 })
   let l = lis_length(xs)
@@ -188,6 +199,7 @@ test "lis_length: large random 100 elements" {
   assert_eq(l, brute)
 }
 
+///|
 test "lis_sequence: basic reconstruction" {
   let xs = FixedArray::make(8, 0)
   xs[0] = 10
@@ -203,12 +215,14 @@ test "lis_sequence: basic reconstruction" {
   assert_true(is_valid_subsequence(xs, seq))
 }
 
+///|
 test "lis_sequence: empty returns empty" {
   let xs = FixedArray::make(0, 0)
   let seq = lis_sequence(xs)
   assert_eq(seq.length(), 0)
 }
 
+///|
 test "lis_sequence: single element" {
   let xs = FixedArray::make(1, 0)
   xs[0] = 42
@@ -218,6 +232,7 @@ test "lis_sequence: single element" {
   assert_true(is_valid_subsequence(xs, seq))
 }
 
+///|
 test "lis_sequence: all increasing" {
   let xs = FixedArray::makei(5, fn(i) { i + 1 })
   let seq = lis_sequence(xs)
@@ -225,6 +240,7 @@ test "lis_sequence: all increasing" {
   assert_true(is_valid_subsequence(xs, seq))
 }
 
+///|
 test "lis_sequence: all equal" {
   let xs = FixedArray::make(4, 7)
   let seq = lis_sequence(xs)
@@ -232,6 +248,7 @@ test "lis_sequence: all equal" {
   assert_true(is_valid_subsequence(xs, seq))
 }
 
+///|
 test "lis_sequence: length matches lis_length" {
   let xs = FixedArray::makei(100, fn(i) { (i * 37 + 11) % 97 })
   let seq = lis_sequence(xs)

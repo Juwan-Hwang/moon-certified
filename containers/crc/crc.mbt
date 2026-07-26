@@ -79,25 +79,31 @@
 // Polynomials and parameters
 // ---------------------------------------------------------------------------
 
+///|
 /// CRC-32 generator polynomial in *reflected* (LSB-first) form.
 /// `0xEDB88320` is the bit-reversal of `0x04C11DB7` (the IEEE 802.3 /
 /// ISO-HDLC polynomial). Used by Ethernet, ZIP, PNG, gzip.
 const CRC32_POLY : UInt = 0xEDB88320U
 
+///|
 /// CRC-16/CCITT generator polynomial `0x1021` (normal, MSB-first form).
 /// `0x1021` = x^16 + x^12 + x^5 + 1, the CCITT-recommended polynomial.
 const CRC16_CCITT_POLY : Int = 0x1021
 
+///|
 /// CRC-16/Modbus generator polynomial in *reflected* form.
 /// `0xA001` is the bit-reversal of `0x8005` (the ARC / Modbus polynomial).
 const CRC16_MODBUS_POLY : Int = 0xA001
 
+///|
 /// Initial register value shared by all three variants.
 /// CRC-32, CRC-16/CCITT-FALSE and CRC-16/Modbus all initialise to all-ones.
 const CRC32_INIT : UInt = 0xFFFFFFFFU
 
+///|
 const CRC16_INIT : Int = 0xFFFF
 
+///|
 /// Final XOR applied to CRC-32 (the all-ones complement that turns the
 /// running remainder into the conventional check value).
 const CRC32_XOROUT : UInt = 0xFFFFFFFFU
@@ -112,6 +118,7 @@ const CRC32_XOROUT : UInt = 0xFFFFFFFFU
 // a single index + XOR regardless of the byte's value (true O(n) checksumming
 // with no bit loop on the hot path).
 
+///|
 /// Build the 256-entry reflected CRC table for `poly` (LSB-first engine).
 ///
 /// For each index `i` in `[0,256)`, simulate processing the *low* byte `i`
@@ -135,6 +142,7 @@ fn build_reflected_table(poly : UInt) -> FixedArray[UInt] {
   table
 }
 
+///|
 /// Build the 256-entry reflected CRC-16 table for `poly` (LSB-first engine,
 /// 16-bit residuals).
 ///
@@ -159,6 +167,7 @@ fn build_reflected_table16(poly : Int) -> FixedArray[Int] {
   table
 }
 
+///|
 /// Build the 256-entry **non-reflected** CRC-16 table for `poly` (MSB-first
 /// engine).
 ///
@@ -184,20 +193,28 @@ fn build_nonreflected_table(poly : Int) -> FixedArray[Int] {
   table
 }
 
+///|
 /// Precomputed CRC-32 (reflected) lookup table. `table[1] == 0x77073096` is the
 /// canonical first entry of the IEEE 802.3 table.
 let crc32_table : FixedArray[UInt] = build_reflected_table(CRC32_POLY)
 
+///|
 /// Precomputed CRC-16/CCITT-FALSE (non-reflected) lookup table.
-let crc16_ccitt_table : FixedArray[Int] = build_nonreflected_table(CRC16_CCITT_POLY)
+let crc16_ccitt_table : FixedArray[Int] = build_nonreflected_table(
+  CRC16_CCITT_POLY,
+)
 
+///|
 /// Precomputed CRC-16/Modbus (reflected) lookup table.
-let crc16_modbus_table : FixedArray[Int] = build_reflected_table16(CRC16_MODBUS_POLY)
+let crc16_modbus_table : FixedArray[Int] = build_reflected_table16(
+  CRC16_MODBUS_POLY,
+)
 
 // ---------------------------------------------------------------------------
 // UTF-8 streaming encoder (shared by crc32_str and the test cross-check)
 // ---------------------------------------------------------------------------
 
+///|
 /// Emit the 1–4 UTF-8 bytes of a single Unicode code point `cp` via `emit`.
 ///
 /// Factored out so that [`crc32_str`] can stream bytes straight into the CRC
@@ -228,6 +245,7 @@ fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
   }
 }
 
+///|
 /// Materialise the UTF-8 encoding of `s` as a fresh `FixedArray[Byte]`.
 ///
 /// Used only by tests to build the byte array fed to [`crc32`] for the
@@ -245,6 +263,7 @@ fn utf8_bytes(s : String) -> FixedArray[Byte] {
 // CRC-32 (IEEE 802.3 / ISO-HDLC) — reflected, table-driven
 // ---------------------------------------------------------------------------
 
+///|
 /// Advance the CRC-32 register by one byte (reflected engine).
 ///
 ///   idx  = (crc XOR byte) & 0xFF
@@ -258,6 +277,7 @@ fn crc32_step(crc : UInt, byte : Byte) -> UInt {
   (crc >> 8) ^ crc32_table[idx]
 }
 
+///|
 /// Compute CRC-32 (IEEE 802.3, reflected, init/xorout `0xFFFFFFFF`) of `data`.
 ///
 /// Returns `0` for empty input (init XOR xorout = `0xFFFFFFFF ^ 0xFFFFFFFF`).
@@ -270,6 +290,7 @@ pub fn crc32(data : FixedArray[Byte]) -> UInt {
   crc ^ CRC32_XOROUT
 }
 
+///|
 /// Compute CRC-32 of the **UTF-8 encoding** of `data`.
 ///
 /// The string's Unicode code points (MoonBit `String::iter` correctly combines
@@ -291,6 +312,7 @@ pub fn crc32_str(data : String) -> UInt {
 // CRC-16/CCITT-FALSE — non-reflected, table-driven
 // ---------------------------------------------------------------------------
 
+///|
 /// Advance the CRC-16/CCITT-FALSE register by one byte (non-reflected engine).
 ///
 ///   idx  = ((crc >> 8) XOR byte) & 0xFF
@@ -304,6 +326,7 @@ fn crc16_ccitt_step(crc : Int, byte : Byte) -> Int {
   ((crc << 8) ^ crc16_ccitt_table[idx]) & 0xFFFF
 }
 
+///|
 /// Compute CRC-16/CCITT-FALSE (poly `0x1021`, init `0xFFFF`, non-reflected,
 /// xorout `0x0000`) of `data`.
 ///
@@ -321,6 +344,7 @@ pub fn crc16_ccitt(data : FixedArray[Byte]) -> Int {
 // CRC-16/Modbus — reflected, table-driven
 // ---------------------------------------------------------------------------
 
+///|
 /// Advance the CRC-16/Modbus register by one byte (reflected engine).
 ///
 ///   idx  = (crc XOR byte) & 0xFF
@@ -333,6 +357,7 @@ fn crc16_modbus_step(crc : Int, byte : Byte) -> Int {
   (crc >> 8) ^ crc16_modbus_table[idx]
 }
 
+///|
 /// Compute CRC-16/Modbus (poly `0xA001` reflected, init `0xFFFF`, reflected,
 /// xorout `0x0000`) of `data`.
 ///
@@ -354,6 +379,7 @@ pub fn crc16_modbus(data : FixedArray[Byte]) -> Int {
 // (Python's `zlib.crc32` for CRC-32 and a from-scratch bit-by-bit model for the
 // CRC-16 variants), then pinned here as literals so the tests stay self-contained.
 
+///|
 /// Test helper: build a `FixedArray[Byte]` from a list of integer byte values.
 fn bytes_of(list : Array[Int]) -> FixedArray[Byte] {
   let n = list.length()
@@ -364,6 +390,7 @@ fn bytes_of(list : Array[Int]) -> FixedArray[Byte] {
   arr
 }
 
+///|
 /// ASCII bytes of a (ASCII-only) string — for building CRC-16 test inputs.
 fn ascii_bytes(s : String) -> FixedArray[Byte] {
   let n = s.length()
@@ -376,6 +403,7 @@ fn ascii_bytes(s : String) -> FixedArray[Byte] {
 
 // --- precomputed-table sanity ------------------------------------------------
 
+///|
 test "crc: lookup tables are precomputed at init" {
   // Canonical first entries of each standard table — proves the top-level
   // `let` builders ran at module load.
@@ -396,12 +424,14 @@ test "crc: lookup tables are precomputed at init" {
 
 // --- CRC-32: known test vectors ---------------------------------------------
 
+///|
 test "crc32: check value 123456789 = 0xCBF43926" {
   // The canonical CRC-32 check value (catalogue: CRC-32/ISO-HDLC).
   assert_eq(crc32_str("123456789"), 0xCBF43926U)
   assert_eq(crc32(ascii_bytes("123456789")), 0xCBF43926U)
 }
 
+///|
 test "crc32: empty input is zero" {
   // init 0xFFFFFFFF XOR xorout 0xFFFFFFFF == 0.
   assert_eq(crc32_str(""), 0U)
@@ -409,6 +439,7 @@ test "crc32: empty input is zero" {
   assert_eq(crc32(empty), 0U)
 }
 
+///|
 test "crc32: single byte" {
   // CRC-32 of 0x61 ('a') and 0x41 ('A').
   assert_eq(crc32_str("a"), 0xE8B7BE43U)
@@ -417,6 +448,7 @@ test "crc32: single byte" {
   assert_eq(crc32(bytes_of([0])), 0xD202EF8DU) // single zero byte
 }
 
+///|
 test "crc32: known patterns all-zeros and all-0xFF" {
   // 4 zero bytes.
   assert_eq(crc32(FixedArray::make(4, b'\x00')), 0x2144DF1CU)
@@ -430,6 +462,7 @@ test "crc32: known patterns all-zeros and all-0xFF" {
   assert_eq(crc32(FixedArray::make(8, b'\xFF')), 0x2144DF1CU)
 }
 
+///|
 test "crc32: common ASCII strings" {
   assert_eq(crc32_str("hello"), 0x3610A686U)
   assert_eq(crc32(ascii_bytes("hello")), 0x3610A686U)
@@ -439,6 +472,7 @@ test "crc32: common ASCII strings" {
   )
 }
 
+///|
 test "crc32: UTF-8 multibyte strings" {
   // 'é' is U+00E9 -> UTF-8 0xC3 0xA9, so "héllo" is 6 bytes.
   assert_eq(crc32_str("héllo"), 0x9E3B8236U)
@@ -452,17 +486,20 @@ test "crc32: UTF-8 multibyte strings" {
   assert_eq(crc32_str("abc你好123"), 0xF197002DU)
 }
 
+///|
 test "crc32: cross-check crc32_str vs crc32 on identical bytes" {
   // For every string, the streaming UTF-8 path must agree with materialising
   // the UTF-8 bytes and calling crc32 — including multibyte code points.
-  for s in [
-    "", "a", "123456789", "hello", "The quick brown fox jumps over the lazy dog",
-    "héllo", "π", "€", "你", "abc你好123", "🌟✨", // 4-byte emoji
-  ] {
+  for
+    s in [
+      "", "a", "123456789", "hello", "The quick brown fox jumps over the lazy dog",
+      "héllo", "π", "€", "你", "abc你好123", "🌟✨", // 4-byte emoji
+    ] {
     assert_eq(crc32_str(s), crc32(utf8_bytes(s)))
   }
 }
 
+///|
 test "crc32: incremental composition matches whole" {
   // CRC of A++B equals folding B's bytes onto the running register of A
   // (without the final xorout). This verifies the per-byte step is the true
@@ -481,6 +518,7 @@ test "crc32: incremental composition matches whole" {
   assert_eq(crc ^ CRC32_XOROUT, crc32(ab))
 }
 
+///|
 test "crc32: large input is O(n) and stable" {
   // 4096 bytes of a repeating pattern; just assert it matches the reference
   // computed over the same materialised bytes (no hard-coded literal needed —
@@ -501,21 +539,25 @@ test "crc32: large input is O(n) and stable" {
 
 // --- CRC-16/CCITT-FALSE: known test vectors ---------------------------------
 
+///|
 test "crc16_ccitt: check value 123456789 = 0x29B1" {
   assert_eq(crc16_ccitt(ascii_bytes("123456789")), 0x29B1)
   assert_eq(crc16_ccitt(bytes_of([49, 50, 51, 52, 53, 54, 55, 56, 57])), 0x29B1)
 }
 
+///|
 test "crc16_ccitt: empty input is init 0xFFFF" {
   let empty : FixedArray[Byte] = FixedArray::make(0, b'\x00')
   assert_eq(crc16_ccitt(empty), 0xFFFF)
 }
 
+///|
 test "crc16_ccitt: single byte" {
   assert_eq(crc16_ccitt(bytes_of([97])), 0x9D77) // 'a' = 0x61
   assert_eq(crc16_ccitt(bytes_of([0])), 0xE1F0) // single zero byte
 }
 
+///|
 test "crc16_ccitt: known patterns all-zeros and all-0xFF" {
   assert_eq(crc16_ccitt(FixedArray::make(4, b'\x00')), 0x84C0)
   assert_eq(crc16_ccitt(FixedArray::make(4, b'\xFF')), 0x1D0F)
@@ -527,16 +569,22 @@ test "crc16_ccitt: known patterns all-zeros and all-0xFF" {
 
 // --- CRC-16/Modbus: known test vectors --------------------------------------
 
+///|
 test "crc16_modbus: check value 123456789 = 0x4B37" {
   assert_eq(crc16_modbus(ascii_bytes("123456789")), 0x4B37)
-  assert_eq(crc16_modbus(bytes_of([49, 50, 51, 52, 53, 54, 55, 56, 57])), 0x4B37)
+  assert_eq(
+    crc16_modbus(bytes_of([49, 50, 51, 52, 53, 54, 55, 56, 57])),
+    0x4B37,
+  )
 }
 
+///|
 test "crc16_modbus: empty input is init 0xFFFF" {
   let empty : FixedArray[Byte] = FixedArray::make(0, b'\x00')
   assert_eq(crc16_modbus(empty), 0xFFFF)
 }
 
+///|
 test "crc16_modbus: single byte" {
   assert_eq(crc16_modbus(bytes_of([97])), 0xA87E) // 'a' = 0x61
   // A zero byte is *not* a no-op: it XORs into the low byte of the register and
@@ -545,6 +593,7 @@ test "crc16_modbus: single byte" {
   assert_eq(crc16_modbus(bytes_of([0])), 0x40BF)
 }
 
+///|
 test "crc16_modbus: known patterns all-zeros and all-0xFF" {
   assert_eq(crc16_modbus(FixedArray::make(4, b'\x00')), 0x2400)
   assert_eq(crc16_modbus(FixedArray::make(4, b'\xFF')), 0xB001)
@@ -556,6 +605,7 @@ test "crc16_modbus: known patterns all-zeros and all-0xFF" {
 
 // --- cross-variant sanity ----------------------------------------------------
 
+///|
 test "crc: distinct variants give distinct checksums for same input" {
   // The three CRCs are different functions; for a non-trivial input they must
   // not collide with each other (sanity, not a proof of collision-resistance).
@@ -570,6 +620,7 @@ test "crc: distinct variants give distinct checksums for same input" {
   assert_true(c16m >= 0 && c16m <= 0xFFFF)
 }
 
+///|
 test "crc: byte order sensitivity" {
   // Reversing bytes changes the CRC (the polynomial division is order-sensitive).
   let fwd = ascii_bytes("abc")

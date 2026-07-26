@@ -43,22 +43,26 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A line `y = m * x + b` with `Int64` coefficients.
 pub struct Line {
   m : Int64
   b : Int64
 }
 
+///|
 /// Construct a [`Line`].
 pub fn line(m : Int64, b : Int64) -> Line {
   { m, b }
 }
 
+///|
 /// Evaluate the line at `x`.
 pub fn eval(l : Line, x : Int64) -> Int64 {
   l.m * x + l.b
 }
 
+///|
 /// Monotonic-deque Convex Hull Trick for **minimum** queries.
 ///
 /// Lines must be inserted in **non-increasing** order of slope `m`.
@@ -73,11 +77,13 @@ pub struct CHTMin {
   mut head : Int
 }
 
+///|
 /// Create an empty [`CHTMin`].
 pub fn new_min() -> CHTMin {
   { lines: [], head: 0 }
 }
 
+///|
 /// Insert a line into the min-hull.
 ///
 /// **Precondition**: slopes must be inserted in non-increasing order.
@@ -111,6 +117,7 @@ pub fn insert_min(cht : CHTMin, l : Line) -> Unit {
   cht.lines.push(l)
 }
 
+///|
 /// Query the minimum value at `x`.
 ///
 /// **Precondition**: queries must be made in non-decreasing order of `x`.
@@ -128,6 +135,7 @@ pub fn query_min(cht : CHTMin, x : Int64) -> Int64 {
   eval(cht.lines[cht.head], x)
 }
 
+///|
 /// Binary-search variant: query the minimum at an arbitrary `x` (not requiring
 /// monotonic query order). O(log n) per query.
 pub fn query_min_bs(cht : CHTMin, x : Int64) -> Int64 {
@@ -157,6 +165,7 @@ pub fn query_min_bs(cht : CHTMin, x : Int64) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "cht: single line" {
   let cht = new_min()
   insert_min(cht, line(2L, 3L)) // y = 2x + 3
@@ -164,6 +173,7 @@ test "cht: single line" {
   assert_eq(query_min(cht, 5L), 13L)
 }
 
+///|
 test "cht: two lines, first always better" {
   let cht = new_min()
   // Non-increasing slopes: 2, then 1.
@@ -177,6 +187,7 @@ test "cht: two lines, first always better" {
   assert_eq(query_min(cht, 20L), 20L)
 }
 
+///|
 test "cht: two lines, crossover" {
   let cht = new_min()
   // Non-increasing slopes: 3, then 1.
@@ -193,6 +204,7 @@ test "cht: two lines, crossover" {
   assert_eq(query_min(cht, 10L), 20L)
 }
 
+///|
 test "cht: redundant middle line removed" {
   let cht = new_min()
   // Three lines with non-increasing slopes: 3, 2, 1.
@@ -210,6 +222,7 @@ test "cht: redundant middle line removed" {
   assert_eq(query_min(cht, 10L), 20L)
 }
 
+///|
 test "cht: dp optimization example" {
   // Lines with non-increasing slopes: 3, 2, 1.
   // y = 3x - 12, y = 2x - 5, y = x
@@ -226,6 +239,7 @@ test "cht: dp optimization example" {
   assert_eq(query_min(cht, 10L), 10L)
 }
 
+///|
 test "cht: binary search query (non-monotonic)" {
   let cht = new_min()
   // Non-increasing slopes: 3, 2, 1.
@@ -239,11 +253,13 @@ test "cht: binary search query (non-monotonic)" {
   assert_eq(query_min_bs(cht, 3L), 9L)
 }
 
+///|
 test "cht: empty hull returns zero" {
   let cht = new_min()
   assert_eq(query_min_bs(cht, 5L), 0L)
 }
 
+///|
 test "cht: overflow safety" {
   let cht = new_min()
   // Large slopes and intercepts that would overflow Int32.
@@ -256,6 +272,7 @@ test "cht: overflow safety" {
   assert_true(result > 0L)
 }
 
+///|
 test "cht: many lines stress" {
   // Insert 100 lines with non-increasing slopes, query increasing x.
   let cht = new_min()

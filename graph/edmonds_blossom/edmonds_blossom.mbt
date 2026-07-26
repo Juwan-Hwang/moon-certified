@@ -42,6 +42,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A general-graph matching result.
 ///
 /// `matches[v]` is the vertex that `v` is matched to, or `-1` if `v` is
@@ -51,11 +52,13 @@ pub struct Matching {
   card : Int
 }
 
+///|
 /// Accessor: the vertex matched to `v`, or `-1` if unmatched.
 pub fn partner(m : Matching, v : Int) -> Int {
   m.matches[v]
 }
 
+///|
 /// Number of matched edges (half the number of matched vertices).
 pub fn cardinality(m : Matching) -> Int {
   m.card
@@ -65,15 +68,18 @@ pub fn cardinality(m : Matching) -> Int {
 // Union-Find for blossom contraction
 // ---------------------------------------------------------------------------
 
+///|
 priv struct UnionFind {
   parent : FixedArray[Int]
   rank : FixedArray[Int]
 }
 
+///|
 fn uf_new(n : Int) -> UnionFind {
   { parent: FixedArray::makei(n, fn(i) { i }), rank: FixedArray::make(n, 0) }
 }
 
+///|
 fn uf_find(uf : UnionFind, x : Int) -> Int {
   let mut x = x
   while uf.parent[x] != x {
@@ -83,6 +89,7 @@ fn uf_find(uf : UnionFind, x : Int) -> Int {
   x
 }
 
+///|
 fn uf_union(uf : UnionFind, a : Int, b : Int) -> Unit {
   let ra = uf_find(uf, a)
   let rb = uf_find(uf, b)
@@ -103,9 +110,13 @@ fn uf_union(uf : UnionFind, a : Int, b : Int) -> Unit {
 // Core Blossom algorithm
 // ---------------------------------------------------------------------------
 
+///|
 const UNMATCHED : Int = -1
+
+///|
 const NIL : Int = -1
 
+///|
 /// BFS state for a single augmenting-path search.
 priv struct BFSState {
   n : Int
@@ -123,6 +134,7 @@ priv struct BFSState {
   mut q_head : Int
 }
 
+///|
 fn bfs_state(
   n : Int,
   adj : Array[Array[Int]],
@@ -141,13 +153,10 @@ fn bfs_state(
   }
 }
 
+///|
 /// Find the least common ancestor of u and v in the alternating tree.
 /// This identifies the base of the blossom formed by the edge (u, v).
-fn lca_blossom(
-  st : BFSState,
-  u_in : Int,
-  v_in : Int,
-) -> Int {
+fn lca_blossom(st : BFSState, u_in : Int, v_in : Int) -> Int {
   // Walk up from u and v alternately, marking visited vertices.
   let visited = FixedArray::make(st.n, false)
   let mut u = uf_find(st.uf, u_in)
@@ -183,6 +192,7 @@ fn lca_blossom(
   NIL
 }
 
+///|
 /// Mark the path from vertex `x` up to the blossom base `a` as part of the
 /// blossom. This contracts the odd cycle into a single super-vertex.
 fn mark_blossom(st : BFSState, x_in : Int, a : Int) -> Unit {
@@ -206,25 +216,19 @@ fn mark_blossom(st : BFSState, x_in : Int, a : Int) -> Unit {
   }
 }
 
+///|
 /// Contract the blossom formed by the edge (u, v) with base `a`.
 /// All vertices on the odd cycle are merged into one super-vertex.
-fn contract_blossom(
-  st : BFSState,
-  u : Int,
-  v : Int,
-  a : Int,
-) -> Unit {
+fn contract_blossom(st : BFSState, u : Int, v : Int, a : Int) -> Unit {
   // Mark both sides of the cycle.
   mark_blossom(st, u, a)
   mark_blossom(st, v, a)
 }
 
+///|
 /// Try to find an augmenting path starting from `root` (an unmatched vertex).
 /// Returns `true` if augmentation was found (matching updated).
-fn find_augmenting_path(
-  st : BFSState,
-  root : Int,
-) -> Bool {
+fn find_augmenting_path(st : BFSState, root : Int) -> Bool {
   // Reset BFS state for this root.
   for i = 0; i < st.n; i = i + 1 {
     st.label[i] = 0
@@ -311,6 +315,7 @@ fn find_augmenting_path(
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the maximum cardinality matching in a general undirected graph.
 ///
 /// # Parameters
@@ -346,14 +351,12 @@ pub fn max_matching(adj : Array[Array[Int]], n : Int) -> Matching {
   { matches: match_arr, card }
 }
 
+///|
 /// Compute the maximum cardinality matching from a flat edge list.
 ///
 /// Convenience wrapper that builds the adjacency list from a list of edges
 /// given as `(u, v)` pairs.
-pub fn max_matching_from_edges(
-  edges : Array[(Int, Int)],
-  n : Int,
-) -> Matching {
+pub fn max_matching_from_edges(edges : Array[(Int, Int)], n : Int) -> Matching {
   let adj : Array[Array[Int]] = []
   for i = 0; i < n; i = i + 1 {
     adj.push([])
@@ -372,6 +375,7 @@ pub fn max_matching_from_edges(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "edmonds_blossom: simple path of 3 vertices" {
   // 0 - 1 - 2: maximum matching is {(0,1)}, cardinality 1
   let adj : Array[Array[Int]] = [[1], [0, 2], [1]]
@@ -379,6 +383,7 @@ test "edmonds_blossom: simple path of 3 vertices" {
   assert_eq(m.card, 1)
 }
 
+///|
 test "edmonds_blossom: triangle (odd cycle)" {
   // 0 - 1 - 2 - 0: triangle. Maximum matching is 1 edge.
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1]]
@@ -392,42 +397,45 @@ test "edmonds_blossom: triangle (odd cycle)" {
   }
 }
 
+///|
 test "edmonds_blossom: pentagon (5-cycle, blossom)" {
   // 0-1-2-3-4-0: odd cycle of length 5. Max matching = 2.
-  let adj : Array[Array[Int]] = [
-    [1, 4], [0, 2], [1, 3], [2, 4], [3, 0],
-  ]
+  let adj : Array[Array[Int]] = [[1, 4], [0, 2], [1, 3], [2, 4], [3, 0]]
   let m = max_matching(adj, 5)
   assert_eq(m.card, 2)
 }
 
+///|
 test "edmonds_blossom: complete graph K4" {
   // K4: max matching = 2
-  let adj : Array[Array[Int]] = [
-    [1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2],
-  ]
+  let adj : Array[Array[Int]] = [[1, 2, 3], [0, 2, 3], [0, 1, 3], [0, 1, 2]]
   let m = max_matching(adj, 4)
   assert_eq(m.card, 2)
 }
 
+///|
 test "edmonds_blossom: complete graph K5 (odd, blossom)" {
   // K5: max matching = 2 (floor(5/2))
   let adj : Array[Array[Int]] = [
-    [1, 2, 3, 4], [0, 2, 3, 4], [0, 1, 3, 4], [0, 1, 2, 4], [0, 1, 2, 3],
+    [1, 2, 3, 4],
+    [0, 2, 3, 4],
+    [0, 1, 3, 4],
+    [0, 1, 2, 4],
+    [0, 1, 2, 3],
   ]
   let m = max_matching(adj, 5)
   assert_eq(m.card, 2)
 }
 
+///|
 test "edmonds_blossom: path of 6 vertices" {
   // 0-1-2-3-4-5: max matching = 3
-  let adj : Array[Array[Int]] = [
-    [1], [0, 2], [1, 3], [2, 4], [3, 5], [4],
-  ]
+  let adj : Array[Array[Int]] = [[1], [0, 2], [1, 3], [2, 4], [3, 5], [4]]
   let m = max_matching(adj, 6)
   assert_eq(m.card, 3)
 }
 
+///|
 test "edmonds_blossom: star graph" {
   // 0 connected to 1,2,3: max matching = 1
   let adj : Array[Array[Int]] = [[1, 2, 3], [0], [0], [0]]
@@ -435,11 +443,17 @@ test "edmonds_blossom: star graph" {
   assert_eq(m.card, 1)
 }
 
+///|
 test "edmonds_blossom: two triangles connected" {
   // 0-1-2-0 and 3-4-5-3, plus edge 2-3
   // Max matching = 3 (one per triangle + the bridge, or 2 per triangle region)
   let adj : Array[Array[Int]] = [
-    [1, 2], [0, 2], [0, 1, 3], [2, 4, 5], [3, 5], [3, 4],
+    [1, 2],
+    [0, 2],
+    [0, 1, 3],
+    [2, 4, 5],
+    [3, 5],
+    [3, 4],
   ]
   let m = max_matching(adj, 6)
   // Max matching is at least 2 (one per triangle), could be 3 with bridge
@@ -447,12 +461,14 @@ test "edmonds_blossom: two triangles connected" {
   assert_true(m.card <= 3)
 }
 
+///|
 test "edmonds_blossom: empty graph" {
   let adj : Array[Array[Int]] = [[], [], []]
   let m = max_matching(adj, 3)
   assert_eq(m.card, 0)
 }
 
+///|
 test "edmonds_blossom: single edge" {
   let adj : Array[Array[Int]] = [[1], [0]]
   let m = max_matching(adj, 2)
@@ -461,18 +477,25 @@ test "edmonds_blossom: single edge" {
   assert_eq(m.matches[1], 0)
 }
 
+///|
 test "edmonds_blossom: from edges" {
   let edges : Array[(Int, Int)] = [(0, 1), (1, 2), (2, 3), (3, 4)]
   let m = max_matching_from_edges(edges, 5)
   assert_eq(m.card, 2)
 }
 
+///|
 test "edmonds_blossom: Petersen-like graph" {
   // A graph that requires multiple blossom contractions.
   // Outer 5-cycle: 0-1-2-3-4-0
   // Inner star: 0-5, 1-5, 2-5, 3-5, 4-5
   let adj : Array[Array[Int]] = [
-    [1, 4, 5], [0, 2, 5], [1, 3, 5], [2, 4, 5], [3, 0, 5], [0, 1, 2, 3, 4],
+    [1, 4, 5],
+    [0, 2, 5],
+    [1, 3, 5],
+    [2, 4, 5],
+    [3, 0, 5],
+    [0, 1, 2, 3, 4],
   ]
   let m = max_matching(adj, 6)
   // Max matching: floor(6/2) = 3
@@ -480,12 +503,11 @@ test "edmonds_blossom: Petersen-like graph" {
   assert_true(m.card <= 3)
 }
 
+///|
 test "edmonds_blossom: matching validity" {
   // Verify that the matching is valid: if v is matched to u, then u is
   // matched to v.
-  let adj : Array[Array[Int]] = [
-    [1, 2, 3], [0, 2], [0, 1, 3], [0, 2],
-  ]
+  let adj : Array[Array[Int]] = [[1, 2, 3], [0, 2], [0, 1, 3], [0, 2]]
   let m = max_matching(adj, 4)
   for v = 0; v < 4; v = v + 1 {
     if m.matches[v] != UNMATCHED {

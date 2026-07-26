@@ -14,9 +14,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is ensured by the test suite.
 
+///|
 /// Maximum Int64 value, used for overflow detection.
 let int64_max : Int64 = 9223372036854775807L
 
+///|
 /// Compute n! (factorial). Returns `None` if n < 0 or n! overflows Int64.
 /// n! is defined for n >= 0; 0! = 1.
 pub fn factorial(n : Int) -> Int? {
@@ -39,6 +41,7 @@ pub fn factorial(n : Int) -> Int? {
   }
 }
 
+///|
 /// Compute the falling factorial P(n, k) = n! / (n-k)! = n * (n-1) * ... * (n-k+1).
 /// Returns `None` if inputs are invalid or the result overflows.
 pub fn permutation(n : Int, k : Int) -> Int? {
@@ -61,6 +64,7 @@ pub fn permutation(n : Int, k : Int) -> Int? {
   }
 }
 
+///|
 /// Compute the binomial coefficient C(n, k) = n! / (k! * (n-k)!).
 ///
 /// Uses the multiplicative formula: C(n,k) = product_{i=1}^{k} (n-k+i)/i.
@@ -101,6 +105,7 @@ pub fn binomial(n : Int, k : Int) -> Int? {
   Some(result.to_int())
 }
 
+///|
 /// Compute the n-th Catalan number: C(n) = C(2n, n) / (n+1).
 ///
 /// Catalan numbers: 1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862, ...
@@ -135,6 +140,7 @@ pub fn catalan(n : Int) -> Int? {
   }
 }
 
+///|
 /// Compute Stirling numbers of the second kind S(n, k).
 ///
 /// S(n, k) counts the number of ways to partition a set of n elements
@@ -168,7 +174,7 @@ pub fn stirling2(n : Int, k : Int) -> Int? {
       // S(i, j) = j * S(i-1, j) + S(i-1, j-1)
       // dp[j] currently holds S(i-1, j)
       // dp[j-1] currently holds S(i-1, j-1) (not yet updated)
-      let s_prev_j = dp[j]       // S(i-1, j)
+      let s_prev_j = dp[j] // S(i-1, j)
       let s_prev_jm1 = dp[j - 1] // S(i-1, j-1)
       // Overflow-safe computation: check BEFORE each operation rather
       // than detecting wraparound after the fact.  j is a small Int
@@ -201,6 +207,7 @@ pub fn stirling2(n : Int, k : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "factorial: basic" {
   assert_eq(factorial(0), Some(1))
   assert_eq(factorial(1), Some(1))
@@ -209,36 +216,42 @@ test "factorial: basic" {
   assert_eq(factorial(12), Some(479001600))
 }
 
+///|
 test "factorial: negative returns None" {
   assert_true(factorial(-1) is None)
 }
 
+///|
 test "factorial: overflow returns None" {
   assert_true(factorial(13) is None) // 13! = 6227020800 > Int32 max
 }
 
+///|
 test "permutation: basic" {
-  assert_eq(permutation(5, 3), Some(60))   // 5*4*3
+  assert_eq(permutation(5, 3), Some(60)) // 5*4*3
   assert_eq(permutation(5, 0), Some(1))
   assert_eq(permutation(5, 5), Some(120))
   assert_eq(permutation(10, 3), Some(720))
 }
 
+///|
 test "permutation: invalid" {
   assert_true(permutation(-1, 0) is None)
   assert_true(permutation(5, 6) is None)
   assert_true(permutation(5, -1) is None)
 }
 
+///|
 test "binomial: basic" {
   assert_eq(binomial(5, 2), Some(10))
-  assert_eq(binomial(5, 3), Some(10))  // symmetry
+  assert_eq(binomial(5, 3), Some(10)) // symmetry
   assert_eq(binomial(5, 0), Some(1))
   assert_eq(binomial(5, 5), Some(1))
   assert_eq(binomial(10, 4), Some(210))
   assert_eq(binomial(0, 0), Some(1))
 }
 
+///|
 test "binomial: symmetry" {
   for n = 1; n <= 20; n = n + 1 {
     for k = 0; k <= n; k = k + 1 {
@@ -249,6 +262,7 @@ test "binomial: symmetry" {
   }
 }
 
+///|
 test "binomial: Pascal's triangle identity" {
   // C(n,k) = C(n-1,k-1) + C(n-1,k)
   for n = 1; n <= 25; n = n + 1 {
@@ -268,12 +282,14 @@ test "binomial: Pascal's triangle identity" {
   }
 }
 
+///|
 test "binomial: invalid" {
   assert_true(binomial(-1, 0) is None)
   assert_true(binomial(5, -1) is None)
   assert_eq(binomial(5, 6), Some(0))
 }
 
+///|
 test "catalan: basic" {
   assert_eq(catalan(0), Some(1))
   assert_eq(catalan(1), Some(1))
@@ -287,6 +303,7 @@ test "catalan: basic" {
   assert_eq(catalan(9), Some(4862))
 }
 
+///|
 test "catalan: recurrence C(n) = C(2n,n)/(n+1)" {
   for n = 0; n <= 15; n = n + 1 {
     let cat = catalan(n)
@@ -298,10 +315,12 @@ test "catalan: recurrence C(n) = C(2n,n)/(n+1)" {
   }
 }
 
+///|
 test "catalan: negative returns None" {
   assert_true(catalan(-1) is None)
 }
 
+///|
 test "stirling2: basic" {
   assert_eq(stirling2(0, 0), Some(1))
   assert_eq(stirling2(1, 1), Some(1))
@@ -315,6 +334,7 @@ test "stirling2: basic" {
   assert_eq(stirling2(7, 4), Some(350))
 }
 
+///|
 test "stirling2: recurrence S(n,k) = k*S(n-1,k) + S(n-1,k-1)" {
   for n = 1; n <= 15; n = n + 1 {
     for k = 1; k <= n; k = k + 1 {
@@ -332,16 +352,19 @@ test "stirling2: recurrence S(n,k) = k*S(n-1,k) + S(n-1,k-1)" {
   }
 }
 
+///|
 test "stirling2: k > n returns 0" {
   assert_eq(stirling2(3, 5), Some(0))
   assert_eq(stirling2(0, 1), Some(0))
 }
 
+///|
 test "stirling2: invalid" {
   assert_true(stirling2(-1, 0) is None)
   assert_true(stirling2(0, -1) is None)
 }
 
+///|
 test "binomial: large values" {
   // C(30, 15) = 155117520
   assert_eq(binomial(30, 15), Some(155117520))

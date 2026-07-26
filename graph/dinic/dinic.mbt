@@ -44,9 +44,11 @@
 ///
 /// - Self-loops (`u == v`) and non-positive capacities are silently ignored.
 
+///|
 /// Sentinel representing "infinite capacity" for the bottleneck search.
 let int64_max : Int64 = 9223372036854775807L
 
+///|
 /// A directed edge in the residual graph (linked-forward-star representation).
 ///
 /// `next` links to the next edge originating from the same vertex, forming
@@ -58,6 +60,7 @@ priv struct Edge {
   next : Int // index of next edge from the same `from` vertex, -1 = none
 }
 
+///|
 /// The flow network, built from an edge list.
 priv struct DinicGraph {
   n : Int
@@ -66,18 +69,14 @@ priv struct DinicGraph {
   mut edge_count : Int // total edges added so far
 }
 
+///|
 /// Build the residual graph from an edge list.
 ///
 /// For each valid edge `(u, v, cap)`, adds a forward edge (capacity `cap`)
 /// and a reverse edge (capacity 0). Invalid edges (out-of-bounds vertices,
 /// self-loops, non-positive capacity) are silently skipped.
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> DinicGraph {
-  let g : DinicGraph = {
-    n,
-    head: Array::make(n, -1),
-    edges: [],
-    edge_count: 0,
-  }
+  let g : DinicGraph = { n, head: Array::make(n, -1), edges: [], edge_count: 0 }
   for k = 0; k < edge_list.length(); k = k + 1 {
     let (u, v, cap) = edge_list[k]
     if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0L {
@@ -95,17 +94,13 @@ fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> DinicGraph {
   g
 }
 
+///|
 /// BFS to build the level graph.
 ///
 /// Computes `level[v]` = shortest hop-distance from `src` to `v` in the
 /// residual graph (edges with positive residual capacity only). Unreachable
 /// vertices get level -1. Returns `true` if `sink` is reachable.
-fn bfs(
-  g : DinicGraph,
-  src : Int,
-  sink : Int,
-  level : FixedArray[Int],
-) -> Bool {
+fn bfs(g : DinicGraph, src : Int, sink : Int, level : FixedArray[Int]) -> Bool {
   for i = 0; i < g.n; i = i + 1 {
     level[i] = -1
   }
@@ -132,6 +127,7 @@ fn bfs(
   level[sink] >= 0
 }
 
+///|
 /// Iterative DFS that finds augmenting paths and pushes flow.
 ///
 /// Uses the "repeated single-path" strategy within the level graph: find one
@@ -241,6 +237,7 @@ fn find_and_push_paths(
   total_pushed
 }
 
+///|
 /// Compute the maximum flow from `src` to `sink` in a flow network.
 ///
 /// # Parameters
@@ -294,31 +291,37 @@ pub fn max_flow(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dinic: simple chain" {
   let edges = [(0, 1, 10L), (1, 2, 10L), (2, 3, 10L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(10L))
 }
 
+///|
 test "dinic: two parallel paths" {
   let edges = [(0, 1, 10L), (0, 2, 5L), (1, 3, 5L), (2, 3, 10L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(10L))
 }
 
+///|
 test "dinic: bottleneck" {
   let edges = [(0, 1, 20L), (1, 2, 5L), (2, 3, 20L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(5L))
 }
 
+///|
 test "dinic: no path" {
   let edges = [(0, 1, 10L), (2, 3, 10L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(0L))
 }
 
+///|
 test "dinic: single edge" {
   let edges = [(0, 1, 7L)]
   assert_eq(max_flow(2, 0, 1, edges), Some(7L))
 }
 
+///|
 test "dinic: classic CLRS example" {
   let edges = [
     (0, 1, 16L),
@@ -334,30 +337,25 @@ test "dinic: classic CLRS example" {
   assert_eq(max_flow(6, 0, 5, edges), Some(23L))
 }
 
+///|
 test "dinic: undirected graph (bidirectional edges)" {
-  let edges = [
-    (0, 1, 10L),
-    (1, 0, 10L),
-    (1, 2, 10L),
-    (2, 1, 10L),
-  ]
+  let edges = [(0, 1, 10L), (1, 0, 10L), (1, 2, 10L), (2, 1, 10L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(10L))
 }
 
+///|
 test "dinic: self-loop ignored" {
-  let edges = [
-    (0, 0, 100L),
-    (0, 1, 10L),
-    (1, 2, 10L),
-  ]
+  let edges = [(0, 0, 100L), (0, 1, 10L), (1, 2, 10L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(10L))
 }
 
+///|
 test "dinic: parallel edges" {
   let edges = [(0, 1, 3L), (0, 1, 7L), (1, 2, 10L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(10L))
 }
 
+///|
 test "dinic: invalid inputs return None" {
   let edges = [(0, 1, 10L)]
   assert_true(max_flow(0, 0, 1, edges) is None)
@@ -368,6 +366,7 @@ test "dinic: invalid inputs return None" {
   assert_true(max_flow(3, 1, 1, edges) is None)
 }
 
+///|
 test "dinic: large layered graph" {
   let w = 40
   let n = 2 + 3 * w
@@ -391,14 +390,13 @@ test "dinic: large layered graph" {
   assert_eq(max_flow(n, 0, n - 1, edges), Some(40L))
 }
 
+///|
 test "dinic: int64 large capacity" {
-  let edges = [
-    (0, 1, 3000000000L),
-    (1, 2, 3000000000L),
-  ]
+  let edges = [(0, 1, 3000000000L), (1, 2, 3000000000L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(3000000000L))
 }
 
+///|
 test "dinic: deep chain 2000 nodes (stack safety)" {
   // A chain of 2000 nodes tests that the iterative DFS doesn't stack overflow.
   // With a recursive DFS, this could overflow on some MoonBit configurations.

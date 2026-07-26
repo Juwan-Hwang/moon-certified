@@ -86,6 +86,7 @@
 // Data structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A bounded Michael-Scott lock-free queue (single-threaded simulation).
 ///
 /// Internally, nodes live in a pre-allocated pool of `capacity + 1` slots
@@ -120,6 +121,7 @@ pub struct LockFreeQueue[T] {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a bounded lock-free queue with the given `capacity`.
 ///
 /// `capacity` is the maximum number of elements the queue can hold
@@ -156,6 +158,7 @@ pub fn[T] lock_free_queue_new(capacity : Int) -> LockFreeQueue[T] {
 // Enqueue
 // ---------------------------------------------------------------------------
 
+///|
 /// Enqueue `item` at the tail of the queue.
 ///
 /// Returns `true` on success, `false` if the queue is full (no free node
@@ -197,6 +200,7 @@ pub fn[T] lock_free_queue_enqueue(q : LockFreeQueue[T], item : T) -> Bool {
 // Dequeue
 // ---------------------------------------------------------------------------
 
+///|
 /// Dequeue and return the front element.
 ///
 /// Returns `Some(item)` on success, `None` if the queue is empty.
@@ -234,11 +238,13 @@ pub fn[T] lock_free_queue_dequeue(q : LockFreeQueue[T]) -> T? {
 // Queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Number of elements currently in the queue. O(1).
 pub fn[T] lock_free_queue_size(q : LockFreeQueue[T]) -> Int {
   q.count
 }
 
+///|
 /// True if the queue holds no elements. O(1).
 ///
 /// Uses the algorithmically correct check `head == tail` (rather than
@@ -248,6 +254,7 @@ pub fn[T] lock_free_queue_is_empty(q : LockFreeQueue[T]) -> Bool {
   q.head == q.tail
 }
 
+///|
 /// True if the queue cannot accept more elements. O(1).
 ///
 /// Uses the algorithmically correct check `free_top == 0` (the node pool
@@ -256,11 +263,13 @@ pub fn[T] lock_free_queue_is_full(q : LockFreeQueue[T]) -> Bool {
   q.free_top == 0
 }
 
+///|
 /// Maximum number of elements the queue can hold. O(1).
 pub fn[T] lock_free_queue_capacity(q : LockFreeQueue[T]) -> Int {
   q.capacity
 }
 
+///|
 /// Total number of simulated CAS operations performed so far. O(1).
 ///
 /// This is a diagnostic counter that records every compare-and-swap site
@@ -277,6 +286,7 @@ pub fn[T] lock_free_queue_cas_count(q : LockFreeQueue[T]) -> Int {
 // Tests: basic operations
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: basic enqueue and dequeue" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(4)
   assert_true(lock_free_queue_is_empty(q))
@@ -294,6 +304,7 @@ test "lock_free_queue: basic enqueue and dequeue" {
   assert_eq(lock_free_queue_dequeue(q), None)
 }
 
+///|
 test "lock_free_queue: FIFO ordering over many elements" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(100)
   for i = 0; i < 50; i = i + 1 {
@@ -310,6 +321,7 @@ test "lock_free_queue: FIFO ordering over many elements" {
 // Tests: capacity and full/empty states
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: full queue rejects enqueue" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(3)
   assert_false(lock_free_queue_is_full(q))
@@ -329,6 +341,7 @@ test "lock_free_queue: full queue rejects enqueue" {
   assert_true(lock_free_queue_is_full(q))
 }
 
+///|
 test "lock_free_queue: empty queue dequeue returns None" {
   let q : LockFreeQueue[String] = lock_free_queue_new(2)
   assert_true(lock_free_queue_is_empty(q))
@@ -344,6 +357,7 @@ test "lock_free_queue: empty queue dequeue returns None" {
 // Tests: interleaved operations and wraparound
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: interleaved enqueue and dequeue" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(3)
   assert_true(lock_free_queue_enqueue(q, 1))
@@ -361,6 +375,7 @@ test "lock_free_queue: interleaved enqueue and dequeue" {
   assert_true(lock_free_queue_is_empty(q))
 }
 
+///|
 test "lock_free_queue: wraparound stress (recycled nodes)" {
   // Capacity 2 but we process 100 elements through the queue, exercising
   // node recycling / free-list reuse heavily.
@@ -373,6 +388,7 @@ test "lock_free_queue: wraparound stress (recycled nodes)" {
   assert_eq(lock_free_queue_size(q), 0)
 }
 
+///|
 test "lock_free_queue: drain and refill" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(5)
   // Fill.
@@ -400,6 +416,7 @@ test "lock_free_queue: drain and refill" {
 // Tests: edge cases (capacity 0 and 1)
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: capacity 0 holds nothing" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(0)
   assert_eq(lock_free_queue_capacity(q), 0)
@@ -410,6 +427,7 @@ test "lock_free_queue: capacity 0 holds nothing" {
   assert_eq(lock_free_queue_size(q), 0)
 }
 
+///|
 test "lock_free_queue: capacity 1 ping-pong" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(1)
   assert_eq(lock_free_queue_capacity(q), 1)
@@ -431,6 +449,7 @@ test "lock_free_queue: capacity 1 ping-pong" {
   assert_true(lock_free_queue_is_empty(q))
 }
 
+///|
 test "lock_free_queue: negative capacity clamped to 0" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(-5)
   assert_eq(lock_free_queue_capacity(q), 0)
@@ -442,6 +461,7 @@ test "lock_free_queue: negative capacity clamped to 0" {
 // Tests: generic element types
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: string elements" {
   let q : LockFreeQueue[String] = lock_free_queue_new(3)
   assert_true(lock_free_queue_enqueue(q, "alpha"))
@@ -452,6 +472,7 @@ test "lock_free_queue: string elements" {
   assert_eq(lock_free_queue_dequeue(q), Some("gamma"))
 }
 
+///|
 test "lock_free_queue: tuple elements" {
   let q : LockFreeQueue[(Int, String)] = lock_free_queue_new(2)
   assert_true(lock_free_queue_enqueue(q, (1, "one")))
@@ -460,6 +481,7 @@ test "lock_free_queue: tuple elements" {
   assert_eq(lock_free_queue_dequeue(q), Some((2, "two")))
 }
 
+///|
 test "lock_free_queue: boolean elements" {
   let q : LockFreeQueue[Bool] = lock_free_queue_new(3)
   assert_true(lock_free_queue_enqueue(q, true))
@@ -474,6 +496,7 @@ test "lock_free_queue: boolean elements" {
 // Tests: CAS operation counting
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: cas count matches algorithm" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(3)
   // Fresh queue: no CAS yet.
@@ -504,6 +527,7 @@ test "lock_free_queue: cas count matches algorithm" {
 // Tests: size consistency
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: size tracks count through mixed operations" {
   let q : LockFreeQueue[Int] = lock_free_queue_new(10)
   let mut expected = 0
@@ -538,6 +562,7 @@ test "lock_free_queue: size tracks count through mixed operations" {
 // Tests: large-scale correctness
 // ---------------------------------------------------------------------------
 
+///|
 test "lock_free_queue: large batch FIFO correctness" {
   let n = 500
   let q : LockFreeQueue[Int] = lock_free_queue_new(n)
@@ -555,6 +580,7 @@ test "lock_free_queue: large batch FIFO correctness" {
   assert_eq(lock_free_queue_cas_count(q), n * 3)
 }
 
+///|
 test "lock_free_queue: bounded producer-consumer simulation" {
   // Simulate a producer-consumer pipeline with a small buffer:
   // produce 200 items, consuming along the way, never exceeding capacity.

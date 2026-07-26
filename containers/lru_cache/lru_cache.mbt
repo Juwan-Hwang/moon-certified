@@ -12,6 +12,7 @@
 ///
 /// Not formally verified. Correctness ensured by comprehensive tests.
 
+///|
 /// A node in the doubly linked list of cache entries.
 ///
 /// Public so that `LRUCache` (a public type) may reference it; the fields
@@ -19,10 +20,11 @@
 pub struct LruNode[K, V] {
   priv mut key : K
   priv mut val : V
-  priv mut prev : Int  // index of previous node, -1 for head
-  priv mut next : Int  // index of next node, -1 for tail
+  priv mut prev : Int // index of previous node, -1 for head
+  priv mut next : Int // index of next node, -1 for tail
 }
 
+///|
 pub struct LRUCache[K, V] {
   /// Flat array of all allocated nodes (indices used as pointers).
   priv nodes : Array[LruNode[K, V]]
@@ -42,6 +44,7 @@ pub struct LRUCache[K, V] {
   priv eq_fn : (K, K) -> Bool
 }
 
+///|
 /// Create an empty LRU cache with the given capacity.
 ///
 /// `hash_fn` maps keys to integers for hash table indexing.
@@ -65,11 +68,13 @@ pub fn[K, V] new(
   }
 }
 
+///|
 /// Number of entries currently in the cache.
 pub fn[K, V] size(cache : LRUCache[K, V]) -> Int {
   cache.count
 }
 
+///|
 /// Detach a node from the doubly linked list.
 fn[K, V] detach(cache : LRUCache[K, V], idx : Int) -> Unit {
   let node = cache.nodes[idx]
@@ -87,6 +92,7 @@ fn[K, V] detach(cache : LRUCache[K, V], idx : Int) -> Unit {
   cache.nodes[idx].next = -1
 }
 
+///|
 /// Attach a node at the tail (MRU position).
 fn[K, V] attach_tail(cache : LRUCache[K, V], idx : Int) -> Unit {
   if cache.tail >= 0 {
@@ -103,21 +109,20 @@ fn[K, V] attach_tail(cache : LRUCache[K, V], idx : Int) -> Unit {
   }
 }
 
+///|
 /// Move an existing node to the tail (MRU position). O(1).
 fn[K, V] move_to_tail(cache : LRUCache[K, V], idx : Int) -> Unit {
   if cache.tail == idx {
-    return  // Already at tail
+    return // Already at tail
   }
   detach(cache, idx)
   attach_tail(cache, idx)
 }
 
+///|
 /// Look up a key. On hit, moves the entry to MRU position and returns
 /// the value. On miss, returns None. O(1) amortized.
-pub fn[K, V] get(
-  cache : LRUCache[K, V],
-  key : K,
-) -> V? {
+pub fn[K, V] get(cache : LRUCache[K, V], key : K) -> V? {
   match @hash_table.get(cache.index, key, cache.hash_fn, cache.eq_fn) {
     None => None
     Some(idx) => {
@@ -127,14 +132,11 @@ pub fn[K, V] get(
   }
 }
 
+///|
 /// Insert or update a key-value pair. On update, moves the entry to MRU.
 /// On insert when at capacity, evicts the LRU entry first.
 /// O(1) amortized.
-pub fn[K, V] put(
-  cache : LRUCache[K, V],
-  key : K,
-  value : V,
-) -> Unit {
+pub fn[K, V] put(cache : LRUCache[K, V], key : K, value : V) -> Unit {
   if cache.capacity <= 0 {
     return
   }
@@ -144,14 +146,17 @@ pub fn[K, V] put(
       cache.nodes[idx].val = value
       move_to_tail(cache, idx)
     }
-    None => {
+    None =>
       // New key
       if cache.count >= cache.capacity {
         // Evict LRU (head): reuse the head node's slot.
         let head_idx = cache.head
         // Remove old key from hash map.
         let _ = @hash_table.remove(
-          cache.index, cache.nodes[head_idx].key, cache.hash_fn, cache.eq_fn,
+          cache.index,
+          cache.nodes[head_idx].key,
+          cache.hash_fn,
+          cache.eq_fn,
         )
         detach(cache, head_idx)
         // Reuse the slot for the new entry
@@ -160,7 +165,11 @@ pub fn[K, V] put(
         attach_tail(cache, head_idx)
         // Insert new key→index mapping.
         @hash_table.insert(
-          cache.index, key, head_idx, cache.hash_fn, cache.eq_fn,
+          cache.index,
+          key,
+          head_idx,
+          cache.hash_fn,
+          cache.eq_fn,
         )
       } else {
         // Append a new node
@@ -169,10 +178,13 @@ pub fn[K, V] put(
         attach_tail(cache, new_idx)
         cache.count = cache.count + 1
         @hash_table.insert(
-          cache.index, key, new_idx, cache.hash_fn, cache.eq_fn,
+          cache.index,
+          key,
+          new_idx,
+          cache.hash_fn,
+          cache.eq_fn,
         )
       }
-    }
   }
 }
 
@@ -180,15 +192,18 @@ pub fn[K, V] put(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Simple identity hash for Int keys.
 fn int_hash(k : Int) -> Int {
   k
 }
 
+///|
 fn int_eq(a : Int, b : Int) -> Bool {
   a == b
 }
 
+///|
 test "lru: basic get and put" {
   let cache : LRUCache[Int, String] = new(3, int_hash, int_eq)
   put(cache, 1, "one")
@@ -200,6 +215,7 @@ test "lru: basic get and put" {
   assert_eq(size(cache), 3)
 }
 
+///|
 test "lru: eviction order" {
   let cache : LRUCache[Int, Int] = new(2, int_hash, int_eq)
   put(cache, 1, 10)
@@ -211,6 +227,7 @@ test "lru: eviction order" {
   assert_eq(size(cache), 2)
 }
 
+///|
 test "lru: update existing key" {
   let cache : LRUCache[Int, String] = new(2, int_hash, int_eq)
   put(cache, 1, "old")
@@ -224,6 +241,7 @@ test "lru: update existing key" {
   assert_eq(get(cache, 3), Some("three"))
 }
 
+///|
 test "lru: capacity 1" {
   let cache : LRUCache[Int, Int] = new(1, int_hash, int_eq)
   put(cache, 1, 100)
@@ -234,6 +252,7 @@ test "lru: capacity 1" {
   assert_eq(size(cache), 1)
 }
 
+///|
 test "lru: capacity 0" {
   let cache : LRUCache[Int, Int] = new(0, int_hash, int_eq)
   put(cache, 1, 100)
@@ -241,6 +260,7 @@ test "lru: capacity 0" {
   assert_true(get(cache, 1) is None)
 }
 
+///|
 test "lru: non-existent key" {
   let cache : LRUCache[Int, Int] = new(3, int_hash, int_eq)
   put(cache, 1, 10)
@@ -249,6 +269,7 @@ test "lru: non-existent key" {
   assert_eq(size(cache), 2)
 }
 
+///|
 test "lru: ordering after multiple gets" {
   let cache : LRUCache[Int, Int] = new(3, int_hash, int_eq)
   put(cache, 1, 10)
@@ -256,13 +277,14 @@ test "lru: ordering after multiple gets" {
   put(cache, 3, 30)
   let _ = get(cache, 1) // order: 2, 3, 1
   let _ = get(cache, 2) // order: 3, 1, 2
-  put(cache, 4, 40)    // evicts 3 (LRU)
+  put(cache, 4, 40) // evicts 3 (LRU)
   assert_true(get(cache, 3) is None)
   assert_eq(get(cache, 1), Some(10))
   assert_eq(get(cache, 2), Some(20))
   assert_eq(get(cache, 4), Some(40))
 }
 
+///|
 test "lru: stress test 100 operations" {
   let cache : LRUCache[Int, Int] = new(10, int_hash, int_eq)
   for i = 0; i < 10; i = i + 1 {
@@ -284,6 +306,7 @@ test "lru: stress test 100 operations" {
   }
 }
 
+///|
 test "lru: string keys with custom hash" {
   let str_hash = fn(s : String) -> Int {
     let mut h = 0

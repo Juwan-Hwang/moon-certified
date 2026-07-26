@@ -26,11 +26,13 @@
 ///
 /// Not formally verified (while loops with mutable state).
 
+///|
 /// Upper bound on the maximum value we are willing to count.
 /// Keeps the count array at most ~10^7 Ints (~80 MB), preventing OOM when a
 /// single stray large value would otherwise drive allocation.
 const COUNTING_SORT_MAX_VALUE : Int = 10_000_000
 
+///|
 /// Counting sort for non-negative integers.
 ///
 /// Returns `Some` of a new, ascendingly-sorted `FixedArray[Int]`. An empty
@@ -77,6 +79,7 @@ pub fn counting_sort(xs : FixedArray[Int]) -> FixedArray[Int]? {
   Some(output)
 }
 
+///|
 test "counting_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
   let out = counting_sort(xs).unwrap()
@@ -87,6 +90,7 @@ test "counting_sort: basic" {
   assert_eq(out[4], 5)
 }
 
+///|
 test "counting_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i }) // [0, 1, ..., 9]
   let out = counting_sort(xs).unwrap()
@@ -95,6 +99,7 @@ test "counting_sort: already sorted" {
   }
 }
 
+///|
 test "counting_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
   let out = counting_sort(xs).unwrap()
@@ -103,6 +108,7 @@ test "counting_sort: reverse sorted" {
   }
 }
 
+///|
 test "counting_sort: single element" {
   let xs = FixedArray::make(1, 42)
   let out = counting_sort(xs).unwrap()
@@ -110,12 +116,14 @@ test "counting_sort: single element" {
   assert_eq(out[0], 42)
 }
 
+///|
 test "counting_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   let out = counting_sort(xs).unwrap()
   assert_eq(out.length(), 0)
 }
 
+///|
 test "counting_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   let out = counting_sort(xs).unwrap()
@@ -129,6 +137,7 @@ test "counting_sort: duplicates" {
   assert_eq(out[7], 2)
 }
 
+///|
 test "counting_sort: large range" {
   // Values spread across a wide but bounded range.
   let xs = FixedArray::make(6, 0)
@@ -147,6 +156,7 @@ test "counting_sort: large range" {
   assert_eq(out[5], 1000)
 }
 
+///|
 test "counting_sort: all same value" {
   let xs = FixedArray::make(6, 7)
   let out = counting_sort(xs).unwrap()
@@ -155,6 +165,7 @@ test "counting_sort: all same value" {
   }
 }
 
+///|
 test "counting_sort: invalid input with negative values" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 3
@@ -165,6 +176,7 @@ test "counting_sort: invalid input with negative values" {
   assert_true(counting_sort(xs) is None)
 }
 
+///|
 test "counting_sort: value exceeds max rejected" {
   // A single value beyond COUNTING_SORT_MAX_VALUE is rejected with `None`
   // rather than silently returning an empty array.
@@ -174,6 +186,7 @@ test "counting_sort: value exceeds max rejected" {
   assert_true(counting_sort(xs) is None)
 }
 
+///|
 test "counting_sort: input is not modified" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 4
@@ -190,6 +203,7 @@ test "counting_sort: input is not modified" {
   assert_eq(xs[4], 3)
 }
 
+///|
 test "counting_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -210,6 +224,7 @@ test "counting_sort: permutation check" {
   }
 }
 
+///|
 test "counting_sort: stability" {
   // Counting sort is stable: equal keys keep their original relative order.
   // Encode each element as key * 100 + tag (tag in 0..9, strictly increasing

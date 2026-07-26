@@ -1,3 +1,4 @@
+///|
 /// Gaussian (normal) sampling via the Box-Muller transform.
 ///
 /// Box-Muller converts a pair of independent uniform [0, 1) samples into a
@@ -17,6 +18,7 @@ priv struct Rng {
   mut state : Int64
 }
 
+///|
 fn make_rng(seed : Int64) -> () -> Double {
   let r = { state: if seed == 0L { 0x9E3779B97F4A7C15L } else { seed } }
   fn() {
@@ -30,6 +32,7 @@ fn make_rng(seed : Int64) -> () -> Double {
   }
 }
 
+///|
 /// Generate two independent standard normal N(0, 1) samples from two uniform
 /// [0, 1) draws of `rng` using the Box-Muller transform.
 pub fn box_muller(rng : () -> Double) -> (Double, Double) {
@@ -41,9 +44,14 @@ pub fn box_muller(rng : () -> Double) -> (Double, Double) {
   (r * @math.cos(theta), r * @math.sin(theta))
 }
 
+///|
 /// Draw one sample from N(mean, std^2). The second Box-Muller output is
 /// discarded.
-pub fn gaussian_sample(mean : Double, std : Double, rng : () -> Double) -> Double {
+pub fn gaussian_sample(
+  mean : Double,
+  std : Double,
+  rng : () -> Double,
+) -> Double {
   let (z0, _) = box_muller(rng)
   mean + std * z0
 }
@@ -52,6 +60,7 @@ pub fn gaussian_sample(mean : Double, std : Double, rng : () -> Double) -> Doubl
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "box_muller: mean is near 0" {
   let rng = make_rng(42L)
   let n = 100000
@@ -64,6 +73,7 @@ test "box_muller: mean is near 0" {
   assert_true(mean.abs() < 0.05)
 }
 
+///|
 test "box_muller: std is near 1" {
   let rng = make_rng(7L)
   let n = 100000
@@ -82,6 +92,7 @@ test "box_muller: std is near 1" {
   assert_true((std - 1.0).abs() < 0.05)
 }
 
+///|
 test "gaussian_sample: shifts mean and std correctly" {
   let rng = make_rng(123L)
   let mean = 5.0

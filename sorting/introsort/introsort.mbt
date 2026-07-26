@@ -1,3 +1,4 @@
+///|
 /// Introsort (Introspective Sort) — Musser 1997.
 ///
 /// The hybrid sorting algorithm used in C++ STL `std::sort`. It combines
@@ -16,9 +17,9 @@
 /// - Not stable.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 const INSERTION_THRESHOLD : Int = 16
 
+///|
 /// Sort `xs` in-place using Introsort.
 pub fn[T] introsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
@@ -29,6 +30,7 @@ pub fn[T] introsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   introsort_impl(xs, 0, n - 1, max_depth, cmp)
 }
 
+///|
 /// Compute floor(log2(n)) for n >= 1.
 fn ilog2(n : Int) -> Int {
   let mut k = 0
@@ -40,6 +42,7 @@ fn ilog2(n : Int) -> Int {
   k
 }
 
+///|
 /// Swap two elements.
 fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -47,9 +50,13 @@ fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
+///|
 /// Median-of-three: sort xs[lo], xs[mid], xs[hi] and return mid.
 fn[T] median3(
-  xs : FixedArray[T], lo : Int, hi : Int, cmp : (T, T) -> Int,
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  cmp : (T, T) -> Int,
 ) -> Int {
   let mid = lo + (hi - lo) / 2
   if cmp(xs[lo], xs[mid]) > 0 {
@@ -64,9 +71,14 @@ fn[T] median3(
   mid
 }
 
+///|
 /// Recursive introsort implementation.
 fn[T] introsort_impl(
-  xs : FixedArray[T], lo : Int, hi : Int, depth : Int, cmp : (T, T) -> Int,
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  depth : Int,
+  cmp : (T, T) -> Int,
 ) -> Unit {
   if hi - lo < INSERTION_THRESHOLD {
     insertion_sort(xs, lo, hi, cmp)
@@ -104,9 +116,13 @@ fn[T] introsort_impl(
   introsort_impl(xs, i + 1, hi, depth - 1, cmp)
 }
 
+///|
 /// Insertion sort for small ranges.
 fn[T] insertion_sort(
-  xs : FixedArray[T], lo : Int, hi : Int, cmp : (T, T) -> Int,
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  cmp : (T, T) -> Int,
 ) -> Unit {
   for i = lo + 1; i <= hi; i = i + 1 {
     let key = xs[i]
@@ -119,9 +135,14 @@ fn[T] insertion_sort(
   }
 }
 
+///|
 /// Sift-down for heapsort.
 fn[T] sift_down(
-  xs : FixedArray[T], start : Int, end : Int, root : Int, cmp : (T, T) -> Int,
+  xs : FixedArray[T],
+  start : Int,
+  end : Int,
+  root : Int,
+  cmp : (T, T) -> Int,
 ) -> Unit {
   let mut r = root
   while true {
@@ -142,9 +163,13 @@ fn[T] sift_down(
   }
 }
 
+///|
 /// Heapsort for [lo, hi].
 fn[T] heapsort(
-  xs : FixedArray[T], lo : Int, hi : Int, cmp : (T, T) -> Int,
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  cmp : (T, T) -> Int,
 ) -> Unit {
   let n = hi - lo + 1
   let mut i = lo + n / 2 - 1
@@ -160,6 +185,7 @@ fn[T] heapsort(
   }
 }
 
+///|
 /// Convenience: sort Int array ascending.
 pub fn sort_int(xs : FixedArray[Int]) -> Unit {
   introsort(xs, fn(a, b) { a - b })
@@ -169,18 +195,21 @@ pub fn sort_int(xs : FixedArray[Int]) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "introsort: empty" {
   let xs = FixedArray::make(0, 0)
   sort_int(xs)
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "introsort: single" {
   let xs = FixedArray::make(1, 42)
   sort_int(xs)
   assert_eq(xs[0], 42)
 }
 
+///|
 test "introsort: sorted" {
   let xs = FixedArray::makei(100, fn(i) { i })
   sort_int(xs)
@@ -189,6 +218,7 @@ test "introsort: sorted" {
   }
 }
 
+///|
 test "introsort: reverse" {
   let xs = FixedArray::makei(100, fn(i) { 99 - i })
   sort_int(xs)
@@ -197,6 +227,7 @@ test "introsort: reverse" {
   }
 }
 
+///|
 test "introsort: random" {
   let xs = FixedArray::makei(500, fn(i) { (i * 37 + 13) % 503 })
   sort_int(xs)
@@ -205,6 +236,7 @@ test "introsort: random" {
   }
 }
 
+///|
 test "introsort: duplicates" {
   let xs = FixedArray::makei(100, fn(i) { i % 7 })
   sort_int(xs)
@@ -213,6 +245,7 @@ test "introsort: duplicates" {
   }
 }
 
+///|
 test "introsort: all same" {
   let xs = FixedArray::make(50, 7)
   sort_int(xs)
@@ -221,6 +254,7 @@ test "introsort: all same" {
   }
 }
 
+///|
 test "introsort: permutation check" {
   let n = 200
   let xs = FixedArray::makei(n, fn(i) { (i * 73 + 17) % n })
@@ -241,6 +275,7 @@ test "introsort: permutation check" {
   }
 }
 
+///|
 test "introsort: string" {
   let xs = FixedArray::make(5, "")
   xs[0] = "cherry"

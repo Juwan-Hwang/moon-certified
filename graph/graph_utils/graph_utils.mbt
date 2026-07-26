@@ -10,6 +10,7 @@
 /// Lazy deletion is the caller's responsibility: stale entries (popped with
 /// a distance greater than the current known distance) are simply skipped.
 
+///|
 /// A min-heap entry: a (distance, vertex) pair.
 ///
 /// `dist` is `Int64` to prevent overflow during distance accumulation
@@ -19,6 +20,7 @@ pub struct HeapEntry {
   vertex : Int
 }
 
+///|
 /// Binary min-heap keyed on `dist`.
 ///
 /// Stored in a flat `Array[HeapEntry]` using the standard 0-indexed layout:
@@ -27,16 +29,19 @@ pub struct MinHeap {
   priv data : Array[HeapEntry]
 }
 
+///|
 /// Create an empty min-heap.
 pub fn MinHeap::new() -> MinHeap {
   { data: [] }
 }
 
+///|
 /// Number of entries currently in the heap.
 pub fn MinHeap::len(heap : MinHeap) -> Int {
   heap.data.length()
 }
 
+///|
 /// Insert a `(dist, vertex)` pair. Sifts up to restore the heap property.
 ///
 /// Time: O(log n).
@@ -56,6 +61,7 @@ pub fn MinHeap::push(heap : MinHeap, dist : Int64, vertex : Int) -> Unit {
   }
 }
 
+///|
 /// Remove and return the minimum entry, or `None` if the heap is empty.
 /// Sifts down to restore the heap property.
 ///
@@ -106,6 +112,7 @@ pub fn MinHeap::pop(heap : MinHeap) -> HeapEntry? {
 // is reverse topological order (sinks first). This property is essential for
 // 2-SAT: if `comp[x] < comp[¬x]`, then `x` should be set true.
 
+///|
 /// Mutable state for iterative Tarjan's SCC algorithm.
 priv struct TarjanState {
   adj : Array[Array[Int]]
@@ -119,6 +126,7 @@ priv struct TarjanState {
   mut scc_count : Int
 }
 
+///|
 fn TarjanState::new(adj : Array[Array[Int]], n : Int) -> TarjanState {
   {
     adj,
@@ -133,6 +141,7 @@ fn TarjanState::new(adj : Array[Array[Int]], n : Int) -> TarjanState {
   }
 }
 
+///|
 /// Iterative DFS core of Tarjan's algorithm using an explicit stack.
 /// Avoids recursion depth limits for large graphs.
 fn tarjan_strongconnect(state : TarjanState, start : Int) -> Unit {
@@ -186,6 +195,7 @@ fn tarjan_strongconnect(state : TarjanState, start : Int) -> Unit {
   }
 }
 
+///|
 /// Compute SCC component IDs using Tarjan's algorithm (iterative).
 ///
 /// `adj[i]` is the adjacency list of vertex `i`: an array of neighbor indices.

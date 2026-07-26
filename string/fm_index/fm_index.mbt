@@ -1,3 +1,4 @@
+///|
 /// FM-Index (Full-text index in Minute space).
 ///
 /// The FM-Index is a compressed full-text substring index that supports
@@ -29,6 +30,7 @@ pub struct FMIndex {
   priv n : Int // text length (including sentinel)
 }
 
+///|
 /// Build an FM-Index from a text string.
 pub fn build(text : String) -> FMIndex {
   let n = text.length()
@@ -98,14 +100,12 @@ pub fn build(text : String) -> FMIndex {
       None => ()
     }
   }
-  { c_table, occ, char_index, n : n + 1 }
+  { c_table, occ, char_index, n: n + 1 }
 }
 
+///|
 /// Build suffix array with implicit sentinel at position n.
-fn build_suffix_array_with_sentinel(
-  text : String,
-  n : Int,
-) -> FixedArray[Int] {
+fn build_suffix_array_with_sentinel(text : String, n : Int) -> FixedArray[Int] {
   let sa = FixedArray::make(n + 1, 0)
   for i = 0; i <= n; i = i + 1 {
     sa[i] = i
@@ -142,6 +142,7 @@ fn build_suffix_array_with_sentinel(
   sa
 }
 
+///|
 /// Count the number of occurrences of a pattern in the text.
 ///
 /// Uses the backward search algorithm: O(m) time where m = pattern length.
@@ -175,11 +176,13 @@ pub fn count(index : FMIndex, pattern : String) -> Int {
   }
 }
 
+///|
 /// Check if a pattern exists in the text.
 pub fn contains(index : FMIndex, pattern : String) -> Bool {
   count(index, pattern) > 0
 }
 
+///|
 /// The length of the indexed text (excluding sentinel).
 pub fn text_length(index : FMIndex) -> Int {
   index.n - 1
@@ -189,6 +192,7 @@ pub fn text_length(index : FMIndex) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fm_index: count single occurrence" {
   let idx = build("banana")
   assert_eq(count(idx, "ana"), 2)
@@ -196,12 +200,14 @@ test "fm_index: count single occurrence" {
   assert_eq(count(idx, "banana"), 1)
 }
 
+///|
 test "fm_index: count no occurrence" {
   let idx = build("banana")
   assert_eq(count(idx, "xyz"), 0)
   assert_eq(count(idx, "bananaX"), 0)
 }
 
+///|
 test "fm_index: contains" {
   let idx = build("mississippi")
   assert_true(contains(idx, "issi"))
@@ -210,11 +216,13 @@ test "fm_index: contains" {
   assert_false(contains(idx, "abc"))
 }
 
+///|
 test "fm_index: empty pattern" {
   let idx = build("hello")
   assert_eq(count(idx, ""), 5)
 }
 
+///|
 test "fm_index: single character" {
   let idx = build("abracadabra")
   assert_eq(count(idx, "a"), 5)
@@ -224,6 +232,7 @@ test "fm_index: single character" {
   assert_eq(count(idx, "z"), 0)
 }
 
+///|
 test "fm_index: repeated pattern" {
   let idx = build("aaaa")
   assert_eq(count(idx, "a"), 4)
@@ -233,6 +242,7 @@ test "fm_index: repeated pattern" {
   assert_eq(count(idx, "aaaaa"), 0)
 }
 
+///|
 test "fm_index: text length" {
   let idx = build("banana")
   assert_eq(text_length(idx), 6)

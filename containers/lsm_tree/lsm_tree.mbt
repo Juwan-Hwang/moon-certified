@@ -39,6 +39,7 @@
 // Bloom Filter (per-SSTable)
 // ---------------------------------------------------------------------------
 
+///|
 /// A Bloom filter for fast set-membership queries on SSTable keys.
 ///
 /// Uses k independent hash functions derived from double-hashing:
@@ -49,6 +50,7 @@ priv struct BloomFilter {
   num_hashes : Int
 }
 
+///|
 /// Create a Bloom filter sized for `expected_keys` with a target
 /// false-positive rate of ~1%.
 fn bloom_new(expected_keys : Int) -> BloomFilter {
@@ -65,6 +67,7 @@ fn bloom_new(expected_keys : Int) -> BloomFilter {
   { bits: FixedArray::make(m, false), num_hashes: k }
 }
 
+///|
 /// Simple hash using FNV-1a variant that fits in Int64.
 /// Uses 32-bit offset basis to avoid overflow.
 fn hash1(s : String) -> Int {
@@ -76,6 +79,7 @@ fn hash1(s : String) -> Int {
   (h & 0x7FFFFFFFU).reinterpret_as_int()
 }
 
+///|
 /// Secondary hash for double-hashing.
 fn hash2(s : String) -> Int {
   let mut h = 5381U
@@ -85,17 +89,19 @@ fn hash2(s : String) -> Int {
   (h & 0x7FFFFFFFU).reinterpret_as_int()
 }
 
+///|
 /// Insert a key into the Bloom filter.
 fn bloom_insert(bf : BloomFilter, key : String) -> Unit {
   let h1 = hash1(key)
   let h2 = hash2(key) | 1 // ensure h2 is odd (avoids cycles)
   let mask = bf.bits.length() - 1
   for i = 0; i < bf.num_hashes; i = i + 1 {
-    let idx = ((h1 + i * h2) & mask)
+    let idx = (h1 + i * h2) & mask
     bf.bits[idx] = true
   }
 }
 
+///|
 /// Check if a key *might* be in the set (false positives possible,
 /// false negatives impossible).
 fn bloom_might_contain(bf : BloomFilter, key : String) -> Bool {
@@ -103,7 +109,7 @@ fn bloom_might_contain(bf : BloomFilter, key : String) -> Bool {
   let h2 = hash2(key) | 1
   let mask = bf.bits.length() - 1
   for i = 0; i < bf.num_hashes; i = i + 1 {
-    let idx = ((h1 + i * h2) & mask)
+    let idx = (h1 + i * h2) & mask
     if !bf.bits[idx] {
       return false
     }
@@ -115,6 +121,7 @@ fn bloom_might_contain(bf : BloomFilter, key : String) -> Bool {
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A key-value entry.
 struct Entry {
   key : String
@@ -122,12 +129,14 @@ struct Entry {
   deleted : Bool // tombstone
 }
 
+///|
 /// An immutable sorted table (simulates an SSTable) with Bloom filter.
 struct SSTable {
   entries : Array[Entry] // sorted by key
   bloom : BloomFilter
 }
 
+///|
 /// The LSM-Tree.
 pub struct LSMTree {
   priv mut memtable : Map[String, Entry]
@@ -138,6 +147,7 @@ pub struct LSMTree {
   priv mut total_entries : Int
 }
 
+///|
 /// Lexicographic string comparator.
 fn str_cmp(a : String, b : String) -> Int {
   let la = a.length()
@@ -156,31 +166,35 @@ fn str_cmp(a : String, b : String) -> Int {
   la - lb
 }
 
+///|
 /// Create a new LSM-Tree with the given MemTable capacity.
 /// When the MemTable reaches `memtable_capacity` entries, it is flushed
 /// to an SSTable.
 pub fn new(memtable_capacity : Int) -> LSMTree {
   let cap = if memtable_capacity > 0 { memtable_capacity } else { 1024 }
   {
-    memtable : Map([]),
-    memtable_size : 0,
-    memtable_capacity : cap,
-    sstables : [],
-    level1 : [],
-    total_entries : 0,
+    memtable: Map([]),
+    memtable_size: 0,
+    memtable_capacity: cap,
+    sstables: [],
+    level1: [],
+    total_entries: 0,
   }
 }
 
+///|
 /// Number of entries in the MemTable.
 pub fn memtable_size(tree : LSMTree) -> Int {
   tree.memtable_size
 }
 
+///|
 /// Number of SSTables (Level 0).
 pub fn sstable_count(tree : LSMTree) -> Int {
   tree.sstables.length()
 }
 
+///|
 /// Total number of live entries (excluding tombstones).
 /// This value is maintained incrementally on put/delete and fully
 /// recomputed during compaction to ensure accuracy.
@@ -192,6 +206,7 @@ pub fn entry_count(tree : LSMTree) -> Int {
 // Write operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Insert or update a key-value pair.
 pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
   let was_present = tree.memtable.contains(key)
@@ -200,7 +215,7 @@ pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
   } else {
     false
   }
-  tree.memtable[key] = { key, value, deleted : false }
+  tree.memtable[key] = { key, value, deleted: false }
   if !was_present {
     tree.memtable_size = tree.memtable_size + 1
     // Only increment total if the key doesn't exist in SSTables either.
@@ -217,6 +232,7 @@ pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
   }
 }
 
+///|
 /// Delete a key (writes a tombstone).
 pub fn delete(tree : LSMTree, key : String) -> Unit {
   let was_present = tree.memtable.contains(key)
@@ -225,7 +241,7 @@ pub fn delete(tree : LSMTree, key : String) -> Unit {
   } else {
     false
   }
-  tree.memtable[key] = { key, value : "", deleted : true }
+  tree.memtable[key] = { key, value: "", deleted: true }
   if !was_present {
     tree.memtable_size = tree.memtable_size + 1
     // Check if the key exists in SSTables; if so, decrement.
@@ -242,6 +258,7 @@ pub fn delete(tree : LSMTree, key : String) -> Unit {
   }
 }
 
+///|
 /// Batch insert (atomic batch).
 pub fn batch_put(tree : LSMTree, pairs : Array[(String, String)]) -> Unit {
   for i = 0; i < pairs.length(); i = i + 1 {
@@ -254,6 +271,7 @@ pub fn batch_put(tree : LSMTree, pairs : Array[(String, String)]) -> Unit {
 // Flush and compaction
 // ---------------------------------------------------------------------------
 
+///|
 /// Flush the MemTable to an SSTable (Level 0).
 pub fn flush(tree : LSMTree) -> Unit {
   if tree.memtable_size == 0 {
@@ -280,6 +298,7 @@ pub fn flush(tree : LSMTree) -> Unit {
   }
 }
 
+///|
 /// Compact Level 0 SSTables into Level 1 using k-way merge.
 ///
 /// Uses a min-heap for O(N log K) merge where N = total entries, K = number
@@ -322,9 +341,10 @@ pub fn compact(tree : LSMTree) -> Unit {
   for i = 0; i < merged.length(); i = i + 1 {
     bloom_insert(bloom, merged[i].key)
   }
-  tree.level1 = [{ entries : merged, bloom }]
+  tree.level1 = [{ entries: merged, bloom }]
 }
 
+///|
 /// K-way merge of sorted SSTables, deduplicating by key (first occurrence
 /// wins, which is the newest due to table ordering).
 ///
@@ -387,6 +407,7 @@ fn k_way_merge_tables(tables : Array[SSTable]) -> Array[Entry] {
   result
 }
 
+///|
 /// Sift up element at index `i` in the min-heap.
 /// Ties broken by table index (lower = newer = wins).
 fn sift_up(
@@ -416,6 +437,7 @@ fn sift_up(
   }
 }
 
+///|
 /// Sift down element at index `i` in the min-heap of size `size`.
 /// Ties broken by table index (lower = newer = wins).
 fn sift_down(
@@ -463,6 +485,7 @@ fn sift_down(
 // Read operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Get the value for a key, or `None` if not found.
 ///
 /// Searches: MemTable → Level 0 SSTables (newest first) → Level 1.
@@ -514,6 +537,7 @@ pub fn get(tree : LSMTree, key : String) -> String? {
   None
 }
 
+///|
 /// Check if a key exists in any SSTable (Level 0 or Level 1).
 /// Used internally to maintain accurate entry_count.
 fn sstable_contains(tree : LSMTree, key : String) -> Bool {
@@ -542,11 +566,13 @@ fn sstable_contains(tree : LSMTree, key : String) -> Bool {
   false
 }
 
+///|
 /// Check if a key exists (not deleted).
 pub fn contains(tree : LSMTree, key : String) -> Bool {
   get(tree, key) is Some(_)
 }
 
+///|
 /// Binary search for a key in an SSTable.
 fn binary_search_table(table : SSTable, key : String) -> Entry? {
   let entries = table.entries
@@ -570,6 +596,7 @@ fn binary_search_table(table : SSTable, key : String) -> Entry? {
 // Range scan
 // ---------------------------------------------------------------------------
 
+///|
 /// Scan all key-value pairs in the range `[start, end)` (exclusive end).
 /// Returns entries sorted by key, excluding tombstones.
 pub fn range_scan(
@@ -618,6 +645,7 @@ pub fn range_scan(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "lsm: basic put and get" {
   let tree = new(100)
   put(tree, "hello", "world")
@@ -627,6 +655,7 @@ test "lsm: basic put and get" {
   assert_eq(get(tree, "missing"), None)
 }
 
+///|
 test "lsm: update existing key" {
   let tree = new(100)
   put(tree, "key", "value1")
@@ -634,6 +663,7 @@ test "lsm: update existing key" {
   assert_eq(get(tree, "key"), Some("value2"))
 }
 
+///|
 test "lsm: delete key" {
   let tree = new(100)
   put(tree, "key", "value")
@@ -642,6 +672,7 @@ test "lsm: delete key" {
   assert_false(contains(tree, "key"))
 }
 
+///|
 test "lsm: flush creates sstable" {
   let tree = new(3)
   put(tree, "a", "1")
@@ -655,6 +686,7 @@ test "lsm: flush creates sstable" {
   assert_eq(get(tree, "c"), Some("3"))
 }
 
+///|
 test "lsm: multiple flushes" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -666,6 +698,7 @@ test "lsm: multiple flushes" {
   assert_eq(get(tree, "d"), Some("4"))
 }
 
+///|
 test "lsm: compaction merges tables" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -683,6 +716,7 @@ test "lsm: compaction merges tables" {
   assert_eq(get(tree, "h"), Some("8"))
 }
 
+///|
 test "lsm: delete after flush (tombstone)" {
   let tree = new(2)
   put(tree, "key", "value")
@@ -691,6 +725,7 @@ test "lsm: delete after flush (tombstone)" {
   assert_eq(get(tree, "key"), None)
 }
 
+///|
 test "lsm: range scan" {
   let tree = new(100)
   put(tree, "a", "1")
@@ -705,6 +740,7 @@ test "lsm: range scan" {
   assert_eq(result[1].1, "3")
 }
 
+///|
 test "lsm: range scan after flush" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -717,6 +753,7 @@ test "lsm: range scan after flush" {
   assert_eq(result[3].0, "d")
 }
 
+///|
 test "lsm: batch put" {
   let tree = new(100)
   batch_put(tree, [("a", "1"), ("b", "2"), ("c", "3")])
@@ -725,6 +762,7 @@ test "lsm: batch put" {
   assert_eq(get(tree, "c"), Some("3"))
 }
 
+///|
 test "lsm: overwrite across levels" {
   let tree = new(2)
   put(tree, "key", "old")
@@ -736,6 +774,7 @@ test "lsm: overwrite across levels" {
   assert_eq(get(tree, "key"), Some("new"))
 }
 
+///|
 test "lsm: large workload" {
   let tree = new(10)
   for i = 0; i < 100; i = i + 1 {
@@ -747,6 +786,7 @@ test "lsm: large workload" {
   }
 }
 
+///|
 test "lsm: entry count basic" {
   let tree = new(100)
   put(tree, "a", "1")
@@ -756,6 +796,7 @@ test "lsm: entry count basic" {
   assert_eq(entry_count(tree), 1)
 }
 
+///|
 test "lsm: entry count after flush" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -766,6 +807,7 @@ test "lsm: entry count after flush" {
   assert_eq(entry_count(tree), 4)
 }
 
+///|
 test "lsm: entry count after compaction" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -779,6 +821,7 @@ test "lsm: entry count after compaction" {
   assert_eq(entry_count(tree), 8)
 }
 
+///|
 test "lsm: entry count with delete after flush" {
   let tree = new(2)
   put(tree, "key", "value")
@@ -787,6 +830,7 @@ test "lsm: entry count with delete after flush" {
   assert_eq(entry_count(tree), 1)
 }
 
+///|
 test "lsm: entry count with reinsert" {
   let tree = new(2)
   put(tree, "key", "value")
@@ -798,6 +842,7 @@ test "lsm: entry count with reinsert" {
   assert_eq(get(tree, "key"), Some("new_value"))
 }
 
+///|
 test "lsm: bloom filter skips sstables" {
   let tree = new(2)
   put(tree, "a", "1")
@@ -808,6 +853,7 @@ test "lsm: bloom filter skips sstables" {
   assert_eq(get(tree, "zzz"), None)
 }
 
+///|
 test "lsm: overwrite during compaction" {
   let tree = new(2)
   put(tree, "key", "old1")
@@ -823,6 +869,7 @@ test "lsm: overwrite during compaction" {
   assert_eq(entry_count(tree), 6)
 }
 
+///|
 test "lsm: delete all then compact" {
   let tree = new(2)
   put(tree, "a", "1")

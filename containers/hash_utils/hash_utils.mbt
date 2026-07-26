@@ -16,6 +16,7 @@
 /// Reference: Austin Appleby, *MurmurHash3*, 2008.
 /// https://github.com/aappleby/smhasher
 
+///|
 /// MurmurHash3 fmix64 finalizer.
 ///
 /// Applies three xor-shift-multiply rounds to avalanche all input bits into
@@ -26,11 +27,11 @@
 /// values from the MurmurHash3 reference implementation.
 pub fn fmix64(input : Int64) -> Int64 {
   let mut h = input
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
+  h = h ^ (h.reinterpret_as_uint64() >> 33).reinterpret_as_int64()
   h = h * 0xff51afd7ed558ccdL
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
+  h = h ^ (h.reinterpret_as_uint64() >> 33).reinterpret_as_int64()
   h = h * 0xc4ceb9fe1a85ec53L
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
+  h = h ^ (h.reinterpret_as_uint64() >> 33).reinterpret_as_int64()
   h
 }
 
@@ -38,6 +39,7 @@ pub fn fmix64(input : Int64) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hash_utils: fmix64 known values" {
   // fmix64(0) should be 0 (all bits cleared, no avalanche from zero).
   assert_eq(fmix64(0L), 0L)
@@ -61,6 +63,7 @@ test "hash_utils: fmix64 known values" {
   assert_true(bits >= 15 && bits <= 49)
 }
 
+///|
 test "hash_utils: fmix64 determinism" {
   // Same input always produces same output.
   assert_eq(fmix64(42L), fmix64(42L))

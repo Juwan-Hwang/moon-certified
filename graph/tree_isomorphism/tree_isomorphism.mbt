@@ -10,6 +10,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Check if two unrooted trees (given as edge lists) are isomorphic.
 /// `n` is the number of nodes (0 to n-1).
 pub fn are_trees_isomorphic(
@@ -57,6 +58,7 @@ pub fn are_trees_isomorphic(
   false
 }
 
+///|
 fn build_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   let adj : Array[Array[Int]] = []
   for i = 0; i < n; i = i + 1 {
@@ -70,6 +72,7 @@ fn build_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   adj
 }
 
+///|
 /// Find tree centers using the leaf-removal (topological sort) method.
 fn find_centers(n : Int, adj : Array[Array[Int]]) -> Array[Int] {
   if n == 0 {
@@ -130,6 +133,7 @@ fn find_centers(n : Int, adj : Array[Array[Int]]) -> Array[Int] {
   centers
 }
 
+///|
 /// Root the tree at `root` and compute canonical labels.
 fn root_tree(n : Int, adj : Array[Array[Int]], root : Int) -> String {
   let labels = FixedArray::make(n, "")
@@ -138,6 +142,7 @@ fn root_tree(n : Int, adj : Array[Array[Int]], root : Int) -> String {
   labels[root]
 }
 
+///|
 fn dfs_label(
   node : Int,
   adj : Array[Array[Int]],
@@ -166,34 +171,40 @@ fn dfs_label(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "tree_isomorphism: identical trees" {
   let edges = [(0, 1), (0, 2), (0, 3)]
   assert_true(are_trees_isomorphic(4, edges, edges))
 }
 
+///|
 test "tree_isomorphism: star vs path" {
   let star = [(0, 1), (0, 2), (0, 3)]
   let path = [(0, 1), (1, 2), (2, 3)]
   assert_false(are_trees_isomorphic(4, star, path))
 }
 
+///|
 test "tree_isomorphism: relabeled isomorphic" {
   let t1 = [(0, 1), (1, 2), (2, 3)]
   let t2 = [(3, 2), (2, 1), (1, 0)]
   assert_true(are_trees_isomorphic(4, t1, t2))
 }
 
+///|
 test "tree_isomorphism: different sizes" {
   let t1 = [(0, 1), (0, 2)]
   let t2 = [(0, 1), (1, 2), (2, 3)]
   assert_false(are_trees_isomorphic(3, t1, t2))
 }
 
+///|
 test "tree_isomorphism: single node" {
   let edges : Array[(Int, Int)] = []
   assert_true(are_trees_isomorphic(1, edges, edges))
 }
 
+///|
 test "tree_isomorphism: complex isomorphic" {
   let t1 = [(0, 1), (1, 2), (2, 3), (1, 4), (2, 5)]
   let t2 = [(3, 2), (2, 1), (1, 0), (2, 5), (1, 4)]

@@ -14,12 +14,14 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A 2D point.
 pub struct Point2D {
   x : Int
   y : Int
 }
 
+///|
 /// A range tree node.
 priv struct RTNode {
   point : Point2D
@@ -27,17 +29,20 @@ priv struct RTNode {
   right : RTNode?
 }
 
+///|
 /// A 2D range tree.
 pub struct RangeTree {
   priv mut root : RTNode?
   priv count : Int
 }
 
+///|
 /// Create a new empty range tree.
 pub fn new() -> RangeTree {
   { root: None, count: 0 }
 }
 
+///|
 /// Build the range tree from a set of points. O(n log n).
 pub fn build(points : Array[Point2D]) -> RangeTree {
   let n = points.length()
@@ -51,6 +56,7 @@ pub fn build(points : Array[Point2D]) -> RangeTree {
   tree
 }
 
+///|
 fn build_node(points : Array[Point2D], lo : Int, hi : Int) -> RTNode? {
   if lo > hi {
     return None
@@ -63,18 +69,27 @@ fn build_node(points : Array[Point2D], lo : Int, hi : Int) -> RTNode? {
   })
 }
 
+///|
 /// Query all points in rectangle [x1, x2] × [y1, y2].
 pub fn query(
   tree : RangeTree,
-  x1 : Int, x2 : Int, y1 : Int, y2 : Int,
+  x1 : Int,
+  x2 : Int,
+  y1 : Int,
+  y2 : Int,
 ) -> Array[Point2D] {
   let result : Array[Point2D] = []
   query_node(tree.root, x1, x2, y1, y2, result)
   result
 }
 
+///|
 fn query_node(
-  n : RTNode?, x1 : Int, x2 : Int, y1 : Int, y2 : Int,
+  n : RTNode?,
+  x1 : Int,
+  x2 : Int,
+  y1 : Int,
+  y2 : Int,
   result : Array[Point2D],
 ) -> Unit {
   match n {
@@ -97,6 +112,7 @@ fn query_node(
   }
 }
 
+///|
 /// Number of points. O(1).
 pub fn count(tree : RangeTree) -> Int {
   tree.count
@@ -106,6 +122,7 @@ pub fn count(tree : RangeTree) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "range_tree: basic query" {
   let pts = [
     { x: 1, y: 1 },
@@ -120,11 +137,13 @@ test "range_tree: basic query" {
   assert_eq(result.length(), 3)
 }
 
+///|
 test "range_tree: empty tree" {
   let t = new()
   assert_eq(query(t, 0, 100, 0, 100).length(), 0)
 }
 
+///|
 test "range_tree: single point" {
   let pts = [{ x: 5, y: 5 }]
   let t = build(pts)
@@ -132,27 +151,23 @@ test "range_tree: single point" {
   assert_eq(query(t, 0, 4, 0, 10).length(), 0)
 }
 
+///|
 test "range_tree: all points in range" {
-  let pts = [
-    { x: 1, y: 1 },
-    { x: 2, y: 2 },
-    { x: 3, y: 3 },
-  ]
+  let pts = [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 3 }]
   let t = build(pts)
   let result = query(t, 0, 100, 0, 100)
   assert_eq(result.length(), 3)
 }
 
+///|
 test "range_tree: no points in range" {
-  let pts = [
-    { x: 0, y: 0 },
-    { x: 10, y: 10 },
-  ]
+  let pts = [{ x: 0, y: 0 }, { x: 10, y: 10 }]
   let t = build(pts)
   let result = query(t, 3, 7, 3, 7)
   assert_eq(result.length(), 0)
 }
 
+///|
 test "range_tree: many points" {
   let pts : Array[Point2D] = []
   for x = 0; x < 10; x = x + 1 {

@@ -14,6 +14,7 @@
 ///   memory. For `n` near `Int::MAX` the allocation will fail.
 /// - `factorize` returns `None` for `x < 2` or `x > n` (out of sieved range).
 
+///|
 /// Result of an Euler sieve: the list of primes and the spf (smallest prime
 /// factor) table.
 ///
@@ -26,6 +27,7 @@ pub struct EulerSieve {
   priv limit : Int
 }
 
+///|
 /// Run the Euler linear sieve up to `n` (inclusive).
 ///
 /// Returns `Some(EulerSieve)` containing the sorted list of primes and the
@@ -38,7 +40,11 @@ pub struct EulerSieve {
 /// for larger ranges.
 pub fn sieve(n : Int) -> EulerSieve? {
   if n < 2 {
-    return Some({ primes: FixedArray::make(0, 0), spf: FixedArray::make(0, 0), limit: n })
+    return Some({
+      primes: FixedArray::make(0, 0),
+      spf: FixedArray::make(0, 0),
+      limit: n,
+    })
   }
   // OOM protection: the sieve allocates an spf array of size n+1 and a prime
   // buffer of size ~n/3+8. For n > 100M this exceeds typical available memory
@@ -81,11 +87,13 @@ pub fn sieve(n : Int) -> EulerSieve? {
   Some({ primes, spf, limit: n })
 }
 
+///|
 /// Return the array of primes found by the sieve, in ascending order. O(1).
 pub fn primes(s : EulerSieve) -> FixedArray[Int] {
   s.primes
 }
 
+///|
 /// Return the smallest prime factor of `x` (requires `2 ≤ x ≤ limit`).
 /// Returns `None` if `x` is out of the sieved range.
 pub fn smallest_prime_factor(s : EulerSieve, x : Int) -> Int? {
@@ -95,6 +103,7 @@ pub fn smallest_prime_factor(s : EulerSieve, x : Int) -> Int? {
   Some(s.spf[x])
 }
 
+///|
 /// Factorize `x` into a list of (prime, exponent) pairs, sorted by prime.
 ///
 /// Requires `2 ≤ x ≤ limit` (the sieve's upper bound). Returns `None` for
@@ -117,6 +126,7 @@ pub fn factorize(s : EulerSieve, x : Int) -> Array[(Int, Int)]? {
   Some(result)
 }
 
+///|
 /// Check if `x` is prime (requires `2 ≤ x ≤ limit`).
 /// Returns `false` for values outside the sieved range.
 pub fn is_prime(s : EulerSieve, x : Int) -> Bool {
@@ -126,11 +136,13 @@ pub fn is_prime(s : EulerSieve, x : Int) -> Bool {
   s.spf[x] == x
 }
 
+///|
 /// Count the number of primes ≤ n. O(1).
 pub fn prime_count(s : EulerSieve) -> Int {
   s.primes.length()
 }
 
+///|
 /// Return the k-th prime (0-indexed). Returns `None` if k is out of range.
 pub fn nth_prime(s : EulerSieve, k : Int) -> Int? {
   if k < 0 || k >= s.primes.length() {
@@ -143,6 +155,7 @@ pub fn nth_prime(s : EulerSieve, k : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "euler_sieve: basic primes up to 30" {
   let s = match sieve(30) {
     Some(v) => v
@@ -162,6 +175,7 @@ test "euler_sieve: basic primes up to 30" {
   assert_eq(ps[9], 29)
 }
 
+///|
 test "euler_sieve: prime count matches known values" {
   let s10 = match sieve(10) {
     Some(v) => v
@@ -185,6 +199,7 @@ test "euler_sieve: prime count matches known values" {
   assert_eq(prime_count(s10000), 1229)
 }
 
+///|
 test "euler_sieve: is_prime" {
   let s = match sieve(100) {
     Some(v) => v
@@ -198,6 +213,7 @@ test "euler_sieve: is_prime" {
   assert_false(is_prime(s, 101)) // out of range
 }
 
+///|
 test "euler_sieve: smallest prime factor" {
   let s = match sieve(100) {
     Some(v) => v
@@ -211,6 +227,7 @@ test "euler_sieve: smallest prime factor" {
   assert_eq(smallest_prime_factor(s, 101), None) // out of range
 }
 
+///|
 test "euler_sieve: factorize" {
   let s = match sieve(10000) {
     Some(v) => v
@@ -226,6 +243,7 @@ test "euler_sieve: factorize" {
   assert_eq(f[2], (5, 1))
 }
 
+///|
 test "euler_sieve: factorize prime" {
   let s = match sieve(1000) {
     Some(v) => v
@@ -239,6 +257,7 @@ test "euler_sieve: factorize prime" {
   assert_eq(f[0], (997, 1))
 }
 
+///|
 test "euler_sieve: factorize power of 2" {
   let s = match sieve(1024) {
     Some(v) => v
@@ -252,6 +271,7 @@ test "euler_sieve: factorize power of 2" {
   assert_eq(f[0], (2, 10))
 }
 
+///|
 test "euler_sieve: nth_prime" {
   let s = match sieve(100) {
     Some(v) => v
@@ -264,6 +284,7 @@ test "euler_sieve: nth_prime" {
   assert_eq(nth_prime(s, -1), None)
 }
 
+///|
 test "euler_sieve: sieve(1) returns empty" {
   let s = match sieve(1) {
     Some(v) => v
@@ -273,6 +294,7 @@ test "euler_sieve: sieve(1) returns empty" {
   assert_false(is_prime(s, 1))
 }
 
+///|
 test "euler_sieve: sieve(2) returns single prime" {
   let s = match sieve(2) {
     Some(v) => v
@@ -283,10 +305,12 @@ test "euler_sieve: sieve(2) returns single prime" {
   assert_false(is_prime(s, 3))
 }
 
+///|
 test "euler_sieve: rejects oversized input" {
   assert_true(sieve(100_000_001) is None)
 }
 
+///|
 test "euler_sieve: cross-check with trial division" {
   let s = match sieve(5000) {
     Some(v) => v
