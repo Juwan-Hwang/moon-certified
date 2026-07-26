@@ -30,6 +30,7 @@
 // two_sat and scc. The shared implementation is in
 // graph/graph_utils/graph_utils.mbt.
 
+///|
 /// Solve a 2-SAT problem.
 ///
 /// **Parameters.**
@@ -80,6 +81,7 @@ pub fn two_sat(n : Int, clauses : Array[(Int, Int)]) -> FixedArray[Bool]? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Verify that an assignment satisfies all clauses.
 fn check_assignment(
   clauses : Array[(Int, Int)],
@@ -87,16 +89,8 @@ fn check_assignment(
 ) -> Bool {
   for i = 0; i < clauses.length(); i = i + 1 {
     let (a, b) = clauses[i]
-    let va = if a % 2 == 0 {
-      assign[a / 2]
-    } else {
-      !assign[a / 2]
-    }
-    let vb = if b % 2 == 0 {
-      assign[b / 2]
-    } else {
-      !assign[b / 2]
-    }
+    let va = if a % 2 == 0 { assign[a / 2] } else { !assign[a / 2] }
+    let vb = if b % 2 == 0 { assign[b / 2] } else { !assign[b / 2] }
     if !va && !vb {
       return false
     }
@@ -104,6 +98,7 @@ fn check_assignment(
   true
 }
 
+///|
 test "two_sat: trivially satisfiable (x_0 ∨ x_1)" {
   // x_0 ∨ x_1: always satisfiable.
   let clauses = [(0, 2)] // literal 0 = x_0, literal 2 = x_1
@@ -112,6 +107,7 @@ test "two_sat: trivially satisfiable (x_0 ∨ x_1)" {
   assert_true(check_assignment(clauses, result.unwrap()))
 }
 
+///|
 test "two_sat: force x_0 = true" {
   // (x_0 ∨ x_0) ∧ (x_0 ∨ x_1)
   let clauses = [(0, 0), (0, 2)]
@@ -122,6 +118,7 @@ test "two_sat: force x_0 = true" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: unsatisfiable (x_0 ∧ ¬x_0)" {
   // (x_0 ∨ x_0) ∧ (¬x_0 ∨ ¬x_0)
   let clauses = [(0, 0), (1, 1)]
@@ -129,6 +126,7 @@ test "two_sat: unsatisfiable (x_0 ∧ ¬x_0)" {
   assert_true(result is None)
 }
 
+///|
 test "two_sat: x_0 = x_1" {
   // (x_0 ∨ x_1) ∧ (¬x_0 ∨ ¬x_1): exactly one is true.
   let clauses = [(0, 2), (1, 3)]
@@ -140,6 +138,7 @@ test "two_sat: x_0 = x_1" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: implication chain" {
   // x_0 → x_1 → x_2 (encoded as (¬x_0 ∨ x_1) ∧ (¬x_1 ∨ x_2))
   // With x_0 = true: all must be true.
@@ -158,6 +157,7 @@ test "two_sat: implication chain" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: empty clauses" {
   let result = two_sat(3, [])
   assert_true(result is Some(_))
@@ -168,6 +168,7 @@ test "two_sat: empty clauses" {
   }
 }
 
+///|
 test "two_sat: single variable" {
   // x_0 must be true.
   let result = two_sat(1, [(0, 0)])
@@ -179,6 +180,7 @@ test "two_sat: single variable" {
   assert_eq(result2.unwrap()[0], false)
 }
 
+///|
 test "two_sat: complex satisfiable" {
   // 4 variables with multiple constraints.
   // x_0 ∨ x_1, ¬x_0 ∨ x_2, ¬x_1 ∨ x_2, x_2 ∨ x_3, ¬x_2 ∨ ¬x_3
@@ -194,6 +196,7 @@ test "two_sat: complex satisfiable" {
   assert_true(check_assignment(clauses, result.unwrap()))
 }
 
+///|
 test "two_sat: complex unsatisfiable" {
   // x_0, ¬x_0, x_1, ¬x_1 — all four forced, contradiction.
   let clauses = [
@@ -206,6 +209,7 @@ test "two_sat: complex unsatisfiable" {
   assert_true(result is None)
 }
 
+///|
 test "two_sat: invalid input" {
   // n = 0
   assert_true(two_sat(0, []) is None)
@@ -214,6 +218,7 @@ test "two_sat: invalid input" {
   assert_true(two_sat(2, [(-1, 0)]) is None)
 }
 
+///|
 test "two_sat: large satisfiable" {
   // n = 100 variables. Each clause forces x_i = true for even i, x_i = false
   // for odd i. No contradictions.
@@ -239,6 +244,7 @@ test "two_sat: large satisfiable" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: all variables unconstrained except one" {
   // x_0 ∨ x_0 forces x_0 = true; x_1 through x_9 are free.
   let n = 10
@@ -250,6 +256,7 @@ test "two_sat: all variables unconstrained except one" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: XOR constraint" {
   // x_0 ⊕ x_1 = 1 (exactly one is true).
   // (x_0 ∨ x_1) ∧ (¬x_0 ∨ ¬x_1)
@@ -261,6 +268,7 @@ test "two_sat: XOR constraint" {
   assert_true(check_assignment(clauses, assign))
 }
 
+///|
 test "two_sat: implication cycle" {
   // x_0 → x_1 → x_0 (so x_0 = x_1), plus x_0 = true.
   // (¬x_0 ∨ x_1) ∧ (¬x_1 ∨ x_0) ∧ (x_0 ∨ x_0)

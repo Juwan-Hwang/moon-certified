@@ -14,6 +14,7 @@
 /// absolute value (2³¹) overflows `Int`, the computation is performed in
 /// `Int64` to produce the mathematically correct result.
 
+///|
 /// Verified GCD implementation (requires non-negative inputs).
 /// Calling with negative `b` can cause infinite recursion because
 /// `proof_decrease: b` does not hold for negative values.
@@ -36,6 +37,7 @@ fn gcd_impl(
   }
 }
 
+///|
 /// Int64 GCD for handling `Int::MIN` correctly.
 ///
 /// `|Int::MIN|` = 2³¹ overflows `Int` (range [-2³¹, 2³¹-1]). By working in
@@ -52,6 +54,7 @@ fn gcd64(a : Int64, b : Int64) -> Int64 {
   a
 }
 
+///|
 /// Compute the greatest common divisor of two integers.
 ///
 /// Returns a non-negative result. `gcd(0, 0) = 0`.
@@ -86,30 +89,36 @@ pub fn gcd(a : Int, b : Int) -> Int {
   }
 }
 
+///|
 test "gcd: basic" {
   assert_eq(gcd(12, 8), 4)
   assert_eq(gcd(8, 12), 4)
 }
 
+///|
 test "gcd: coprime" {
   assert_eq(gcd(7, 13), 1)
   assert_eq(gcd(1, 1), 1)
 }
 
+///|
 test "gcd: one is zero" {
   assert_eq(gcd(5, 0), 5)
   assert_eq(gcd(0, 5), 5)
   assert_eq(gcd(0, 0), 0)
 }
 
+///|
 test "gcd: large numbers" {
   assert_eq(gcd(1071, 462), 21)
 }
 
+///|
 test "gcd: equal numbers" {
   assert_eq(gcd(6, 6), 6)
 }
 
+///|
 test "gcd: divisibility property" {
   let pairs = [(12, 8), (1071, 462), (7, 13), (100, 75), (36, 24)]
   for k = 0; k < 5; k = k + 1 {
@@ -122,6 +131,7 @@ test "gcd: divisibility property" {
   }
 }
 
+///|
 test "gcd: negative inputs handled safely" {
   assert_eq(gcd(-12, 8), 4)
   assert_eq(gcd(12, -8), 4)
@@ -132,6 +142,7 @@ test "gcd: negative inputs handled safely" {
   assert_eq(gcd(0, -5), 5)
 }
 
+///|
 test "gcd: Int::MIN mathematically correct" {
   // Int::MIN = -2147483648 = -2^31
   // |Int::MIN| = 2^31, computed exactly via Int64.
@@ -167,5 +178,5 @@ test "gcd: Int::MIN mathematically correct" {
   let g = gcd(-2147483648, 6)
   assert_eq(g, 2)
   // 2^31 mod 2 = 0, verified via Int64
-  assert_eq(((2147483648L) % g.to_int64()), 0L)
+  assert_eq(2147483648L % g.to_int64(), 0L)
 }

@@ -28,11 +28,13 @@
 /// for that vertex is clamped to `None` (treated as unreachable) to avoid
 /// silent wrap-around.
 
+///|
 /// Sentinel for "infinity" (unreachable). Uses `Int64::MAX` so that a
 /// distance of exactly `Int32::MAX` (2147483647) is NOT confused with
 /// unreachable. The overflow boundary is checked separately below.
 const INF_I64 : Int64 = 9223372036854775807L
 
+///|
 /// Int32::MAX as Int64 — the boundary for Int32 overflow detection.
 /// Distances exceeding this value cannot be safely returned as `Int`.
 const INT32_MAX_I64 : Int64 = 2147483647L
@@ -42,6 +44,7 @@ const INT32_MAX_I64 : Int64 = 2147483647L
 // dijkstra_heap and johnson. The shared implementation is in
 // graph/graph_utils/graph_utils.mbt.
 
+///|
 /// Compute shortest paths from `src` using a min-heap priority queue.
 ///
 /// `graph[i]` is an array of `(neighbor, weight)` tuples.
@@ -102,6 +105,7 @@ pub fn dijkstra(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dijkstra_heap: basic path graph" {
   let n = 4
   let graph : Array[Array[(Int, Int)]] = []
@@ -121,6 +125,7 @@ test "dijkstra_heap: basic path graph" {
   assert_eq(dist[3], Some(6))
 }
 
+///|
 test "dijkstra_heap: shorter path through intermediate" {
   let n = 3
   let graph : Array[Array[(Int, Int)]] = [[], [], []]
@@ -134,6 +139,7 @@ test "dijkstra_heap: shorter path through intermediate" {
   assert_eq(dist[2], Some(2)) // 0 -> 1 -> 2 = 2, not 5
 }
 
+///|
 test "dijkstra_heap: unreachable vertices" {
   let n = 3
   let graph : Array[Array[(Int, Int)]] = [[], [], []]
@@ -146,12 +152,14 @@ test "dijkstra_heap: unreachable vertices" {
   assert_true(dist[2] is None)
 }
 
+///|
 test "dijkstra_heap: single node" {
   let graph : Array[Array[(Int, Int)]] = [[]]
   let dist = dijkstra(graph, 1, 0)
   assert_eq(dist[0], Some(0))
 }
 
+///|
 test "dijkstra_heap: directed graph" {
   let n = 3
   let graph : Array[Array[(Int, Int)]] = [[], [], []]
@@ -167,6 +175,7 @@ test "dijkstra_heap: directed graph" {
   assert_eq(dist1[2], Some(3))
 }
 
+///|
 test "dijkstra_heap: star graph" {
   let n = 5
   let graph : Array[Array[(Int, Int)]] = []
@@ -189,6 +198,7 @@ test "dijkstra_heap: star graph" {
   assert_eq(dist[4], Some(4))
 }
 
+///|
 test "dijkstra_heap: lazy deletion correctness" {
   // Insert many edges to trigger multiple stale heap entries.
   let n = 6
@@ -222,6 +232,7 @@ test "dijkstra_heap: lazy deletion correctness" {
   assert_eq(dist[5], Some(3)) // 0 -> 3 -> 1 -> 5
 }
 
+///|
 test "dijkstra_heap: invalid input" {
   let graph : Array[Array[(Int, Int)]] = [[]]
   let r1 = dijkstra(graph, 0, 0)
@@ -232,6 +243,7 @@ test "dijkstra_heap: invalid input" {
   assert_true(r3[0] is None)
 }
 
+///|
 test "dijkstra_heap: chain 100 nodes" {
   let n = 100
   let graph : Array[Array[(Int, Int)]] = []
@@ -247,6 +259,7 @@ test "dijkstra_heap: chain 100 nodes" {
   assert_eq(dist[50], Some(50))
 }
 
+///|
 test "dijkstra_heap: complete graph K5" {
   let n = 5
   let graph : Array[Array[(Int, Int)]] = []
@@ -269,6 +282,7 @@ test "dijkstra_heap: complete graph K5" {
   assert_eq(dist[4], Some(5))
 }
 
+///|
 test "dijkstra_heap: overflow protection" {
   // A graph where path distance exceeds Int32::max.
   // Chain of 3 nodes: 0 ->(2^30)-> 1 ->(2^30)-> 2
@@ -288,6 +302,7 @@ test "dijkstra_heap: overflow protection" {
   assert_true(dist[2] is None)
 }
 
+///|
 test "dijkstra_heap: distance exactly Int32::MAX" {
   // Regression test: a distance of exactly 2147483647 (Int32::MAX) must be
   // returned as Some, not None. Previously the sentinel was also

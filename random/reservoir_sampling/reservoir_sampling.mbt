@@ -38,16 +38,20 @@
 /// Not formally verified. Correctness is ensured by the comprehensive test
 /// suite below, including a chi-square uniformity check over 10 000 runs.
 
+///|
 /// Default LCG seed for `new`. Any fixed non-zero value makes every default
 /// sampler deterministic; `with_seed` overrides it for reproducible variety.
 let default_seed : Int = 0x1A2B3C4D
 
+///|
 /// LCG multiplier (≡ 1 mod 4) and increment (odd); together with the
 /// `& 0x7FFFFFFF` mask they give a full-period generator mod 2^31.
 let lcg_a : Int = 1103515245
 
+///|
 let lcg_c : Int = 12345
 
+///|
 /// A reservoir sampler holding up to `capacity` (k) items of type `T`.
 ///
 /// `reservoir` stores the current sample, `seen` counts every element
@@ -59,6 +63,7 @@ pub struct ReservoirSampler[T] {
   priv mut rng : Int
 }
 
+///|
 /// Create a sampler that maintains a sample of `capacity` items.
 ///
 /// A `capacity <= 0` produces a sampler that tracks the count but never
@@ -67,6 +72,7 @@ pub fn[T] new(capacity : Int) -> ReservoirSampler[T] {
   with_seed(capacity, default_seed)
 }
 
+///|
 /// Create a sampler with an explicit LCG `seed`.
 ///
 /// Distinct seeds yield statistically independent samples, which is what the
@@ -83,6 +89,7 @@ pub fn[T] with_seed(capacity : Int, seed : Int) -> ReservoirSampler[T] {
   }
 }
 
+///|
 /// Advance the LCG one step and map the result uniformly into `[0, m)`.
 ///
 /// Lemire's method `(state * m) >> 31` uses the high bits of `state`, avoiding
@@ -93,6 +100,7 @@ fn[T] rand_below(sampler : ReservoirSampler[T], m : Int) -> Int {
   ((sampler.rng.to_int64() * m.to_int64()) >> 31).to_int()
 }
 
+///|
 /// Process one stream element. O(1) expected.
 ///
 /// The first `capacity` elements fill the reservoir directly. Every later
@@ -112,6 +120,7 @@ pub fn[T] add(sampler : ReservoirSampler[T], item : T) -> Unit {
   sampler.seen = m
 }
 
+///|
 /// Process a batch of stream elements in order. O(len items).
 pub fn[T] add_many(sampler : ReservoirSampler[T], items : Array[T]) -> Unit {
   for i = 0; i < items.length(); i = i + 1 {
@@ -119,6 +128,7 @@ pub fn[T] add_many(sampler : ReservoirSampler[T], items : Array[T]) -> Unit {
   }
 }
 
+///|
 /// Return a copy of the sampled items. O(k).
 ///
 /// A fresh `Array` is returned so callers cannot mutate the sampler's internal
@@ -131,6 +141,7 @@ pub fn[T] result(sampler : ReservoirSampler[T]) -> Array[T] {
   out
 }
 
+///|
 /// Number of stream elements observed so far. O(1).
 pub fn[T] count(sampler : ReservoirSampler[T]) -> Int {
   sampler.seen
@@ -140,12 +151,14 @@ pub fn[T] count(sampler : ReservoirSampler[T]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "reservoir: empty stream" {
   let s : ReservoirSampler[Int] = new(5)
   assert_eq(count(s), 0)
   assert_eq(result(s).length(), 0)
 }
 
+///|
 test "reservoir: stream shorter than capacity keeps all items" {
   let s : ReservoirSampler[Int] = new(5)
   add(s, 10)
@@ -174,6 +187,7 @@ test "reservoir: stream shorter than capacity keeps all items" {
   assert_true(has30)
 }
 
+///|
 test "reservoir: stream exactly capacity" {
   let s : ReservoirSampler[Int] = new(5)
   for i = 0; i < 5; i = i + 1 {
@@ -188,6 +202,7 @@ test "reservoir: stream exactly capacity" {
   }
 }
 
+///|
 test "reservoir: stream longer than capacity" {
   let s : ReservoirSampler[Int] = new(3)
   for i = 0; i < 10; i = i + 1 {
@@ -206,6 +221,7 @@ test "reservoir: stream longer than capacity" {
   }
 }
 
+///|
 test "reservoir: uniform distribution (chi-square)" {
   let n = 20
   let k = 5
@@ -241,6 +257,7 @@ test "reservoir: uniform distribution (chi-square)" {
   assert_true(chi2 < 80.0)
 }
 
+///|
 test "reservoir: count tracking" {
   let s : ReservoirSampler[Int] = new(4)
   assert_eq(count(s), 0)
@@ -255,6 +272,7 @@ test "reservoir: count tracking" {
   assert_eq(count(s), 8)
 }
 
+///|
 test "reservoir: large stream 100000 elements k=10" {
   let s : ReservoirSampler[Int] = new(10)
   for i = 0; i < 100000; i = i + 1 {
@@ -272,6 +290,7 @@ test "reservoir: large stream 100000 elements k=10" {
   }
 }
 
+///|
 test "reservoir: generic type with String keys" {
   let s : ReservoirSampler[String] = new(3)
   let words = ["alpha", "beta", "gamma", "delta", "epsilon", "zeta"]

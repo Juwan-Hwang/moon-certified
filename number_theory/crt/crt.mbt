@@ -25,6 +25,7 @@
 /// which includes congruence-consistency, no-solution and multi-congruence
 /// checks.
 
+///|
 /// Extended Euclidean algorithm on `Int64`.
 ///
 /// Returns (g, x, y) with a*x + b*y == g == gcd(a, b). Implemented
@@ -52,6 +53,7 @@ fn ext_gcd64(a : Int64, b : Int64) -> (Int64, Int64, Int64) {
   (old_r, old_s, old_t)
 }
 
+///|
 /// Merge two congruences x ≡ r1 (mod m1) and x ≡ r2 (mod m2).
 ///
 /// Requires m1 > 0 and m2 > 0. Returns `Some((x, lcm))` with
@@ -61,7 +63,7 @@ fn crt_combine64(
   r1 : Int64,
   m1 : Int64,
   r2 : Int64,
-  m2 : Int64
+  m2 : Int64,
 ) -> (Int64, Int64)? {
   let r1n = @int64_utils.mod64(r1, m1)
   let r2n = @int64_utils.mod64(r2, m2)
@@ -73,11 +75,15 @@ fn crt_combine64(
   let lcm = m1 / g * m2
   let mod_k = m2 / g
   // k ≡ (diff / g) * p (mod mod_k); reduce each factor first to bound the product.
-  let k = @int64_utils.mod64(@int64_utils.mod64(diff / g, mod_k) * @int64_utils.mod64(p, mod_k), mod_k)
+  let k = @int64_utils.mod64(
+    @int64_utils.mod64(diff / g, mod_k) * @int64_utils.mod64(p, mod_k),
+    mod_k,
+  )
   let x = @int64_utils.mod64(m1 * k + r1n, lcm)
   Some((x, lcm))
 }
 
+///|
 /// Solve the two-congruence system
 ///   x ≡ r1 (mod m1),  x ≡ r2 (mod m2).
 ///
@@ -89,7 +95,8 @@ pub fn crt(r1 : Int, m1 : Int, r2 : Int, m2 : Int) -> Int? {
   if m1 <= 0 || m2 <= 0 {
     return None
   }
-  match crt_combine64(r1.to_int64(), m1.to_int64(), r2.to_int64(), m2.to_int64()) {
+  match
+    crt_combine64(r1.to_int64(), m1.to_int64(), r2.to_int64(), m2.to_int64()) {
     None => None
     Some((x, lcm)) =>
       // The solution x lies in [0, lcm). If lcm exceeds Int32 range, x may
@@ -103,6 +110,7 @@ pub fn crt(r1 : Int, m1 : Int, r2 : Int, m2 : Int) -> Int? {
   }
 }
 
+///|
 /// Solve a system of congruences
 ///   x ≡ remainders[i] (mod moduli[i])   for i = 0 .. k-1
 /// by repeatedly merging pairs.
@@ -112,7 +120,7 @@ pub fn crt(r1 : Int, m1 : Int, r2 : Int, m2 : Int) -> Int? {
 /// system is empty, or the system is inconsistent (some pair has no solution).
 pub fn crt_system(
   remainders : FixedArray[Int],
-  moduli : FixedArray[Int]
+  moduli : FixedArray[Int],
 ) -> Int? {
   let n = remainders.length()
   if n == 0 || n != moduli.length() {
@@ -121,18 +129,22 @@ pub fn crt_system(
   if moduli[0] <= 0 {
     return None
   }
-  let mut cur_r = @int64_utils.mod64(remainders[0].to_int64(), moduli[0].to_int64())
+  let mut cur_r = @int64_utils.mod64(
+    remainders[0].to_int64(),
+    moduli[0].to_int64(),
+  )
   let mut cur_m = moduli[0].to_int64()
   for i = 1; i < n; i = i + 1 {
     if moduli[i] <= 0 {
       return None
     }
-    match crt_combine64(
-      cur_r,
-      cur_m,
-      remainders[i].to_int64(),
-      moduli[i].to_int64()
-    ) {
+    match
+      crt_combine64(
+        cur_r,
+        cur_m,
+        remainders[i].to_int64(),
+        moduli[i].to_int64(),
+      ) {
       None => return None
       Some((x, m)) => {
         cur_r = x
@@ -154,16 +166,19 @@ pub fn crt_system(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "crt: basic two congruences" {
   // x ≡ 2 (mod 3), x ≡ 3 (mod 5) -> x = 8 (mod 15).
   assert_eq(crt(2, 3, 3, 5), Some(8))
 }
 
+///|
 test "crt: symmetric in argument order" {
   // Swapping the two congruences yields the same solution.
   assert_eq(crt(3, 5, 2, 3), Some(8))
 }
 
+///|
 test "crt: no solution when gcd does not divide the difference" {
   // gcd(4, 6) = 2 does not divide 2 - 1 = 1.
   assert_true(crt(1, 4, 2, 6) is None)
@@ -171,12 +186,14 @@ test "crt: no solution when gcd does not divide the difference" {
   assert_true(crt(3, 6, 2, 4) is None)
 }
 
+///|
 test "crt: non-coprime moduli, solvable" {
   // gcd(4, 6) = 2 divides 3 - 1 = 2; lcm = 12.
   assert_eq(crt(1, 4, 3, 6), Some(9))
   assert_eq(crt(2, 4, 4, 6), Some(10))
 }
 
+///|
 test "crt: modulus of one is absorbed" {
   // x ≡ 0 (mod 1) is trivially satisfied, leaving x ≡ 7 (mod 9).
   assert_eq(crt(0, 1, 7, 9), Some(7))
@@ -184,6 +201,7 @@ test "crt: modulus of one is absorbed" {
   assert_eq(crt(5, 1, 9, 1), Some(0))
 }
 
+///|
 test "crt: negative remainders are normalised" {
   // -1 ≡ 2 (mod 3), so this equals the basic case (solution 8).
   assert_eq(crt(-1, 3, 3, 5), Some(8))
@@ -191,6 +209,7 @@ test "crt: negative remainders are normalised" {
   assert_eq(crt(2, 3, -2, 5), Some(8))
 }
 
+///|
 test "crt: large coprime moduli" {
   // 10007 and 10009 are coprime; lcm = 100160063 (< 2^31).
   let x = crt(5, 10007, 7, 10009)
@@ -202,6 +221,7 @@ test "crt: large coprime moduli" {
   assert_true(v < 100160063)
 }
 
+///|
 test "crt: moduli near the Int32 sqrt limit" {
   // 46337 and 46327 are coprime; lcm = 2146654199 (< 2^31), so the
   // intermediate products approach 2^31 and exercise the Int64 path.
@@ -214,6 +234,7 @@ test "crt: moduli near the Int32 sqrt limit" {
   assert_true(v < 2146654199)
 }
 
+///|
 test "crt: LCM overflow returns None" {
   // 46349 and 46351 are both prime (coprime); their product exceeds 2^31.
   // The correct LCM is 2148083399 > Int32::MAX, so crt should return None
@@ -222,12 +243,14 @@ test "crt: LCM overflow returns None" {
   assert_true(crt(1, 46349, 2, 46351) is None)
 }
 
+///|
 test "crt: non-positive modulus returns None" {
   assert_true(crt(2, 0, 3, 5) is None)
   assert_true(crt(2, 3, 3, 0) is None)
   assert_true(crt(2, -3, 3, 5) is None)
 }
 
+///|
 test "crt: solution satisfies both congruences" {
   let cases = [
     (2, 3, 3, 5),
@@ -252,6 +275,7 @@ test "crt: solution satisfies both congruences" {
   }
 }
 
+///|
 test "crt_system: Sun Tzu's problem" {
   // x ≡ 2 (mod 3), x ≡ 3 (mod 5), x ≡ 2 (mod 7) -> x = 23 (mod 105).
   let rs = FixedArray::from_array([2, 3, 2])
@@ -259,6 +283,7 @@ test "crt_system: Sun Tzu's problem" {
   assert_eq(crt_system(rs, ms), Some(23))
 }
 
+///|
 test "crt_system: non-coprime moduli" {
   // moduli 4, 6, 15 share factors; the system is still consistent -> 34.
   let rs = FixedArray::from_array([2, 4, 4])
@@ -266,6 +291,7 @@ test "crt_system: non-coprime moduli" {
   assert_eq(crt_system(rs, ms), Some(34))
 }
 
+///|
 test "crt_system: single congruence" {
   let rs = FixedArray::from_array([5])
   let ms = FixedArray::from_array([7])
@@ -276,6 +302,7 @@ test "crt_system: single congruence" {
   assert_eq(crt_system(rs2, ms2), Some(4))
 }
 
+///|
 test "crt_system: three coprime moduli round-trip" {
   // 500000 mod {97, 101, 103} = {62, 50, 38}; lcm = 1009091.
   let rs = FixedArray::from_array([62, 50, 38])
@@ -283,6 +310,7 @@ test "crt_system: three coprime moduli round-trip" {
   assert_eq(crt_system(rs, ms), Some(500000))
 }
 
+///|
 test "crt_system: larger coprime moduli" {
   // lcm = 1041537223 (< 2^31).
   let rs = FixedArray::from_array([545, 591, 690])
@@ -290,6 +318,7 @@ test "crt_system: larger coprime moduli" {
   assert_eq(crt_system(rs, ms), Some(500000))
 }
 
+///|
 test "crt_system: inconsistent system returns None" {
   // x ≡ 2 (mod 4), x ≡ 4 (mod 6) -> x = 10 (mod 12), i.e. x ≡ 1 (mod 3),
   // but x ≡ 0 (mod 9) forces x ≡ 0 (mod 3): contradiction.
@@ -298,18 +327,21 @@ test "crt_system: inconsistent system returns None" {
   assert_true(crt_system(rs, ms) is None)
 }
 
+///|
 test "crt_system: empty system returns None" {
   let rs = FixedArray::make(0, 0)
   let ms = FixedArray::make(0, 0)
   assert_true(crt_system(rs, ms) is None)
 }
 
+///|
 test "crt_system: mismatched lengths return None" {
   let rs = FixedArray::from_array([1, 2])
   let ms = FixedArray::from_array([3])
   assert_true(crt_system(rs, ms) is None)
 }
 
+///|
 test "crt_system: non-positive modulus returns None" {
   let rs = FixedArray::from_array([2, 3])
   let ms = FixedArray::from_array([3, 0])
@@ -318,6 +350,7 @@ test "crt_system: non-positive modulus returns None" {
   assert_true(crt_system(rs, ms2) is None)
 }
 
+///|
 test "crt_system: solution satisfies every congruence" {
   let rs = FixedArray::from_array([2, 3, 2])
   let ms = FixedArray::from_array([3, 5, 7])

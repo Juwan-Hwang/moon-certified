@@ -36,6 +36,7 @@
 /// alternative (no proof contract at all) would lose the array-length
 /// verification that Z3 *can* discharge.
 
+///|
 /// Nonlinear arithmetic lemma: for 0 <= u < n, 0 <= v < n, 0 < n,
 /// and n*n <= len, u*n + v < len holds.
 ///
@@ -64,6 +65,7 @@ pub fn graph_index_bound(
   // proof_axiomatized: contract assumed without proof.
 }
 
+///|
 /// Internal Dijkstra implementation using -1 as a sentinel for "unreachable"
 /// during computation. This is an implementation detail; the public `dijkstra`
 /// function wraps the result in `Option` to eliminate the magic value.
@@ -131,6 +133,7 @@ fn dijkstra_impl(
   dist
 }
 
+///|
 /// Compute shortest distances from src to all other nodes.
 ///
 /// Returns a `FixedArray[Int?]` where `dist[i]` is `Some(d)` (the shortest
@@ -159,6 +162,7 @@ pub fn dijkstra(
   result
 }
 
+///|
 /// Compute shortest distance from src to dst.
 ///
 /// Returns `Some(distance)` if `dst` is reachable from `src`, or `None`
@@ -170,19 +174,26 @@ pub fn shortest_path(
   src : Int,
   dst : Int,
 ) -> Int? {
-  if n <= 0 || src < 0 || src >= n || dst < 0 || dst >= n || graph.length() < n * n {
+  if n <= 0 ||
+    src < 0 ||
+    src >= n ||
+    dst < 0 ||
+    dst >= n ||
+    graph.length() < n * n {
     return None
   }
   let dist = dijkstra(graph, n, src)
   dist[dst]
 }
 
+///|
 test "dijkstra: single node" {
   let graph = FixedArray::make(1, 0)
   let dist = dijkstra(graph, 1, 0)
   assert_eq(dist[0], Some(0))
 }
 
+///|
 test "dijkstra: path graph" {
   let n = 4
   let graph = FixedArray::make(n * n, 0)
@@ -199,6 +210,7 @@ test "dijkstra: path graph" {
   assert_eq(dist[3], Some(6))
 }
 
+///|
 test "dijkstra: unreachable node" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -210,6 +222,7 @@ test "dijkstra: unreachable node" {
   assert_true(dist[2] is None)
 }
 
+///|
 test "dijkstra: shorter path through intermediate" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -223,6 +236,7 @@ test "dijkstra: shorter path through intermediate" {
   assert_eq(dist[2], Some(2))
 }
 
+///|
 test "dijkstra: complete graph" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -238,6 +252,7 @@ test "dijkstra: complete graph" {
   assert_eq(dist[2], Some(2))
 }
 
+///|
 test "dijkstra: directed graph" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -252,6 +267,7 @@ test "dijkstra: directed graph" {
   assert_eq(dist1[2], Some(3))
 }
 
+///|
 test "shortest_path: basic" {
   let n = 4
   let graph = FixedArray::make(n * n, 0)
@@ -265,6 +281,7 @@ test "shortest_path: basic" {
   assert_eq(shortest_path(graph, n, 0, 0), Some(0))
 }
 
+///|
 test "shortest_path: unreachable" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -272,6 +289,7 @@ test "shortest_path: unreachable" {
   assert_true(shortest_path(graph, n, 0, 2) is None)
 }
 
+///|
 test "dijkstra: star graph" {
   let n = 5
   let graph = FixedArray::make(n * n, 0)
@@ -289,6 +307,7 @@ test "dijkstra: star graph" {
   }
 }
 
+///|
 test "dijkstra: invalid inputs return None" {
   let graph = FixedArray::make(9, 0)
   let dist = dijkstra(graph, 0, 0)
@@ -303,6 +322,7 @@ test "dijkstra: invalid inputs return None" {
   }
 }
 
+///|
 test "dijkstra: negative n returns empty array" {
   let graph = FixedArray::make(9, 0)
   let dist = dijkstra(graph, -5, 0)

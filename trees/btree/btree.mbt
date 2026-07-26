@@ -15,9 +15,11 @@
 ///
 /// Not formally verified. Correctness ensured by comprehensive tests.
 
+///|
 /// Default minimum degree when using `new()`.
 const BTREE_DEFAULT_DEGREE : Int = 2
 
+///|
 /// A B-Tree node.
 ///
 /// `keys` is a sorted array of keys. `children` is an array of child nodes
@@ -32,11 +34,13 @@ pub struct BTreeNode[T] {
   priv degree : Int
 }
 
+///|
 /// Create an empty B-Tree with the default minimum degree `t = 2` (2-3 tree).
 pub fn[T] new() -> BTreeNode[T] {
   new_with_degree(BTREE_DEFAULT_DEGREE)
 }
 
+///|
 /// Create an empty B-Tree with a custom minimum degree `t >= 2`.
 /// Higher `t` means wider, shallower trees — better for disk-based scenarios
 /// with large block sizes. `t < 2` is clamped to 2.
@@ -45,6 +49,7 @@ pub fn[T] new_with_degree(degree : Int) -> BTreeNode[T] {
   { keys: [], children: [], leaf: true, count: 0, degree: t }
 }
 
+///|
 fn[T] btree_create(leaf : Bool, degree : Int) -> BTreeNode[T] {
   { keys: [], children: [], leaf, count: 0, degree }
 }
@@ -54,6 +59,7 @@ fn[T] btree_create(leaf : Bool, degree : Int) -> BTreeNode[T] {
 // MoonBit's Array supports push and pop, but not positional insert/remove.
 // ---------------------------------------------------------------------------
 
+///|
 fn[T] keys_remove(arr : Array[T], idx : Int) -> Unit {
   let n = arr.length()
   for i = idx; i < n - 1; i = i + 1 {
@@ -62,6 +68,7 @@ fn[T] keys_remove(arr : Array[T], idx : Int) -> Unit {
   ignore(arr.pop())
 }
 
+///|
 fn[T] keys_insert(arr : Array[T], idx : Int, val : T) -> Unit {
   arr.push(val)
   let n = arr.length()
@@ -71,6 +78,7 @@ fn[T] keys_insert(arr : Array[T], idx : Int, val : T) -> Unit {
   arr[idx] = val
 }
 
+///|
 fn[T] children_remove(arr : Array[BTreeNode[T]], idx : Int) -> Unit {
   let n = arr.length()
   for i = idx; i < n - 1; i = i + 1 {
@@ -79,6 +87,7 @@ fn[T] children_remove(arr : Array[BTreeNode[T]], idx : Int) -> Unit {
   ignore(arr.pop())
 }
 
+///|
 fn[T] children_insert(
   arr : Array[BTreeNode[T]],
   idx : Int,
@@ -96,12 +105,9 @@ fn[T] children_insert(
 // Search
 // ---------------------------------------------------------------------------
 
+///|
 /// Search for `key` in the subtree rooted at `root`. Returns true if found.
-pub fn[T] search(
-  root : BTreeNode[T],
-  key : T,
-  cmp : (T, T) -> Int,
-) -> Bool {
+pub fn[T] search(root : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Bool {
   let mut i = 0
   let n = root.keys.length()
   while i < n && cmp(root.keys[i], key) < 0 {
@@ -120,13 +126,10 @@ pub fn[T] search(
 // Insert
 // ---------------------------------------------------------------------------
 
+///|
 /// Split child `i` of node `x`. The child must be full (2t-1 keys).
 /// The median key moves up to `x`; a new node receives the right half.
-fn[T] split_child(
-  x : BTreeNode[T],
-  i : Int,
-  cmp : (T, T) -> Int,
-) -> Unit {
+fn[T] split_child(x : BTreeNode[T], i : Int, cmp : (T, T) -> Int) -> Unit {
   let t = x.degree
   let y = x.children[i]
   let z = btree_create(y.leaf, y.degree)
@@ -161,6 +164,7 @@ fn[T] split_child(
   ignore(cmp)
 }
 
+///|
 /// Insert `key` into a node that is guaranteed not to be full.
 fn[T] insert_non_full(
   node : BTreeNode[T],
@@ -196,6 +200,7 @@ fn[T] insert_non_full(
   }
 }
 
+///|
 /// Insert `key` into the tree rooted at `root`. Duplicates are silently
 /// ignored. Returns the (possibly new) root.
 pub fn[T] insert(
@@ -224,6 +229,7 @@ pub fn[T] insert(
 // Size (cached for O(1) lookup)
 // ---------------------------------------------------------------------------
 
+///|
 /// Recompute the cached `count` field from keys + children.
 /// Called after structural mutations (split, merge, borrow, insert, delete).
 fn[T] update_count(node : BTreeNode[T]) -> Unit {
@@ -234,6 +240,7 @@ fn[T] update_count(node : BTreeNode[T]) -> Unit {
   node.count = c
 }
 
+///|
 /// Count the total number of keys in the tree.
 /// O(1) via cached count field.
 pub fn[T] size(root : BTreeNode[T]) -> Int {
@@ -244,6 +251,7 @@ pub fn[T] size(root : BTreeNode[T]) -> Int {
 // In-order traversal
 // ---------------------------------------------------------------------------
 
+///|
 /// Visit every key in sorted order, calling `f` on each.
 pub fn[T] inorder(root : BTreeNode[T], f : (T) -> Unit) -> Unit {
   let n = root.keys.length()
@@ -262,6 +270,7 @@ pub fn[T] inorder(root : BTreeNode[T], f : (T) -> Unit) -> Unit {
 // Delete helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Return the predecessor of the key at index `idx` (the maximum key in
 /// the left subtree). The caller must ensure `children[idx]` has at least
 /// t keys.
@@ -273,6 +282,7 @@ fn[T] get_pred(node : BTreeNode[T], idx : Int) -> T {
   cur.keys[cur.keys.length() - 1]
 }
 
+///|
 /// Return the successor of the key at index `idx` (the minimum key in
 /// the right subtree). The caller must ensure `children[idx+1]` has at
 /// least t keys.
@@ -284,6 +294,7 @@ fn[T] get_succ(node : BTreeNode[T], idx : Int) -> T {
   cur.keys[0]
 }
 
+///|
 /// Borrow a key from the left sibling (`children[idx-1]`) into
 /// `children[idx]` via the parent key at `idx-1`.
 fn[T] _borrow_from_prev(node : BTreeNode[T], idx : Int) -> Unit {
@@ -303,6 +314,7 @@ fn[T] _borrow_from_prev(node : BTreeNode[T], idx : Int) -> Unit {
   update_count(sibling)
 }
 
+///|
 /// Borrow a key from the right sibling (`children[idx+1]`) into
 /// `children[idx]` via the parent key at `idx`.
 fn[T] _borrow_from_next(node : BTreeNode[T], idx : Int) -> Unit {
@@ -322,6 +334,7 @@ fn[T] _borrow_from_next(node : BTreeNode[T], idx : Int) -> Unit {
   update_count(sibling)
 }
 
+///|
 /// Merge `children[idx]` and `children[idx+1]` into a single node.
 /// The parent key at `idx` descends to become the median of the merged node.
 fn[T] _merge(node : BTreeNode[T], idx : Int) -> Unit {
@@ -346,6 +359,7 @@ fn[T] _merge(node : BTreeNode[T], idx : Int) -> Unit {
   update_count(node)
 }
 
+///|
 /// Ensure `children[idx]` has at least t keys before descending, by
 /// borrowing from a sibling or merging with one.
 fn[T] _fill(node : BTreeNode[T], idx : Int) -> Unit {
@@ -358,22 +372,19 @@ fn[T] _fill(node : BTreeNode[T], idx : Int) -> Unit {
   // Try borrowing from the left sibling.
   if idx > 0 && node.children[idx - 1].keys.length() >= t {
     _borrow_from_prev(node, idx)
-  }
-  // Try borrowing from the right sibling.
-  else if idx < node.keys.length() &&
-          node.children[idx + 1].keys.length() >= t {
+    // Try borrowing from the right sibling.
+  } else if idx < node.keys.length() &&
+    node.children[idx + 1].keys.length() >= t {
     _borrow_from_next(node, idx)
-  }
-  // Both siblings are minimal: merge.
-  else {
-    if idx < node.keys.length() {
-      _merge(node, idx) // merge with right sibling
-    } else {
-      _merge(node, idx - 1) // merge with left sibling (idx is last child)
-    }
+    // Both siblings are minimal: merge.
+  } else if idx < node.keys.length() {
+    _merge(node, idx) // merge with right sibling
+  } else {
+    _merge(node, idx - 1) // merge with left sibling (idx is last child)
   }
 }
 
+///|
 /// Delete the key at index `idx` from an internal node.
 fn[T] _delete_internal(
   node : BTreeNode[T],
@@ -387,26 +398,21 @@ fn[T] _delete_internal(
     let pred = get_pred(node, idx)
     node.keys[idx] = pred
     _delete(node.children[idx], pred, cmp)
-  }
-  // Case 2b: right child has >= t keys — replace with successor.
-  else if node.children[idx + 1].keys.length() >= t {
+    // Case 2b: right child has >= t keys — replace with successor.
+  } else if node.children[idx + 1].keys.length() >= t {
     let succ = get_succ(node, idx)
     node.keys[idx] = succ
     _delete(node.children[idx + 1], succ, cmp)
-  }
-  // Case 2c: both children are minimal — merge, then delete from merged.
-  else {
+    // Case 2c: both children are minimal — merge, then delete from merged.
+  } else {
     _merge(node, idx)
     _delete(node.children[idx], key, cmp)
   }
 }
 
+///|
 /// Delete `key` from the subtree rooted at `node` (mutated in place).
-fn[T] _delete(
-  node : BTreeNode[T],
-  key : T,
-  cmp : (T, T) -> Int,
-) -> Unit {
+fn[T] _delete(node : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Unit {
   let t = node.degree
   let n = node.keys.length()
   // Find the first key >= key.
@@ -449,6 +455,7 @@ fn[T] _delete(
   update_count(node)
 }
 
+///|
 /// Delete `key` from the tree rooted at `root`. If the key is not present
 /// the tree is unchanged. Returns the (possibly new) root.
 pub fn[T] delete(
@@ -469,11 +476,13 @@ pub fn[T] delete(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Integer comparator for tests.
 fn int_cmp(a : Int, b : Int) -> Int {
   a - b
 }
 
+///|
 test "btree: basic insert and search" {
   let root = new()
   let r = insert(root, 5, int_cmp)
@@ -487,6 +496,7 @@ test "btree: basic insert and search" {
   assert_eq(size(r), 3)
 }
 
+///|
 test "btree: sequential insert" {
   let mut root = new()
   for i = 1; i <= 10; i = i + 1 {
@@ -498,6 +508,7 @@ test "btree: sequential insert" {
   }
 }
 
+///|
 test "btree: search non-existent" {
   let mut root = new()
   let vals = [10, 20, 30, 40, 50]
@@ -513,6 +524,7 @@ test "btree: search non-existent" {
   assert_false(search(root, 100, int_cmp))
 }
 
+///|
 test "btree: root split" {
   // With t=2, max keys = 3. Inserting 4 keys forces a root split.
   let mut root = new()
@@ -532,6 +544,7 @@ test "btree: root split" {
   }
 }
 
+///|
 test "btree: internal node split" {
   // Insert enough elements to force splits at multiple levels.
   let mut root = new()
@@ -547,6 +560,7 @@ test "btree: internal node split" {
   }
 }
 
+///|
 test "btree: large insert 100 elements" {
   let mut root = new()
   // Insert in a pseudo-random order to exercise different split patterns.
@@ -561,6 +575,7 @@ test "btree: large insert 100 elements" {
   }
 }
 
+///|
 test "btree: delete leaf" {
   let mut root = new()
   for i = 1; i <= 10; i = i + 1 {
@@ -576,6 +591,7 @@ test "btree: delete leaf" {
   }
 }
 
+///|
 test "btree: delete internal node" {
   let mut root = new()
   for i = 1; i <= 20; i = i + 1 {
@@ -594,6 +610,7 @@ test "btree: delete internal node" {
   }
 }
 
+///|
 test "btree: delete root key" {
   let mut root = new()
   for i = 1; i <= 15; i = i + 1 {
@@ -613,6 +630,7 @@ test "btree: delete root key" {
   }
 }
 
+///|
 test "btree: delete non-existent" {
   let mut root = new()
   for i = 1; i <= 10; i = i + 1 {
@@ -625,6 +643,7 @@ test "btree: delete non-existent" {
   }
 }
 
+///|
 test "btree: delete all elements one by one" {
   let mut root = new()
   for i = 1; i <= 20; i = i + 1 {
@@ -639,6 +658,7 @@ test "btree: delete all elements one by one" {
   assert_eq(size(root), 0)
 }
 
+///|
 test "btree: inorder sorted output" {
   let mut root = new()
   let vals = [50, 30, 70, 20, 40, 60, 80, 10, 90, 100]
@@ -654,6 +674,7 @@ test "btree: inorder sorted output" {
   }
 }
 
+///|
 test "btree: duplicate insert ignored" {
   let mut root = new()
   root = insert(root, 5, int_cmp)
@@ -663,6 +684,7 @@ test "btree: duplicate insert ignored" {
   assert_true(search(root, 5, int_cmp))
 }
 
+///|
 test "btree: size tracking" {
   let mut root = new()
   assert_eq(size(root), 0)
@@ -678,6 +700,7 @@ test "btree: size tracking" {
   assert_eq(size(root), 0)
 }
 
+///|
 test "btree: empty tree operations" {
   let root = new()
   assert_eq(size(root), 0)
@@ -689,6 +712,7 @@ test "btree: empty tree operations" {
   assert_eq(result.length(), 0)
 }
 
+///|
 test "btree: delete with borrow from sibling" {
   // Build a tree that requires borrowing on delete.
   let mut root = new()
@@ -715,6 +739,7 @@ test "btree: delete with borrow from sibling" {
   }
 }
 
+///|
 test "btree: generic with String keys" {
   let mut root = new()
   let cmp = @test_utils.str_cmp
@@ -738,6 +763,7 @@ test "btree: generic with String keys" {
   assert_eq(size(root), 2)
 }
 
+///|
 test "btree: configurable degree t=3" {
   // With t=3, max keys per node = 5. Insert 20 keys and verify correctness.
   let mut root = new_with_degree(3)
@@ -766,6 +792,7 @@ test "btree: configurable degree t=3" {
   assert_false(search(root, 15, int_cmp))
 }
 
+///|
 test "btree: configurable degree t=4" {
   // With t=4, max keys = 7. Higher degree = wider, shallower tree.
   let mut root = new_with_degree(4)

@@ -23,6 +23,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Interpolation search on a sorted `FixedArray[Int]`.
 ///
 /// Returns `Some(index)` if `target` is present, otherwise `None`.
@@ -70,27 +71,32 @@ pub fn interpolation_search(arr : FixedArray[Int], target : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "interpolation_search: basic" {
   let xs = FixedArray::makei(9, fn(i) { i }) // [0,1,2,3,4,5,6,7,8]
   assert_eq(interpolation_search(xs, 5), Some(5))
   assert_eq(interpolation_search(xs, 3), Some(3))
 }
 
+///|
 test "interpolation_search: first element" {
   let xs = FixedArray::makei(10, fn(i) { i * 3 }) // [0,3,6,...,27]
   assert_eq(interpolation_search(xs, 0), Some(0))
 }
 
+///|
 test "interpolation_search: last element" {
   let xs = FixedArray::makei(10, fn(i) { i * 3 }) // [0,3,6,...,27]
   assert_eq(interpolation_search(xs, 27), Some(9))
 }
 
+///|
 test "interpolation_search: middle element" {
   let xs = FixedArray::makei(11, fn(i) { i }) // [0..10]
   assert_eq(interpolation_search(xs, 5), Some(5))
 }
 
+///|
 test "interpolation_search: not found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 }) // [0,2,4,6,8]
   assert_eq(interpolation_search(xs, 1), None)
@@ -98,6 +104,7 @@ test "interpolation_search: not found" {
   assert_eq(interpolation_search(xs, 9), None)
 }
 
+///|
 test "interpolation_search: single element" {
   let xs = FixedArray::make(1, 42)
   assert_eq(interpolation_search(xs, 42), Some(0))
@@ -105,11 +112,13 @@ test "interpolation_search: single element" {
   assert_eq(interpolation_search(xs, 43), None)
 }
 
+///|
 test "interpolation_search: empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(interpolation_search(xs, 42), None)
 }
 
+///|
 test "interpolation_search: all same values" {
   let xs = FixedArray::make(6, 7) // [7,7,7,7,7,7]
   // Target present: some valid index is returned.
@@ -123,6 +132,7 @@ test "interpolation_search: all same values" {
   assert_eq(interpolation_search(xs, 8), None)
 }
 
+///|
 test "interpolation_search: large uniform array" {
   let xs = FixedArray::makei(1000, fn(i) { i * 2 }) // [0,2,4,...,1998]
   assert_eq(interpolation_search(xs, 0), Some(0))
@@ -135,6 +145,7 @@ test "interpolation_search: large uniform array" {
   assert_eq(interpolation_search(xs, -1), None)
 }
 
+///|
 test "interpolation_search: non-uniform array" {
   // Exponential growth: worst-case distribution, but the result must still be
   // correct even though complexity degrades toward O(n).
@@ -149,6 +160,7 @@ test "interpolation_search: non-uniform array" {
   assert_eq(interpolation_search(xs, 200), None)
 }
 
+///|
 test "interpolation_search: negative values" {
   let xs = FixedArray::makei(7, fn(i) { i - 3 }) // [-3,-2,-1,0,1,2,3]
   assert_eq(interpolation_search(xs, -3), Some(0))
@@ -158,6 +170,7 @@ test "interpolation_search: negative values" {
   assert_eq(interpolation_search(xs, 4), None)
 }
 
+///|
 test "interpolation_search: wide value range (Int32 overflow regression)" {
   // Array spanning nearly the full Int32 range. The subtraction
   // arr[hi] - arr[lo] = 2147483646 - (-2147483648) = 4294967294 which

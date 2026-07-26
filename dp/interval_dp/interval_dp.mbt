@@ -41,6 +41,7 @@
 // Helper: 2D array creation
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a 2D array (array of arrays) with the given dimensions and default value.
 fn[T] make2d(rows : Int, cols : Int, default : T) -> Array[Array[T]] {
   let result : Array[Array[T]] = []
@@ -55,6 +56,7 @@ fn[T] make2d(rows : Int, cols : Int, default : T) -> Array[Array[T]] {
 // Matrix Chain Multiplication
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of matrix chain multiplication optimisation.
 ///
 /// - `min_cost`: the minimum number of scalar multiplications needed.
@@ -66,6 +68,7 @@ pub struct MatrixChainResult {
   parenthesization : String
 }
 
+///|
 /// Compute the optimal matrix chain multiplication order.
 ///
 /// # Parameters
@@ -105,7 +108,8 @@ pub fn matrix_chain(dims : FixedArray[Int]) -> MatrixChainResult {
       let mut k = i + 1
       while k <= j {
         // Cost = cost(i, k-1) + cost(k, j) + dims[i] * dims[k] * dims[j+1]
-        let cost = dp[i][k - 1] + dp[k][j] +
+        let cost = dp[i][k - 1] +
+          dp[k][j] +
           dims[i].to_int64() * dims[k].to_int64() * dims[j + 1].to_int64()
         if cost < dp[i][j] {
           dp[i][j] = cost
@@ -123,6 +127,7 @@ pub fn matrix_chain(dims : FixedArray[Int]) -> MatrixChainResult {
   }
 }
 
+///|
 /// Recursively build the parenthesisation string from the split table.
 fn build_parenthesization(
   split : Array[Array[Int]],
@@ -133,14 +138,17 @@ fn build_parenthesization(
     return "A" + i.to_string()
   }
   let k = split[i][j]
-  "(" + build_parenthesization(split, i, k - 1) +
-    build_parenthesization(split, k, j) + ")"
+  "(" +
+  build_parenthesization(split, i, k - 1) +
+  build_parenthesization(split, k, j) +
+  ")"
 }
 
 // ---------------------------------------------------------------------------
 // Optimal Binary Search Tree
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the minimum expected search cost for an optimal BST.
 ///
 /// Given `n` sorted keys with search frequencies `freq[i]`, finds the BST
@@ -202,6 +210,7 @@ pub fn optimal_bst(freq : FixedArray[Int]) -> Int64 {
 // Burst Balloons
 // ---------------------------------------------------------------------------
 
+///|
 /// Maximise coins from bursting `n` balloons.
 ///
 /// Given `n` balloons with values `nums[i]`, you burst them one at a time.
@@ -240,7 +249,8 @@ pub fn burst_balloons(nums : FixedArray[Int]) -> Int64 {
       let j = i + gap
       let mut k = i + 1
       while k < j {
-        let coins = dp[i][k] + dp[k][j] +
+        let coins = dp[i][k] +
+          dp[k][j] +
           vals[i].to_int64() * vals[k].to_int64() * vals[j].to_int64()
         if coins > dp[i][j] {
           dp[i][j] = coins
@@ -258,6 +268,7 @@ pub fn burst_balloons(nums : FixedArray[Int]) -> Int64 {
 // Stone Merge (Minimum Cost)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the minimum cost to merge all stone piles into one.
 ///
 /// Given `n` piles of stones, you repeatedly merge two adjacent piles into
@@ -313,6 +324,7 @@ pub fn merge_stones(stones : FixedArray[Int]) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "matrix_chain: basic" {
   // Matrices: A0(10×100), A1(100×5), A2(5×50)
   // Optimal: (A0*A1)*A2 = 10*100*5 + 10*5*50 = 5000 + 2500 = 7500
@@ -326,6 +338,7 @@ test "matrix_chain: basic" {
   assert_eq(result.min_cost, 7500L)
 }
 
+///|
 test "matrix_chain: two matrices" {
   let dims = FixedArray::make(3, 0)
   dims[0] = 10
@@ -338,6 +351,7 @@ test "matrix_chain: two matrices" {
   assert_eq(result.parenthesization, "(A0A1)")
 }
 
+///|
 test "matrix_chain: single matrix" {
   let dims = FixedArray::make(2, 0)
   dims[0] = 10
@@ -347,6 +361,7 @@ test "matrix_chain: single matrix" {
   assert_eq(result.parenthesization, "A0")
 }
 
+///|
 test "matrix_chain: empty" {
   let dims : FixedArray[Int] = FixedArray::make(0, 0)
   let result = matrix_chain(dims)
@@ -354,6 +369,7 @@ test "matrix_chain: empty" {
   assert_eq(result.parenthesization, "")
 }
 
+///|
 test "matrix_chain: classic example" {
   // CLRS example: dims = [30, 35, 15, 5, 10, 20, 25]
   // Expected minimum: 15125
@@ -369,6 +385,7 @@ test "matrix_chain: classic example" {
   assert_eq(result.min_cost, 15125L)
 }
 
+///|
 test "matrix_chain: overflow protection" {
   // Large dimensions that would overflow Int32 when multiplied.
   let dims = FixedArray::make(4, 0)
@@ -382,11 +399,13 @@ test "matrix_chain: overflow protection" {
   assert_eq(result.min_cost, 2000000000000000L)
 }
 
+///|
 test "optimal_bst: single key" {
   let freq = FixedArray::make(1, 5)
   assert_eq(optimal_bst(freq), 5L)
 }
 
+///|
 test "optimal_bst: two keys" {
   // Keys: 0 (freq 1), 1 (freq 2)
   // Optimal: key 1 as root, key 0 as left child.
@@ -397,6 +416,7 @@ test "optimal_bst: two keys" {
   assert_eq(optimal_bst(freq), 4L)
 }
 
+///|
 test "optimal_bst: three keys" {
   // Keys: 0 (freq 4), 1 (freq 2), 2 (freq 6)
   // Brute force (depth starts at 1 for root):
@@ -414,6 +434,7 @@ test "optimal_bst: three keys" {
   assert_eq(optimal_bst(freq), 20L)
 }
 
+///|
 test "optimal_bst: equal frequencies" {
   let freq = FixedArray::make(4, 1)
   // All frequencies equal: optimal is a balanced tree.
@@ -422,11 +443,13 @@ test "optimal_bst: equal frequencies" {
   assert_eq(optimal_bst(freq), 8L)
 }
 
+///|
 test "optimal_bst: empty" {
   let freq : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(optimal_bst(freq), 0L)
 }
 
+///|
 test "burst_balloons: basic" {
   // nums = [3, 1, 5, 8]
   // Optimal order: burst 1 (coins = 3*1*5=15),
@@ -440,12 +463,14 @@ test "burst_balloons: basic" {
   assert_eq(burst_balloons(nums), 167L)
 }
 
+///|
 test "burst_balloons: single balloon" {
   let nums = FixedArray::make(1, 5)
   // Burst the only balloon: coins = 1 * 5 * 1 = 5
   assert_eq(burst_balloons(nums), 5L)
 }
 
+///|
 test "burst_balloons: two balloons" {
   let nums = FixedArray::make(2, 0)
   nums[0] = 3
@@ -456,17 +481,20 @@ test "burst_balloons: two balloons" {
   assert_eq(burst_balloons(nums), 20L)
 }
 
+///|
 test "burst_balloons: empty" {
   let nums : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(burst_balloons(nums), 0L)
 }
 
+///|
 test "burst_balloons: zeros" {
   let nums = FixedArray::make(3, 0)
   // All zeros: every burst earns 0 coins.
   assert_eq(burst_balloons(nums), 0L)
 }
 
+///|
 test "merge_stones: basic" {
   // stones = [3, 4, 5]
   // Merge 3+4=7 (cost 7), then 7+5=12 (cost 12). Total = 19.
@@ -479,6 +507,7 @@ test "merge_stones: basic" {
   assert_eq(merge_stones(stones), 19L)
 }
 
+///|
 test "merge_stones: two piles" {
   let stones = FixedArray::make(2, 0)
   stones[0] = 3
@@ -487,16 +516,19 @@ test "merge_stones: two piles" {
   assert_eq(merge_stones(stones), 8L)
 }
 
+///|
 test "merge_stones: single pile" {
   let stones = FixedArray::make(1, 5)
   assert_eq(merge_stones(stones), 0L) // no merge needed
 }
 
+///|
 test "merge_stones: empty" {
   let stones : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(merge_stones(stones), 0L)
 }
 
+///|
 test "merge_stones: equal sizes" {
   let stones = FixedArray::make(4, 1)
   // All size 1: any merge order gives the same cost.
@@ -504,6 +536,7 @@ test "merge_stones: equal sizes" {
   assert_eq(merge_stones(stones), 8L)
 }
 
+///|
 test "merge_stones: large values (overflow check)" {
   let stones = FixedArray::make(3, 0)
   stones[0] = 1000000000

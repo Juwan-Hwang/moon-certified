@@ -10,6 +10,7 @@
 /// coordinates up to ~3037000499 per axis keep every intermediate product
 /// below `Int64::max`.
 
+///|
 /// A 2D point with integer coordinates.
 ///
 /// Fields are public by default in MoonBit, so callers in any package can
@@ -20,11 +21,13 @@ pub struct Point {
   y : Int
 }
 
+///|
 /// Construct a [`Point`] with the given coordinates.
 pub fn point(x : Int, y : Int) -> Point {
   { x, y }
 }
 
+///|
 /// Squared Euclidean distance between two points (avoids floating point).
 ///
 /// Returns `Int64` to prevent overflow for large coordinates — using `Int`
@@ -36,6 +39,7 @@ pub fn dist2(a : Point, b : Point) -> Int64 {
   dx * dx + dy * dy
 }
 
+///|
 /// 2D cross product of vectors `o->a` and `o->b`, returned as `Int64`.
 ///
 /// Positive => `b` is counterclockwise from `a`; negative => clockwise;
@@ -48,6 +52,7 @@ pub fn cross64(o : Point, a : Point, b : Point) -> Int64 {
   ax * by - ay * bx
 }
 
+///|
 /// 2D cross product clamped to `Int` range.
 ///
 /// Returns 1 when the true cross product overflows positively (definitely

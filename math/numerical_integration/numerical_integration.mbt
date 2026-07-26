@@ -11,15 +11,26 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Helper: absolute value of double.
 fn absd(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
+///|
 /// Composite trapezoidal rule: ∫[a,b] f(x) dx.
 ///
 /// Uses `n` subintervals. Error ∝ O(1/n²).
-pub fn trapezoidal(f : (Double) -> Double, a : Double, b : Double, n : Int) -> Double {
+pub fn trapezoidal(
+  f : (Double) -> Double,
+  a : Double,
+  b : Double,
+  n : Int,
+) -> Double {
   if n <= 0 {
     return 0.0
   }
@@ -31,10 +42,16 @@ pub fn trapezoidal(f : (Double) -> Double, a : Double, b : Double, n : Int) -> D
   sum * h
 }
 
+///|
 /// Composite Simpson's 1/3 rule: ∫[a,b] f(x) dx.
 ///
 /// `n` must be even. Uses parabolic approximation. Error ∝ O(1/n⁴).
-pub fn simpsons_rule(f : (Double) -> Double, a : Double, b : Double, n : Int) -> Double {
+pub fn simpsons_rule(
+  f : (Double) -> Double,
+  a : Double,
+  b : Double,
+  n : Int,
+) -> Double {
   if n <= 0 {
     return 0.0
   }
@@ -53,16 +70,23 @@ pub fn simpsons_rule(f : (Double) -> Double, a : Double, b : Double, n : Int) ->
   sum * h / 3.0
 }
 
+///|
 /// Adaptive Simpson's rule with error control.
 ///
 /// Recursively subdivides intervals where the error estimate exceeds
 /// `tol`. Uses Richardson extrapolation: error ≈ |S(a,b) - S(a,m) - S(m,b)| / 15.
-pub fn adaptive_simpson(f : (Double) -> Double, a : Double, b : Double, tol : Double) -> Double {
+pub fn adaptive_simpson(
+  f : (Double) -> Double,
+  a : Double,
+  b : Double,
+  tol : Double,
+) -> Double {
   let m = (a + b) / 2.0
   let whole = simpsons_3pt(f, a, b, m)
   adaptive_simpson_recursive(f, a, b, m, whole, tol, 0)
 }
 
+///|
 fn adaptive_simpson_recursive(
   f : (Double) -> Double,
   a : Double,
@@ -88,16 +112,28 @@ fn adaptive_simpson_recursive(
   adaptive_simpson_recursive(f, m, b, rm, right, half_tol, depth + 1)
 }
 
-fn simpsons_3pt(f : (Double) -> Double, a : Double, b : Double, m : Double) -> Double {
+///|
+fn simpsons_3pt(
+  f : (Double) -> Double,
+  a : Double,
+  b : Double,
+  m : Double,
+) -> Double {
   (b - a) / 6.0 * (f(a) + 4.0 * f(m) + f(b))
 }
 
+///|
 /// Romberg integration — Richardson extrapolation on trapezoidal rule.
 ///
 /// Computes increasingly accurate estimates by combining trapezoidal
 /// approximations at different step sizes. `levels` = number of
 /// extrapolation levels (typically 5-10).
-pub fn romberg(f : (Double) -> Double, a : Double, b : Double, levels : Int) -> Double {
+pub fn romberg(
+  f : (Double) -> Double,
+  a : Double,
+  b : Double,
+  levels : Int,
+) -> Double {
   if levels <= 0 {
     return trapezoidal(f, a, b, 1)
   }
@@ -128,36 +164,43 @@ pub fn romberg(f : (Double) -> Double, a : Double, b : Double, levels : Int) -> 
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "trapezoidal: integrate x^2 from 0 to 1" {
   let result = trapezoidal(fn(x) { x * x }, 0.0, 1.0, 100)
   assert_true(absd(result - 0.333333) < 0.01)
 }
 
+///|
 test "trapezoidal: integrate constant" {
   let result = trapezoidal(fn(_) { 3.0 }, 0.0, 5.0, 10)
   assert_eq(result, 15.0)
 }
 
+///|
 test "simpsons_rule: integrate x^3 from 0 to 1" {
   let result = simpsons_rule(fn(x) { x * x * x }, 0.0, 1.0, 10)
   assert_true(absd(result - 0.25) < 0.0000000001)
 }
 
+///|
 test "simpsons_rule: integrate sin" {
   let result = simpsons_rule(@math.sin, 0.0, 3.14159265358979, 100)
   assert_true(absd(result - 2.0) < 0.001)
 }
 
+///|
 test "adaptive_simpson: integrate exp" {
   let result = adaptive_simpson(@math.exp, 0.0, 1.0, 0.00000001)
   assert_true(absd(result - 1.7182818) < 0.000001)
 }
 
+///|
 test "romberg: integrate x^2" {
   let result = romberg(fn(x) { x * x }, 0.0, 1.0, 8)
   assert_true(absd(result - 1.0 / 3.0) < 0.0000000001)
 }
 
+///|
 test "romberg: integrate x^4" {
   let result = romberg(fn(x) { x * x * x * x }, 0.0, 1.0, 8)
   assert_true(absd(result - 0.2) < 0.0000000001)

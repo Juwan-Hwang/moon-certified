@@ -1,6 +1,0 @@
-{
-  "import": [
-    "moonbitlang/core/math"
-  ],
-  "proof-enabled": false
-}

@@ -11,6 +11,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A 2D bounding rectangle.
 pub struct Rect {
   min_x : Double
@@ -19,12 +20,14 @@ pub struct Rect {
   max_y : Double
 }
 
+///|
 /// An entry in the R-tree (rectangle + associated value).
 pub struct Entry {
   rect : Rect
   value : Int
 }
 
+///|
 priv struct RTreeNode {
   is_leaf : Bool
   mut entries : Array[Entry]
@@ -32,18 +35,21 @@ priv struct RTreeNode {
   mut rect : Rect // MBR of all children
 }
 
+///|
 /// An R-tree.
 pub struct RTree {
   priv mut root : RTreeNode?
   priv max_entries : Int
 }
 
+///|
 /// Create a new R-tree with the given max entries per node.
 pub fn rtree_new(max_entries : Int) -> RTree {
   let m = if max_entries < 4 { 4 } else { max_entries }
   { root: None, max_entries: m }
 }
 
+///|
 /// Insert a rectangle with an associated value.
 pub fn RTree::insert(self : RTree, rect : Rect, value : Int) -> Unit {
   match self.root {
@@ -59,7 +65,7 @@ pub fn RTree::insert(self : RTree, rect : Rect, value : Int) -> Unit {
       let split = insert_recursive(root, rect, value, self.max_entries)
       match split {
         None => ()
-        Some((new_rect, new_node)) => {
+        Some((new_rect, new_node)) =>
           // Create new root.
           self.root = Some({
             is_leaf: false,
@@ -67,12 +73,12 @@ pub fn RTree::insert(self : RTree, rect : Rect, value : Int) -> Unit {
             children: [(root.rect, root), (new_rect, new_node)],
             rect: union(root.rect, new_rect),
           })
-        }
       }
     }
   }
 }
 
+///|
 /// Find all entries whose rectangles intersect the query rectangle.
 pub fn RTree::query(self : RTree, rect : Rect) -> Array[Entry] {
   let result : Array[Entry] = []
@@ -83,11 +89,13 @@ pub fn RTree::query(self : RTree, rect : Rect) -> Array[Entry] {
   result
 }
 
+///|
 /// Find all entries whose rectangles contain a point.
 pub fn RTree::query_point(self : RTree, x : Double, y : Double) -> Array[Entry] {
   self.query({ min_x: x, min_y: y, max_x: x, max_y: y })
 }
 
+///|
 fn insert_recursive(
   node : RTreeNode,
   rect : Rect,
@@ -118,8 +126,7 @@ fn insert_recursive(
     let split = insert_recursive(child, rect, value, max_entries)
     // Update child rect.
     match split {
-      None =>
-        node.children[best_idx] = (child.rect, child)
+      None => node.children[best_idx] = (child.rect, child)
       Some((new_rect, new_node)) => {
         node.children[best_idx] = (child.rect, child)
         node.children.push((new_rect, new_node))
@@ -133,6 +140,7 @@ fn insert_recursive(
   }
 }
 
+///|
 fn query_recursive(
   node : RTreeNode,
   rect : Rect,
@@ -157,6 +165,7 @@ fn query_recursive(
   }
 }
 
+///|
 fn split_leaf(node : RTreeNode, max_entries : Int) -> (Rect, RTreeNode) {
   let n = node.entries.length()
   let mid = n / 2
@@ -180,6 +189,7 @@ fn split_leaf(node : RTreeNode, max_entries : Int) -> (Rect, RTreeNode) {
   (new_node.rect, new_node)
 }
 
+///|
 fn split_internal(node : RTreeNode, max_entries : Int) -> (Rect, RTreeNode) {
   let n = node.children.length()
   let mid = n / 2
@@ -203,23 +213,46 @@ fn split_internal(node : RTreeNode, max_entries : Int) -> (Rect, RTreeNode) {
   (new_node.rect, new_node)
 }
 
+///|
 fn union(a : Rect, b : Rect) -> Rect {
   {
-    min_x: if a.min_x < b.min_x { a.min_x } else { b.min_x },
-    min_y: if a.min_y < b.min_y { a.min_y } else { b.min_y },
-    max_x: if a.max_x > b.max_x { a.max_x } else { b.max_x },
-    max_y: if a.max_y > b.max_y { a.max_y } else { b.max_y },
+    min_x: if a.min_x < b.min_x {
+      a.min_x
+    } else {
+      b.min_x
+    },
+    min_y: if a.min_y < b.min_y {
+      a.min_y
+    } else {
+      b.min_y
+    },
+    max_x: if a.max_x > b.max_x {
+      a.max_x
+    } else {
+      b.max_x
+    },
+    max_y: if a.max_y > b.max_y {
+      a.max_y
+    } else {
+      b.max_y
+    },
   }
 }
 
+///|
 fn intersects(a : Rect, b : Rect) -> Bool {
-  a.min_x <= b.max_x && a.max_x >= b.min_x && a.min_y <= b.max_y && a.max_y >= b.min_y
+  a.min_x <= b.max_x &&
+  a.max_x >= b.min_x &&
+  a.min_y <= b.max_y &&
+  a.max_y >= b.min_y
 }
 
+///|
 fn rect_area(r : Rect) -> Double {
   (r.max_x - r.min_x) * (r.max_y - r.min_y)
 }
 
+///|
 fn compute_mbr_entries(entries : Array[Entry]) -> Rect {
   if entries.length() == 0 {
     return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0 }
@@ -231,6 +264,7 @@ fn compute_mbr_entries(entries : Array[Entry]) -> Rect {
   r
 }
 
+///|
 fn compute_mbr_children(children : Array[(Rect, RTreeNode)]) -> Rect {
   if children.length() == 0 {
     return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0 }
@@ -246,6 +280,7 @@ fn compute_mbr_children(children : Array[(Rect, RTreeNode)]) -> Rect {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "rtree: basic insert and query" {
   let t = rtree_new(8)
   t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
@@ -255,6 +290,7 @@ test "rtree: basic insert and query" {
   assert_eq(r.length(), 2)
 }
 
+///|
 test "rtree: point query" {
   let t = rtree_new(8)
   t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0 }, 10)
@@ -264,12 +300,14 @@ test "rtree: point query" {
   assert_eq(r[0].value, 10)
 }
 
+///|
 test "rtree: empty tree" {
   let t = rtree_new(8)
   let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 10.0, max_y: 10.0 })
   assert_eq(r.length(), 0)
 }
 
+///|
 test "rtree: no intersection" {
   let t = rtree_new(8)
   t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
@@ -277,6 +315,7 @@ test "rtree: no intersection" {
   assert_eq(r.length(), 0)
 }
 
+///|
 test "rtree: many entries" {
   let t = rtree_new(4)
   for i = 0; i < 50; i = i + 1 {

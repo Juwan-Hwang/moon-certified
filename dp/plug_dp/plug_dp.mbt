@@ -51,6 +51,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A plug state encoded as an array of bracket values (0=none, 1=left, 2=right).
 ///
 /// The state has m+1 entries, representing the m+1 boundary positions between
@@ -60,16 +61,19 @@ pub struct PlugState {
   priv n_plugs : Int // number of plug positions = grid_width + 1
 }
 
+///|
 /// Create a plug state from an array of bracket values.
 pub fn PlugState::new(plugs : Array[Int]) -> PlugState {
   { plugs, n_plugs: plugs.length() }
 }
 
+///|
 /// Number of plug positions in this state.
 pub fn PlugState::len(self : PlugState) -> Int {
   self.n_plugs
 }
 
+///|
 /// Get the bracket value at position `i`.
 pub fn PlugState::get(self : PlugState, i : Int) -> Int {
   if i < 0 || i >= self.n_plugs {
@@ -78,6 +82,7 @@ pub fn PlugState::get(self : PlugState, i : Int) -> Int {
   self.plugs[i]
 }
 
+///|
 /// Set the bracket value at position `i`.
 pub fn PlugState::set(self : PlugState, i : Int, v : Int) -> Unit {
   if i >= 0 && i < self.n_plugs {
@@ -85,6 +90,7 @@ pub fn PlugState::set(self : PlugState, i : Int, v : Int) -> Unit {
   }
 }
 
+///|
 /// Clone this plug state (deep copy).
 pub fn PlugState::clone(self : PlugState) -> PlugState {
   let new_plugs : Array[Int] = []
@@ -94,6 +100,7 @@ pub fn PlugState::clone(self : PlugState) -> PlugState {
   { plugs: new_plugs, n_plugs: self.n_plugs }
 }
 
+///|
 /// Check if this is the empty state (all plugs are 0).
 pub fn PlugState::is_empty(self : PlugState) -> Bool {
   for i = 0; i < self.n_plugs; i = i + 1 {
@@ -104,6 +111,7 @@ pub fn PlugState::is_empty(self : PlugState) -> Bool {
   true
 }
 
+///|
 /// Check if the bracket structure is valid (balanced parentheses).
 pub fn PlugState::is_valid(self : PlugState) -> Bool {
   let mut depth = 0
@@ -123,6 +131,7 @@ pub fn PlugState::is_valid(self : PlugState) -> Bool {
   depth == 0
 }
 
+///|
 /// Encode the plug state as a hashable integer (base-3 encoding).
 /// Each plug value (0, 1, 2) takes one ternary digit.
 pub fn PlugState::encode(self : PlugState) -> Int {
@@ -143,6 +152,7 @@ pub fn PlugState::encode(self : PlugState) -> Int {
 // - We need: insert/lookup/iterate/clear, all O(number_of_live_states).
 // ---------------------------------------------------------------------------
 
+///|
 /// A simple dictionary mapping Int state codes to Int64 counts.
 ///
 /// Uses open addressing with linear probing. The capacity is always a power
@@ -156,6 +166,7 @@ priv struct StateMap {
   mut mask : Int
 }
 
+///|
 /// Create a StateMap with the given initial capacity (rounded up to power of 2).
 fn StateMap::new(initial_cap : Int) -> StateMap {
   let cap = next_pow2(initial_cap.max(16))
@@ -164,6 +175,7 @@ fn StateMap::new(initial_cap : Int) -> StateMap {
   { keys, vals, size: 0, capacity: cap, mask: cap - 1 }
 }
 
+///|
 /// Find the slot index for `key`, or -1 if not found.
 fn StateMap::find_slot(self : StateMap, key : Int) -> Int {
   let mut idx = key & self.mask
@@ -180,6 +192,7 @@ fn StateMap::find_slot(self : StateMap, key : Int) -> Int {
   -1 // table full (should not happen with resize)
 }
 
+///|
 /// Get the value for `key`, or `default` if not present.
 fn StateMap::get_or(self : StateMap, key : Int, default : Int64) -> Int64 {
   let idx = self.find_slot(key)
@@ -189,6 +202,7 @@ fn StateMap::get_or(self : StateMap, key : Int, default : Int64) -> Int64 {
   self.vals[idx]
 }
 
+///|
 /// Set `key` to `val`. If the key already exists, its value is replaced.
 fn StateMap::set(self : StateMap, key : Int, val : Int64) -> Unit {
   // Resize if load factor exceeds 0.75.
@@ -206,6 +220,7 @@ fn StateMap::set(self : StateMap, key : Int, val : Int64) -> Unit {
   self.vals[idx] = val
 }
 
+///|
 /// Add `delta` to the value for `key`. If the key does not exist, it is
 /// inserted with value `delta`.
 fn StateMap::add(self : StateMap, key : Int, delta : Int64) -> Unit {
@@ -226,6 +241,7 @@ fn StateMap::add(self : StateMap, key : Int, delta : Int64) -> Unit {
   }
 }
 
+///|
 /// Resize the internal table to `new_cap`.
 fn StateMap::resize(self : StateMap, new_cap : Int) -> Unit {
   let cap = next_pow2(new_cap)
@@ -244,6 +260,7 @@ fn StateMap::resize(self : StateMap, new_cap : Int) -> Unit {
   }
 }
 
+///|
 /// Clear all entries.
 fn StateMap::clear(self : StateMap) -> Unit {
   for i = 0; i < self.capacity; i = i + 1 {
@@ -252,6 +269,7 @@ fn StateMap::clear(self : StateMap) -> Unit {
   self.size = 0
 }
 
+///|
 /// Iterate over all (key, val) pairs, calling `f` for each.
 fn StateMap::for_each(self : StateMap, f : (Int, Int64) -> Unit) -> Unit {
   for i = 0; i < self.capacity; i = i + 1 {
@@ -261,6 +279,7 @@ fn StateMap::for_each(self : StateMap, f : (Int, Int64) -> Unit) -> Unit {
   }
 }
 
+///|
 /// Compute the next power of 2 ≥ n.
 fn next_pow2(n : Int) -> Int {
   let mut p = 1
@@ -274,6 +293,7 @@ fn next_pow2(n : Int) -> Int {
 // Grid solver: count Hamiltonian cycles on a grid graph
 // ---------------------------------------------------------------------------
 
+///|
 /// Count the number of Hamiltonian cycles on an n×m grid graph.
 ///
 /// A Hamiltonian cycle visits every cell exactly once and returns to the start.
@@ -298,7 +318,7 @@ pub fn count_hamiltonian_cycles(n : Int, m : Int) -> Int64 {
   if n == 1 && m == 1 {
     return 0L // single cell cannot form a cycle
   }
-  if (n * m) % 2 != 0 {
+  if n * m % 2 != 0 {
     return 0L // odd number of cells → no Hamiltonian cycle
   }
   // We process cells left-to-right, top-to-bottom.
@@ -332,13 +352,12 @@ pub fn count_hamiltonian_cycles(n : Int, m : Int) -> Int64 {
             ns.set(col + 1, 2)
             new_dp.add(ns.encode(), count)
           }
-        }
-        // Case 2: left is a plug, top is 0 — extend the plug downward or rightward.
-        //
-        // Convention: after processing cell (row, col):
-        //   state[col]     = bottom plug (goes to next row)
-        //   state[col + 1] = right plug (goes to next column)
-        else if left != 0 && top == 0 {
+          // Case 2: left is a plug, top is 0 — extend the plug downward or rightward.
+          //
+          // Convention: after processing cell (row, col):
+          //   state[col]     = bottom plug (goes to next row)
+          //   state[col + 1] = right plug (goes to next column)
+        } else if left != 0 && top == 0 {
           // Extend downward: the incoming left plug continues to the bottom.
           //   state[col] = left (bottom plug carries the bracket forward)
           //   state[col + 1] = 0  (no right plug)
@@ -357,9 +376,8 @@ pub fn count_hamiltonian_cycles(n : Int, m : Int) -> Int64 {
             ns.set(col + 1, left)
             new_dp.add(ns.encode(), count)
           }
-        }
-        // Case 3: left is 0, top is a plug — extend downward or rightward.
-        else if left == 0 && top != 0 {
+          // Case 3: left is 0, top is a plug — extend downward or rightward.
+        } else if left == 0 && top != 0 {
           // Extend downward: the incoming top plug continues to the bottom.
           //   state[col] = top (bottom plug carries the bracket forward)
           //   state[col + 1] = 0  (no right plug)
@@ -378,14 +396,13 @@ pub fn count_hamiltonian_cycles(n : Int, m : Int) -> Int64 {
             ns.set(col + 1, top)
             new_dp.add(ns.encode(), count)
           }
-        }
-        // Case 4: Both left and top are plugs — merge them.
-        // Four sub-cases by bracket type:
-        //   (1,2) '(' meets ')' — closes a component (only valid at last cell)
-        //   (2,1) ')' meets '(' — merges two different components
-        //   (1,1) '(' meets '(' — relabel matching ')' of 2nd to '('
-        //   (2,2) ')' meets ')' — relabel matching '(' of 1st to ')'
-        else if left != 0 && top != 0 {
+          // Case 4: Both left and top are plugs — merge them.
+          // Four sub-cases by bracket type:
+          //   (1,2) '(' meets ')' — closes a component (only valid at last cell)
+          //   (2,1) ')' meets '(' — merges two different components
+          //   (1,1) '(' meets '(' — relabel matching ')' of 2nd to '('
+          //   (2,2) ')' meets ')' — relabel matching '(' of 1st to ')'
+        } else if left != 0 && top != 0 {
           let ns = state.clone()
           ns.set(col, 0)
           ns.set(col + 1, 0)
@@ -473,12 +490,9 @@ pub fn count_hamiltonian_cycles(n : Int, m : Int) -> Int64 {
   dp.get_or(empty.encode(), 0L)
 }
 
+///|
 /// Check if all plugs are 0 except possibly at positions `excl1` and `excl2`.
-fn is_empty_except(
-  state : PlugState,
-  excl1 : Int,
-  excl2 : Int,
-) -> Bool {
+fn is_empty_except(state : PlugState, excl1 : Int, excl2 : Int) -> Bool {
   for i = 0; i < state.n_plugs; i = i + 1 {
     if i == excl1 || i == excl2 {
       continue
@@ -490,6 +504,7 @@ fn is_empty_except(
   true
 }
 
+///|
 /// Decode a state code back into a PlugState.
 fn decode_state(code : Int, n_plugs : Int) -> PlugState {
   let plugs : Array[Int] = Array::make(n_plugs, 0)
@@ -501,6 +516,7 @@ fn decode_state(code : Int, n_plugs : Int) -> PlugState {
   { plugs, n_plugs }
 }
 
+///|
 /// Relabel brackets when merging two components (right bracket meets left bracket).
 fn relabel_merge(
   state : PlugState,
@@ -552,6 +568,7 @@ fn relabel_merge(
 // Simpler application: count perfect matchings of a grid (domino tilings)
 // ---------------------------------------------------------------------------
 
+///|
 /// Count the number of perfect matchings (domino tilings) of an n×m grid.
 ///
 /// A domino tiling covers every cell of the grid with 1×2 or 2×1 dominoes
@@ -573,7 +590,7 @@ pub fn count_domino_tilings(n : Int, m : Int) -> Int64 {
   if n <= 0 || m <= 0 {
     return 0L
   }
-  if (n * m) % 2 != 0 {
+  if n * m % 2 != 0 {
     return 0L
   }
   // Ensure n is the smaller dimension for efficiency.
@@ -603,6 +620,7 @@ pub fn count_domino_tilings(n : Int, m : Int) -> Int64 {
   dp[0]
 }
 
+///|
 /// Recursively fill the remaining cells in a column, generating next column's mask.
 fn fill_column(
   cur_mask : Int,
@@ -651,6 +669,7 @@ fn fill_column(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "PlugState: encode/decode roundtrip" {
   let state = PlugState::new([0, 1, 2, 0, 1, 0, 2, 0])
   let code = state.encode()
@@ -665,6 +684,7 @@ test "PlugState: encode/decode roundtrip" {
   assert_eq(decoded.get(7), 0)
 }
 
+///|
 test "PlugState: is_valid" {
   assert_true(PlugState::new([0, 0, 0]).is_valid())
   assert_true(PlugState::new([1, 2, 0]).is_valid())
@@ -674,11 +694,13 @@ test "PlugState: is_valid" {
   assert_false(PlugState::new([2, 1]).is_valid()) // starts with right bracket
 }
 
+///|
 test "PlugState: is_empty" {
   assert_true(PlugState::new([0, 0, 0, 0]).is_empty())
   assert_false(PlugState::new([0, 1, 0, 0]).is_empty())
 }
 
+///|
 test "count_domino_tilings: 2×2 grid" {
   // A 2×2 grid has 2 tilings:
   // 1. Two horizontal dominoes
@@ -686,16 +708,19 @@ test "count_domino_tilings: 2×2 grid" {
   assert_eq(count_domino_tilings(2, 2), 2L)
 }
 
+///|
 test "count_domino_tilings: 2×3 grid" {
   // A 2×3 grid has 3 tilings.
   assert_eq(count_domino_tilings(2, 3), 3L)
 }
 
+///|
 test "count_domino_tilings: 4×4 grid" {
   // A 4×4 grid has 36 tilings.
   assert_eq(count_domino_tilings(4, 4), 36L)
 }
 
+///|
 test "count_domino_tilings: 1×n" {
   // A 1×n grid has exactly 1 tiling (all horizontal) if n is even, 0 if odd.
   assert_eq(count_domino_tilings(1, 2), 1L)
@@ -704,40 +729,48 @@ test "count_domino_tilings: 1×n" {
   assert_eq(count_domino_tilings(1, 3), 0L) // odd
 }
 
+///|
 test "count_domino_tilings: odd area" {
   assert_eq(count_domino_tilings(3, 3), 0L) // 9 cells, odd
 }
 
+///|
 test "count_domino_tilings: 2×5 Fibonacci" {
   // 2×5 grid has 8 tilings (Fibonacci-like: F(6) = 8).
   assert_eq(count_domino_tilings(2, 5), 8L)
 }
 
+///|
 test "count_domino_tilings: 3×4" {
   // 3×4 grid has 11 tilings.
   assert_eq(count_domino_tilings(3, 4), 11L)
 }
 
+///|
 test "count_domino_tilings: 4×6" {
   // 4×6 grid has 281 tilings.
   assert_eq(count_domino_tilings(4, 6), 281L)
 }
 
+///|
 test "count_domino_tilings: zero dimensions" {
   assert_eq(count_domino_tilings(0, 5), 0L)
   assert_eq(count_domino_tilings(5, 0), 0L)
 }
 
+///|
 test "count_hamiltonian_cycles: 2×2" {
   // A 2×2 grid has 1 Hamiltonian cycle (the perimeter).
   assert_eq(count_hamiltonian_cycles(2, 2), 1L)
 }
 
+///|
 test "count_hamiltonian_cycles: odd cells" {
   // 3×3 = 9 cells (odd) → no Hamiltonian cycle.
   assert_eq(count_hamiltonian_cycles(3, 3), 0L)
 }
 
+///|
 test "count_hamiltonian_cycles: 1×n" {
   // 1×n cannot form a cycle.
   assert_eq(count_hamiltonian_cycles(1, 4), 0L)

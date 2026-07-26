@@ -91,6 +91,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A node in the Aho-Corasick automaton.
 ///
 /// `children` is a sparse, sorted list of `(code_unit, child_index)` pairs.
@@ -108,6 +109,7 @@ pub struct AcNode {
   priv output : Array[Int]
 }
 
+///|
 /// An Aho-Corasick automaton built from a set of pattern strings.
 ///
 /// Build with `build`, search with `search` or `search_first`.
@@ -116,11 +118,13 @@ pub struct AcAutomaton {
   priv pattern_count : Int
 }
 
+///|
 /// Create a fresh node: no children, fail = 0, empty output.
 fn make_node() -> AcNode {
   { children: [], fail: 0, output: [] }
 }
 
+///|
 /// Look up the child of `node` reached by code unit `code_unit`.
 ///
 /// Returns the child node index, or -1 if `node` has no child for that code
@@ -143,6 +147,7 @@ fn find_child(node : AcNode, code_unit : Int) -> Int {
   -1
 }
 
+///|
 /// Insert a `(code_unit, child_index)` pair into `node.children`, keeping the
 /// list sorted by code unit.  Called only when no child for `code_unit`
 /// already exists.
@@ -158,6 +163,7 @@ fn insert_child(node : AcNode, code_unit : Int, child_index : Int) -> Unit {
   node.children.insert(i, (code_unit, child_index))
 }
 
+///|
 /// Build an Aho-Corasick automaton from `patterns`.
 ///
 /// Each pattern is inserted one code unit at a time into a trie, then
@@ -238,11 +244,13 @@ pub fn build(patterns : Array[String]) -> AcAutomaton {
   { nodes, pattern_count: patterns.length() }
 }
 
+///|
 /// Number of patterns compiled into this automaton.
 pub fn pattern_count(automaton : AcAutomaton) -> Int {
   automaton.pattern_count
 }
 
+///|
 /// Search for all pattern occurrences in `text`.
 ///
 /// Returns an `Array[(Int, Int)]` of `(end_position, pattern_index)` pairs,
@@ -276,16 +284,14 @@ pub fn search(automaton : AcAutomaton, text : String) -> Array[(Int, Int)] {
   results
 }
 
+///|
 /// Return the first match found in `text`, or `None` if no pattern matches.
 ///
 /// "First" means the match with the earliest end position.  If multiple
 /// patterns end at the same earliest position, the one appearing first in the
 /// node's output list is returned (own patterns in insertion order, then
 /// patterns inherited via failure links).
-pub fn search_first(
-  automaton : AcAutomaton,
-  text : String
-) -> (Int, Int)? {
+pub fn search_first(automaton : AcAutomaton, text : String) -> (Int, Int)? {
   let mut curr = 0 // root
   for i = 0; i < text.length(); i = i + 1 {
     let c = text[i].to_int()
@@ -308,6 +314,7 @@ pub fn search_first(
 // Helpers for tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Comparator for (Int, Int) tuples: sort by first element, then second.
 fn cmp_pair(a : (Int, Int), b : (Int, Int)) -> Int {
   if a.0 != b.0 {
@@ -321,6 +328,7 @@ fn cmp_pair(a : (Int, Int), b : (Int, Int)) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "aho_corasick: basic match (single pattern)" {
   let ac = build(["world"])
   let results = search(ac, "hello world")
@@ -328,6 +336,7 @@ test "aho_corasick: basic match (single pattern)" {
   assert_eq(search_first(ac, "hello world"), Some((11, 0)))
 }
 
+///|
 test "aho_corasick: multiple patterns" {
   // Classic Aho-Corasick example: patterns "he", "she", "his", "hers"
   // in text "ushers".
@@ -342,6 +351,7 @@ test "aho_corasick: multiple patterns" {
   assert_eq(search_first(ac, "ushers"), Some((4, 1)))
 }
 
+///|
 test "aho_corasick: overlapping matches" {
   // "aa" and "aaa" in "aaaa":
   //   "aa"  ends at 2, 3, 4
@@ -352,24 +362,28 @@ test "aho_corasick: overlapping matches" {
   assert_eq(results, [(2, 0), (3, 0), (3, 1), (4, 0), (4, 1)])
 }
 
+///|
 test "aho_corasick: no match" {
   let ac = build(["xyz"])
   assert_eq(search(ac, "hello").length(), 0)
   assert_true(search_first(ac, "hello") is None)
 }
 
+///|
 test "aho_corasick: empty pattern list" {
   let ac = build([])
   assert_eq(search(ac, "hello").length(), 0)
   assert_true(search_first(ac, "hello") is None)
 }
 
+///|
 test "aho_corasick: empty text" {
   let ac = build(["abc"])
   assert_eq(search(ac, "").length(), 0)
   assert_true(search_first(ac, "") is None)
 }
 
+///|
 test "aho_corasick: pattern is substring of another" {
   // "he" is a proper suffix of "she".  When searching "she", both patterns
   // match at position 3.
@@ -381,6 +395,7 @@ test "aho_corasick: pattern is substring of another" {
   assert_eq(search_first(ac, "she"), Some((3, 1)))
 }
 
+///|
 test "aho_corasick: Unicode code unit matching" {
   // MoonBit strings are UTF-16: 'é' (U+00E9) is a single code unit (233),
   // which fits in the 256-slot children array.  "café" has code units
@@ -391,6 +406,7 @@ test "aho_corasick: Unicode code unit matching" {
   assert_eq(search_first(ac, "café"), Some((4, 0)))
 }
 
+///|
 test "aho_corasick: duplicate patterns" {
   // Two identical patterns share the same terminal node; both indices
   // appear in the node's output list.
@@ -401,6 +417,7 @@ test "aho_corasick: duplicate patterns" {
   assert_eq(search_first(ac, "ab"), Some((2, 0)))
 }
 
+///|
 test "aho_corasick: large-scale test" {
   // Cross-check search results against a brute-force scanner.
   let patterns = ["ab", "abc", "bc", "c", "cd", "abcd"]
@@ -434,6 +451,7 @@ test "aho_corasick: large-scale test" {
   }
 }
 
+///|
 test "aho_corasick: CJK (multi-byte code unit) input does not panic" {
   // MoonBit strings are UTF-16: CJK characters such as '中' (U+4E2D) are a
   // single code unit with value 20013, far above 255.  The previous dense
@@ -448,6 +466,7 @@ test "aho_corasick: CJK (multi-byte code unit) input does not panic" {
   assert_true(search_first(ac, "hello") is None)
 }
 
+///|
 test "aho_corasick: CJK multi-character patterns" {
   // Two CJK patterns sharing a common prefix '中'.
   //   "中"   (index 1) ends at position 1

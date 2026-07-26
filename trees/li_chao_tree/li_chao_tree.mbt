@@ -38,22 +38,26 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A line `y = m·x + b` with Int64 coefficients.
 pub struct Line {
   m : Int64
   b : Int64
 }
 
+///|
 /// Construct a line `y = m·x + b`.
 pub fn line(m : Int64, b : Int64) -> Line {
   { m, b }
 }
 
+///|
 /// Evaluate the line at `x`.
 pub fn eval(l : Line, x : Int64) -> Int64 {
   l.m * x + l.b
 }
 
+///|
 /// A Li Chao segment tree for **minimum** queries.
 ///
 /// Stores lines and supports querying the minimum y-value at any point x
@@ -69,6 +73,7 @@ pub struct LiChaoTreeMin {
   size : Int // number of nodes (power of 2 * 2 - 1, approximately)
 }
 
+///|
 /// A Li Chao segment tree for **maximum** queries.
 pub struct LiChaoTreeMax {
   x_lo : Int64
@@ -82,11 +87,13 @@ pub struct LiChaoTreeMax {
 // Min tree
 // ---------------------------------------------------------------------------
 
+///|
 /// A sentinel line that evaluates to Int64::MAX, so any real line is smaller.
 fn max_line() -> Line {
   { m: 0L, b: 9223372036854775807L }
 }
 
+///|
 /// Create a Li Chao tree for minimum queries over x-range `[lo, hi]`.
 pub fn new_min(lo : Int64, hi : Int64) -> LiChaoTreeMin {
   // Compute the number of leaves needed (power of 2 covering [lo, hi]).
@@ -105,11 +112,13 @@ pub fn new_min(lo : Int64, hi : Int64) -> LiChaoTreeMin {
   { x_lo: lo, x_hi: hi, lines, has_line, size }
 }
 
+///|
 /// Insert a line into the min tree.
 pub fn insert_min(tree : LiChaoTreeMin, l : Line) -> Unit {
   insert_min_rec(tree, 1, tree.x_lo, tree.x_hi, l)
 }
 
+///|
 fn insert_min_rec(
   tree : LiChaoTreeMin,
   node : Int,
@@ -155,11 +164,13 @@ fn insert_min_rec(
   }
 }
 
+///|
 /// Query the minimum y-value at point `x`.
 pub fn query_min(tree : LiChaoTreeMin, x : Int64) -> Int64 {
   query_min_rec(tree, 1, tree.x_lo, tree.x_hi, x)
 }
 
+///|
 fn query_min_rec(
   tree : LiChaoTreeMin,
   node : Int,
@@ -178,10 +189,18 @@ fn query_min_rec(
   let mid = lo + (hi - lo) / 2L
   if x <= mid {
     let child_best = query_min_rec(tree, node * 2, lo, mid, x)
-    if child_best < best { child_best } else { best }
+    if child_best < best {
+      child_best
+    } else {
+      best
+    }
   } else {
     let child_best = query_min_rec(tree, node * 2 + 1, mid + 1L, hi, x)
-    if child_best < best { child_best } else { best }
+    if child_best < best {
+      child_best
+    } else {
+      best
+    }
   }
 }
 
@@ -189,11 +208,13 @@ fn query_min_rec(
 // Max tree
 // ---------------------------------------------------------------------------
 
+///|
 /// A sentinel line that evaluates to Int64::MIN, so any real line is larger.
 fn min_line() -> Line {
   { m: 0L, b: -9223372036854775808L }
 }
 
+///|
 /// Create a Li Chao tree for maximum queries over x-range `[lo, hi]`.
 pub fn new_max(lo : Int64, hi : Int64) -> LiChaoTreeMax {
   let range = hi - lo + 1L
@@ -211,11 +232,13 @@ pub fn new_max(lo : Int64, hi : Int64) -> LiChaoTreeMax {
   { x_lo: lo, x_hi: hi, lines, has_line, size }
 }
 
+///|
 /// Insert a line into the max tree.
 pub fn insert_max(tree : LiChaoTreeMax, l : Line) -> Unit {
   insert_max_rec(tree, 1, tree.x_lo, tree.x_hi, l)
 }
 
+///|
 fn insert_max_rec(
   tree : LiChaoTreeMax,
   node : Int,
@@ -256,11 +279,13 @@ fn insert_max_rec(
   }
 }
 
+///|
 /// Query the maximum y-value at point `x`.
 pub fn query_max(tree : LiChaoTreeMax, x : Int64) -> Int64 {
   query_max_rec(tree, 1, tree.x_lo, tree.x_hi, x)
 }
 
+///|
 fn query_max_rec(
   tree : LiChaoTreeMax,
   node : Int,
@@ -279,10 +304,18 @@ fn query_max_rec(
   let mid = lo + (hi - lo) / 2L
   if x <= mid {
     let child_best = query_max_rec(tree, node * 2, lo, mid, x)
-    if child_best > best { child_best } else { best }
+    if child_best > best {
+      child_best
+    } else {
+      best
+    }
   } else {
     let child_best = query_max_rec(tree, node * 2 + 1, mid + 1L, hi, x)
-    if child_best > best { child_best } else { best }
+    if child_best > best {
+      child_best
+    } else {
+      best
+    }
   }
 }
 
@@ -290,6 +323,7 @@ fn query_max_rec(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "li_chao_min: single line" {
   let t = new_min(0L, 100L)
   insert_min(t, line(2L, 1L)) // y = 2x + 1
@@ -298,6 +332,7 @@ test "li_chao_min: single line" {
   assert_eq(query_min(t, 100L), 201L)
 }
 
+///|
 test "li_chao_min: two intersecting lines" {
   let t = new_min(0L, 100L)
   // y = x and y = 100 - x; they intersect at x = 50, y = 50
@@ -315,6 +350,7 @@ test "li_chao_min: two intersecting lines" {
   assert_eq(query_min(t, 75L), 25L)
 }
 
+///|
 test "li_chao_min: many lines" {
   let t = new_min(0L, 1000L)
   // Insert y = i*x for i = 1..10
@@ -329,6 +365,7 @@ test "li_chao_min: many lines" {
   assert_eq(query_min(t, 100L), 100L)
 }
 
+///|
 test "li_chao_min: parallel lines" {
   let t = new_min(0L, 100L)
   insert_min(t, line(1L, 10L)) // y = x + 10
@@ -340,6 +377,7 @@ test "li_chao_min: parallel lines" {
   assert_eq(query_min(t, 100L), 105L)
 }
 
+///|
 test "li_chao_max: single line" {
   let t = new_max(0L, 100L)
   insert_max(t, line(3L, -5L)) // y = 3x - 5
@@ -348,6 +386,7 @@ test "li_chao_max: single line" {
   assert_eq(query_max(t, 100L), 295L)
 }
 
+///|
 test "li_chao_max: two intersecting lines" {
   let t = new_max(0L, 100L)
   insert_max(t, line(1L, 0L)) // y = x
@@ -360,6 +399,7 @@ test "li_chao_max: two intersecting lines" {
   assert_eq(query_max(t, 100L), 100L)
 }
 
+///|
 test "li_chao_max: many lines" {
   let t = new_max(0L, 1000L)
   for i = 1L; i <= 10L; i = i + 1L {
@@ -371,6 +411,7 @@ test "li_chao_max: many lines" {
   assert_eq(query_max(t, 100L), 1000L)
 }
 
+///|
 test "li_chao_min: brute force verification" {
   let t = new_min(0L, 100L)
   let lines : Array[Line] = []
@@ -396,6 +437,7 @@ test "li_chao_min: brute force verification" {
   }
 }
 
+///|
 test "li_chao_max: brute force verification" {
   let t = new_max(0L, 100L)
   let lines : Array[Line] = []
@@ -419,12 +461,14 @@ test "li_chao_max: brute force verification" {
   }
 }
 
+///|
 test "li_chao_min: single point range" {
   let t = new_min(5L, 5L)
   insert_min(t, line(2L, 3L)) // y = 2x + 3
   assert_eq(query_min(t, 5L), 13L)
 }
 
+///|
 test "li_chao_max: negative slope" {
   let t = new_max(-50L, 50L)
   insert_max(t, line(-1L, 0L)) // y = -x

@@ -45,6 +45,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A directed edge in the residual graph (linked-forward-star representation).
 ///
 /// `next` links to the next edge originating from the same vertex, forming
@@ -57,6 +58,7 @@ priv struct Edge {
   next : Int // index of next edge from the same `from` vertex, -1 = none
 }
 
+///|
 /// The flow network, built from an edge list.
 priv struct MCMFGraph {
   n : Int
@@ -65,13 +67,9 @@ priv struct MCMFGraph {
   mut edge_count : Int // total edges added so far
 }
 
+///|
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int, Int)]) -> MCMFGraph {
-  let g : MCMFGraph = {
-    n,
-    head: Array::make(n, -1),
-    edges: [],
-    edge_count: 0,
-  }
+  let g : MCMFGraph = { n, head: Array::make(n, -1), edges: [], edge_count: 0 }
   for k = 0; k < edge_list.length(); k = k + 1 {
     let (u, v, cap, cost) = edge_list[k]
     if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0 {
@@ -93,6 +91,7 @@ fn build_graph(n : Int, edge_list : Array[(Int, Int, Int, Int)]) -> MCMFGraph {
 // Binary min-heap for Dijkstra
 // ---------------------------------------------------------------------------
 
+///|
 /// A simple binary min-heap of `(distance, vertex)` pairs for Dijkstra.
 ///
 /// Supports `push` and `pop_min` in O(log n). Duplicate entries for the same
@@ -104,14 +103,12 @@ priv struct MinHeap {
   mut size : Int
 }
 
+///|
 fn new_heap(cap : Int) -> MinHeap {
-  {
-    heap_dist: Array::make(cap, 0L),
-    heap_vtx: Array::make(cap, 0),
-    size: 0,
-  }
+  { heap_dist: Array::make(cap, 0L), heap_vtx: Array::make(cap, 0), size: 0 }
 }
 
+///|
 fn heap_push(h : MinHeap, d : Int64, v : Int) -> Unit {
   let i = h.size
   h.heap_dist[i] = d
@@ -135,6 +132,7 @@ fn heap_push(h : MinHeap, d : Int64, v : Int) -> Unit {
   }
 }
 
+///|
 /// Pop the minimum-distance entry. Returns `Some((dist, vtx))` or `None`
 /// if the heap is empty. Stale entries (where `dist > cur_dist[vtx]`) are
 /// automatically skipped.
@@ -184,6 +182,7 @@ fn heap_pop(h : MinHeap, cur_dist : Array[Int64]) -> (Int64, Int)? {
 // SPFA (Bellman-Ford variant) — first iteration only
 // ---------------------------------------------------------------------------
 
+///|
 /// SPFA to find the shortest (min-cost) path from `src` to all vertices.
 ///
 /// Returns:
@@ -244,6 +243,7 @@ fn spfa_init(
 // Dijkstra with reduced costs — subsequent iterations
 // ---------------------------------------------------------------------------
 
+///|
 /// Dijkstra using reduced costs `c'(u,v) = cost + h[u] - h[v]`.
 ///
 /// All reduced costs are guaranteed non-negative (by the potential invariant),
@@ -305,6 +305,7 @@ fn dijkstra(
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the maximum flow and its minimum cost.
 ///
 /// # Parameters
@@ -415,6 +416,7 @@ pub fn min_cost_max_flow(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mcmf: simple chain" {
   // 0 ->(10, 1) 1 ->(10, 2) 2
   // Max flow = 10, min cost = 10 * (1 + 2) = 30
@@ -424,34 +426,29 @@ test "mcmf: simple chain" {
   assert_eq(cost, 30L)
 }
 
+///|
 test "mcmf: two parallel paths pick cheaper" {
   // 0 -> 2 directly (cap 5, cost 10)
   // 0 -> 1 -> 2 (cap 5, cost 1 + 1 = 2)
   // Max flow = 10 (5 + 5), min cost = 5*10 + 5*2 = 60
-  let edges = [
-    (0, 2, 5, 10),
-    (0, 1, 5, 1),
-    (1, 2, 5, 1),
-  ]
+  let edges = [(0, 2, 5, 10), (0, 1, 5, 1), (1, 2, 5, 1)]
   let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
   assert_eq(flow, 10L)
   assert_eq(cost, 60L)
 }
 
+///|
 test "mcmf: cheaper path has less capacity" {
   // Path A: 0 -> 2, cap 3, cost 1
   // Path B: 0 -> 1 -> 2, cap 10, cost 5
   // Max flow = 13, min cost = 3*1 + 10*5 = 53
-  let edges = [
-    (0, 2, 3, 1),
-    (0, 1, 10, 1),
-    (1, 2, 10, 4),
-  ]
+  let edges = [(0, 2, 3, 1), (0, 1, 10, 1), (1, 2, 10, 4)]
   let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
   assert_eq(flow, 13L)
   assert_eq(cost, 53L)
 }
 
+///|
 test "mcmf: no path" {
   let edges = [(0, 1, 10, 1)]
   let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
@@ -459,11 +456,13 @@ test "mcmf: no path" {
   assert_eq(cost, 0L)
 }
 
+///|
 test "mcmf: src equals sink returns None" {
   let edges = [(0, 1, 10, 1)]
   assert_true(min_cost_max_flow(3, 0, 0, edges) is None)
 }
 
+///|
 test "mcmf: invalid inputs return None" {
   let edges = [(0, 1, 10, 1)]
   assert_true(min_cost_max_flow(0, 0, 1, edges) is None)
@@ -471,6 +470,7 @@ test "mcmf: invalid inputs return None" {
   assert_true(min_cost_max_flow(3, 0, 5, edges) is None)
 }
 
+///|
 test "mcmf: classic transport problem" {
   // Source 0 supplies flow to sink 3 via two warehouses (1, 2).
   // 0 -> 1 (cap 8, cost 2)
@@ -481,17 +481,13 @@ test "mcmf: classic transport problem" {
   // (bottleneck 0->2 cap 6). Total source outflow = 8+6=14 but 1->3 caps
   // path A at 7, so only 7 flows through 1. The remaining 6 flows through 2.
   // Min cost = 7*(2+3) + 6*(5+1) = 35 + 36 = 71.
-  let edges = [
-    (0, 1, 8, 2),
-    (0, 2, 6, 5),
-    (1, 3, 7, 3),
-    (2, 3, 10, 1),
-  ]
+  let edges = [(0, 1, 8, 2), (0, 2, 6, 5), (1, 3, 7, 3), (2, 3, 10, 1)]
   let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
   assert_eq(flow, 13L)
   assert_eq(cost, 71L)
 }
 
+///|
 test "mcmf: reverse edge enables rerouting" {
   // 0 -> 1 (cap 5, cost 1)
   // 0 -> 2 (cap 5, cost 1)
@@ -511,32 +507,27 @@ test "mcmf: reverse edge enables rerouting" {
   assert_eq(cost, 20L)
 }
 
+///|
 test "mcmf: unit capacities network" {
   // Diamond: 0 -> 1 (1, 1), 0 -> 2 (1, 1), 1 -> 3 (1, 1), 2 -> 3 (1, 1)
   // Max flow = 2, cost = 4
-  let edges = [
-    (0, 1, 1, 1),
-    (0, 2, 1, 1),
-    (1, 3, 1, 1),
-    (2, 3, 1, 1),
-  ]
+  let edges = [(0, 1, 1, 1), (0, 2, 1, 1), (1, 3, 1, 1), (2, 3, 1, 1)]
   let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
   assert_eq(flow, 2L)
   assert_eq(cost, 4L)
 }
 
+///|
 test "mcmf: negative cost edges" {
   // Edge with negative cost: 0 -> 1 (cap 5, cost -3)
   // The algorithm must handle this via initial SPFA.
-  let edges = [
-    (0, 1, 5, -3),
-    (1, 2, 5, 2),
-  ]
+  let edges = [(0, 1, 5, -3), (1, 2, 5, 2)]
   let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
   assert_eq(flow, 5L)
   assert_eq(cost, -5L) // 5 * (-3 + 2) = 5 * (-1) = -5
 }
 
+///|
 test "mcmf: stress test against brute force" {
   // Build a moderate network and verify against a hand-computed MCMF.
   // Graph: 0 -> 1 (10, 3), 0 -> 2 (8, 5), 1 -> 2 (4, -1), 1 -> 3 (8, 2),

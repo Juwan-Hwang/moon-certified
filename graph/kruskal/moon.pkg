@@ -1,0 +1,7 @@
+import {
+  "moon-certified/containers/union_find",
+}
+
+options(
+  "proof-enabled": false,
+)

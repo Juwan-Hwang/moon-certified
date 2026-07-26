@@ -1,6 +1,0 @@
-{
-  "proof-enabled": false,
-  "import": [
-    "moon-certified/graph/max_flow"
-  ]
-}

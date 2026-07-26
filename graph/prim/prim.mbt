@@ -22,12 +22,14 @@
 /// For applications requiring zero-weight edges, use a different graph
 /// representation (e.g., adjacency list) or shift all weights by +1.
 
+///|
 /// Sentinel value meaning "no connecting edge known yet".
 ///
 /// Chosen as 10⁹ (well below Int::max_value ≈ 2.147×10⁹) so that
 /// arithmetic on `key` values does not overflow.
 let inf : Int = 1000000000
 
+///|
 /// Compute a minimum spanning tree (or forest) rooted at vertex 0.
 ///
 /// # Parameters
@@ -83,6 +85,7 @@ pub fn prim_mst(graph : FixedArray[Int], n : Int) -> (FixedArray[Int], Int) {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "prim: basic triangle" {
   // 0--1 (1), 1--2 (2), 0--2 (3). MST = {0-1, 1-2}, weight 3.
   let n = 3
@@ -100,6 +103,7 @@ test "prim: basic triangle" {
   assert_eq(parent[2], 1)
 }
 
+///|
 test "prim: single node" {
   let graph = FixedArray::make(1, 0)
   let (parent, w) = prim_mst(graph, 1)
@@ -108,6 +112,7 @@ test "prim: single node" {
   assert_eq(w, 0)
 }
 
+///|
 test "prim: disconnected graph" {
   // Two components: {0,1} and {2,3}. Only {0,1} is reachable from 0.
   let n = 4
@@ -125,6 +130,7 @@ test "prim: disconnected graph" {
   assert_eq(parent[3], -1)
 }
 
+///|
 test "prim: complete graph K4" {
   // K4: 6 edges. Three cheapest form the MST (1 + 2 + 3 = 6).
   let n = 4
@@ -150,6 +156,7 @@ test "prim: complete graph K4" {
   assert_eq(parent[3], 0)
 }
 
+///|
 test "prim: star topology" {
   // Center 0 linked to 1..4 with increasing weights.
   let n = 5
@@ -166,6 +173,7 @@ test "prim: star topology" {
   }
 }
 
+///|
 test "prim: line topology with heavy shortcut" {
   // Path 0-1-2-3-4 (weights 1..4) plus a heavy chord 0-4 (100).
   let n = 5
@@ -185,6 +193,7 @@ test "prim: line topology with heavy shortcut" {
   assert_eq(parent[4], 3)
 }
 
+///|
 test "prim: equal weights (unit square)" {
   // Square with unit weights. MST has 3 edges, weight 3.
   let n = 4
@@ -202,6 +211,7 @@ test "prim: equal weights (unit square)" {
   assert_eq(parent[0], -1)
 }
 
+///|
 test "prim: invalid n returns empty" {
   let graph = FixedArray::make(9, 0)
   let (parent, w) = prim_mst(graph, 0)
@@ -212,6 +222,7 @@ test "prim: invalid n returns empty" {
   assert_eq(w2, 0)
 }
 
+///|
 test "prim: graph too small returns empty" {
   // n=3 needs 9 entries; provide only 4.
   let graph = FixedArray::make(4, 0)
@@ -220,6 +231,7 @@ test "prim: graph too small returns empty" {
   assert_eq(w, 0)
 }
 
+///|
 test "prim: large graph (10 nodes, line + chords)" {
   let n = 10
   let graph = FixedArray::make(n * n, 0)
@@ -230,9 +242,21 @@ test "prim: large graph (10 nodes, line + chords)" {
   }
   // 15 heavy chords (weight 100) that must be rejected.
   let chords = [
-    (0, 2), (0, 3), (1, 3), (1, 4), (2, 4),
-    (2, 5), (3, 5), (3, 6), (4, 6), (4, 7),
-    (5, 7), (5, 8), (6, 8), (6, 9), (7, 9),
+    (0, 2),
+    (0, 3),
+    (1, 3),
+    (1, 4),
+    (2, 4),
+    (2, 5),
+    (3, 5),
+    (3, 6),
+    (4, 6),
+    (4, 7),
+    (5, 7),
+    (5, 8),
+    (6, 8),
+    (6, 9),
+    (7, 9),
   ]
   for k = 0; k < chords.length(); k = k + 1 {
     let (a, b) = chords[k]
@@ -248,6 +272,7 @@ test "prim: large graph (10 nodes, line + chords)" {
   }
 }
 
+///|
 test "prim: MST edges form a valid tree" {
   // A graph rich in cycles; every non-root vertex must have a parent in [0,n).
   let n = 5
@@ -279,6 +304,7 @@ test "prim: MST edges form a valid tree" {
 // Checked Prim's MST with Int64 overflow detection
 // ---------------------------------------------------------------------------
 
+///|
 /// Checked Prim's MST with `Int64` weight accumulation and overflow detection.
 ///
 /// Returns `None` if the total MST weight would overflow `Int64`. Otherwise
@@ -328,6 +354,7 @@ pub fn prim_mst_checked(
   Some((parent, total))
 }
 
+///|
 test "prim: checked basic" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
@@ -347,6 +374,7 @@ test "prim: checked basic" {
   }
 }
 
+///|
 test "prim: checked matches unchecked" {
   let n = 10
   let graph = FixedArray::make(n * n, 0)

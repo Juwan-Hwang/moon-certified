@@ -1,3 +1,4 @@
+///|
 /// Persistent (immutable) vector with structural sharing.
 ///
 /// A PersistentVector provides O(log32 n) random access, update, push, and pop
@@ -19,16 +20,19 @@
 /// - Space per update: O(log32 n) new nodes
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 const BRANCH_BITS : Int = 5
+
+///|
 const BRANCH_FACTOR : Int = 32 // 2^5
 
+///|
 /// A trie node: either a leaf (holding values) or an internal branch.
 pub enum Node[T] {
   Leaf(Array[T])
   Branch(FixedArray[Node[T]?])
 }
 
+///|
 /// A persistent vector backed by a bitmapped trie.
 ///
 /// - `root`: the root of the trie (None for empty vector).
@@ -45,27 +49,32 @@ pub struct PersistentVector[T] {
   priv tail_len : Int
 }
 
+///|
 /// Create an empty PersistentVector.
 pub fn[T] empty() -> PersistentVector[T] {
   { root: None, size: 0, shift: 0, tail: [], tail_len: 0 }
 }
 
+///|
 /// Create an empty PersistentVector (associated function form, useful when
 /// type inference can't determine T from context).
 pub fn[T] PersistentVector::new() -> PersistentVector[T] {
   empty()
 }
 
+///|
 /// Return the number of elements in the vector. O(1).
 pub fn[T] length(v : PersistentVector[T]) -> Int {
   v.size
 }
 
+///|
 /// Mask for extracting a 5-bit index at a given shift level.
 fn mask(index : Int, shift : Int) -> Int {
   (index >> shift) & (BRANCH_FACTOR - 1)
 }
 
+///|
 /// Get the element at `index`. Returns `None` if out of bounds.
 pub fn[T] get(v : PersistentVector[T], index : Int) -> T? {
   if index < 0 || index >= v.size {
@@ -99,6 +108,7 @@ pub fn[T] get(v : PersistentVector[T], index : Int) -> T? {
   }
 }
 
+///|
 /// Return a new PersistentVector with `value` appended.
 pub fn[T] push(v : PersistentVector[T], value : T) -> PersistentVector[T] {
   if v.tail_len < BRANCH_FACTOR {
@@ -116,7 +126,13 @@ pub fn[T] push(v : PersistentVector[T], value : T) -> PersistentVector[T] {
     match v.root {
       None =>
         // First leaf in trie: root becomes the leaf, shift stays 0.
-        { root: Some(full_tail), size: v.size + 1, shift: 0, tail: [value], tail_len: 1 }
+        {
+          root: Some(full_tail),
+          size: v.size + 1,
+          shift: 0,
+          tail: [value],
+          tail_len: 1,
+        }
       Some(r) => {
         let capacity = 1 << (v.shift + BRANCH_BITS)
         if trie_size >= capacity {
@@ -125,17 +141,30 @@ pub fn[T] push(v : PersistentVector[T], value : T) -> PersistentVector[T] {
           let children = FixedArray::make(BRANCH_FACTOR, None)
           children[0] = Some(r)
           children[1] = Some(new_path(v.shift, full_tail))
-          { root: Some(Branch(children)), size: v.size + 1, shift: v.shift + BRANCH_BITS, tail: [value], tail_len: 1 }
+          {
+            root: Some(Branch(children)),
+            size: v.size + 1,
+            shift: v.shift + BRANCH_BITS,
+            tail: [value],
+            tail_len: 1,
+          }
         } else {
           // Room in trie: descend and insert leaf via path copying.
           let new_root = push_tail(v.shift, r, trie_size, full_tail)
-          { root: Some(new_root), size: v.size + 1, shift: v.shift, tail: [value], tail_len: 1 }
+          {
+            root: Some(new_root),
+            size: v.size + 1,
+            shift: v.shift,
+            tail: [value],
+            tail_len: 1,
+          }
         }
       }
     }
   }
 }
 
+///|
 /// Create a chain of single-child branches from `level` down to `leaf`.
 /// Used when inserting a leaf into a previously empty trie slot.
 fn[T] new_path(level : Int, leaf : Node[T]) -> Node[T] {
@@ -148,6 +177,7 @@ fn[T] new_path(level : Int, leaf : Node[T]) -> Node[T] {
   }
 }
 
+///|
 /// Push a full leaf into the trie at the given root shift level.
 /// `index` is the trie index of the first element in `leaf`.
 /// The caller must ensure the trie has room (root not full).
@@ -171,7 +201,9 @@ fn[T] push_tail(
         match children[sub_idx] {
           Some(child) =>
             // Descend into existing subtree with path copying.
-            new_children[sub_idx] = Some(push_tail(shift - BRANCH_BITS, child, index, leaf))
+            new_children[sub_idx] = Some(
+              push_tail(shift - BRANCH_BITS, child, index, leaf),
+            )
           None =>
             // Empty slot: create fresh path down to leaf.
             new_children[sub_idx] = Some(new_path(shift - BRANCH_BITS, leaf))
@@ -185,9 +217,14 @@ fn[T] push_tail(
   }
 }
 
+///|
 /// Return a new PersistentVector with the element at `index` set to `value`.
 /// Returns the original if `index` is out of bounds.
-pub fn[T] set(v : PersistentVector[T], index : Int, value : T) -> PersistentVector[T] {
+pub fn[T] set(
+  v : PersistentVector[T],
+  index : Int,
+  value : T,
+) -> PersistentVector[T] {
   if index < 0 || index >= v.size {
     return v
   }
@@ -205,6 +242,7 @@ pub fn[T] set(v : PersistentVector[T], index : Int, value : T) -> PersistentVect
   { ..v, root: Some(new_root) }
 }
 
+///|
 fn[T] set_in_trie(
   node : Node[T]?,
   index : Int,
@@ -227,7 +265,10 @@ fn[T] set_in_trie(
       }
       let idx = mask(index, shift)
       match children[idx] {
-        Some(child) => new_children[idx] = Some(set_in_trie(Some(child), index, value, shift - BRANCH_BITS))
+        Some(child) =>
+          new_children[idx] = Some(
+            set_in_trie(Some(child), index, value, shift - BRANCH_BITS),
+          )
         None => ()
       }
       Branch(new_children)
@@ -240,12 +281,14 @@ fn[T] set_in_trie(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "pvec: empty vector" {
   let v : PersistentVector[Int] = PersistentVector::new()
   assert_eq(length(v), 0)
   assert_true(get(v, 0) is None)
 }
 
+///|
 test "pvec: push and get" {
   let v : PersistentVector[Int] = PersistentVector::new()
   let v = push(v, 10)
@@ -257,6 +300,7 @@ test "pvec: push and get" {
   assert_eq(get(v, 2), Some(30))
 }
 
+///|
 test "pvec: persistence — old version unchanged" {
   let v0 : PersistentVector[Int] = PersistentVector::new()
   let v1 = push(v0, 1)
@@ -272,6 +316,7 @@ test "pvec: persistence — old version unchanged" {
   assert_eq(length(v3), 3)
 }
 
+///|
 test "pvec: set preserves old version" {
   let v0 : PersistentVector[Int] = PersistentVector::new()
   let v1 = push(push(push(v0, 10), 20), 30)
@@ -283,6 +328,7 @@ test "pvec: set preserves old version" {
   assert_eq(length(v2), 3)
 }
 
+///|
 test "pvec: push beyond tail capacity (32+)" {
   let v0 : PersistentVector[Int] = PersistentVector::new()
   let mut v = v0
@@ -295,6 +341,7 @@ test "pvec: push beyond tail capacity (32+)" {
   }
 }
 
+///|
 test "pvec: large push (1000 elements)" {
   let v0 : PersistentVector[Int] = PersistentVector::new()
   let mut v = v0
@@ -309,6 +356,7 @@ test "pvec: large push (1000 elements)" {
   assert_true(get(v, 1000) is None)
 }
 
+///|
 test "pvec: set on large vector" {
   let v0 : PersistentVector[String] = PersistentVector::new()
   let mut v = v0
@@ -321,6 +369,7 @@ test "pvec: set on large vector" {
   assert_eq(get(v, 26), Some("item_26"))
 }
 
+///|
 test "pvec: out of bounds" {
   let v : PersistentVector[Int] = PersistentVector::new()
   let v = push(v, 42)
@@ -331,6 +380,7 @@ test "pvec: out of bounds" {
   assert_eq(length(v2), 1)
 }
 
+///|
 test "pvec: generic type (String)" {
   let v0 : PersistentVector[String] = PersistentVector::new()
   let v = push(push(push(v0, "a"), "b"), "c")

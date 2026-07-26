@@ -1,3 +1,4 @@
+///|
 /// Binary search on a sorted array.
 /// Returns Some(index) if found, None if not found.
 /// Verified correct by moon prove: for all inputs satisfying the sorted
@@ -12,12 +13,11 @@ pub fn search(
   for i = 0, j = xs.length(); i < j; {
     let h = i + (j - i) / 2
     if xs[h] < key {
-      proof_assert ∀ idx : Int,
-        (0 <= idx) && (idx < h + 1) → xs[idx] < key
+      proof_assert ∀ idx : Int, 0 <= idx && idx < h + 1 → xs[idx] < key
       continue h + 1, j
     } else if key < xs[h] {
       proof_assert ∀ idx : Int,
-        (h <= idx) && (idx < xs.length()) → key < xs[idx]
+        h <= idx && idx < xs.length() → key < xs[idx]
       continue i, h
     } else {
       proof_assert xs[h] == key
@@ -29,8 +29,9 @@ pub fn search(
     proof_invariant: 0 <= i,
     proof_invariant: i <= j,
     proof_invariant: j <= xs.length(),
-    proof_invariant: ∀ idx : Int, (0 <= idx) && (idx < i) → xs[idx] < key,
-    proof_invariant: ∀ idx : Int, (j <= idx) && (idx < xs.length()) → key < xs[idx],
+    proof_invariant: ∀ idx : Int, 0 <= idx && idx < i → xs[idx] < key,
+    proof_invariant: ∀ idx : Int,
+      j <= idx && idx < xs.length() → key < xs[idx],
     proof_yield: res => binary_search_ok(xs, key, res),
     proof_reasoning: (
       #| The loop maintains a candidate window `[i, j)`.
@@ -48,6 +49,7 @@ pub fn search(
   }
 }
 
+///|
 /// Generic binary search on a sorted array. Not formally verified
 /// (opaque comparator prevents SMT reasoning).
 ///
@@ -77,6 +79,7 @@ pub fn[T] search_generic(
   None
 }
 
+///|
 test "binary_search: found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 }) // [0, 2, 4, 6, 8]
   assert_eq(search(xs, 4), Some(2))
@@ -84,6 +87,7 @@ test "binary_search: found" {
   assert_eq(search(xs, 8), Some(4))
 }
 
+///|
 test "binary_search: not found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 }) // [0, 2, 4, 6, 8]
   assert_eq(search(xs, 1), None)
@@ -91,17 +95,20 @@ test "binary_search: not found" {
   assert_eq(search(xs, 9), None)
 }
 
+///|
 test "binary_search: empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(search(xs, 42), None)
 }
 
+///|
 test "binary_search: single element" {
   let xs = FixedArray::make(1, 42)
   assert_eq(search(xs, 42), Some(0))
   assert_eq(search(xs, 41), None)
 }
 
+///|
 test "binary_search_generic: Int found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 }) // [0, 2, 4, 6, 8]
   assert_eq(search_generic(xs, 4, fn(a, b) { a - b }), Some(2))
@@ -109,17 +116,20 @@ test "binary_search_generic: Int found" {
   assert_eq(search_generic(xs, 8, fn(a, b) { a - b }), Some(4))
 }
 
+///|
 test "binary_search_generic: Int not found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 })
   assert_true(search_generic(xs, 1, fn(a, b) { a - b }) is None)
   assert_true(search_generic(xs, 9, fn(a, b) { a - b }) is None)
 }
 
+///|
 test "binary_search_generic: empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_true(search_generic(xs, 42, fn(a, b) { a - b }) is None)
 }
 
+///|
 test "binary_search_generic: String" {
   let xs = FixedArray::make(4, "")
   xs[0] = "apple"

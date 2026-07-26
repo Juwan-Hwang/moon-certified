@@ -1,3 +1,4 @@
+///|
 /// Sum all elements of a non-negative array.
 ///
 /// Verified by `moon prove`:
@@ -14,11 +15,10 @@
 /// The proof models `Int` as mathematical integers, so it is correct
 /// in the mathematical model but not at runtime when overflow occurs.
 /// Callers must ensure the sum fits in 32-bit `Int`.
-
 pub fn array_sum(
   xs : FixedArray[Int],
 ) -> Int where {
-  proof_require: ∀ i : Int, (0 <= i) && (i < xs.length()) → 0 <= xs[i],
+  proof_require: ∀ i : Int, 0 <= i && i < xs.length() → 0 <= xs[i],
   proof_ensure: result => sum_nonneg_ok(result),
 } {
   for i = 0, sum = 0; i < xs.length(); {
@@ -38,6 +38,7 @@ pub fn array_sum(
   }
 }
 
+///|
 /// Count the number of non-negative elements in an array.
 /// Verified: the result is between 0 and the array length.
 pub fn count_nonneg(
@@ -66,6 +67,7 @@ pub fn count_nonneg(
   }
 }
 
+///|
 /// Overflow-safe sum of all array elements.
 ///
 /// Returns `Some(total)` when the mathematical sum fits in 32-bit `Int`,
@@ -88,60 +90,71 @@ pub fn array_sum_checked(xs : FixedArray[Int]) -> Int? {
   Some(sum.to_int())
 }
 
+///|
 test "array_sum: basic" {
-  let xs = FixedArray::makei(5, fn(i) { i + 1 })  // [1, 2, 3, 4, 5]
+  let xs = FixedArray::makei(5, fn(i) { i + 1 }) // [1, 2, 3, 4, 5]
   assert_eq(array_sum(xs), 15)
 }
 
+///|
 test "array_sum: zeros" {
   let xs = FixedArray::make(5, 0)
   assert_eq(array_sum(xs), 0)
 }
 
+///|
 test "array_sum: empty" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(array_sum(xs), 0)
 }
 
+///|
 test "count_nonneg: mixed" {
-  let xs = FixedArray::makei(6, fn(i) { i - 3 })  // [-3, -2, -1, 0, 1, 2]
+  let xs = FixedArray::makei(6, fn(i) { i - 3 }) // [-3, -2, -1, 0, 1, 2]
   assert_eq(count_nonneg(xs), 3)
 }
 
+///|
 test "count_nonneg: all positive" {
-  let xs = FixedArray::makei(4, fn(i) { i + 1 })  // [1, 2, 3, 4]
+  let xs = FixedArray::makei(4, fn(i) { i + 1 }) // [1, 2, 3, 4]
   assert_eq(count_nonneg(xs), 4)
 }
 
+///|
 test "count_nonneg: all negative" {
-  let xs = FixedArray::makei(3, fn(i) { -(i + 1) })  // [-1, -2, -3]
+  let xs = FixedArray::makei(3, fn(i) { -(i + 1) }) // [-1, -2, -3]
   assert_eq(count_nonneg(xs), 0)
 }
 
+///|
 test "array_sum: correctness check" {
   // Verify that array_sum returns the actual sum
-  let xs = FixedArray::makei(10, fn(i) { i })  // [0,1,2,...,9]
+  let xs = FixedArray::makei(10, fn(i) { i }) // [0,1,2,...,9]
   assert_eq(array_sum(xs), 45)
-  let xs2 = FixedArray::makei(5, fn(i) { (i + 1) * (i + 1) })  // [1,4,9,16,25]
+  let xs2 = FixedArray::makei(5, fn(i) { (i + 1) * (i + 1) }) // [1,4,9,16,25]
   assert_eq(array_sum(xs2), 55)
 }
 
+///|
 test "array_sum_checked: basic" {
   let xs = FixedArray::makei(5, fn(i) { i + 1 })
   assert_eq(array_sum_checked(xs), Some(15))
 }
 
+///|
 test "array_sum_checked: overflow detected" {
   // 50000 * 50000 elements each = 2.5e9 > Int32::MAX
   let xs = FixedArray::make(50000, 50000)
   assert_true(array_sum_checked(xs) is None)
 }
 
+///|
 test "array_sum_checked: negative overflow" {
   let xs = FixedArray::make(50000, -50000)
   assert_true(array_sum_checked(xs) is None)
 }
 
+///|
 test "array_sum_checked: no overflow with negatives" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 1000
@@ -152,6 +165,7 @@ test "array_sum_checked: no overflow with negatives" {
   assert_eq(array_sum_checked(xs), Some(1000))
 }
 
+///|
 test "array_sum_checked: boundary" {
   let xs = FixedArray::make(2, 0)
   xs[0] = 2147483647

@@ -20,6 +20,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A node in the MCTS search tree.
 priv struct MCTSNode {
   move_val : Int
@@ -31,6 +32,7 @@ priv struct MCTSNode {
   player_just_moved : Int
 }
 
+///|
 /// A game state interface for MCTS.
 pub trait GameState {
   fn is_terminal(Self) -> Bool
@@ -41,23 +43,27 @@ pub trait GameState {
   fn current_player(Self) -> Int
 }
 
+///|
 /// MCTS search engine.
 pub struct MCTS {
   priv nodes : Array[MCTSNode]
   priv mut rng_state : Int
 }
 
+///|
 /// Create a new MCTS engine.
 pub fn new(seed : Int) -> MCTS {
   { nodes: [], rng_state: seed & 0x7FFFFFFF }
 }
 
+///|
 /// Internal LCG for random playouts.
 fn MCTS::rng(self : MCTS) -> Int {
   self.rng_state = (self.rng_state * 1103515245 + 12345) & 0x7FFFFFFF
   self.rng_state
 }
 
+///|
 /// UCT selection: pick child maximizing UCB1 value.
 fn MCTS::uct_select(self : MCTS, node_idx : Int) -> Int {
   let parent_visits = self.nodes[node_idx].visits
@@ -70,7 +76,8 @@ fn MCTS::uct_select(self : MCTS, node_idx : Int) -> Int {
       1.0e18
     } else {
       let exploit = child.wins / child.visits.to_double()
-      let explore = (2.0 * (@math.ln(parent_visits.to_double()) / child.visits.to_double()).sqrt())
+      let explore = 2.0 *
+        (@math.ln(parent_visits.to_double()) / child.visits.to_double()).sqrt()
       exploit + explore
     }
     if val > best_val {
@@ -81,7 +88,14 @@ fn MCTS::uct_select(self : MCTS, node_idx : Int) -> Int {
   best_idx
 }
 
-fn MCTS::add_node(self : MCTS, move_val : Int, parent : Int, player : Int, untried : Array[Int]) -> Int {
+///|
+fn MCTS::add_node(
+  self : MCTS,
+  move_val : Int,
+  parent : Int,
+  player : Int,
+  untried : Array[Int],
+) -> Int {
   let idx = self.nodes.length()
   self.nodes.push({
     move_val,
@@ -98,12 +112,18 @@ fn MCTS::add_node(self : MCTS, move_val : Int, parent : Int, player : Int, untri
   idx
 }
 
+///|
 /// Run one MCTS iteration from the root state.
-fn[T : GameState] MCTS::iterate(self : MCTS, root_state : T, root_idx : Int) -> Unit {
+fn[T : GameState] MCTS::iterate(
+  self : MCTS,
+  root_state : T,
+  root_idx : Int,
+) -> Unit {
   // Phase 1: Selection — traverse tree using UCT.
   let mut state = root_state
   let mut node_idx = root_idx
-  while self.nodes[node_idx].untried_moves.length() == 0 && self.nodes[node_idx].children.length() > 0 {
+  while self.nodes[node_idx].untried_moves.length() == 0 &&
+        self.nodes[node_idx].children.length() > 0 {
     if state.is_terminal() {
       break
     }
@@ -140,11 +160,16 @@ fn[T : GameState] MCTS::iterate(self : MCTS, root_state : T, root_idx : Int) -> 
   }
 }
 
+///|
 /// Search for the best move.
 ///
 /// Runs `iterations` MCTS iterations from `root_state`, then returns
 /// the move with the most visits.
-pub fn[T : GameState] MCTS::search(self : MCTS, root_state : T, iterations : Int) -> Int {
+pub fn[T : GameState] MCTS::search(
+  self : MCTS,
+  root_state : T,
+  iterations : Int,
+) -> Int {
   if root_state.is_terminal() {
     return -1
   }
@@ -175,15 +200,18 @@ pub fn[T : GameState] MCTS::search(self : MCTS, root_state : T, iterations : Int
 // Tic-Tac-Toe test implementation
 // ---------------------------------------------------------------------------
 
+///|
 priv struct MCTTTT {
   board : FixedArray[Int]
   mut player : Int
 }
 
+///|
 fn MCTTTT::new() -> MCTTTT {
   { board: FixedArray::make(9, 0), player: 1 }
 }
 
+///|
 fn MCTTTT::clone(self : MCTTTT) -> MCTTTT {
   let b = FixedArray::make(9, 0)
   for i = 0; i < 9; i = i + 1 {
@@ -192,8 +220,18 @@ fn MCTTTT::clone(self : MCTTTT) -> MCTTTT {
   { board: b, player: self.player }
 }
 
+///|
 fn ttt_check_win(board : FixedArray[Int]) -> Int {
-  let wins = [(0, 1, 2), (3, 4, 5), (6, 7, 8), (0, 3, 6), (1, 4, 7), (2, 5, 8), (0, 4, 8), (2, 4, 6)]
+  let wins = [
+    (0, 1, 2),
+    (3, 4, 5),
+    (6, 7, 8),
+    (0, 3, 6),
+    (1, 4, 7),
+    (2, 5, 8),
+    (0, 4, 8),
+    (2, 4, 6),
+  ]
   for i = 0; i < wins.length(); i = i + 1 {
     let (a, b, c) = wins[i]
     if board[a] != 0 && board[a] == board[b] && board[a] == board[c] {
@@ -203,6 +241,7 @@ fn ttt_check_win(board : FixedArray[Int]) -> Int {
   0
 }
 
+///|
 fn ttt_is_full(board : FixedArray[Int]) -> Bool {
   for i = 0; i < 9; i = i + 1 {
     if board[i] == 0 {
@@ -212,10 +251,12 @@ fn ttt_is_full(board : FixedArray[Int]) -> Bool {
   true
 }
 
+///|
 impl GameState for MCTTTT with fn is_terminal(self) {
   ttt_check_win(self.board) != 0 || ttt_is_full(self.board)
 }
 
+///|
 impl GameState for MCTTTT with fn get_moves(self) {
   let m : Array[Int] = []
   for i = 0; i < 9; i = i + 1 {
@@ -226,6 +267,7 @@ impl GameState for MCTTTT with fn get_moves(self) {
   m
 }
 
+///|
 impl GameState for MCTTTT with fn make_move(self, mv) {
   let n = self.clone()
   n.board[mv] = self.player
@@ -233,6 +275,7 @@ impl GameState for MCTTTT with fn make_move(self, mv) {
   n
 }
 
+///|
 impl GameState for MCTTTT with fn get_result(self, player) {
   let w = ttt_check_win(self.board)
   if w == 0 {
@@ -244,6 +287,7 @@ impl GameState for MCTTTT with fn get_result(self, player) {
   }
 }
 
+///|
 impl GameState for MCTTTT with fn random_playout(self, rng) {
   let mut state = self.clone()
   let player = state.player
@@ -255,16 +299,19 @@ impl GameState for MCTTTT with fn random_playout(self, rng) {
   state.get_result(player)
 }
 
+///|
 impl GameState for MCTTTT with fn current_player(self) {
   self.player
 }
 
-extend MCTTTT with GameState::{ is_terminal, get_moves, make_move, get_result }
+///|
+extend MCTTTT with GameState::{is_terminal, get_moves, make_move, get_result}
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mcts: finds immediate win" {
   let g = MCTTTT::new()
   let g1 = g.make_move(0)
@@ -276,6 +323,7 @@ test "mcts: finds immediate win" {
   assert_eq(m, 2)
 }
 
+///|
 test "mcts: blocks opponent win" {
   let g = MCTTTT::new()
   let g1 = g.make_move(4)
@@ -287,6 +335,7 @@ test "mcts: blocks opponent win" {
   assert_eq(m, 2)
 }
 
+///|
 test "mcts: center is strong opening" {
   let g = MCTTTT::new()
   let mcts = new(42)
@@ -294,6 +343,7 @@ test "mcts: center is strong opening" {
   assert_true(m == 4 || m == 0 || m == 2 || m == 6 || m == 8)
 }
 
+///|
 test "mcts: terminal state returns -1" {
   let g = MCTTTT::new()
   let g1 = g.make_move(0)
@@ -305,6 +355,7 @@ test "mcts: terminal state returns -1" {
   assert_eq(mcts.search(g5, 100), -1)
 }
 
+///|
 test "mcts: deterministic with same seed" {
   let g = MCTTTT::new()
   let m1 = new(42).search(g, 500)

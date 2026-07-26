@@ -7,6 +7,7 @@
 /// according to the provided comparator. If the array is not sorted,
 /// behavior is undefined.
 
+///|
 /// Lower bound: first index where xs[i] >= target.
 /// Returns xs.length() if all elements are smaller than target.
 /// Returns 0 for empty array.
@@ -32,6 +33,7 @@ pub fn[T] lower_bound(
   lo
 }
 
+///|
 /// Upper bound: first index where xs[i] > target.
 /// Returns xs.length() if all elements are <= target.
 /// Returns 0 for empty array.
@@ -57,6 +59,7 @@ pub fn[T] upper_bound(
   lo
 }
 
+///|
 /// Generic binary search: returns Some(index) if found, None otherwise.
 pub fn[T] binary_search_generic(
   xs : FixedArray[T],
@@ -83,8 +86,9 @@ pub fn[T] binary_search_generic(
   None
 }
 
+///|
 test "lower_bound: basic" {
-  let xs = FixedArray::makei(5, fn(i) { i + 1 })  // [1,2,3,4,5]
+  let xs = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   assert_eq(lower_bound(xs, 3, fn(a, b) { a - b }), 2)
   assert_eq(lower_bound(xs, 1, fn(a, b) { a - b }), 0)
   assert_eq(lower_bound(xs, 5, fn(a, b) { a - b }), 4)
@@ -92,37 +96,43 @@ test "lower_bound: basic" {
   assert_eq(lower_bound(xs, 6, fn(a, b) { a - b }), 5)
 }
 
+///|
 test "lower_bound: with duplicates" {
-  let xs = FixedArray::makei(8, fn(i) { i / 3 })  // [0,0,0,1,1,1,2,2]
+  let xs = FixedArray::makei(8, fn(i) { i / 3 }) // [0,0,0,1,1,1,2,2]
   assert_eq(lower_bound(xs, 1, fn(a, b) { a - b }), 3)
   assert_eq(lower_bound(xs, 0, fn(a, b) { a - b }), 0)
   assert_eq(lower_bound(xs, 2, fn(a, b) { a - b }), 6)
 }
 
+///|
 test "upper_bound: basic" {
-  let xs = FixedArray::makei(5, fn(i) { i + 1 })  // [1,2,3,4,5]
+  let xs = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   assert_eq(upper_bound(xs, 3, fn(a, b) { a - b }), 3)
   assert_eq(upper_bound(xs, 5, fn(a, b) { a - b }), 5)
   assert_eq(upper_bound(xs, 0, fn(a, b) { a - b }), 0)
 }
 
+///|
 test "upper_bound: with duplicates" {
-  let xs = FixedArray::makei(8, fn(i) { i / 3 })  // [0,0,0,1,1,1,2,2]
+  let xs = FixedArray::makei(8, fn(i) { i / 3 }) // [0,0,0,1,1,1,2,2]
   assert_eq(upper_bound(xs, 1, fn(a, b) { a - b }), 6)
   assert_eq(upper_bound(xs, 0, fn(a, b) { a - b }), 3)
 }
 
+///|
 test "binary_search_generic: found" {
   let xs = FixedArray::makei(10, fn(i) { i })
   assert_true(binary_search_generic(xs, 5, fn(a, b) { a - b }) is Some(_))
   assert_eq(binary_search_generic(xs, 5, fn(a, b) { a - b }).unwrap(), 5)
 }
 
+///|
 test "binary_search_generic: not found" {
   let xs = FixedArray::makei(10, fn(i) { i })
   assert_true(binary_search_generic(xs, 20, fn(a, b) { a - b }) is None)
 }
 
+///|
 test "bound_search: empty array" {
   let xs = FixedArray::make(0, 0)
   assert_eq(lower_bound(xs, 5, fn(a, b) { a - b }), 0)
@@ -130,6 +140,7 @@ test "bound_search: empty array" {
   assert_true(binary_search_generic(xs, 5, fn(a, b) { a - b }) is None)
 }
 
+///|
 test "bound_search: single element" {
   let xs = FixedArray::make(1, 5)
   assert_eq(lower_bound(xs, 5, fn(a, b) { a - b }), 0)
@@ -138,6 +149,7 @@ test "bound_search: single element" {
   assert_eq(upper_bound(xs, 5, fn(a, b) { a - b }), 1)
 }
 
+///|
 test "bound_search: all same elements" {
   let xs = FixedArray::make(5, 7)
   assert_eq(lower_bound(xs, 7, fn(a, b) { a - b }), 0)
@@ -146,6 +158,7 @@ test "bound_search: all same elements" {
   assert_eq(upper_bound(xs, 9, fn(a, b) { a - b }), 5)
 }
 
+///|
 test "bound_search: generic with String" {
   let words = FixedArray::make(4, "")
   words[0] = "apple"
@@ -154,12 +167,17 @@ test "bound_search: generic with String" {
   words[3] = "date"
   assert_eq(lower_bound(words, "banana", @test_utils.str_cmp), 1)
   assert_eq(upper_bound(words, "banana", @test_utils.str_cmp), 2)
-  assert_true(binary_search_generic(words, "date", @test_utils.str_cmp) is Some(_))
-  assert_true(binary_search_generic(words, "grape", @test_utils.str_cmp) is None)
+  assert_true(
+    binary_search_generic(words, "date", @test_utils.str_cmp) is Some(_),
+  )
+  assert_true(
+    binary_search_generic(words, "grape", @test_utils.str_cmp) is None,
+  )
 }
 
+///|
 test "bound_search: reverse comparator" {
-  let xs = FixedArray::makei(5, fn(i) { 5 - i })  // [5,4,3,2,1] "sorted" with reverse cmp
+  let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5,4,3,2,1] "sorted" with reverse cmp
   // With reverse comparator, lower_bound finds first where xs[i] <= target
   assert_eq(lower_bound(xs, 3, fn(a, b) { b - a }), 2)
 }

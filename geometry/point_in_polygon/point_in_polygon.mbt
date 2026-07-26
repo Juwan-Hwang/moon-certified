@@ -15,6 +15,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Check if point (px, py) is inside the polygon defined by vertices.
 ///
 /// The polygon is given as a list of (x, y) vertices in order
@@ -26,7 +27,8 @@
 /// - `true` if the point is strictly inside.
 /// - `false` if the point is outside or exactly on the boundary.
 pub fn point_in_polygon(
-  px : Int, py : Int,
+  px : Int,
+  py : Int,
   polygon : Array[(Int, Int)],
 ) -> Bool {
   let n = polygon.length()
@@ -49,7 +51,8 @@ pub fn point_in_polygon(
       let dx = xj - xi
       let dy = yj - yi
       if dy != 0 {
-        let x_intersect = xi.to_double() + (py - yi).to_double() / dy.to_double() * dx.to_double()
+        let x_intersect = xi.to_double() +
+          (py - yi).to_double() / dy.to_double() * dx.to_double()
         if px.to_double() < x_intersect {
           inside = !inside
         }
@@ -60,9 +63,11 @@ pub fn point_in_polygon(
   inside
 }
 
+///|
 /// Check if point (px, py) is on the boundary of the polygon.
 pub fn point_on_polygon_boundary(
-  px : Int, py : Int,
+  px : Int,
+  py : Int,
   polygon : Array[(Int, Int)],
 ) -> Bool {
   let n = polygon.length()
@@ -79,9 +84,15 @@ pub fn point_on_polygon_boundary(
   false
 }
 
+///|
 /// Check if point (px,py) lies on segment (x1,y1)-(x2,y2).
 fn on_segment_int(
-  x1 : Int, y1 : Int, x2 : Int, y2 : Int, px : Int, py : Int,
+  x1 : Int,
+  y1 : Int,
+  x2 : Int,
+  y2 : Int,
+  px : Int,
+  py : Int,
 ) -> Bool {
   // Cross product must be zero (colinear).
   let cross = (px - x1) * (y2 - y1) - (py - y1) * (x2 - x1)
@@ -95,14 +106,25 @@ fn on_segment_int(
   py <= max2(y1, y2)
 }
 
+///|
 fn min2(a : Int, b : Int) -> Int {
-  if a < b { a } else { b }
+  if a < b {
+    a
+  } else {
+    b
+  }
 }
 
+///|
 fn max2(a : Int, b : Int) -> Int {
-  if a > b { a } else { b }
+  if a > b {
+    a
+  } else {
+    b
+  }
 }
 
+///|
 /// Compute the signed area of a polygon.
 /// Positive for CCW, negative for CW.
 pub fn polygon_signed_area(polygon : Array[(Int, Int)]) -> Double {
@@ -114,17 +136,24 @@ pub fn polygon_signed_area(polygon : Array[(Int, Int)]) -> Double {
   for i = 0; i < n; i = i + 1 {
     let (xi, yi) = polygon[i]
     let (xj, yj) = polygon[(i + 1) % n]
-    area = area + (xi.to_double() * yj.to_double() - xj.to_double() * yi.to_double())
+    area = area +
+      (xi.to_double() * yj.to_double() - xj.to_double() * yi.to_double())
   }
   area / 2.0
 }
 
+///|
 /// Compute the area (absolute) of a polygon.
 pub fn polygon_area(polygon : Array[(Int, Int)]) -> Double {
   let a = polygon_signed_area(polygon)
-  if a < 0.0 { -a } else { a }
+  if a < 0.0 {
+    -a
+  } else {
+    a
+  }
 }
 
+///|
 /// Compute the centroid of a polygon.
 pub fn polygon_centroid(polygon : Array[(Int, Int)]) -> (Double, Double) {
   let n = polygon.length()
@@ -137,7 +166,8 @@ pub fn polygon_centroid(polygon : Array[(Int, Int)]) -> (Double, Double) {
   for i = 0; i < n; i = i + 1 {
     let (xi, yi) = polygon[i]
     let (xj, yj) = polygon[(i + 1) % n]
-    let cross = xi.to_double() * yj.to_double() - xj.to_double() * yi.to_double()
+    let cross = xi.to_double() * yj.to_double() -
+      xj.to_double() * yi.to_double()
     area = area + cross
     cx = cx + (xi.to_double() + xj.to_double()) * cross
     cy = cy + (yi.to_double() + yj.to_double()) * cross
@@ -153,11 +183,13 @@ pub fn polygon_centroid(polygon : Array[(Int, Int)]) -> (Double, Double) {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "point_in_polygon: square contains center" {
   let square = [(0, 0), (10, 0), (10, 10), (0, 10)]
   assert_true(point_in_polygon(5, 5, square))
 }
 
+///|
 test "point_in_polygon: square outside" {
   let square = [(0, 0), (10, 0), (10, 10), (0, 10)]
   assert_false(point_in_polygon(15, 5, square))
@@ -165,6 +197,7 @@ test "point_in_polygon: square outside" {
   assert_false(point_in_polygon(5, -1, square))
 }
 
+///|
 test "point_in_polygon: concave polygon" {
   // L-shaped polygon
   let l = [(0, 0), (4, 0), (4, 2), (2, 2), (2, 4), (0, 4)]
@@ -175,12 +208,14 @@ test "point_in_polygon: concave polygon" {
   assert_false(point_in_polygon(3, 3, l))
 }
 
+///|
 test "point_in_polygon: triangle" {
   let tri = [(0, 0), (10, 0), (5, 10)]
   assert_true(point_in_polygon(5, 3, tri))
   assert_false(point_in_polygon(0, 5, tri))
 }
 
+///|
 test "point_in_polygon: boundary" {
   let square = [(0, 0), (10, 0), (10, 10), (0, 10)]
   // Point on edge — ray casting returns false (on boundary is not "inside").
@@ -191,6 +226,7 @@ test "point_in_polygon: boundary" {
   assert_false(point_on_polygon_boundary(5, 5, square))
 }
 
+///|
 test "point_in_polygon: polygon area" {
   let square = [(0, 0), (4, 0), (4, 4), (0, 4)]
   assert_eq(polygon_area(square), 16.0)
@@ -198,6 +234,7 @@ test "point_in_polygon: polygon area" {
   assert_eq(polygon_area(tri), 12.0)
 }
 
+///|
 test "point_in_polygon: centroid" {
   let square = [(0, 0), (4, 0), (4, 4), (0, 4)]
   let (cx, cy) = polygon_centroid(square)
@@ -205,6 +242,7 @@ test "point_in_polygon: centroid" {
   assert_eq(cy, 2.0)
 }
 
+///|
 test "point_in_polygon: degenerate" {
   let degenerate : Array[(Int, Int)] = [(0, 0), (1, 1)]
   assert_false(point_in_polygon(0, 0, degenerate))

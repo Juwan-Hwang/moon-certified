@@ -35,9 +35,11 @@
 /// Not formally verified. Correctness is ensured by the comprehensive test
 /// suite below, including large pseudo-random insertions and full deletion.
 
+///|
 /// The maximum number of levels any node may occupy.
 const MAX_LEVEL : Int = 32
 
+///|
 /// A single skip-list node.
 ///
 /// `forward[i]` is the next node at level `i`, or `None` at the end of that
@@ -50,6 +52,7 @@ pub struct SkipNode {
   priv forward : FixedArray[SkipNode?]
 }
 
+///|
 /// An ordered map from `Int` keys to `Int` values, implemented as a skip list.
 ///
 /// `header` is a sentinel whose `forward` array links the head of every level.
@@ -63,6 +66,7 @@ pub struct SkipList {
   priv mut rng : Int
 }
 
+///|
 /// Create an empty skip list.
 pub fn SkipList::new() -> SkipList {
   {
@@ -74,6 +78,7 @@ pub fn SkipList::new() -> SkipList {
   }
 }
 
+///|
 /// Advance the LCG and draw a random node height in `[1, MAX_LEVEL]`.
 ///
 /// Each bit of the random word independently promotes the height by one with
@@ -91,6 +96,7 @@ fn SkipList::rand_level(self : SkipList) -> Int {
   lvl
 }
 
+///|
 /// Walk down from the top level, recording the predecessor of `key` at every
 /// level into `update`. On return, `update[i]` is the rightmost node at level
 /// `i` whose successor has a key `>= key`, and the function also returns the
@@ -119,6 +125,7 @@ fn SkipList::find_path(
   current.forward[0]
 }
 
+///|
 /// Insert or update a key-value pair.
 ///
 /// If `key` already exists, its value is replaced and the count is unchanged.
@@ -137,7 +144,11 @@ pub fn SkipList::insert(self : SkipList, key : Int, value : Int) -> Unit {
   }
   // New entry. Draw a height and splice the node in.
   let new_level = self.rand_level()
-  let new_node : SkipNode = { key, value, forward: FixedArray::make(new_level, None) }
+  let new_node : SkipNode = {
+    key,
+    value,
+    forward: FixedArray::make(new_level, None),
+  }
   if new_level > self.level {
     // Levels above the current top link directly from the header.
     for i = self.level; i < new_level; i = i + 1 {
@@ -152,6 +163,7 @@ pub fn SkipList::insert(self : SkipList, key : Int, value : Int) -> Unit {
   self.count = self.count + 1
 }
 
+///|
 /// Look up the value associated with `key`. Returns `Some(v)` if present,
 /// `None` otherwise. Expected O(log n).
 ///
@@ -182,6 +194,7 @@ pub fn SkipList::search(self : SkipList, key : Int) -> Int? {
   }
 }
 
+///|
 /// Remove the entry for `key`. Returns `true` if the key was present and
 /// removed, `false` if it was not found. Expected O(log n).
 pub fn SkipList::delete(self : SkipList, key : Int) -> Bool {
@@ -212,11 +225,13 @@ pub fn SkipList::delete(self : SkipList, key : Int) -> Bool {
   }
 }
 
+///|
 /// Number of entries currently stored. O(1).
 pub fn SkipList::size(self : SkipList) -> Int {
   self.count
 }
 
+///|
 /// Return all entries in ascending key order as a `FixedArray[(Int, Int)]`.
 /// The level-0 linked list is already sorted, so this is a single linear walk.
 /// O(n).
@@ -240,6 +255,7 @@ pub fn SkipList::inorder(self : SkipList) -> FixedArray[(Int, Int)] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "skiplist: basic insert and search" {
   let sl = SkipList::new()
   sl.insert(5, 50)
@@ -253,6 +269,7 @@ test "skiplist: basic insert and search" {
   assert_eq(sl.size(), 3)
 }
 
+///|
 test "skiplist: delete" {
   let sl = SkipList::new()
   sl.insert(5, 50)
@@ -268,6 +285,7 @@ test "skiplist: delete" {
   assert_eq(sl.size(), 2)
 }
 
+///|
 test "skiplist: duplicate key update" {
   let sl = SkipList::new()
   sl.insert(10, 100)
@@ -281,6 +299,7 @@ test "skiplist: duplicate key update" {
   assert_eq(arr[0], (10, 300))
 }
 
+///|
 test "skiplist: sequential insert" {
   let sl = SkipList::new()
   for k = 1; k <= 50; k = k + 1 {
@@ -294,6 +313,7 @@ test "skiplist: sequential insert" {
   assert_true(sl.search(51) is None)
 }
 
+///|
 test "skiplist: reverse insert" {
   let sl = SkipList::new()
   for k = 50; k >= 1; k = k - 1 {
@@ -305,6 +325,7 @@ test "skiplist: reverse insert" {
   }
 }
 
+///|
 test "skiplist: large random insert" {
   let sl = SkipList::new()
   let n = 200
@@ -327,6 +348,7 @@ test "skiplist: large random insert" {
   }
 }
 
+///|
 test "skiplist: size tracking" {
   let sl = SkipList::new()
   assert_eq(sl.size(), 0)
@@ -343,6 +365,7 @@ test "skiplist: size tracking" {
   assert_eq(sl.size(), 2)
 }
 
+///|
 test "skiplist: inorder is sorted" {
   let sl = SkipList::new()
   let vals = [5, 3, 7, 1, 4, 6, 8, 2]
@@ -360,6 +383,7 @@ test "skiplist: inorder is sorted" {
   }
 }
 
+///|
 test "skiplist: delete non-existent key" {
   let sl = SkipList::new()
   for k = 1; k <= 10; k = k + 1 {
@@ -374,6 +398,7 @@ test "skiplist: delete non-existent key" {
   }
 }
 
+///|
 test "skiplist: delete all elements" {
   let sl = SkipList::new()
   for k = 1; k <= 20; k = k + 1 {
@@ -394,6 +419,7 @@ test "skiplist: delete all elements" {
   assert_eq(sl.inorder().length(), 0)
 }
 
+///|
 test "skiplist: empty tree operations" {
   let sl = SkipList::new()
   assert_eq(sl.size(), 0)
@@ -402,6 +428,7 @@ test "skiplist: empty tree operations" {
   assert_eq(sl.inorder().length(), 0)
 }
 
+///|
 test "skiplist: reinsert after deletion" {
   let sl = SkipList::new()
   sl.insert(7, 70)
@@ -412,6 +439,7 @@ test "skiplist: reinsert after deletion" {
   assert_eq(sl.size(), 1)
 }
 
+///|
 test "skiplist: interleave insert and delete" {
   let sl = SkipList::new()
   sl.insert(5, 50)

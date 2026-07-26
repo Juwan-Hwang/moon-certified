@@ -18,6 +18,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// An edge in a directed graph: from -> to, with cost.
 priv struct DirEdge {
   from : Int
@@ -25,6 +26,7 @@ priv struct DirEdge {
   cost : Int
 }
 
+///|
 /// Find the minimum spanning arborescence rooted at `root`.
 ///
 /// Parameters:
@@ -33,7 +35,11 @@ priv struct DirEdge {
 /// - `root`: the root vertex.
 ///
 /// Returns `Some(total_cost)` if an arborescence exists, `None` otherwise.
-pub fn min_arborescence(n : Int, edges : Array[(Int, Int, Int)], root : Int) -> Int? {
+pub fn min_arborescence(
+  n : Int,
+  edges : Array[(Int, Int, Int)],
+  root : Int,
+) -> Int? {
   if n <= 0 || root < 0 || root >= n {
     return None
   }
@@ -61,6 +67,7 @@ pub fn min_arborescence(n : Int, edges : Array[(Int, Int, Int)], root : Int) -> 
   Some(result)
 }
 
+///|
 /// Recursive Chu-Liu/Edmonds implementation.
 fn chu_liu_edmonds(n : Int, edges : Array[DirEdge], root : Int) -> Int {
   // Step 1: For each non-root vertex, select the minimum incoming edge.
@@ -152,7 +159,11 @@ fn chu_liu_edmonds(n : Int, edges : Array[DirEdge], root : Int) -> Int {
     if nf != nt {
       if in_cycle[e.to] {
         // Edge entering cycle: subtract min_cost[e.to]
-        new_edges.push({ from: nf, to: super_node, cost: e.cost - min_cost[e.to] })
+        new_edges.push({
+          from: nf,
+          to: super_node,
+          cost: e.cost - min_cost[e.to],
+        })
       } else {
         new_edges.push({ from: nf, to: nt, cost: e.cost })
       }
@@ -168,6 +179,7 @@ fn chu_liu_edmonds(n : Int, edges : Array[DirEdge], root : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "chu_liu: simple tree" {
   // Root=0, edges: 0->1(1), 0->2(2), 0->3(3)
   let edges = [(0, 1, 1), (0, 2, 2), (0, 3, 3)]
@@ -175,6 +187,7 @@ test "chu_liu: simple tree" {
   assert_eq(result, Some(6))
 }
 
+///|
 test "chu_liu: picks minimum incoming" {
   // 0->1(10), 0->1(5) — should pick cost 5
   let edges = [(0, 1, 10), (0, 1, 5)]
@@ -182,6 +195,7 @@ test "chu_liu: picks minimum incoming" {
   assert_eq(result, Some(5))
 }
 
+///|
 test "chu_liu: with cycle contraction" {
   // Root=0. Cycle 1->2->1 with costs.
   // 0->1(1), 1->2(1), 2->1(1)
@@ -191,6 +205,7 @@ test "chu_liu: with cycle contraction" {
   assert_eq(result, Some(2))
 }
 
+///|
 test "chu_liu: no arborescence (disconnected)" {
   // Vertex 3 has no incoming edge.
   let edges = [(0, 1, 1), (1, 2, 1)]
@@ -198,33 +213,30 @@ test "chu_liu: no arborescence (disconnected)" {
   assert_eq(result, None)
 }
 
+///|
 test "chu_liu: complex graph" {
   // Classic example with cycle.
-  let edges = [
-    (0, 1, 4),
-    (0, 2, 1),
-    (1, 2, 2),
-    (2, 1, 1),
-    (2, 3, 5),
-    (1, 3, 3),
-  ]
+  let edges = [(0, 1, 4), (0, 2, 1), (1, 2, 2), (2, 1, 1), (2, 3, 5), (1, 3, 3)]
   let result = min_arborescence(4, edges, 0)
   // Optimal: 0->2(1), 2->1(1), 1->3(3) = 5
   assert_eq(result, Some(5))
 }
 
+///|
 test "chu_liu: single vertex" {
   let edges : Array[(Int, Int, Int)] = []
   let result = min_arborescence(1, edges, 0)
   assert_eq(result, Some(0))
 }
 
+///|
 test "chu_liu: chain graph" {
   let edges = [(0, 1, 5), (1, 2, 3), (2, 3, 7), (3, 4, 1)]
   let result = min_arborescence(5, edges, 0)
   assert_eq(result, Some(16))
 }
 
+///|
 test "chu_liu: root has no incoming edges required" {
   // Root=2; edges into root should be ignored.
   let edges = [(0, 1, 1), (1, 2, 1), (2, 0, 1)]

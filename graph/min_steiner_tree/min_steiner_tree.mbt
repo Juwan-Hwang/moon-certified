@@ -25,22 +25,26 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Result of the Steiner tree computation.
 pub struct SteinerResult {
   priv cost : Int64
   priv n : Int
 }
 
+///|
 /// The total weight of the minimum Steiner tree.
 pub fn steiner_cost(r : SteinerResult) -> Int64 {
   r.cost
 }
 
+///|
 /// Number of vertices in the graph.
 pub fn steiner_vertex_count(r : SteinerResult) -> Int {
   r.n
 }
 
+///|
 /// Compute the minimum Steiner tree connecting the given terminals.
 ///
 /// # Parameters
@@ -61,7 +65,7 @@ pub fn min_steiner_tree(
 ) -> SteinerResult? {
   let k = terminals.length()
   if k <= 1 {
-    return Some(SteinerResult::{ cost : 0L, n })
+    return Some(SteinerResult::{ cost: 0L, n })
   }
   if n <= 0 {
     return None
@@ -81,7 +85,7 @@ pub fn min_steiner_tree(
     dist[i * n + i] = 0L
     for j = 0; j < n; j = j + 1 {
       if i != j {
-      let w = graph[i * n + j]
+        let w = graph[i * n + j]
         if w > 0 {
           dist[i * n + j] = w.to_int64()
         }
@@ -124,7 +128,7 @@ pub fn min_steiner_tree(
   }
   // Iterate over all terminal subsets
   let mut mask = 1
-  while mask < (1 << k) {
+  while mask < 1 << k {
     // Transition 1: merge subsets
     // For each vertex v, dp[mask][v] = min over submask of dp[submask][v] + dp[mask^submask][v]
     for v = 0; v < n; v = v + 1 {
@@ -189,21 +193,25 @@ pub fn min_steiner_tree(
       result = dp[full_mask * n + v]
     }
   }
-  Some(SteinerResult::{ cost : result, n })
+  Some(SteinerResult::{ cost: result, n })
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "steiner: two terminals = shortest path" {
   // Triangle: 0-1 (1), 1-2 (2), 0-2 (4)
   // Terminals: {0, 2}. Steiner tree = path 0-1-2, cost 3.
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1; graph[1 * n + 0] = 1
-  graph[1 * n + 2] = 2; graph[2 * n + 1] = 2
-  graph[0 * n + 2] = 4; graph[2 * n + 0] = 4
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[1 * n + 2] = 2
+  graph[2 * n + 1] = 2
+  graph[0 * n + 2] = 4
+  graph[2 * n + 0] = 4
   let terminals = FixedArray::make(2, 0)
   terminals[0] = 0
   terminals[1] = 2
@@ -215,15 +223,20 @@ test "steiner: two terminals = shortest path" {
   }
 }
 
+///|
 test "steiner: three terminals with Steiner vertex" {
   // Square: 0-1-2-3-0, all weight 1.
   // Terminals: {0, 2}. Steiner tree = path 0-1-2 or 0-3-2, cost 2.
   let n = 4
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1; graph[1 * n + 0] = 1
-  graph[1 * n + 2] = 1; graph[2 * n + 1] = 1
-  graph[2 * n + 3] = 1; graph[3 * n + 2] = 1
-  graph[3 * n + 0] = 1; graph[0 * n + 3] = 1
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[1 * n + 2] = 1
+  graph[2 * n + 1] = 1
+  graph[2 * n + 3] = 1
+  graph[3 * n + 2] = 1
+  graph[3 * n + 0] = 1
+  graph[0 * n + 3] = 1
   let terminals = FixedArray::make(2, 0)
   terminals[0] = 0
   terminals[1] = 2
@@ -234,14 +247,18 @@ test "steiner: three terminals with Steiner vertex" {
   }
 }
 
+///|
 test "steiner: star topology with Steiner vertex" {
   // Center vertex 0 connected to 1,2,3 with weights 1,2,3.
   // Terminals: {1,2,3}. Steiner tree = star centered at 0, cost 6.
   let n = 4
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1; graph[1 * n + 0] = 1
-  graph[0 * n + 2] = 2; graph[2 * n + 0] = 2
-  graph[0 * n + 3] = 3; graph[3 * n + 0] = 3
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[0 * n + 2] = 2
+  graph[2 * n + 0] = 2
+  graph[0 * n + 3] = 3
+  graph[3 * n + 0] = 3
   let terminals = FixedArray::make(3, 0)
   terminals[0] = 1
   terminals[1] = 2
@@ -253,10 +270,12 @@ test "steiner: star topology with Steiner vertex" {
   }
 }
 
+///|
 test "steiner: single terminal = zero cost" {
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 5; graph[1 * n + 0] = 5
+  graph[0 * n + 1] = 5
+  graph[1 * n + 0] = 5
   let terminals = FixedArray::make(1, 0)
   terminals[0] = 0
   let result = min_steiner_tree(graph, n, terminals)
@@ -266,12 +285,15 @@ test "steiner: single terminal = zero cost" {
   }
 }
 
+///|
 test "steiner: disconnected terminals" {
   // 0-1 and 2-3 are separate components.
   let n = 4
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1; graph[1 * n + 0] = 1
-  graph[2 * n + 3] = 1; graph[3 * n + 2] = 1
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[2 * n + 3] = 1
+  graph[3 * n + 2] = 1
   let terminals = FixedArray::make(2, 0)
   terminals[0] = 0
   terminals[1] = 2
@@ -279,6 +301,7 @@ test "steiner: disconnected terminals" {
   assert_true(result is None)
 }
 
+///|
 test "steiner: complete graph K4, terminals {0,1,2}" {
   // K4: all edges weight 1. MST of terminals {0,1,2} = 2.
   let n = 4
@@ -301,14 +324,18 @@ test "steiner: complete graph K4, terminals {0,1,2}" {
   }
 }
 
+///|
 test "steiner: all vertices are terminals = MST" {
   // Triangle: 0-1(1), 1-2(2), 0-2(3).
   // All are terminals → MST = 0-1-2, cost 3.
   let n = 3
   let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1; graph[1 * n + 0] = 1
-  graph[1 * n + 2] = 2; graph[2 * n + 1] = 2
-  graph[0 * n + 2] = 3; graph[2 * n + 0] = 3
+  graph[0 * n + 1] = 1
+  graph[1 * n + 0] = 1
+  graph[1 * n + 2] = 2
+  graph[2 * n + 1] = 2
+  graph[0 * n + 2] = 3
+  graph[2 * n + 0] = 3
   let terminals = FixedArray::makei(3, fn(i) { i })
   let result = min_steiner_tree(graph, n, terminals)
   match result {

@@ -1,3 +1,4 @@
+///|
 /// Check whether an array is sorted in non-decreasing order.
 /// Verified: if the function returns true, the array satisfies array_sorted.
 pub fn is_sorted(
@@ -16,7 +17,7 @@ pub fn is_sorted(
     true
   } where {
     proof_invariant: 0 <= i,
-    proof_invariant: ∀ k : Int, (0 <= k) && (k < i) → xs[k] <= xs[k + 1],
+    proof_invariant: ∀ k : Int, 0 <= k && k < i → xs[k] <= xs[k + 1],
     proof_yield: res => is_sorted_ok(xs, res),
     proof_reasoning: (
       #| The loop checks each adjacent pair (xs[i], xs[i+1]).
@@ -30,15 +31,13 @@ pub fn is_sorted(
   }
 }
 
+///|
 /// Generic version: check whether an array is sorted according to
 /// the provided comparator. Not formally verified (opaque comparator).
 ///
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
-pub fn[T] is_sorted_generic(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Bool {
+pub fn[T] is_sorted_generic(xs : FixedArray[T], cmp : (T, T) -> Int) -> Bool {
   for i = 0; i < xs.length() - 1; {
     if cmp(xs[i], xs[i + 1]) > 0 {
       break false
@@ -49,41 +48,49 @@ pub fn[T] is_sorted_generic(
   }
 }
 
+///|
 test "is_sorted: sorted array" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   assert_eq(is_sorted(xs), true)
 }
 
+///|
 test "is_sorted: unsorted array" {
   let xs = FixedArray::makei(5, fn(i) { 4 - i }) // [4, 3, 2, 1, 0]
   assert_eq(is_sorted(xs), false)
 }
 
+///|
 test "is_sorted: empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(is_sorted(xs), true)
 }
 
+///|
 test "is_sorted: single element" {
   let xs = FixedArray::make(1, 42)
   assert_eq(is_sorted(xs), true)
 }
 
+///|
 test "is_sorted: with duplicates" {
   let xs = FixedArray::makei(6, fn(i) { i / 2 }) // [0, 0, 1, 1, 2, 2]
   assert_eq(is_sorted(xs), true)
 }
 
+///|
 test "is_sorted_generic: Int sorted" {
   let xs = FixedArray::makei(5, fn(i) { i })
   assert_eq(is_sorted_generic(xs, fn(a, b) { a - b }), true)
 }
 
+///|
 test "is_sorted_generic: Int unsorted" {
   let xs = FixedArray::makei(5, fn(i) { 4 - i })
   assert_eq(is_sorted_generic(xs, fn(a, b) { a - b }), false)
 }
 
+///|
 test "is_sorted_generic: String sorted" {
   let xs = FixedArray::make(3, "")
   xs[0] = "apple"
@@ -92,6 +99,7 @@ test "is_sorted_generic: String sorted" {
   assert_eq(is_sorted_generic(xs, @test_utils.str_cmp), true)
 }
 
+///|
 test "is_sorted_generic: String unsorted" {
   let xs = FixedArray::make(3, "")
   xs[0] = "cherry"
@@ -100,6 +108,7 @@ test "is_sorted_generic: String unsorted" {
   assert_eq(is_sorted_generic(xs, @test_utils.str_cmp), false)
 }
 
+///|
 test "is_sorted_generic: empty and single" {
   let empty : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(is_sorted_generic(empty, fn(a, b) { a - b }), true)

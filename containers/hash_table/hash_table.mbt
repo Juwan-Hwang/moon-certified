@@ -24,6 +24,7 @@
 /// Time complexity (average): O(1) for `insert`, `get`, `remove`, `contains`.
 /// Worst-case (all keys collide): O(n).
 
+///|
 /// A hash table mapping keys of type `K` to values of type `V`.
 ///
 /// Each slot can be in one of three states:
@@ -44,13 +45,15 @@ pub struct HashTable[K, V] {
   priv mut capacity : Int
 }
 
+///|
 /// Map a hash value into `[0, capacity)` handling negative results.
 /// MoonBit's `%` follows truncated division (sign follows dividend), so
 /// we add `capacity` before the final modulo to guarantee non-negativity.
 fn _slot(capacity : Int, h : Int) -> Int {
-  ((h % capacity) + capacity) % capacity
+  (h % capacity + capacity) % capacity
 }
 
+///|
 /// Create an empty `HashTable` with the given initial capacity.
 /// `capacity` must be > 0; if a non-positive value is passed, it defaults to 1.
 pub fn[K, V] new(capacity : Int) -> HashTable[K, V] {
@@ -66,6 +69,7 @@ pub fn[K, V] new(capacity : Int) -> HashTable[K, V] {
   }
 }
 
+///|
 /// Internal insert / update **without** resize checking.
 ///
 /// Probes from the hash index, updating an existing key if found, or
@@ -118,6 +122,7 @@ fn[K, V] _put(
   true
 }
 
+///|
 /// Rehash all live entries into a fresh array of `new_cap` slots.
 /// Tombstones are discarded (not re-inserted), which compacts the table.
 fn[K, V] _resize(
@@ -147,6 +152,7 @@ fn[K, V] _resize(
   }
 }
 
+///|
 /// Insert or update a key-value pair.
 ///
 /// If `key` already exists, its value is replaced.  Otherwise a new entry
@@ -189,6 +195,7 @@ pub fn[K, V] insert(
   }
 }
 
+///|
 /// Look up the value associated with `key`.
 /// Returns `Some(v)` if found, `None` otherwise.
 pub fn[K, V] get(
@@ -202,10 +209,7 @@ pub fn[K, V] get(
   while ht.occupied[idx] || ht.tombstone[idx] {
     if ht.occupied[idx] {
       match ht.keys[idx] {
-        Some(k) =>
-          if eq_fn(k, key) {
-            return ht.vals[idx]
-          }
+        Some(k) => if eq_fn(k, key) { return ht.vals[idx] }
         None => ()
       }
     }
@@ -217,6 +221,7 @@ pub fn[K, V] get(
   None // hit an empty slot
 }
 
+///|
 /// Remove the entry for `key`, marking its slot as a tombstone.
 /// Returns `true` if the key was found and removed, `false` otherwise.
 pub fn[K, V] remove(
@@ -251,6 +256,7 @@ pub fn[K, V] remove(
   false
 }
 
+///|
 /// Check whether `key` is present in the table.
 pub fn[K, V] contains(
   ht : HashTable[K, V],
@@ -261,6 +267,7 @@ pub fn[K, V] contains(
   get(ht, key, hash_fn, eq_fn) is Some(_)
 }
 
+///|
 /// Return the number of live entries.
 pub fn[K, V] size(ht : HashTable[K, V]) -> Int {
   ht.count
@@ -281,6 +288,7 @@ pub fn[K, V] size(ht : HashTable[K, V]) -> Int {
 // so the open-addressing / linear-probing / resize behaviour is reused
 // rather than duplicated.
 
+///|
 /// An encapsulated hash table mapping `String` keys to `Int` values.
 ///
 /// The `hash_fn` and `eq_fn` are bound at construction and reused for every
@@ -291,6 +299,7 @@ pub struct StringHashTable {
   priv eq_fn : (String, String) -> Bool
 }
 
+///|
 /// Create a new `StringHashTable` with the given capacity, hash function,
 /// and equality function.
 ///
@@ -305,6 +314,7 @@ pub fn hashtable_new(
   { inner: new(capacity), hash_fn, eq_fn }
 }
 
+///|
 /// Convenience constructor with a default polynomial string hash and
 /// structural string equality.
 pub fn hashtable_new_default(capacity : Int) -> StringHashTable {
@@ -321,27 +331,36 @@ pub fn hashtable_new_default(capacity : Int) -> StringHashTable {
   )
 }
 
+///|
 /// Insert or update a key-value pair, using the bound hash/eq functions.
-pub fn hashtable_insert(ht : StringHashTable, key : String, value : Int) -> Unit {
+pub fn hashtable_insert(
+  ht : StringHashTable,
+  key : String,
+  value : Int,
+) -> Unit {
   insert(ht.inner, key, value, ht.hash_fn, ht.eq_fn)
 }
 
+///|
 /// Look up the value associated with `key`, using the bound hash/eq functions.
 pub fn hashtable_get(ht : StringHashTable, key : String) -> Int? {
   get(ht.inner, key, ht.hash_fn, ht.eq_fn)
 }
 
+///|
 /// Remove the entry for `key`, using the bound hash/eq functions.
 /// Returns `true` if the key was found and removed, `false` otherwise.
 pub fn hashtable_remove(ht : StringHashTable, key : String) -> Bool {
   remove(ht.inner, key, ht.hash_fn, ht.eq_fn)
 }
 
+///|
 /// Return the number of live entries.
 pub fn hashtable_size(ht : StringHashTable) -> Int {
   size(ht.inner)
 }
 
+///|
 /// Check whether `key` is present, using the bound hash/eq functions.
 pub fn hashtable_contains(ht : StringHashTable, key : String) -> Bool {
   contains(ht.inner, key, ht.hash_fn, ht.eq_fn)
@@ -351,6 +370,7 @@ pub fn hashtable_contains(ht : StringHashTable, key : String) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "basic insert and get" {
   let ht : HashTable[Int, String] = new(16)
   let h = fn(x : Int) { x }
@@ -364,6 +384,7 @@ test "basic insert and get" {
   assert_eq(size(ht), 3)
 }
 
+///|
 test "update existing key" {
   let ht : HashTable[Int, String] = new(8)
   let h = fn(x : Int) { x }
@@ -376,6 +397,7 @@ test "update existing key" {
   assert_eq(size(ht), 1) // count unchanged on update
 }
 
+///|
 test "remove existing key" {
   let ht : HashTable[Int, String] = new(8)
   let h = fn(x : Int) { x }
@@ -388,6 +410,7 @@ test "remove existing key" {
   assert_eq(size(ht), 1)
 }
 
+///|
 test "remove non-existing key returns false" {
   let ht : HashTable[Int, String] = new(8)
   let h = fn(x : Int) { x }
@@ -398,6 +421,7 @@ test "remove non-existing key returns false" {
   assert_eq(remove(ht, 99, h, e), false) // still false on empty table region
 }
 
+///|
 test "get non-existing key returns None" {
   let ht : HashTable[Int, String] = new(8)
   let h = fn(x : Int) { x }
@@ -410,6 +434,7 @@ test "get non-existing key returns None" {
   assert_true(get(ht2, 1, h, e) is None)
 }
 
+///|
 test "collision handling: all keys hash to same slot" {
   let ht : HashTable[Int, String] = new(16)
   // Force every key into slot 0 — linear probing must chain them
@@ -428,6 +453,7 @@ test "collision handling: all keys hash to same slot" {
   assert_eq(ht.keys[2], Some(300))
 }
 
+///|
 test "resize when load factor exceeds 0.7" {
   let ht : HashTable[Int, Int] = new(4)
   let h = fn(x : Int) { x }
@@ -445,6 +471,7 @@ test "resize when load factor exceeds 0.7" {
   assert_eq(get(ht, 3, h, e).unwrap(), 30)
 }
 
+///|
 test "large dataset: 200 entries with insert, get, remove" {
   let ht : HashTable[Int, Int] = new(8)
   let h = fn(x : Int) { x }
@@ -475,6 +502,7 @@ test "large dataset: 200 entries with insert, get, remove" {
   assert_eq(size(ht), 101)
 }
 
+///|
 test "string keys with polynomial hash" {
   let ht : HashTable[String, Int] = new(16)
   let h = fn(s : String) {
@@ -503,6 +531,7 @@ test "string keys with polynomial hash" {
   assert_eq(size(ht), 3)
 }
 
+///|
 test "size tracking after insert and remove" {
   let ht : HashTable[Int, Int] = new(8)
   let h = fn(x : Int) { x }
@@ -524,6 +553,7 @@ test "size tracking after insert and remove" {
   assert_eq(size(ht), 1)
 }
 
+///|
 test "contains check" {
   let ht : HashTable[Int, String] = new(8)
   let h = fn(x : Int) { x }
@@ -539,6 +569,7 @@ test "contains check" {
   assert_eq(contains(ht, 2, h, e), true)
 }
 
+///|
 test "wrap-around probing verification" {
   let ht : HashTable[Int, Int] = new(8)
   // All keys hash to slot 7 (the last slot), forcing wrap-around to 0, 1, 2...
@@ -573,6 +604,7 @@ test "wrap-around probing verification" {
   assert_eq(size(ht), 4)
 }
 
+///|
 test "tombstone reuse after deletion" {
   let ht : HashTable[Int, String] = new(16)
   let h = fn(_x : Int) { 5 } // all collide at slot 5
@@ -589,6 +621,7 @@ test "tombstone reuse after deletion" {
   assert_eq(get(ht, 3, h, e).unwrap(), "c")
 }
 
+///|
 test "get after resize with collisions" {
   let ht : HashTable[Int, Int] = new(4)
   let h = fn(_x : Int) { 3 } // all collide
@@ -612,6 +645,7 @@ test "get after resize with collisions" {
   }
 }
 
+///|
 test "single entry edge case" {
   let ht : HashTable[Int, String] = new(1)
   let h = fn(x : Int) { x }
@@ -625,6 +659,7 @@ test "single entry edge case" {
   assert_eq(size(ht), 0)
 }
 
+///|
 test "HashTable: encapsulated insert and get" {
   let ht = hashtable_new_default(16)
   hashtable_insert(ht, "apple", 1)
@@ -637,6 +672,7 @@ test "HashTable: encapsulated insert and get" {
   assert_eq(hashtable_size(ht), 3)
 }
 
+///|
 test "HashTable: encapsulated contains" {
   let ht = hashtable_new_default(8)
   hashtable_insert(ht, "key", 42)
@@ -644,6 +680,7 @@ test "HashTable: encapsulated contains" {
   assert_false(hashtable_contains(ht, "missing"))
 }
 
+///|
 test "HashTable: encapsulated remove" {
   let ht = hashtable_new_default(8)
   hashtable_insert(ht, "a", 1)
@@ -654,6 +691,7 @@ test "HashTable: encapsulated remove" {
   assert_eq(hashtable_size(ht), 1)
 }
 
+///|
 test "HashTable: custom hash function" {
   // Use a simple identity hash for testing
   let ht = hashtable_new(16, fn(s) { s.length() }, fn(a, b) { a == b })

@@ -16,6 +16,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A rope node.
 pub struct Rope {
   priv is_leaf : Bool
@@ -26,11 +27,20 @@ pub struct Rope {
   priv cached_depth : Int
 }
 
+///|
 /// Create a rope from a string.
 pub fn rope_leaf(s : String) -> Rope {
-  { is_leaf: true, val: s, left: None, right: None, len: s.length(), cached_depth: 1 }
+  {
+    is_leaf: true,
+    val: s,
+    left: None,
+    right: None,
+    len: s.length(),
+    cached_depth: 1,
+  }
 }
 
+///|
 /// Concatenate two ropes in O(1).
 pub fn rope_concat(a : Rope, b : Rope) -> Rope {
   {
@@ -43,15 +53,18 @@ pub fn rope_concat(a : Rope, b : Rope) -> Rope {
   }
 }
 
+///|
 fn max_depth(r : Rope) -> Int {
   r.cached_depth
 }
 
+///|
 /// Length of the rope. O(1).
 pub fn rope_len(r : Rope) -> Int {
   r.len
 }
 
+///|
 /// Get the character at index `i`. O(log n).
 pub fn rope_index(r : Rope, i : Int) -> Char? {
   if i < 0 || i >= r.len {
@@ -74,6 +87,7 @@ pub fn rope_index(r : Rope, i : Int) -> Char? {
   }
 }
 
+///|
 /// Convert the rope to a string. O(n).
 pub fn rope_to_string(r : Rope) -> String {
   if r.is_leaf {
@@ -84,6 +98,7 @@ pub fn rope_to_string(r : Rope) -> String {
   buf.to_string()
 }
 
+///|
 fn rope_to_string_helper(r : Rope, buf : StringBuilder) -> Unit {
   if r.is_leaf {
     buf.write_string(r.val)
@@ -99,6 +114,7 @@ fn rope_to_string_helper(r : Rope, buf : StringBuilder) -> Unit {
   }
 }
 
+///|
 /// Split the rope at index `i`, returning (left, right).
 /// O(log n).
 pub fn rope_split(r : Rope, i : Int) -> (Rope, Rope) {
@@ -109,7 +125,10 @@ pub fn rope_split(r : Rope, i : Int) -> (Rope, Rope) {
     return (r, rope_leaf(""))
   }
   if r.is_leaf {
-    return (rope_leaf(r.val[0:i].to_owned()), rope_leaf(r.val[i:r.val.length()].to_owned()))
+    return (
+      rope_leaf(r.val[0:i].to_owned()),
+      rope_leaf(r.val[i:r.val.length()].to_owned()),
+    )
   }
   let left_len = match r.left {
     Some(l) => l.len
@@ -140,12 +159,14 @@ pub fn rope_split(r : Rope, i : Int) -> (Rope, Rope) {
   }
 }
 
+///|
 /// Insert a string at position `i`. O(log n).
 pub fn rope_insert(r : Rope, i : Int, s : String) -> Rope {
   let (left, right) = rope_split(r, i)
   rope_concat(rope_concat(left, rope_leaf(s)), right)
 }
 
+///|
 /// Delete the range [start, end). O(log n).
 pub fn rope_delete(r : Rope, start : Int, end : Int) -> Rope {
   let (left, mid) = rope_split(r, start)
@@ -157,6 +178,7 @@ pub fn rope_delete(r : Rope, start : Int, end : Int) -> Rope {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "rope: basic leaf" {
   let r = rope_leaf("hello")
   assert_eq(rope_len(r), 5)
@@ -165,6 +187,7 @@ test "rope: basic leaf" {
   assert_eq(rope_to_string(r), "hello")
 }
 
+///|
 test "rope: concat" {
   let a = rope_leaf("hello ")
   let b = rope_leaf("world")
@@ -175,6 +198,7 @@ test "rope: concat" {
   assert_eq(rope_index(r, 10), Some('d'))
 }
 
+///|
 test "rope: index across boundary" {
   let a = rope_leaf("abc")
   let b = rope_leaf("def")
@@ -186,6 +210,7 @@ test "rope: index across boundary" {
   assert_eq(rope_index(r, 3), Some('d'))
 }
 
+///|
 test "rope: split" {
   let r = rope_concat(rope_leaf("hello"), rope_leaf("world"))
   let (l, right) = rope_split(r, 3)
@@ -193,18 +218,21 @@ test "rope: split" {
   assert_eq(rope_to_string(right), "loworld")
 }
 
+///|
 test "rope: insert" {
   let r = rope_leaf("helloworld")
   let r2 = rope_insert(r, 5, " ")
   assert_eq(rope_to_string(r2), "hello world")
 }
 
+///|
 test "rope: delete" {
   let r = rope_leaf("hello world")
   let r2 = rope_delete(r, 5, 6)
   assert_eq(rope_to_string(r2), "helloworld")
 }
 
+///|
 test "rope: large concatenation" {
   let parts = ["The", " ", "quick", " ", "brown", " ", "fox"]
   let mut r = rope_leaf("")
@@ -214,12 +242,14 @@ test "rope: large concatenation" {
   assert_eq(rope_to_string(r), "The quick brown fox")
 }
 
+///|
 test "rope: out of bounds" {
   let r = rope_leaf("abc")
   assert_eq(rope_index(r, -1), None)
   assert_eq(rope_index(r, 3), None)
 }
 
+///|
 test "rope: nested concat" {
   let r = rope_concat(
     rope_concat(rope_leaf("a"), rope_leaf("b")),

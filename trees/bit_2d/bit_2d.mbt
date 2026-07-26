@@ -22,6 +22,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A 2D Binary Indexed Tree for Int values.
 ///
 /// Supports point updates and 2D range sum queries.
@@ -36,21 +37,30 @@ pub struct BIT2D {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a 2D BIT of size `rows × cols`, initialised to 0.
 ///
 /// Uses 1-indexed internal storage, so the actual array is `(rows+1) × (cols+1)`.
 pub fn new(rows : Int, cols : Int) -> BIT2D {
   // Each row must be a separate FixedArray — if we passed a single inner
   // array to `FixedArray::make`, every row would alias the same storage.
-  let tree : FixedArray[FixedArray[Int64]] = FixedArray::make(rows + 1, FixedArray::make(0, 0L))
+  let tree : FixedArray[FixedArray[Int64]] = FixedArray::make(
+    rows + 1,
+    FixedArray::make(0, 0L),
+  )
   for i = 0; i <= rows; i = i + 1 {
     tree[i] = FixedArray::make(cols + 1, 0L)
   }
   { rows, cols, tree }
 }
 
+///|
 /// Build a 2D BIT from an initial 2D value array (0-indexed).
-pub fn build(values : FixedArray[FixedArray[Int64]], rows : Int, cols : Int) -> BIT2D {
+pub fn build(
+  values : FixedArray[FixedArray[Int64]],
+  rows : Int,
+  cols : Int,
+) -> BIT2D {
   let bit = new(rows, cols)
   for i = 0; i < rows; i = i + 1 {
     for j = 0; j < cols; j = j + 1 {
@@ -64,6 +74,7 @@ pub fn build(values : FixedArray[FixedArray[Int64]], rows : Int, cols : Int) -> 
 // Operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Add `delta` to position `(row, col)` (0-indexed).
 ///
 /// # Complexity
@@ -75,12 +86,13 @@ pub fn update(bit : BIT2D, row : Int, col : Int, delta : Int64) -> Unit {
     let mut j = col + 1
     while j <= bit.cols {
       bit.tree[i][j] = bit.tree[i][j] + delta
-      j = j + (j & (-j))
+      j = j + (j & -j)
     }
-    i = i + (i & (-i))
+    i = i + (i & -i)
   }
 }
 
+///|
 /// Query the sum of the rectangle from (0, 0) to `(row, col)` inclusive
 /// (0-indexed). Returns 0 for negative indices.
 ///
@@ -96,29 +108,27 @@ pub fn prefix_sum(bit : BIT2D, row : Int, col : Int) -> Int64 {
     let mut j = col + 1
     while j > 0 {
       sum = sum + bit.tree[i][j]
-      j = j - (j & (-j))
+      j = j - (j & -j)
     }
-    i = i - (i & (-i))
+    i = i - (i & -i)
   }
   sum
 }
 
+///|
 /// Query the sum of the rectangle from `(r1, c1)` to `(r2, c2)` inclusive
 /// (0-indexed). Requires `r1 <= r2` and `c1 <= c2`.
 ///
 /// # Complexity
 /// O(log R · log C).
-pub fn range_sum(
-  bit : BIT2D,
-  r1 : Int,
-  c1 : Int,
-  r2 : Int,
-  c2 : Int,
-) -> Int64 {
-  prefix_sum(bit, r2, c2) - prefix_sum(bit, r1 - 1, c2) -
-  prefix_sum(bit, r2, c1 - 1) + prefix_sum(bit, r1 - 1, c1 - 1)
+pub fn range_sum(bit : BIT2D, r1 : Int, c1 : Int, r2 : Int, c2 : Int) -> Int64 {
+  prefix_sum(bit, r2, c2) -
+  prefix_sum(bit, r1 - 1, c2) -
+  prefix_sum(bit, r2, c1 - 1) +
+  prefix_sum(bit, r1 - 1, c1 - 1)
 }
 
+///|
 /// Get the value at position `(row, col)` (0-indexed).
 pub fn get(bit : BIT2D, row : Int, col : Int) -> Int64 {
   range_sum(bit, row, col, row, col)
@@ -128,6 +138,7 @@ pub fn get(bit : BIT2D, row : Int, col : Int) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bit2d: basic update and query" {
   let bit = new(3, 3)
   update(bit, 0, 0, 5L)
@@ -138,6 +149,7 @@ test "bit2d: basic update and query" {
   assert_eq(prefix_sum(bit, 1, 1), 15L)
 }
 
+///|
 test "bit2d: range sum" {
   let bit = new(4, 4)
   // Fill with 1s.
@@ -156,6 +168,7 @@ test "bit2d: range sum" {
   assert_eq(range_sum(bit, 1, 1, 1, 1), 1L)
 }
 
+///|
 test "bit2d: build from array" {
   // Each row must be a distinct FixedArray to avoid aliasing.
   let values = FixedArray::make(3, FixedArray::make(0, 0L))
@@ -174,6 +187,7 @@ test "bit2d: build from array" {
   assert_eq(get(bit, 1, 2), 5L)
 }
 
+///|
 test "bit2d: negative values" {
   let bit = new(3, 3)
   update(bit, 0, 0, -5L)
@@ -183,6 +197,7 @@ test "bit2d: negative values" {
   assert_eq(get(bit, 2, 2), 10L)
 }
 
+///|
 test "bit2d: single cell" {
   let bit = new(1, 1)
   update(bit, 0, 0, 42L)
@@ -190,6 +205,7 @@ test "bit2d: single cell" {
   assert_eq(range_sum(bit, 0, 0, 0, 0), 42L)
 }
 
+///|
 test "bit2d: stress test 100x100" {
   let n = 100
   let bit = new(n, n)
@@ -221,6 +237,7 @@ test "bit2d: stress test 100x100" {
   assert_eq(range_sum(bit, 50, 50, 99, 99), brute2)
 }
 
+///|
 test "bit2d: incremental updates" {
   let bit = new(5, 5)
   update(bit, 2, 3, 10L)
@@ -231,6 +248,7 @@ test "bit2d: incremental updates" {
   assert_eq(get(bit, 2, 3), 12L)
 }
 
+///|
 test "bit2d: row and column prefix sums" {
   let bit = new(3, 3)
   update(bit, 0, 0, 1L)

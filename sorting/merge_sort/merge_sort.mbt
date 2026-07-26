@@ -7,6 +7,7 @@
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
 
+///|
 /// Merge two sorted halves xs[lo..mid) and xs[mid..hi) into sorted output.
 /// Uses auxiliary buffer `buf` for temporary storage.
 fn[T] merge(
@@ -39,6 +40,7 @@ fn[T] merge(
   }
 }
 
+///|
 /// Recursive merge sort helper.
 fn[T] merge_sort_range(
   xs : FixedArray[T],
@@ -56,12 +58,10 @@ fn[T] merge_sort_range(
   merge(xs, buf, lo, mid, hi, cmp)
 }
 
+///|
 /// Top-level merge sort. Sorts the entire array in ascending order
 /// according to the provided comparator.
-pub fn[T] merge_sort(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Unit {
+pub fn[T] merge_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
@@ -72,6 +72,7 @@ pub fn[T] merge_sort(
   merge_sort_range(xs, buf, 0, n, cmp)
 }
 
+///|
 test "merge_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5,4,3,2,1]
   merge_sort(xs, fn(a, b) { a - b })
@@ -80,6 +81,7 @@ test "merge_sort: basic" {
   }
 }
 
+///|
 test "merge_sort: already sorted" {
   let xs = FixedArray::makei(10, fn(i) { i })
   merge_sort(xs, fn(a, b) { a - b })
@@ -88,6 +90,7 @@ test "merge_sort: already sorted" {
   }
 }
 
+///|
 test "merge_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i })
   merge_sort(xs, fn(a, b) { a - b })
@@ -96,18 +99,21 @@ test "merge_sort: reverse sorted" {
   }
 }
 
+///|
 test "merge_sort: single element" {
   let xs = FixedArray::make(1, 42)
   merge_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "merge_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   merge_sort(xs, fn(a, b) { a - b })
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "merge_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   merge_sort(xs, fn(a, b) { a - b })
@@ -121,6 +127,7 @@ test "merge_sort: duplicates" {
   assert_eq(xs[7], 2)
 }
 
+///|
 test "merge_sort: negative values" {
   let xs = FixedArray::makei(5, fn(i) { 2 - i }) // [2,1,0,-1,-2]
   merge_sort(xs, fn(a, b) { a - b })
@@ -129,6 +136,7 @@ test "merge_sort: negative values" {
   }
 }
 
+///|
 test "merge_sort: all equal" {
   let xs = FixedArray::make(6, 7)
   merge_sort(xs, fn(a, b) { a - b })
@@ -137,6 +145,7 @@ test "merge_sort: all equal" {
   }
 }
 
+///|
 test "merge_sort: two elements" {
   let xs = FixedArray::makei(2, fn(i) { 1 - i }) // [1, 0]
   merge_sort(xs, fn(a, b) { a - b })
@@ -144,6 +153,7 @@ test "merge_sort: two elements" {
   assert_eq(xs[1], 1)
 }
 
+///|
 test "merge_sort: large random-like" {
   let xs = FixedArray::makei(30, fn(i) { (i * 7 + 3) % 17 })
   merge_sort(xs, fn(a, b) { a - b })
@@ -152,6 +162,7 @@ test "merge_sort: large random-like" {
   }
 }
 
+///|
 test "merge_sort: even length" {
   let xs = FixedArray::makei(8, fn(i) { (i * 3 + 1) % 8 })
   merge_sort(xs, fn(a, b) { a - b })
@@ -160,6 +171,7 @@ test "merge_sort: even length" {
   }
 }
 
+///|
 test "merge_sort: odd length" {
   let xs = FixedArray::makei(7, fn(i) { (i * 5 + 2) % 7 })
   merge_sort(xs, fn(a, b) { a - b })
@@ -168,6 +180,7 @@ test "merge_sort: odd length" {
   }
 }
 
+///|
 test "merge_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -188,6 +201,7 @@ test "merge_sort: permutation check" {
   }
 }
 
+///|
 test "merge_sort: generic with String" {
   let xs = FixedArray::make(5, "")
   xs[0] = "banana"
@@ -203,6 +217,7 @@ test "merge_sort: generic with String" {
   assert_eq(xs[4], "elderberry")
 }
 
+///|
 test "merge_sort: stability" {
   // Stability: when two elements compare as equal, their relative order
   // from the original array is preserved. We test this by sorting (key, tag)
@@ -221,9 +236,7 @@ test "merge_sort: stability" {
   xs[8] = (2, 8)
   xs[9] = (3, 9)
   // Compare only by key (first element).
-  let key_cmp = fn(a : (Int, Int), b : (Int, Int)) -> Int {
-    a.0 - b.0
-  }
+  let key_cmp = fn(a : (Int, Int), b : (Int, Int)) -> Int { a.0 - b.0 }
   merge_sort(xs, key_cmp)
   // Keys should be sorted: 1,1,1, 2,2,2, 3,3,3,3
   assert_eq(xs[0].0, 1)

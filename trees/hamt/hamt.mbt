@@ -1,3 +1,4 @@
+///|
 /// Hash Array Mapped Trie (HAMT) — persistent key-value store.
 ///
 /// A HAMT is a persistent (immutable) variant of a hash trie that uses
@@ -42,12 +43,15 @@
 // ---------------------------------------------------------------------------
 
 const BITS : Int = 5
+
+///|
 const MASK : Int = 31 // 2^BITS - 1
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A persistent HAMT mapping `String` keys to `Int` values.
 ///
 /// All operations return new trees; the original is never modified.
@@ -62,6 +66,7 @@ pub enum HAMT {
 // Hash function
 // ---------------------------------------------------------------------------
 
+///|
 /// FNV-1a hash for strings, returning a 31-bit non-negative hash.
 fn hash_str(s : String) -> Int {
   // FNV offset basis 2166136261 as signed 32-bit: -2128831035
@@ -74,11 +79,13 @@ fn hash_str(s : String) -> Int {
   (h.reinterpret_as_uint() >> 1).reinterpret_as_int()
 }
 
+///|
 /// Extract the 5-bit slice at `level` (0 = least significant).
 fn hash_slice(hash : Int, level : Int) -> Int {
   (hash >> (level * BITS)) & MASK
 }
 
+///|
 /// Population count of the low `bits` bits of `x`.
 fn popcount(x : Int) -> Int {
   let mut count = 0
@@ -94,12 +101,14 @@ fn popcount(x : Int) -> Int {
 // Core operations (persistent — return new trees)
 // ---------------------------------------------------------------------------
 
+///|
 /// Insert `(key, value)` into the HAMT. Returns a new HAMT; the original
 /// is unchanged.
 pub fn insert(h : HAMT, key : String, value : Int) -> HAMT {
   insert_rec(h, key, value, hash_str(key), 0)
 }
 
+///|
 fn insert_rec(
   h : HAMT,
   key : String,
@@ -185,6 +194,7 @@ fn insert_rec(
   }
 }
 
+///|
 /// Split two leaves with different hashes into a node structure.
 /// Recurses until the hash slices diverge, then creates a Node with both.
 fn split_two_leaves(
@@ -221,6 +231,7 @@ fn split_two_leaves(
   }
 }
 
+///|
 /// Split a collision node and a new leaf into a node structure.
 /// Used when a new key's hash differs from a collision node's hash.
 fn split_collision_and_leaf(
@@ -248,18 +259,25 @@ fn split_collision_and_leaf(
     HAMT::Node(bitmap, children)
   } else {
     let child = split_collision_and_leaf(
-      coll_hash, coll_leaves, key, value, hash, level + 1,
+      coll_hash,
+      coll_leaves,
+      key,
+      value,
+      hash,
+      level + 1,
     )
     let bit = 1 << s1
     HAMT::Node(bit, [child])
   }
 }
 
+///|
 /// Look up `key` in the HAMT. Returns `Some(value)` or `None`.
 pub fn get(h : HAMT, key : String) -> Int? {
   get_rec(h, key, hash_str(key), 0)
 }
 
+///|
 fn get_rec(h : HAMT, key : String, hash : Int, level : Int) -> Int? {
   match h {
     HAMT::Empty => None
@@ -290,11 +308,13 @@ fn get_rec(h : HAMT, key : String, hash : Int, level : Int) -> Int? {
   }
 }
 
+///|
 /// Delete `key` from the HAMT. Returns a new HAMT.
 pub fn delete(h : HAMT, key : String) -> HAMT {
   delete_rec(h, key, hash_str(key), 0)
 }
 
+///|
 fn delete_rec(h : HAMT, key : String, hash : Int, level : Int) -> HAMT {
   match h {
     HAMT::Empty => HAMT::Empty
@@ -304,8 +324,7 @@ fn delete_rec(h : HAMT, key : String, hash : Int, level : Int) -> HAMT {
         let new_leaves : Array[HAMT] = []
         for i = 0; i < leaves.length(); i = i + 1 {
           match leaves[i] {
-            HAMT::Leaf(k, _) =>
-              if k != key { new_leaves.push(leaves[i]) }
+            HAMT::Leaf(k, _) => if k != key { new_leaves.push(leaves[i]) }
             _ => new_leaves.push(leaves[i])
           }
         }
@@ -368,11 +387,13 @@ fn delete_rec(h : HAMT, key : String, hash : Int, level : Int) -> HAMT {
   }
 }
 
+///|
 /// Create an empty HAMT.
 pub fn empty() -> HAMT {
   HAMT::Empty
 }
 
+///|
 /// Count the number of key-value pairs in the HAMT.
 pub fn size(h : HAMT) -> Int {
   match h {
@@ -395,6 +416,7 @@ pub fn size(h : HAMT) -> Int {
   }
 }
 
+///|
 /// Check if the HAMT is empty.
 pub fn is_empty(h : HAMT) -> Bool {
   match h {
@@ -407,6 +429,7 @@ pub fn is_empty(h : HAMT) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hamt: empty" {
   let h = empty()
   assert_true(is_empty(h))
@@ -414,6 +437,7 @@ test "hamt: empty" {
   assert_true(get(h, "foo") is None)
 }
 
+///|
 test "hamt: single insert and get" {
   let h = insert(empty(), "hello", 42)
   assert_eq(get(h, "hello"), Some(42))
@@ -421,6 +445,7 @@ test "hamt: single insert and get" {
   assert_false(is_empty(h))
 }
 
+///|
 test "hamt: multiple inserts" {
   let h0 = empty()
   let h1 = insert(h0, "a", 1)
@@ -436,6 +461,7 @@ test "hamt: multiple inserts" {
   assert_eq(get(h2, "c"), None)
 }
 
+///|
 test "hamt: overwrite existing key" {
   let h0 = insert(empty(), "key", 10)
   let h1 = insert(h0, "key", 20)
@@ -444,6 +470,7 @@ test "hamt: overwrite existing key" {
   assert_eq(size(h1), 1)
 }
 
+///|
 test "hamt: delete" {
   let h0 = insert(empty(), "a", 1)
   let h1 = insert(h0, "b", 2)
@@ -457,6 +484,7 @@ test "hamt: delete" {
   assert_eq(get(h2, "b"), Some(2))
 }
 
+///|
 test "hamt: delete non-existent key" {
   let h0 = insert(empty(), "a", 1)
   let h1 = delete(h0, "b")
@@ -464,6 +492,7 @@ test "hamt: delete non-existent key" {
   assert_eq(size(h1), 1)
 }
 
+///|
 test "hamt: delete all" {
   let h0 = insert(empty(), "a", 1)
   let h1 = insert(h0, "b", 2)
@@ -472,6 +501,7 @@ test "hamt: delete all" {
   assert_true(is_empty(h3))
 }
 
+///|
 test "hamt: stress test 1000 inserts" {
   let mut h = empty()
   for i = 0; i < 1000; i = i + 1 {
@@ -495,6 +525,7 @@ test "hamt: stress test 1000 inserts" {
   }
 }
 
+///|
 test "hamt: hash collision handling" {
   // Insert keys that may hash to the same value; the HAMT handles this
   // by falling back to key comparison at the leaf level.
@@ -509,6 +540,7 @@ test "hamt: hash collision handling" {
   assert_eq(size(h3), 4)
 }
 
+///|
 test "hamt: persistence — all versions valid" {
   let h0 = insert(empty(), "x", 1)
   let h1 = insert(h0, "y", 2)
@@ -524,6 +556,7 @@ test "hamt: persistence — all versions valid" {
   assert_eq(get(h2, "z"), Some(3))
 }
 
+///|
 test "hamt: delete and reinsert" {
   let h0 = insert(empty(), "a", 1)
   let h1 = delete(h0, "a")

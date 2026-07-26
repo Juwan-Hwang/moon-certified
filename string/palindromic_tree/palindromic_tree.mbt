@@ -40,6 +40,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A palindromic tree node.
 struct Node {
   length : Int
@@ -49,6 +50,7 @@ struct Node {
   first_pos : Int // starting position of first occurrence in the string
 }
 
+///|
 /// A palindromic tree.
 pub struct PalindromicTree {
   nodes : Array[Node]
@@ -57,16 +59,30 @@ pub struct PalindromicTree {
   mut n : Int // current length of the string being processed
 }
 
+///|
 /// Create an empty palindromic tree.
 fn new_tree() -> PalindromicTree {
   let nodes : Array[Node] = []
   // Root 0: length -1, suffix_link = 0
-  nodes.push({ length: -1, suffix_link: 0, children: [], count: 0, first_pos: -1 })
+  nodes.push({
+    length: -1,
+    suffix_link: 0,
+    children: [],
+    count: 0,
+    first_pos: -1,
+  })
   // Root 1: length 0, suffix_link = 0
-  nodes.push({ length: 0, suffix_link: 0, children: [], count: 0, first_pos: -1 })
+  nodes.push({
+    length: 0,
+    suffix_link: 0,
+    children: [],
+    count: 0,
+    first_pos: -1,
+  })
   { nodes, last: 1, s: [], n: 0 }
 }
 
+///|
 /// Find the child of node `v` with the given byte value, or return -1 if not found.
 fn find_child(node : Node, c : Int) -> Int {
   for i = 0; i < node.children.length(); i = i + 1 {
@@ -78,11 +94,13 @@ fn find_child(node : Node, c : Int) -> Int {
   -1
 }
 
+///|
 /// Add a child to node `v` with the given byte value and node index.
 fn add_child(node : Node, c : Int, child : Int) -> Unit {
   node.children.push((c, child))
 }
 
+///|
 /// Build a palindromic tree from a string.
 ///
 /// Processes each byte of the string sequentially, building the tree in
@@ -96,6 +114,7 @@ pub fn build(s : String) -> PalindromicTree {
   tree
 }
 
+///|
 /// Add a character (byte value) to the palindromic tree.
 fn add_char(tree : PalindromicTree, c : Int) -> Unit {
   tree.s.push(c)
@@ -154,6 +173,7 @@ fn add_char(tree : PalindromicTree, c : Int) -> Unit {
   tree.last = new_idx
 }
 
+///|
 /// Propagate occurrence counts from leaves to roots.
 ///
 /// After building, `count[i]` stores the number of times the palindrome at
@@ -168,6 +188,7 @@ fn propagate_counts(tree : PalindromicTree) -> Unit {
   }
 }
 
+///|
 /// Count the number of distinct palindromic substrings.
 ///
 /// This is the number of nodes minus 2 (excluding the two roots).
@@ -175,6 +196,7 @@ pub fn count_distinct_palindromes(tree : PalindromicTree) -> Int {
   tree.nodes.length() - 2
 }
 
+///|
 /// Count the total number of palindromic substrings (including duplicates).
 ///
 /// This is the sum of `count[i]` for all non-root nodes.
@@ -187,6 +209,7 @@ pub fn count_all_palindromes(tree : PalindromicTree) -> Int64 {
   total
 }
 
+///|
 /// Find the length of the longest palindromic substring.
 pub fn longest_palindrome_length(tree : PalindromicTree) -> Int {
   let mut max_len = 0
@@ -198,6 +221,7 @@ pub fn longest_palindrome_length(tree : PalindromicTree) -> Int {
   max_len
 }
 
+///|
 /// Get all distinct palindromic substrings as an array of strings.
 ///
 /// The substrings are returned in no particular order.
@@ -218,6 +242,7 @@ pub fn all_palindromes(tree : PalindromicTree) -> Array[String] {
   result
 }
 
+///|
 /// Count occurrences of a specific palindromic substring.
 ///
 /// Returns 0 if the palindrome is not found.
@@ -252,6 +277,7 @@ pub fn count_occurrences(tree : PalindromicTree, palindrome : String) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "palindromic_tree: basic" {
   // s = "abba"
   // Distinct palindromes: "a", "b", "bb", "abb", "abba" → 5
@@ -263,6 +289,7 @@ test "palindromic_tree: basic" {
   assert_eq(count_distinct_palindromes(tree), 4)
 }
 
+///|
 test "palindromic_tree: all same" {
   // s = "aaaa"
   // Distinct palindromes: "a", "aa", "aaa", "aaaa" → 4
@@ -270,6 +297,7 @@ test "palindromic_tree: all same" {
   assert_eq(count_distinct_palindromes(tree), 4)
 }
 
+///|
 test "palindromic_tree: count all" {
   // s = "abba"
   // All palindromic substrings (by position):
@@ -278,6 +306,7 @@ test "palindromic_tree: count all" {
   assert_eq(count_all_palindromes(tree), 6L)
 }
 
+///|
 test "palindromic_tree: count all aaaa" {
   // s = "aaaa"
   // All palindromic substrings:
@@ -290,6 +319,7 @@ test "palindromic_tree: count all aaaa" {
   assert_eq(count_all_palindromes(tree), 10L)
 }
 
+///|
 test "palindromic_tree: longest" {
   // s = "abacaba"
   // Longest palindrome: "abacaba" (length 7)
@@ -297,11 +327,13 @@ test "palindromic_tree: longest" {
   assert_eq(longest_palindrome_length(tree), 7)
 }
 
+///|
 test "palindromic_tree: longest in abba" {
   let tree = build("abba")
   assert_eq(longest_palindrome_length(tree), 4)
 }
 
+///|
 test "palindromic_tree: empty string" {
   let tree = build("")
   assert_eq(count_distinct_palindromes(tree), 0)
@@ -309,6 +341,7 @@ test "palindromic_tree: empty string" {
   assert_eq(longest_palindrome_length(tree), 0)
 }
 
+///|
 test "palindromic_tree: single char" {
   let tree = build("a")
   assert_eq(count_distinct_palindromes(tree), 1)
@@ -316,6 +349,7 @@ test "palindromic_tree: single char" {
   assert_eq(longest_palindrome_length(tree), 1)
 }
 
+///|
 test "palindromic_tree: abcba" {
   // s = "abcba"
   // Distinct palindromes: "a", "b", "c", "bcb", "abcba" → 5
@@ -327,6 +361,7 @@ test "palindromic_tree: abcba" {
   assert_eq(longest_palindrome_length(tree), 5)
 }
 
+///|
 test "palindromic_tree: all distinct palindromes" {
   let tree = build("abba")
   let pals = all_palindromes(tree)
@@ -341,6 +376,7 @@ test "palindromic_tree: all distinct palindromes" {
   }
 }
 
+///|
 test "palindromic_tree: count occurrences" {
   // s = "ababa"
   // "a" appears at positions 0, 2, 4 → 3

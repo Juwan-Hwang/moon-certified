@@ -34,6 +34,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Centroid Decomposition of a tree.
 pub struct CentroidDecomp {
   n : Int
@@ -50,6 +51,7 @@ pub struct CentroidDecomp {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the centroid decomposition of a tree.
 ///
 /// # Parameters
@@ -183,9 +185,14 @@ pub fn build(adj : Array[Array[Int]], n : Int) -> CentroidDecomp {
 // Utility: collect all vertices in the centroid subtree rooted at `c`
 // ---------------------------------------------------------------------------
 
+///|
 /// Collect all vertices in the centroid subtree rooted at centroid `c`.
 /// This is the set of vertices for which `c` is an ancestor in the centroid tree.
-pub fn centroid_subtree(_adj : Array[Array[Int]], cd : CentroidDecomp, c : Int) -> Array[Int] {
+pub fn centroid_subtree(
+  _adj : Array[Array[Int]],
+  cd : CentroidDecomp,
+  c : Int,
+) -> Array[Int] {
   let result : Array[Int] = [c]
   let stack : Array[Int] = [c]
   while stack.length() > 0 {
@@ -205,6 +212,7 @@ pub fn centroid_subtree(_adj : Array[Array[Int]], cd : CentroidDecomp, c : Int) 
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "centroid: single vertex" {
   let adj : Array[Array[Int]] = [[]]
   let cd = build(adj, 1)
@@ -213,6 +221,7 @@ test "centroid: single vertex" {
   assert_eq(cd.centroid_depth[0], 0)
 }
 
+///|
 test "centroid: path of 3 (0-1-2)" {
   let adj : Array[Array[Int]] = [[1], [0, 2], [1]]
   let cd = build(adj, 3)
@@ -231,6 +240,7 @@ test "centroid: path of 3 (0-1-2)" {
   assert_true(max_depth <= 2)
 }
 
+///|
 test "centroid: star graph" {
   // 0 connected to 1, 2, 3, 4
   let adj : Array[Array[Int]] = [[1, 2, 3, 4], [0], [0], [0], [0]]
@@ -245,14 +255,21 @@ test "centroid: star graph" {
   }
 }
 
+///|
 test "centroid: balanced binary tree" {
   //       0
-    //      / \
-    //     1   2
-    //    / \ / \
-    //   3  4 5  6
+  //      / \
+  //     1   2
+  //    / \ / \
+  //   3  4 5  6
   let adj : Array[Array[Int]] = [
-    [1, 2], [0, 3, 4], [0, 5, 6], [1], [1], [2], [2],
+    [1, 2],
+    [0, 3, 4],
+    [0, 5, 6],
+    [1],
+    [1],
+    [2],
+    [2],
   ]
   let cd = build(adj, 7)
   // Depth should be O(log n) = O(log 7) ≈ 3
@@ -272,6 +289,7 @@ test "centroid: balanced binary tree" {
   }
 }
 
+///|
 test "centroid: path of 10 (depth O(log n))" {
   // Linear path: 0-1-2-...-9
   let n = 10
@@ -297,6 +315,7 @@ test "centroid: path of 10 (depth O(log n))" {
   assert_true(max_depth <= 4) // ceil(log2(10)) ≈ 4
 }
 
+///|
 test "centroid: path of 1000 (stress test)" {
   let n = 1000
   let adj : Array[Array[Int]] = []
@@ -329,11 +348,13 @@ test "centroid: path of 1000 (stress test)" {
   assert_eq(count, n)
 }
 
+///|
 test "centroid: empty graph" {
   let cd = build([], 0)
   assert_eq(cd.root, -1)
 }
 
+///|
 test "centroid: two vertices" {
   let adj : Array[Array[Int]] = [[1], [0]]
   let cd = build(adj, 2)

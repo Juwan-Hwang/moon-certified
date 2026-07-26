@@ -4,6 +4,7 @@
 /// column. A sentinel '$' (assumed absent from the input and lexicographically
 /// smallest) is appended before sorting. Decoding uses LF-mapping.
 
+///|
 /// Compute the BWT of `s`.
 /// Appends '$' as sentinel, builds suffix array by sorting suffixes,
 /// then takes the last column: BWT[i] = S[(SA[i] - 1) mod n].
@@ -26,7 +27,11 @@ pub fn bwt_encode(s : String) -> String {
       k = k + 1
     }
     if i + k == m {
-      if j + k == m { 0 } else { -1 }
+      if j + k == m {
+        0
+      } else {
+        -1
+      }
     } else {
       1
     }
@@ -39,6 +44,7 @@ pub fn bwt_encode(s : String) -> String {
   buf.to_string()
 }
 
+///|
 /// Reverse the BWT using LF-mapping.
 /// Reconstructs the original string (without sentinel) from the BWT.
 pub fn bwt_decode(bwt : String) -> String {
@@ -77,6 +83,7 @@ pub fn bwt_decode(bwt : String) -> String {
   buf.to_string()
 }
 
+///|
 test "bwt: roundtrip" {
   let inputs = ["banana", "mississippi", "abracadabra", "abababab"]
   for i = 0; i < inputs.length(); i = i + 1 {
@@ -85,11 +92,13 @@ test "bwt: roundtrip" {
   }
 }
 
+///|
 test "bwt: empty string" {
   assert_eq(bwt_encode(""), "$")
   assert_eq(bwt_decode("$"), "")
 }
 
+///|
 test "bwt: single char" {
   assert_eq(bwt_encode("a"), "a$")
   assert_eq(bwt_decode("a$"), "a")

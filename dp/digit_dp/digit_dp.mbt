@@ -34,6 +34,7 @@
 // Helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Parse a decimal string into an array of integer digits.
 ///
 /// Example: `"123"` → `[1, 2, 3]`.
@@ -45,6 +46,7 @@ fn parse_digits(s : String) -> Array[Int] {
   digits
 }
 
+///|
 /// Decrement a decimal string representation by 1.
 ///
 /// Used to compute `[l, r]` via `count(r) - count(l - 1)`.
@@ -80,6 +82,7 @@ fn decrement_str(s : String) -> String {
 // Count by digit sum
 // ---------------------------------------------------------------------------
 
+///|
 /// Count numbers in `[0, n]` whose digit sum equals `target`.
 ///
 /// `n_str` is the decimal string representation of `n` (e.g., `"123"`).
@@ -99,10 +102,9 @@ pub fn count_digit_sum(n_str : String, target : Int) -> Int64 {
   // with digits 0-9 such that their sum is `sum`.
   let max_sum = n * 9
   // Use makei to avoid shared references between rows.
-  let free : Array[Array[Int64]] = Array::makei(
-    n + 1,
-    fn(_) { Array::make(max_sum + 1, 0L) },
-  )
+  let free : Array[Array[Int64]] = Array::makei(n + 1, fn(_) {
+    Array::make(max_sum + 1, 0L)
+  })
   free[0][0] = 1L
   for len = 1; len <= n; len = len + 1 {
     for s = 0; s <= max_sum; s = s + 1 {
@@ -135,6 +137,7 @@ pub fn count_digit_sum(n_str : String, target : Int) -> Int64 {
   result
 }
 
+///|
 /// Count numbers in `[l, r]` whose digit sum equals `target`.
 ///
 /// Both `l` and `r` are decimal string representations.
@@ -151,6 +154,7 @@ pub fn count_digit_sum_range(
 // Count divisible by k
 // ---------------------------------------------------------------------------
 
+///|
 /// Count numbers in `[0, n]` that are divisible by `k` (i.e., ≡ 0 mod k).
 ///
 /// `n_str` is the decimal string representation of `n`.
@@ -172,15 +176,14 @@ pub fn count_divisible(n_str : String, k : Int) -> Int64 {
   let pow10 : Array[Int] = Array::make(n + 1, 0)
   pow10[0] = 1 % k
   for i = 1; i <= n; i = i + 1 {
-    pow10[i] = (pow10[i - 1] * 10) % k
+    pow10[i] = pow10[i - 1] * 10 % k
   }
   // Precompute: free[len][mod] = number of `len`-digit sequences whose
   // value ≡ mod (mod k).
   // Use makei to avoid shared references between rows.
-  let free : Array[Array[Int64]] = Array::makei(
-    n + 1,
-    fn(_) { Array::make(k, 0L) },
-  )
+  let free : Array[Array[Int64]] = Array::makei(n + 1, fn(_) {
+    Array::make(k, 0L)
+  })
   free[0][0] = 1L
   for len = 1; len <= n; len = len + 1 {
     for mod_val = 0; mod_val < k; mod_val = mod_val + 1 {
@@ -203,7 +206,7 @@ pub fn count_divisible(n_str : String, k : Int) -> Int64 {
       // final_mod = (new_mod * pow10[remaining] + suffix_value) % k
       // We want final_mod == 0:
       // suffix_value ≡ (k - new_mod * pow10[remaining] % k) % k
-      let contribution = (new_mod * pow10[remaining]) % k
+      let contribution = new_mod * pow10[remaining] % k
       let needed_mod = (k - contribution) % k
       result = result + free[remaining][needed_mod]
     }
@@ -216,6 +219,7 @@ pub fn count_divisible(n_str : String, k : Int) -> Int64 {
   result
 }
 
+///|
 /// Count numbers in `[l, r]` that are divisible by `k`.
 pub fn count_divisible_range(l_str : String, r_str : String, k : Int) -> Int64 {
   count_divisible(r_str, k) - count_divisible(decrement_str(l_str), k)
@@ -225,6 +229,7 @@ pub fn count_divisible_range(l_str : String, r_str : String, k : Int) -> Int64 {
 // Count without repeated digits
 // ---------------------------------------------------------------------------
 
+///|
 /// Count numbers in `[0, n]` that have no repeated digits.
 ///
 /// Uses a combination of combinatorial counting for numbers with fewer digits
@@ -287,6 +292,7 @@ pub fn count_no_repeated_digits(n_str : String) -> Int64 {
   result
 }
 
+///|
 /// Count `len`-digit sequences (with possible leading zeros) that use only
 /// digits NOT in `used_mask` and have no repeats among themselves.
 ///
@@ -312,6 +318,7 @@ fn count_no_repeated_free(len : Int, used_mask : Int) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "count_digit_sum: basic" {
   // Numbers 0-12 with digit sum 3: {3, 12} → 2
   assert_eq(count_digit_sum("12", 3), 2L)
@@ -323,6 +330,7 @@ test "count_digit_sum: basic" {
   assert_eq(count_digit_sum("0", 0), 1L)
 }
 
+///|
 test "count_digit_sum: large range" {
   // Count numbers 0-99 with digit sum 10
   // These are: 19, 28, 37, 46, 55, 64, 73, 82, 91 → 9
@@ -332,11 +340,13 @@ test "count_digit_sum: large range" {
   assert_eq(count_digit_sum("999", 2), 6L)
 }
 
+///|
 test "count_digit_sum: target too large" {
   // Can't have digit sum > 9*4 = 36 for 4-digit number
   assert_eq(count_digit_sum("9999", 40), 0L)
 }
 
+///|
 test "count_digit_sum_range: basic" {
   // Numbers 1-12 with digit sum 3: {3, 12} → 2
   assert_eq(count_digit_sum_range("1", "12", 3), 2L)
@@ -344,6 +354,7 @@ test "count_digit_sum_range: basic" {
   assert_eq(count_digit_sum_range("5", "15", 6), 2L)
 }
 
+///|
 test "count_divisible: basic" {
   // Numbers 0-9 divisible by 3: {0, 3, 6, 9} → 4
   assert_eq(count_divisible("9", 3), 4L)
@@ -353,6 +364,7 @@ test "count_divisible: basic" {
   assert_eq(count_divisible("20", 7), 3L)
 }
 
+///|
 test "count_divisible: large" {
   // Numbers 0-99 divisible by 4: 0, 4, 8, ..., 96 → 25
   assert_eq(count_divisible("99", 4), 25L)
@@ -360,6 +372,7 @@ test "count_divisible: large" {
   assert_eq(count_divisible("1000", 10), 101L)
 }
 
+///|
 test "count_divisible_range: basic" {
   // Numbers 1-10 divisible by 3: {3, 6, 9} → 3
   assert_eq(count_divisible_range("1", "10", 3), 3L)
@@ -367,6 +380,7 @@ test "count_divisible_range: basic" {
   assert_eq(count_divisible_range("10", "20", 5), 3L)
 }
 
+///|
 test "count_no_repeated_digits: basic" {
   // Numbers 0-9 with no repeated digits: all 10 → 10
   assert_eq(count_no_repeated_digits("9"), 10L)
@@ -380,6 +394,7 @@ test "count_no_repeated_digits: basic" {
   assert_eq(count_no_repeated_digits("99"), 91L)
 }
 
+///|
 test "count_no_repeated_digits: 100" {
   // Numbers 0-100 with no repeated digits:
   // 0-99: 91 (from above)
@@ -388,6 +403,7 @@ test "count_no_repeated_digits: 100" {
   assert_eq(count_no_repeated_digits("100"), 91L)
 }
 
+///|
 test "count_no_repeated_digits: large" {
   // Numbers 0-999 with no repeated digits:
   // 0: 1
@@ -398,6 +414,7 @@ test "count_no_repeated_digits: large" {
   assert_eq(count_no_repeated_digits("999"), 739L)
 }
 
+///|
 test "decrement_str: basic" {
   assert_eq(decrement_str("1"), "0")
   assert_eq(decrement_str("10"), "9")

@@ -18,6 +18,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A Ball-Tree node.
 pub enum BallNode {
   Empty
@@ -27,6 +28,7 @@ pub enum BallNode {
   Leaf(Int)
 }
 
+///|
 /// The Ball-Tree with its associated point set and distance function.
 pub struct BallTree {
   root : BallNode
@@ -34,6 +36,7 @@ pub struct BallTree {
   dist : (Int, Int) -> Double
 }
 
+///|
 /// Build a Ball-Tree from `n` points with the given distance function.
 pub fn build(n : Int, dist : (Int, Int) -> Double) -> BallTree {
   if n == 0 {
@@ -47,6 +50,7 @@ pub fn build(n : Int, dist : (Int, Int) -> Double) -> BallTree {
   { root, n, dist }
 }
 
+///|
 fn build_recursive(
   indices : Array[Int],
   dist : (Int, Int) -> Double,
@@ -122,6 +126,7 @@ fn build_recursive(
   Node(left, center_idx, radius, right, m)
 }
 
+///|
 /// Find the nearest neighbour of query point `q_idx`.
 ///
 /// Returns the index of the nearest point (not including `q_idx` itself).
@@ -133,6 +138,7 @@ pub fn nearest_neighbor(tree : BallTree, q_idx : Int) -> Int {
   nn_recursive(tree.root, q_idx, tree.dist, -1, 1.0e18)
 }
 
+///|
 /// Nearest-neighbor recursive search. Returns the best index found.
 /// `best_idx` / `best_dist` carry the current best result.
 fn nn_recursive(
@@ -187,6 +193,7 @@ fn nn_recursive(
   }
 }
 
+///|
 /// Lower bound on distance from `q_idx` to any point in the subtree.
 fn subtree_min_dist(
   node : BallNode,
@@ -207,13 +214,19 @@ fn subtree_min_dist(
   }
 }
 
+///|
 /// Find all points within `radius` of query point `q_idx`.
-pub fn range_search(tree : BallTree, q_idx : Int, radius : Double) -> Array[Int] {
+pub fn range_search(
+  tree : BallTree,
+  q_idx : Int,
+  radius : Double,
+) -> Array[Int] {
   let result : Array[Int] = []
   range_recursive(tree.root, q_idx, radius, tree.dist, result)
   result
 }
 
+///|
 fn range_recursive(
   node : BallNode,
   q_idx : Int,
@@ -235,11 +248,7 @@ fn range_recursive(
       if center_idx != q_idx && d <= radius {
         result.push(center_idx)
       }
-      let min_d = if d > node_radius {
-        d - node_radius
-      } else {
-        0.0
-      }
+      let min_d = if d > node_radius { d - node_radius } else { 0.0 }
       if min_d <= radius {
         range_recursive(left, q_idx, radius, dist, result)
         range_recursive(right, q_idx, radius, dist, result)
@@ -252,10 +261,16 @@ fn range_recursive(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 fn dbl_abs(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
+///|
 fn dbl_sqrt(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -269,6 +284,7 @@ fn dbl_sqrt(x : Double) -> Double {
   r
 }
 
+///|
 fn euclidean_dist(points : Array[(Int, Int)]) -> (Int, Int) -> Double {
   fn(i : Int, j : Int) -> Double {
     let (xi, yi) = points[i]
@@ -279,16 +295,19 @@ fn euclidean_dist(points : Array[(Int, Int)]) -> (Int, Int) -> Double {
   }
 }
 
+///|
 test "ball_tree: empty tree" {
   let tree = build(0, fn(_, _) { 0.0 })
   assert_eq(nearest_neighbor(tree, 0), -1)
 }
 
+///|
 test "ball_tree: single point" {
   let tree = build(1, fn(_, _) { 0.0 })
   assert_eq(nearest_neighbor(tree, 0), -1)
 }
 
+///|
 test "ball_tree: two points" {
   let points = [(0, 0), (10, 0)]
   let dist = euclidean_dist(points)
@@ -297,10 +316,9 @@ test "ball_tree: two points" {
   assert_eq(nearest_neighbor(tree, 1), 0)
 }
 
+///|
 test "ball_tree: nearest neighbor cross-check" {
-  let points = [
-    (0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1),
-  ]
+  let points = [(0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1)]
   let n = points.length()
   let dist = euclidean_dist(points)
   let tree = build(n, dist)
@@ -322,10 +340,9 @@ test "ball_tree: nearest neighbor cross-check" {
   }
 }
 
+///|
 test "ball_tree: range search" {
-  let points = [
-    (0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1),
-  ]
+  let points = [(0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1)]
   let n = points.length()
   let dist = euclidean_dist(points)
   let tree = build(n, dist)
@@ -341,6 +358,7 @@ test "ball_tree: range search" {
   assert_eq(result.length(), expected.length())
 }
 
+///|
 test "ball_tree: range search returns empty for small radius" {
   let points = [(0, 0), (100, 100), (200, 200)]
   let dist = euclidean_dist(points)

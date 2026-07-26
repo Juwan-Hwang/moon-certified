@@ -19,6 +19,7 @@
 // Modular arithmetic
 // ---------------------------------------------------------------------------
 
+///|
 /// Int64 modulo that always returns a result in `[0, m)` for `m > 0`.
 ///
 /// Negative inputs are mapped to their positive residue. This is the canonical
@@ -38,6 +39,7 @@ pub fn mod64(a : Int64, m : Int64) -> Int64 {
   }
 }
 
+///|
 /// Modular addition `(a + b) mod m` that is safe for the full `Int64` range.
 ///
 /// Both `a` and `b` must be in `[0, m)`. The addition is performed without
@@ -54,6 +56,7 @@ fn add_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
   }
 }
 
+///|
 /// Modular multiplication `(a * b) mod m` that is safe for the full `Int64`
 /// range.
 ///
@@ -78,6 +81,7 @@ pub fn mul_mod(a : Int64, b : Int64, m : Int64) -> Int64 {
 // GCD
 // ---------------------------------------------------------------------------
 
+///|
 /// Int64 GCD via the Euclidean algorithm.
 ///
 /// Correctly handles all `Int64` inputs including `Int64::MIN`. The key
@@ -117,6 +121,7 @@ pub fn gcd64(a : Int64, b : Int64) -> Int64 {
 // Modular exponentiation
 // ---------------------------------------------------------------------------
 
+///|
 /// Modular exponentiation in `Int64`: returns `(base^exp) mod m`.
 ///
 /// Requires `m > 0`, `exp >= 0`. Uses binary exponentiation. The base is
@@ -151,6 +156,7 @@ pub fn pow_mod64(base : Int64, exp : Int64, m : Int64) -> Int64 {
   result
 }
 
+///|
 /// Overflow-safe modular exponentiation using `mul_mod`.
 ///
 /// Identical to `pow_mod64` but uses `mul_mod` for multiplication, making
@@ -177,6 +183,7 @@ fn pow_mod_safe(base : Int64, exp : Int64, m : Int64) -> Int64 {
 // Primality testing
 // ---------------------------------------------------------------------------
 
+///|
 /// Deterministic Miller-Rabin primality test for the full `Int64` range.
 ///
 /// Uses the deterministic witness set
@@ -207,9 +214,7 @@ pub fn is_prime64(n : Int64) -> Bool {
   }
   // Deterministic witnesses covering the full Int64 range
   // (n < 3.3 * 10^24, Sorenson & Webster 2015).
-  let witnesses = [
-    2L, 3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L,
-  ]
+  let witnesses = [2L, 3L, 5L, 7L, 11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L]
   for i = 0; i < witnesses.length(); i = i + 1 {
     let a = witnesses[i]
     if a >= n {
@@ -240,24 +245,28 @@ pub fn is_prime64(n : Int64) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mod64: basic" {
   assert_eq(mod64(10L, 7L), 3L)
   assert_eq(mod64(14L, 7L), 0L)
   assert_eq(mod64(0L, 7L), 0L)
 }
 
+///|
 test "mod64: negative input" {
   assert_eq(mod64(-1L, 7L), 6L)
   assert_eq(mod64(-7L, 7L), 0L)
   assert_eq(mod64(-10L, 7L), 4L)
 }
 
+///|
 test "mod64: modulus 1" {
   assert_eq(mod64(0L, 1L), 0L)
   assert_eq(mod64(123L, 1L), 0L)
   assert_eq(mod64(-456L, 1L), 0L)
 }
 
+///|
 test "gcd64: basic" {
   assert_eq(gcd64(12L, 8L), 4L)
   assert_eq(gcd64(17L, 5L), 1L)
@@ -267,6 +276,7 @@ test "gcd64: basic" {
   assert_eq(gcd64(0L, 0L), 0L)
 }
 
+///|
 test "gcd64: negative inputs" {
   assert_eq(gcd64(-12L, 8L), 4L)
   assert_eq(gcd64(12L, -8L), 4L)
@@ -274,6 +284,7 @@ test "gcd64: negative inputs" {
   assert_eq(gcd64(-17L, 5L), 1L)
 }
 
+///|
 test "gcd64: Int64::MIN (correct results, no overflow)" {
   // Int64::MIN = -2^63. The Euclidean algorithm handles this correctly
   // without taking absolute values upfront.
@@ -292,23 +303,27 @@ test "gcd64: Int64::MIN (correct results, no overflow)" {
   assert_eq(gcd64(min_val, 8L), 8L)
 }
 
+///|
 test "gcd64: large 32-bit values" {
   assert_eq(gcd64(2147483647L, 2147483646L), 1L) // Mersenne prime and n-1
   assert_eq(gcd64(1000000000L, 500000000L), 500000000L)
   assert_eq(gcd64(999999937L, 999999929L), 1L) // both prime
 }
 
+///|
 test "pow_mod64: basic" {
   assert_eq(pow_mod64(2L, 10L, 1000L), 24L) // 2^10 = 1024, 1024 mod 1000 = 24
   assert_eq(pow_mod64(3L, 5L, 7L), 5L) // 3^5 = 243, 243 mod 7 = 5
   assert_eq(pow_mod64(7L, 0L, 11L), 1L) // anything^0 = 1
 }
 
+///|
 test "pow_mod64: modulus 1" {
   assert_eq(pow_mod64(123L, 456L, 1L), 0L)
   assert_eq(pow_mod64(0L, 0L, 1L), 0L)
 }
 
+///|
 test "pow_mod64: large exponent" {
   // Fermat's little theorem: a^(p-1) mod p = 1 for prime p, gcd(a,p)=1
   assert_eq(pow_mod64(2L, 6L, 7L), 1L) // 2^6 mod 7 = 1
@@ -316,12 +331,14 @@ test "pow_mod64: large exponent" {
   assert_eq(pow_mod64(2L, 2147483646L, 2147483647L), 1L) // Mersenne prime
 }
 
+///|
 test "pow_mod64: negative base" {
   assert_eq(pow_mod64(-1L, 2L, 7L), 1L) // (-1)^2 = 1
   assert_eq(pow_mod64(-1L, 3L, 7L), 6L) // (-1)^3 = -1, mod 7 = 6
   assert_eq(pow_mod64(-3L, 2L, 7L), 2L) // 9 mod 7 = 2
 }
 
+///|
 test "is_prime64: small primes" {
   assert_eq(is_prime64(2L), true)
   assert_eq(is_prime64(3L), true)
@@ -337,6 +354,7 @@ test "is_prime64: small primes" {
   assert_eq(is_prime64(37L), true)
 }
 
+///|
 test "is_prime64: small composites" {
   assert_eq(is_prime64(4L), false)
   assert_eq(is_prime64(6L), false)
@@ -350,12 +368,14 @@ test "is_prime64: small composites" {
   assert_eq(is_prime64(49L), false)
 }
 
+///|
 test "is_prime64: edge cases" {
   assert_eq(is_prime64(0L), false)
   assert_eq(is_prime64(1L), false)
   assert_eq(is_prime64(-7L), false)
 }
 
+///|
 test "is_prime64: Mersenne primes" {
   assert_eq(is_prime64(2147483647L), true) // 2^31 - 1
   assert_eq(is_prime64(8191L), true) // 2^13 - 1
@@ -363,6 +383,7 @@ test "is_prime64: Mersenne primes" {
   assert_eq(is_prime64(524287L), true) // 2^19 - 1
 }
 
+///|
 test "is_prime64: large known primes" {
   // 1000000007 and 1000000009 are well-known large primes
   assert_eq(is_prime64(1000000007L), true)
@@ -371,6 +392,7 @@ test "is_prime64: large known primes" {
   assert_eq(is_prime64(998244353L), true)
 }
 
+///|
 test "is_prime64: Carmichael numbers" {
   // Carmichael numbers are composites that pass Fermat tests.
   // Miller-Rabin with the expanded witness set correctly identifies them.
@@ -385,6 +407,7 @@ test "is_prime64: Carmichael numbers" {
   assert_eq(is_prime64(825265L), false) // 5 * 7 * 17 * 19 * 73
 }
 
+///|
 test "is_prime64: large composites" {
   assert_eq(is_prime64(1000000008L), false) // even
   assert_eq(is_prime64(2147483646L), false) // even
@@ -392,6 +415,7 @@ test "is_prime64: large composites" {
   assert_eq(is_prime64(2147483645L), false)
 }
 
+///|
 test "is_prime64: full Int64 range (> 2^32)" {
   // These tests verify the expanded witness set and mul_mod work
   // for values beyond the 32-bit range.
@@ -405,6 +429,7 @@ test "is_prime64: full Int64 range (> 2^32)" {
   assert_eq(is_prime64(1000000000000000009L), true)
 }
 
+///|
 test "mul_mod: basic" {
   // Verify internal mul_mod via is_prime64 (indirect test).
   // 2^32 + 1 = 4294967297 = 641 * 6700417 is composite.
@@ -412,6 +437,7 @@ test "mul_mod: basic" {
   assert_eq(is_prime64(4294967297L), false)
 }
 
+///|
 test "gcd64: consistency with small values" {
   // Cross-check: gcd(a, b) * lcm(a, b) = a * b for small coprime pairs
   for a = 1; a <= 50; a = a + 1 {

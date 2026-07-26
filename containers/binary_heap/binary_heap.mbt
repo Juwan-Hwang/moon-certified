@@ -21,6 +21,7 @@
 /// available for backward compatibility.
 /// ---------------------------------------------------------------------------
 
+///|
 /// A min-heap backed by a fixed-capacity array.
 ///
 /// - `data` holds the elements in heap order (0-indexed binary tree).
@@ -37,12 +38,14 @@ struct Heap {
   mut size : Int
 }
 
+///|
 /// Create an empty `Heap` with the given fixed `capacity`.
 /// All slots are zero-initialised; `size` starts at 0.
 pub fn heap_new(capacity : Int) -> Heap {
   { data: FixedArray::make(capacity, 0), size: 0 }
 }
 
+///|
 /// Push `val` onto the heap.
 /// Returns `Some(())` on success, `None` if the backing array is full.
 pub fn Heap::heap_push(self : Heap, val : Int) -> Unit? {
@@ -55,6 +58,7 @@ pub fn Heap::heap_push(self : Heap, val : Int) -> Unit? {
   }
 }
 
+///|
 /// Pop and return the minimum element.
 /// Returns `Some(min)` on success, `None` when the heap is empty.
 pub fn Heap::heap_pop(self : Heap) -> Int? {
@@ -68,27 +72,32 @@ pub fn Heap::heap_pop(self : Heap) -> Int? {
   }
 }
 
+///|
 /// Heapify the backing array in place.
 /// `size` is set to the heapified length reported by `build_heap`.
 pub fn Heap::heap_build(self : Heap) -> Unit {
   self.size = build_heap(self.data)
 }
 
+///|
 /// Number of elements currently in the heap.
 pub fn Heap::heap_size(self : Heap) -> Int {
   self.size
 }
 
+///|
 /// Maximum number of elements the heap can hold.
 pub fn Heap::heap_capacity(self : Heap) -> Int {
   self.data.length()
 }
 
+///|
 /// `true` when the heap holds no elements.
 pub fn Heap::heap_is_empty(self : Heap) -> Bool {
   self.size == 0
 }
 
+///|
 /// Peek at the minimum element without removing it.
 /// Returns `None` when the heap is empty.
 pub fn Heap::heap_peek(self : Heap) -> Int? {
@@ -108,6 +117,7 @@ pub fn Heap::heap_peek(self : Heap) -> Int? {
 /// algorithms where a vertex's priority must be lowered.
 /// ---------------------------------------------------------------------------
 
+///|
 /// A generic binary heap with dynamic resizing.
 ///
 /// - `data` holds elements in heap order (0-indexed binary tree).
@@ -124,6 +134,7 @@ pub struct HeapG[T] {
   priv compare : (T, T) -> Int
 }
 
+///|
 /// Create an empty `HeapG[T]` with the given comparator.
 ///
 /// `compare(a, b)` should return `< 0` if `a` has higher priority than `b`
@@ -134,16 +145,19 @@ pub fn[T] HeapG::new(compare : (T, T) -> Int) -> HeapG[T] {
   { data: [], size: 0, compare }
 }
 
+///|
 /// Number of elements in the heap. O(1).
 pub fn[T] HeapG::len(self : HeapG[T]) -> Int {
   self.size
 }
 
+///|
 /// `true` when the heap is empty. O(1).
 pub fn[T] HeapG::is_empty(self : HeapG[T]) -> Bool {
   self.size == 0
 }
 
+///|
 /// Peek at the top element without removing it.
 /// Returns `None` when the heap is empty. O(1).
 pub fn[T] HeapG::peek(self : HeapG[T]) -> T? {
@@ -154,6 +168,7 @@ pub fn[T] HeapG::peek(self : HeapG[T]) -> T? {
   }
 }
 
+///|
 /// Push `val` onto the heap. The backing `Array` grows automatically.
 /// Always succeeds (unlike the fixed-capacity `Heap`). O(log n) amortised.
 pub fn[T] HeapG::push(self : HeapG[T], val : T) -> Unit {
@@ -162,6 +177,7 @@ pub fn[T] HeapG::push(self : HeapG[T], val : T) -> Unit {
   self.sift_up(self.size - 1)
 }
 
+///|
 /// Pop and return the top element.
 /// Returns `None` when the heap is empty. O(log n).
 pub fn[T] HeapG::pop(self : HeapG[T]) -> T? {
@@ -180,6 +196,7 @@ pub fn[T] HeapG::pop(self : HeapG[T]) -> T? {
   Some(top)
 }
 
+///|
 /// Decrease the key of the element at index `idx` to `new_val`.
 ///
 /// After setting `data[idx] = new_val`, sifts up to restore the heap
@@ -200,6 +217,7 @@ pub fn[T] HeapG::decrease_key(self : HeapG[T], idx : Int, new_val : T) -> Unit? 
   Some(())
 }
 
+///|
 /// Remove and return the element at index `idx`.
 ///
 /// Moves the last element into position `idx`, then restores the heap
@@ -223,6 +241,7 @@ pub fn[T] HeapG::remove(self : HeapG[T], idx : Int) -> T? {
   Some(val)
 }
 
+///|
 /// Sift up from position `idx` to restore the heap invariant.
 /// Assumes all positions except `idx` satisfy the invariant.
 fn[T] HeapG::sift_up(self : HeapG[T], idx : Int) -> Unit {
@@ -240,6 +259,7 @@ fn[T] HeapG::sift_up(self : HeapG[T], idx : Int) -> Unit {
   }
 }
 
+///|
 /// Sift down from position `idx` to restore the heap invariant.
 /// Assumes all positions except `idx` satisfy the invariant.
 fn[T] HeapG::sift_down(self : HeapG[T], idx : Int) -> Unit {
@@ -251,7 +271,8 @@ fn[T] HeapG::sift_down(self : HeapG[T], idx : Int) -> Unit {
     if left < self.size && (self.compare)(self.data[left], self.data[best]) < 0 {
       best = left
     }
-    if right < self.size && (self.compare)(self.data[right], self.data[best]) < 0 {
+    if right < self.size &&
+      (self.compare)(self.data[right], self.data[best]) < 0 {
       best = right
     }
     if best == i {
@@ -264,6 +285,7 @@ fn[T] HeapG::sift_down(self : HeapG[T], idx : Int) -> Unit {
   }
 }
 
+///|
 /// Swap two elements in an array.
 fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -271,6 +293,7 @@ fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
+///|
 /// Sift down with a custom comparison function.
 /// `should_swap(a, b)` returns true if a should be above b in the heap.
 /// This unifies min-heap (a < b) and max-heap (a > b) into one function.
@@ -302,6 +325,7 @@ fn sift_down_cmp(
   }
 }
 
+///|
 /// Sift up with a custom comparison function.
 fn sift_up_cmp(
   xs : FixedArray[Int],
@@ -324,6 +348,7 @@ fn sift_up_cmp(
   }
 }
 
+///|
 /// Build a min-heap from an arbitrary array (in-place).
 /// Returns the heap size (= array length).
 pub fn build_heap(xs : FixedArray[Int]) -> Int {
@@ -339,12 +364,9 @@ pub fn build_heap(xs : FixedArray[Int]) -> Int {
   n
 }
 
+///|
 /// Push a value onto the min-heap. Returns Some(new_size) on success, None if full.
-pub fn heap_push(
-  xs : FixedArray[Int],
-  size : Int,
-  val : Int,
-) -> Int? {
+pub fn heap_push(xs : FixedArray[Int], size : Int, val : Int) -> Int? {
   let capacity = xs.length()
   if size < 0 || size >= capacity {
     return None
@@ -354,13 +376,11 @@ pub fn heap_push(
   Some(size + 1)
 }
 
+///|
 /// Pop the minimum element from the heap.
 /// Returns (Some(min_val), new_size) on success, (None, size) if heap is empty.
 /// The new_size is always returned so callers don't need to manually track it.
-pub fn heap_pop(
-  xs : FixedArray[Int],
-  size : Int,
-) -> (Int?, Int) {
+pub fn heap_pop(xs : FixedArray[Int], size : Int) -> (Int?, Int) {
   if size <= 0 {
     return (None, 0)
   }
@@ -370,6 +390,7 @@ pub fn heap_pop(
   (Some(min_val), size - 1)
 }
 
+///|
 /// Heap sort: sorts the array in ascending order using a max-heap.
 /// Builds a max-heap, then repeatedly swaps the root (max) to the end
 /// and restores the heap property on the reduced prefix.
@@ -394,13 +415,15 @@ pub fn heap_sort(xs : FixedArray[Int]) -> Unit {
   }
 }
 
+///|
 test "build_heap: basic" {
-  let xs = FixedArray::makei(6, fn(i) { 6 - i })  // [6,5,4,3,2,1]
+  let xs = FixedArray::makei(6, fn(i) { 6 - i }) // [6,5,4,3,2,1]
   let size = build_heap(xs)
   assert_eq(size, 6)
   assert_eq(xs[0], 1)
 }
 
+///|
 test "build_heap: already heap" {
   let xs = FixedArray::make(4, 0)
   xs[0] = 1
@@ -412,6 +435,7 @@ test "build_heap: already heap" {
   assert_eq(xs[0], 1)
 }
 
+///|
 test "heap_push: basic" {
   let xs = FixedArray::make(10, 0)
   xs[0] = 5
@@ -424,15 +448,17 @@ test "heap_push: basic" {
   assert_eq(xs[0], 1)
 }
 
+///|
 test "heap_push: overflow" {
   let xs = FixedArray::make(2, 0)
   xs[0] = 5
-  let size = heap_push(xs, 1, 3)  // fills capacity
+  let size = heap_push(xs, 1, 3) // fills capacity
   assert_eq(size.unwrap(), 2)
-  let overflow = heap_push(xs, 2, 99)  // full!
+  let overflow = heap_push(xs, 2, 99) // full!
   assert_true(overflow is None)
 }
 
+///|
 test "heap_pop: basic" {
   let xs = FixedArray::make(5, 0)
   xs[0] = 1
@@ -446,6 +472,7 @@ test "heap_pop: basic" {
   assert_eq(new_size, 4)
 }
 
+///|
 test "heap_pop: empty" {
   let xs = FixedArray::make(5, 0)
   let (result, new_size) = heap_pop(xs, 0)
@@ -453,6 +480,7 @@ test "heap_pop: empty" {
   assert_eq(new_size, 0)
 }
 
+///|
 test "heap_pop: interleave push" {
   let xs = FixedArray::make(20, 0)
   let mut size = 0
@@ -481,8 +509,9 @@ test "heap_pop: interleave push" {
   assert_eq(r6.unwrap(), 9)
 }
 
+///|
 test "heap_sort: basic" {
-  let xs = FixedArray::makei(6, fn(i) { 6 - i })  // [6,5,4,3,2,1]
+  let xs = FixedArray::makei(6, fn(i) { 6 - i }) // [6,5,4,3,2,1]
   heap_sort(xs)
   assert_eq(xs[0], 1)
   assert_eq(xs[1], 2)
@@ -492,6 +521,7 @@ test "heap_sort: basic" {
   assert_eq(xs[5], 6)
 }
 
+///|
 test "heap_sort: already sorted" {
   let xs = FixedArray::makei(5, fn(i) { i })
   heap_sort(xs)
@@ -500,12 +530,14 @@ test "heap_sort: already sorted" {
   }
 }
 
+///|
 test "heap_sort: empty" {
   let xs = FixedArray::make(0, 0)
   heap_sort(xs)
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "heap_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 })
   heap_sort(xs)
@@ -514,12 +546,14 @@ test "heap_sort: duplicates" {
   }
 }
 
+///|
 test "heap_sort: single" {
   let xs = FixedArray::make(1, 42)
   heap_sort(xs)
   assert_eq(xs[0], 42)
 }
 
+///|
 test "heap_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -540,6 +574,7 @@ test "heap_sort: permutation check" {
   }
 }
 
+///|
 test "Heap: encapsulated push and pop" {
   let h = heap_new(10)
   assert_true(h.heap_is_empty())
@@ -554,6 +589,7 @@ test "Heap: encapsulated push and pop" {
   assert_true(h.heap_is_empty())
 }
 
+///|
 test "Heap: build from array" {
   let h = heap_new(6)
   // Copy values into heap
@@ -568,6 +604,7 @@ test "Heap: build from array" {
   assert_eq(h.heap_pop(), Some(2))
 }
 
+///|
 test "Heap: interleave operations" {
   let h = heap_new(20)
   let _ = h.heap_push(5)
@@ -586,6 +623,7 @@ test "Heap: interleave operations" {
   assert_true(h.heap_pop() is None)
 }
 
+///|
 test "Heap: push to full returns None" {
   let h = heap_new(2)
   assert_true(h.heap_push(5) is Some(_))
@@ -601,6 +639,7 @@ test "Heap: push to full returns None" {
 // HeapG[T] tests
 // ---------------------------------------------------------------------------
 
+///|
 test "HeapG: min-heap basic push and pop" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   assert_true(h.is_empty())
@@ -620,6 +659,7 @@ test "HeapG: min-heap basic push and pop" {
   assert_true(h.pop() is None)
 }
 
+///|
 test "HeapG: max-heap via reversed comparator" {
   let h = HeapG::new(fn(a : Int, b : Int) { b - a })
   h.push(5)
@@ -633,6 +673,7 @@ test "HeapG: max-heap via reversed comparator" {
   assert_eq(h.pop(), Some(1))
 }
 
+///|
 test "HeapG: dynamic resizing (push beyond initial capacity)" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   // Push 100 elements to trigger multiple resizes.
@@ -650,6 +691,7 @@ test "HeapG: dynamic resizing (push beyond initial capacity)" {
   assert_true(h.is_empty())
 }
 
+///|
 test "HeapG: decrease_key (Dijkstra-style)" {
   // Simulate Dijkstra: push (dist, vertex) tuples, then decrease_key a vertex.
   let h = HeapG::new(fn(a : (Int, Int), b : (Int, Int)) { a.0 - b.0 })
@@ -668,6 +710,7 @@ test "HeapG: decrease_key (Dijkstra-style)" {
   assert_eq(r2.0, 10)
 }
 
+///|
 test "HeapG: decrease_key out of bounds returns None" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(5)
@@ -676,6 +719,7 @@ test "HeapG: decrease_key out of bounds returns None" {
   assert_true(h.decrease_key(0, 3) is Some(_))
 }
 
+///|
 test "HeapG: remove by index" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(5)
@@ -696,6 +740,7 @@ test "HeapG: remove by index" {
   }
 }
 
+///|
 test "HeapG: remove out of bounds returns None" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(5)
@@ -703,6 +748,7 @@ test "HeapG: remove out of bounds returns None" {
   assert_true(h.remove(-1) is None)
 }
 
+///|
 test "HeapG: interleave push and pop" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(5)
@@ -720,6 +766,7 @@ test "HeapG: interleave push and pop" {
   assert_true(h.is_empty())
 }
 
+///|
 test "HeapG: large stress test (1000 elements)" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   // Push elements in reverse order.
@@ -733,6 +780,7 @@ test "HeapG: large stress test (1000 elements)" {
   assert_true(h.is_empty())
 }
 
+///|
 test "HeapG: duplicate elements" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(5)
@@ -747,6 +795,7 @@ test "HeapG: duplicate elements" {
   assert_eq(h.pop(), Some(5))
 }
 
+///|
 test "HeapG: single element" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   h.push(42)
@@ -757,6 +806,7 @@ test "HeapG: single element" {
   assert_true(h.peek() is None)
 }
 
+///|
 test "HeapG: empty heap operations" {
   let h = HeapG::new(fn(a : Int, b : Int) { a - b })
   assert_true(h.is_empty())

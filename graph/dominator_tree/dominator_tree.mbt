@@ -24,6 +24,7 @@
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// The dominator tree: maps each vertex to its immediate dominator.
 ///
 /// `idom[v]` is the immediate dominator of `v`. For the root, `idom[root]`
@@ -35,6 +36,7 @@ pub struct DominatorTree {
   priv n : Int
 }
 
+///|
 /// Access the immediate dominator of vertex `v`.
 ///
 /// Returns `Some(d)` where `d` is the immediate dominator, or `None` if
@@ -51,16 +53,19 @@ pub fn idom(tree : DominatorTree, v : Int) -> Int? {
   }
 }
 
+///|
 /// The root vertex of the dominator tree.
 pub fn root(tree : DominatorTree) -> Int {
   tree.root
 }
 
+///|
 /// Number of vertices.
 pub fn vertex_count(tree : DominatorTree) -> Int {
   tree.n
 }
 
+///|
 /// Check whether `d` dominates `v` (d is on every path from root to v).
 pub fn dominates(tree : DominatorTree, d : Int, v : Int) -> Bool {
   if d < 0 || d >= tree.n || v < 0 || v >= tree.n {
@@ -87,6 +92,7 @@ pub fn dominates(tree : DominatorTree, d : Int, v : Int) -> Bool {
 // struct-copy issues)
 // ---------------------------------------------------------------------------
 
+///|
 /// Path compression: relabel along the path from v to ancestor root.
 fn compress(
   ancestor : FixedArray[Int],
@@ -104,6 +110,7 @@ fn compress(
   }
 }
 
+///|
 /// "Eval" operation: find the vertex with minimum sdom on the path.
 fn eval(
   ancestor : FixedArray[Int],
@@ -119,6 +126,7 @@ fn eval(
   }
 }
 
+///|
 /// Build the dominator tree of a flow graph rooted at `root`.
 ///
 /// # Parameters
@@ -135,7 +143,7 @@ pub fn build_dominator_tree(
   root : Int,
 ) -> DominatorTree {
   if n <= 0 || root < 0 || root >= n {
-    return DominatorTree::{ idom : FixedArray::make(0, 0), root : -1, n : 0 }
+    return DominatorTree::{ idom: FixedArray::make(0, 0), root: -1, n: 0 }
   }
   // Phase 1: DFS to compute discovery order
   let dfs_num = FixedArray::make(n, -1) // dfs_num[v] = discovery index
@@ -168,7 +176,7 @@ pub fn build_dominator_tree(
   }
   // If root unreachable (shouldn't happen)
   if dfs_num[root] == -1 {
-    return DominatorTree::{ idom : FixedArray::make(n, -1), root, n }
+    return DominatorTree::{ idom: FixedArray::make(n, -1), root, n }
   }
   // Build reverse adjacency for predecessor lookup
   let radj : Array[Array[Int]] = Array::makei(n, fn(_i) { [] })
@@ -249,9 +257,10 @@ pub fn build_dominator_tree(
     i = i + 1
   }
   idom_arr[root] = root
-  DominatorTree::{ idom : idom_arr, root, n }
+  DominatorTree::{ idom: idom_arr, root, n }
 }
 
+///|
 /// Convenience wrapper accepting `Array[Array[Int]]`.
 pub fn build_dominator_tree_arr(
   adj : Array[Array[Int]],
@@ -269,6 +278,7 @@ pub fn build_dominator_tree_arr(
 // O(V * (V + E)) — simple, correct, used only for cross-checking.
 // ---------------------------------------------------------------------------
 
+///|
 /// Check if `v` is reachable from `root` in the graph when `blocked` is
 /// excluded.
 fn is_reachable_excluding(
@@ -304,6 +314,7 @@ fn is_reachable_excluding(
   false
 }
 
+///|
 /// Compute dominators by brute force.
 /// For each vertex v, d dominates v iff removing d makes v unreachable
 /// from root. The immediate dominator is the dominator (other than v)
@@ -390,6 +401,7 @@ fn build_dominators_brute(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dominator_tree: simple chain 0→1→2→3" {
   let adj : Array[Array[Int]] = [[1], [2], [3], []]
   let dt = build_dominator_tree_arr(adj, 4, 0)
@@ -399,6 +411,7 @@ test "dominator_tree: simple chain 0→1→2→3" {
   assert_eq(idom(dt, 3), Some(2))
 }
 
+///|
 test "dominator_tree: diamond 0→{1,2}→3" {
   let adj : Array[Array[Int]] = [[1, 2], [3], [3], []]
   let dt = build_dominator_tree_arr(adj, 4, 0)
@@ -408,6 +421,7 @@ test "dominator_tree: diamond 0→{1,2}→3" {
   assert_eq(idom(dt, 3), Some(0))
 }
 
+///|
 test "dominator_tree: unreachable vertices" {
   let adj : Array[Array[Int]] = [[1], [], []]
   let dt = build_dominator_tree_arr(adj, 3, 0)
@@ -416,6 +430,7 @@ test "dominator_tree: unreachable vertices" {
   assert_eq(idom(dt, 2), None)
 }
 
+///|
 test "dominator_tree: dominates relation" {
   let adj : Array[Array[Int]] = [[1, 2], [2], []]
   let dt = build_dominator_tree_arr(adj, 3, 0)
@@ -425,6 +440,7 @@ test "dominator_tree: dominates relation" {
   assert_false(dominates(dt, 1, 2))
 }
 
+///|
 test "dominator_tree: cross-check with brute force" {
   let adj : Array[Array[Int]] = [[1, 2], [3, 4], [3, 4], [4], []]
   let n = 5
@@ -439,14 +455,15 @@ test "dominator_tree: cross-check with brute force" {
   }
 }
 
+///|
 test "dominator_tree: complex graph cross-check" {
   let adj : Array[Array[Int]] = [
     [1, 5], // 0
     [2, 4], // 1
-    [3],    // 2
-    [4],    // 3
-    [2],    // 4 (back edge to 2)
-    [3],    // 5
+    [3], // 2
+    [4], // 3
+    [2], // 4 (back edge to 2)
+    [3], // 5
   ]
   let n = 6
   let dt = build_dominator_tree_arr(adj, n, 0)
@@ -460,12 +477,14 @@ test "dominator_tree: complex graph cross-check" {
   }
 }
 
+///|
 test "dominator_tree: empty graph" {
   let adj : Array[Array[Int]] = []
   let dt = build_dominator_tree_arr(adj, 0, 0)
   assert_eq(vertex_count(dt), 0)
 }
 
+///|
 test "dominator_tree: single vertex" {
   let adj : Array[Array[Int]] = [[]]
   let dt = build_dominator_tree_arr(adj, 1, 0)
@@ -473,6 +492,7 @@ test "dominator_tree: single vertex" {
   assert_true(dominates(dt, 0, 0))
 }
 
+///|
 test "dominator_tree: branching graph" {
   let adj : Array[Array[Int]] = [[1, 2], [3], [3], [4], []]
   let dt = build_dominator_tree_arr(adj, 5, 0)
@@ -483,15 +503,9 @@ test "dominator_tree: branching graph" {
   assert_false(dominates(dt, 1, 4))
 }
 
+///|
 test "dominator_tree: larger cross-check" {
-  let adj : Array[Array[Int]] = [
-    [1, 2, 5],
-    [3, 4],
-    [3, 4],
-    [5],
-    [5],
-    [],
-  ]
+  let adj : Array[Array[Int]] = [[1, 2, 5], [3, 4], [3, 4], [5], [5], []]
   let n = 6
   let dt = build_dominator_tree_arr(adj, n, 0)
   let brute = build_dominators_brute(

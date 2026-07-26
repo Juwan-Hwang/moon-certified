@@ -50,6 +50,7 @@
 // Result type
 // ---------------------------------------------------------------------------
 
+///|
 /// Outcome of [`solve`].
 pub enum SimplexResult {
   /// An optimal basic feasible solution was found.
@@ -67,11 +68,13 @@ pub enum SimplexResult {
 // Tableau
 // ---------------------------------------------------------------------------
 
+///|
 /// Absolute tolerance for treating a tableau entry as zero. Pivot
 /// selection, the ratio test, and the Phase-1 feasibility check all
 /// compare against `EPS`.
 const EPS : Double = 1.0e-9
 
+///|
 /// Internal simplex tableau.
 ///
 /// Row `0` is the objective row: columns `0..ncols-1` hold the reduced
@@ -90,6 +93,7 @@ priv struct Tableau {
   num_art : Int
 }
 
+///|
 /// Build the initial tableau for `max c^T x s.t. A x <= b, x >= 0`.
 ///
 /// Each constraint gets one slack/surplus in column `n + i`. Constraints
@@ -144,6 +148,7 @@ fn Tableau::build(
   { tab, basis, artificial, ncols, m, n, num_art }
 }
 
+///|
 /// Reset the objective row to `cost` and eliminate every basic column so
 /// that the reduced cost of each basic variable is zero. After this call
 /// `tab[ncols]` (row 0, RHS) equals `-z`, the negated objective value at
@@ -165,6 +170,7 @@ fn Tableau::price_out(self : Tableau, cost : Array[Double]) -> Unit {
   }
 }
 
+///|
 /// Pivot on constraint row `row` (1-indexed) and entering column `col`.
 ///
 /// Normalizes the pivot row by its entering-column entry, then eliminates
@@ -191,6 +197,7 @@ fn Tableau::pivot(self : Tableau, row : Int, col : Int) -> Unit {
   self.basis[row - 1] = col
 }
 
+///|
 /// Bland's rule for the entering variable: the smallest column index with
 /// a strictly positive reduced cost, skipping artificial columns. Returns
 /// `-1` when no column can improve the objective (optimum reached).
@@ -203,6 +210,7 @@ fn Tableau::entering(self : Tableau) -> Int {
   -1
 }
 
+///|
 /// Minimum-ratio test with Bland's tie-break.
 ///
 /// Among constraint rows with a positive entry in `col`, pick the one
@@ -221,8 +229,8 @@ fn Tableau::leaving(self : Tableau, col : Int) -> Int {
       let ratio = rhs / entry
       let bv = self.basis[i]
       if best_row < 0 ||
-         ratio < best_ratio - EPS ||
-         (ratio < best_ratio + EPS && bv < best_basis) {
+        ratio < best_ratio - EPS ||
+        (ratio < best_ratio + EPS && bv < best_basis) {
         best_row = i + 1
         best_ratio = ratio
         best_basis = bv
@@ -232,6 +240,7 @@ fn Tableau::leaving(self : Tableau, col : Int) -> Int {
   best_row
 }
 
+///|
 /// Run primal simplex iterations until optimal or unbounded.
 ///
 /// Returns `true` on optimum, `false` on an unbounded ray. Bland's rule on
@@ -255,6 +264,7 @@ fn Tableau::simplex(self : Tableau) -> Bool {
   !unbounded
 }
 
+///|
 /// After a successful Phase 1, drive out any artificial that is still
 /// basic (necessarily at value zero).
 ///
@@ -268,8 +278,7 @@ fn Tableau::drive_out_artificials(self : Tableau) -> Unit {
     if self.artificial[self.basis[i]] {
       let mut pivot_col = -1
       for j = 0; j < self.ncols; j = j + 1 {
-        if !self.artificial[j] &&
-           self.tab[(i + 1) * width + j].abs() > EPS {
+        if !self.artificial[j] && self.tab[(i + 1) * width + j].abs() > EPS {
           pivot_col = j
           break
         }
@@ -285,6 +294,7 @@ fn Tableau::drive_out_artificials(self : Tableau) -> Unit {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve `max c^T x` subject to `A x <= b`, `x >= 0`.
 ///
 /// `c` is the length-`n` cost vector, `a` is the `m x n` constraint matrix
@@ -374,6 +384,7 @@ pub fn solve(
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Tolerant equality for `Double`: passes within an absolute bound of
 /// `1e-6` or a relative bound of `1e-6` of the combined magnitudes.
 fn approx_eq(a : Double, b : Double) -> Bool {
@@ -381,6 +392,7 @@ fn approx_eq(a : Double, b : Double) -> Bool {
   diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
 }
 
+///|
 /// Assert `a ~= b` for `Double`, aborting with both values on failure.
 fn assert_approx(a : Double, b : Double) -> Unit {
   if !approx_eq(a, b) {
@@ -388,6 +400,7 @@ fn assert_approx(a : Double, b : Double) -> Unit {
   }
 }
 
+///|
 /// Assert that `r` is `Optimal` with the given objective and solution.
 fn assert_optimal(
   r : SimplexResult,
@@ -407,6 +420,7 @@ fn assert_optimal(
   }
 }
 
+///|
 /// True iff `sol` satisfies `A x <= b` (within tolerance) and `x >= 0`.
 fn feasible(
   a : Array[Array[Double]],
@@ -430,6 +444,7 @@ fn feasible(
   true
 }
 
+///|
 /// Evaluate `c^T sol`.
 fn eval_objective(c : Array[Double], sol : Array[Double]) -> Double {
   let mut s = 0.0
@@ -443,6 +458,7 @@ fn eval_objective(c : Array[Double], sol : Array[Double]) -> Double {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "simplex: simple maximization" {
   // max 40 x1 + 30 x2  s.t.  x1 + x2 <= 12,  2 x1 + x2 <= 16.
   // Unique optimum at (4, 8) with objective 400.
@@ -450,6 +466,7 @@ test "simplex: simple maximization" {
   assert_optimal(r, 400.0, [4.0, 8.0])
 }
 
+///|
 test "simplex: minimization via negated objective" {
   // min 2 x1 + 3 x2  s.t.  x1 + x2 >= 1,  equivalently  max -2 x1 - 3 x2.
   // Unique optimum at (1, 0); min value 2 == -(max objective -2).
@@ -457,12 +474,14 @@ test "simplex: minimization via negated objective" {
   assert_optimal(r, -2.0, [1.0, 0.0])
 }
 
+///|
 test "simplex: infeasible problem" {
   // x1 + x2 <= 1  and  x1 + x2 >= 3  cannot both hold.
   let r = solve([1.0, 1.0], [[1.0, 1.0], [-1.0, -1.0]], [1.0, -3.0])
   assert_true(r is Infeasible)
 }
 
+///|
 test "simplex: unbounded problem" {
   // max x1 + x2  s.t.  x1 - x2 <= 1.  Setting x2 = t, x1 = t + 1 keeps
   // the constraint tight for all t >= 0 while the objective 2 t + 1 -> inf.
@@ -470,6 +489,7 @@ test "simplex: unbounded problem" {
   assert_true(r is Unbounded)
 }
 
+///|
 test "simplex: degenerate problem terminates via Bland's rule" {
   // max x1 + x2  s.t.  x1 + x2 <= 2,  2 x1 + 2 x2 <= 4 (redundant),
   //                     x1 <= 1.
@@ -492,6 +512,7 @@ test "simplex: degenerate problem terminates via Bland's rule" {
   }
 }
 
+///|
 test "simplex: equality constraint" {
   // max x1  s.t.  x1 + x2 = 2,  x1, x2 >= 0.
   // Encoded as  x1 + x2 <= 2  and  -x1 - x2 <= -2  (i.e. x1 + x2 >= 2).
@@ -500,30 +521,29 @@ test "simplex: equality constraint" {
   assert_optimal(r, 2.0, [2.0, 0.0])
 }
 
+///|
 test "simplex: multiple constraints" {
   // max 4 x1 + 5 x2  s.t.  2 x1 + 3 x2 <= 6,  2 x1 + x2 <= 4,
   //                         x1 <= 2,  x2 <= 2.
   // Unique optimum at (1.5, 1) with objective 11.
-  let r = solve(
-    [4.0, 5.0],
-    [[2.0, 3.0], [2.0, 1.0], [1.0, 0.0], [0.0, 1.0]],
-    [6.0, 4.0, 2.0, 2.0],
-  )
+  let r = solve([4.0, 5.0], [[2.0, 3.0], [2.0, 1.0], [1.0, 0.0], [0.0, 1.0]], [
+    6.0, 4.0, 2.0, 2.0,
+  ])
   assert_optimal(r, 11.0, [1.5, 1.0])
 }
 
+///|
 test "simplex: known textbook example (Giapetto)" {
   // Winston, Operations Research: max 3 x1 + 2 x2  s.t.
   //   2 x1 + x2 <= 100,  x1 + x2 <= 80,  x1 <= 40.
   // Unique optimum at (20, 60) with objective 180.
-  let r = solve(
-    [3.0, 2.0],
-    [[2.0, 1.0], [1.0, 1.0], [1.0, 0.0]],
-    [100.0, 80.0, 40.0],
-  )
+  let r = solve([3.0, 2.0], [[2.0, 1.0], [1.0, 1.0], [1.0, 0.0]], [
+    100.0, 80.0, 40.0,
+  ])
   assert_optimal(r, 180.0, [20.0, 60.0])
 }
 
+///|
 test "simplex: single variable with lower and upper bounds" {
   // max 5 x  s.t.  x <= 3,  x >= 1  <=>  -x <= -1.
   // Unique optimum at x = 3 with objective 15 (Phase 1 needed for x >= 1).
@@ -531,13 +551,12 @@ test "simplex: single variable with lower and upper bounds" {
   assert_optimal(r, 15.0, [3.0])
 }
 
+///|
 test "simplex: Phase 1 with a >= constraint and bounded variables" {
   // max 2 x1 + 3 x2  s.t.  x1 + x2 >= 2,  x1 <= 3,  x2 <= 3.
   // Unique optimum at (3, 3) with objective 15.
-  let r = solve(
-    [2.0, 3.0],
-    [[-1.0, -1.0], [1.0, 0.0], [0.0, 1.0]],
-    [-2.0, 3.0, 3.0],
-  )
+  let r = solve([2.0, 3.0], [[-1.0, -1.0], [1.0, 0.0], [0.0, 1.0]], [
+    -2.0, 3.0, 3.0,
+  ])
   assert_optimal(r, 15.0, [3.0, 3.0])
 }

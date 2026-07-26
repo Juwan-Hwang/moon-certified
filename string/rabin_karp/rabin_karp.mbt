@@ -20,12 +20,15 @@
 /// Time complexity: O(n + m) average, O(n·m) worst-case (adversarial input
 /// with many hash collisions).
 
+///|
 /// Polynomial rolling-hash constants.
 /// `RK_BASE = 256` matches the byte alphabet; `RK_MOD` is a large prime.
 const RK_BASE : Int64 = 256L
 
+///|
 const RK_MOD : Int64 = 1000000007L
 
+///|
 /// Fast modular exponentiation: base^exp mod `RK_MOD`.
 /// Uses binary decomposition (square-and-multiply) in O(log exp).
 fn rk_pow(base : Int64, exp : Int) -> Int64 {
@@ -42,6 +45,7 @@ fn rk_pow(base : Int64, exp : Int) -> Int64 {
   result
 }
 
+///|
 /// Compute the polynomial hash of `s[start .. start+len)` (byte-level).
 /// hash = s[start]·B^(len-1) + s[start+1]·B^(len-2) + … + s[start+len-1]  (mod M)
 fn rk_hash(s : String, start : Int, len : Int) -> Int64 {
@@ -52,6 +56,7 @@ fn rk_hash(s : String, start : Int, len : Int) -> Int64 {
   h
 }
 
+///|
 /// Roll the hash one position to the right.
 /// Removes the contribution of `old_byte` (which occupied the most-significant
 /// position) and appends `new_byte` at the least-significant position.
@@ -63,6 +68,7 @@ fn rk_roll(h : Int64, old_byte : Int, new_byte : Int, power : Int64) -> Int64 {
   (removed * RK_BASE + new_c) % RK_MOD
 }
 
+///|
 /// Byte-level verification: check whether `text[start .. start+m)` equals
 /// `pattern`.  Called on every hash match to eliminate false positives.
 fn rk_verify(text : String, pattern : String, start : Int, m : Int) -> Bool {
@@ -74,6 +80,7 @@ fn rk_verify(text : String, pattern : String, start : Int, m : Int) -> Bool {
   true
 }
 
+///|
 /// Search for `pattern` in `text` using the Rabin-Karp algorithm.
 /// Returns `Some(index)` of the first occurrence, or `None` if not found.
 ///
@@ -99,7 +106,12 @@ pub fn rk_search(text : String, pattern : String) -> Int? {
   }
   // Slide the window across the text
   for i = 1; i <= n - m; i = i + 1 {
-    hash_t = rk_roll(hash_t, text[i - 1].to_int(), text[i + m - 1].to_int(), power)
+    hash_t = rk_roll(
+      hash_t,
+      text[i - 1].to_int(),
+      text[i + m - 1].to_int(),
+      power,
+    )
     if hash_t == hash_p && rk_verify(text, pattern, i, m) {
       return Some(i)
     }
@@ -107,6 +119,7 @@ pub fn rk_search(text : String, pattern : String) -> Int? {
   None
 }
 
+///|
 /// Search for all occurrences of `pattern` in `text`.
 /// Returns a `FixedArray` of starting indices (possibly empty).
 ///
@@ -129,7 +142,12 @@ pub fn rk_search_all(text : String, pattern : String) -> FixedArray[Int] {
   }
   // Slide the window across the text
   for i = 1; i <= n - m; i = i + 1 {
-    hash_t = rk_roll(hash_t, text[i - 1].to_int(), text[i + m - 1].to_int(), power)
+    hash_t = rk_roll(
+      hash_t,
+      text[i - 1].to_int(),
+      text[i + m - 1].to_int(),
+      power,
+    )
     if hash_t == hash_p && rk_verify(text, pattern, i, m) {
       result.push(i)
     }
@@ -141,55 +159,66 @@ pub fn rk_search_all(text : String, pattern : String) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "rk_search: basic match" {
   assert_eq(rk_search("hello world", "world"), Some(6))
   assert_eq(rk_search("hello world", "hello"), Some(0))
 }
 
+///|
 test "rk_search: no match" {
   assert_true(rk_search("hello world", "xyz") is None)
 }
 
+///|
 test "rk_search: empty pattern" {
   assert_true(rk_search("hello", "") is None)
   assert_true(rk_search("", "") is None)
 }
 
+///|
 test "rk_search: empty text" {
   assert_true(rk_search("", "abc") is None)
 }
 
+///|
 test "rk_search: pattern longer than text" {
   assert_true(rk_search("hi", "hello") is None)
   assert_true(rk_search("abc", "abcdef") is None)
 }
 
+///|
 test "rk_search: multiple matches returns first" {
   assert_eq(rk_search("abababab", "abab"), Some(0))
   assert_eq(rk_search("abcabcabc", "abc"), Some(0))
 }
 
+///|
 test "rk_search: overlapping matches" {
   assert_eq(rk_search("AAAAAA", "AAAA"), Some(0))
   assert_eq(rk_search("aabaaaabaa", "aabaa"), Some(0))
 }
 
+///|
 test "rk_search: single char pattern" {
   assert_eq(rk_search("abcdef", "d"), Some(3))
   assert_true(rk_search("abcdef", "z") is None)
   assert_eq(rk_search("a", "a"), Some(0))
 }
 
+///|
 test "rk_search: full string match" {
   assert_eq(rk_search("hello", "hello"), Some(0))
 }
 
+///|
 test "rk_search: match at end" {
   assert_eq(rk_search("abcdefghij", "hij"), Some(7))
   assert_eq(rk_search("abcdefghij", "ij"), Some(8))
   assert_eq(rk_search("abcdefghij", "j"), Some(9))
 }
 
+///|
 test "rk_search: large text" {
   let mut text = ""
   for i = 0; i < 67; i = i + 1 {
@@ -201,6 +230,7 @@ test "rk_search: large text" {
   assert_eq(rk_search(text, "abcXYZ"), Some(198))
 }
 
+///|
 test "rk_search: hash collision verification" {
   let prefix = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   let text = prefix + "ab"
@@ -208,6 +238,7 @@ test "rk_search: hash collision verification" {
   assert_eq(rk_search(text, pattern), Some(prefix.length()))
 }
 
+///|
 test "rk_search_all: basic multiple matches" {
   let result = rk_search_all("abababab", "ab")
   assert_eq(result.length(), 4)
@@ -217,6 +248,7 @@ test "rk_search_all: basic multiple matches" {
   assert_eq(result[3], 6)
 }
 
+///|
 test "rk_search_all: overlapping matches" {
   let result = rk_search_all("aaaa", "aa")
   assert_eq(result.length(), 3)
@@ -225,33 +257,39 @@ test "rk_search_all: overlapping matches" {
   assert_eq(result[2], 2)
 }
 
+///|
 test "rk_search_all: no match" {
   let result = rk_search_all("hello world", "xyz")
   assert_eq(result.length(), 0)
 }
 
+///|
 test "rk_search_all: single occurrence" {
   let result = rk_search_all("hello world", "world")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 6)
 }
 
+///|
 test "rk_search_all: full string match" {
   let result = rk_search_all("hello", "hello")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 0)
 }
 
+///|
 test "rk_search_all: empty pattern returns empty" {
   let result = rk_search_all("hello", "")
   assert_eq(result.length(), 0)
 }
 
+///|
 test "rk_search_all: pattern longer than text returns empty" {
   let result = rk_search_all("hi", "hello")
   assert_eq(result.length(), 0)
 }
 
+///|
 test "rk_search_all: large text with periodic matches" {
   // 100 repetitions of "ab" = "ababab...ab" (200 chars)
   let mut text = ""
@@ -265,28 +303,33 @@ test "rk_search_all: large text with periodic matches" {
   }
 }
 
+///|
 test "rk_search_all: match at very end" {
   let result = rk_search_all("abcdefghijxyz", "xyz")
   assert_eq(result.length(), 1)
   assert_eq(result[0], 10)
 }
 
+///|
 test "rk_pow: basic" {
   assert_eq(rk_pow(256L, 0), 1L)
   assert_eq(rk_pow(256L, 1), 256L)
   assert_eq(rk_pow(256L, 2), 65536L)
 }
 
+///|
 test "rk_hash: single char" {
   // hash("a") = 97
   assert_eq(rk_hash("a", 0, 1), 97L)
 }
 
+///|
 test "rk_hash: two chars" {
   // hash("ab") = 97 * 256 + 98 = 24930
   assert_eq(rk_hash("ab", 0, 2), 24930L)
 }
 
+///|
 test "rk_roll: consistency with rehash" {
   // Rolling hash over "hello" with window 3 should match re-computed hashes.
   let s = "hello"

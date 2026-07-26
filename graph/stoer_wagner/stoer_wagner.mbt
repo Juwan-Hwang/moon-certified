@@ -33,6 +33,7 @@
 // Graph representation
 // ---------------------------------------------------------------------------
 
+///|
 /// A weighted undirected graph using an adjacency matrix.
 ///
 /// `weight[i][j]` is the weight of the edge between `i` and `j` (0 if no edge).
@@ -42,14 +43,14 @@ pub struct WeightedGraph {
   weight : Array[Array[Int]] // adjacency matrix
 }
 
+///|
 /// Create a new weighted graph with `n` vertices and no edges.
 pub fn new_graph(n : Int) -> WeightedGraph {
-  let weight : Array[Array[Int]] = Array::makei(n, fn(_) {
-    Array::make(n, 0)
-  })
+  let weight : Array[Array[Int]] = Array::makei(n, fn(_) { Array::make(n, 0) })
   { n, weight }
 }
 
+///|
 /// Add an undirected edge between `u` and `v` with weight `w`.
 ///
 /// If an edge already exists, the weight is added (multi-edges are merged).
@@ -65,9 +66,11 @@ pub fn add_edge(graph : WeightedGraph, u : Int, v : Int, w : Int) -> Unit {
 // Stoer-Wagner algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Maximum weight sentinel for comparison initialization.
 const NEG_INF : Int = -1_000_000_000
 
+///|
 /// Run one phase of the Stoer-Wagner algorithm.
 ///
 /// Given the current graph state (with `merged[]` marking contracted vertices),
@@ -142,6 +145,7 @@ fn min_cut_phase(
   (s, t, cut)
 }
 
+///|
 /// Merge vertex `s` into vertex `t`: combine their edge weights.
 fn merge_vertices(
   weight : Array[Array[Int]],
@@ -159,6 +163,7 @@ fn merge_vertices(
   merged[s] = true
 }
 
+///|
 /// Compute the global minimum cut of a weighted undirected graph.
 ///
 /// Returns the minimum cut value, or 0 if the graph has fewer than 2 vertices.
@@ -203,6 +208,7 @@ pub fn global_min_cut(graph : WeightedGraph) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "stoer_wagner: triangle" {
   // Triangle with equal weights: min cut = 2 (cut one edge on each side)
   let g = new_graph(3)
@@ -212,6 +218,7 @@ test "stoer_wagner: triangle" {
   assert_eq(global_min_cut(g), 2)
 }
 
+///|
 test "stoer_wagner: path graph" {
   // Path: 0 - 1 - 2 - 3, all weight 1
   // Min cut = 1 (cut any single edge)
@@ -222,6 +229,7 @@ test "stoer_wagner: path graph" {
   assert_eq(global_min_cut(g), 1)
 }
 
+///|
 test "stoer_wagner: two cliques" {
   // Two triangles connected by a single edge of weight 1.
   // Vertices: 0,1,2 (clique) and 3,4,5 (clique), edge 2-3 weight 1.
@@ -240,12 +248,14 @@ test "stoer_wagner: two cliques" {
   assert_eq(global_min_cut(g), 1)
 }
 
+///|
 test "stoer_wagner: single edge" {
   let g = new_graph(2)
   add_edge(g, 0, 1, 5)
   assert_eq(global_min_cut(g), 5)
 }
 
+///|
 test "stoer_wagner: weighted path" {
   // Path: 0 - 5 - 1 - 3 - 2 - 7 - 3
   // Min cut = 3 (the minimum weight edge)
@@ -256,6 +266,7 @@ test "stoer_wagner: weighted path" {
   assert_eq(global_min_cut(g), 3)
 }
 
+///|
 test "stoer_wagner: complete graph K4" {
   // K4: all edges weight 1.
   // Min cut = 3 (isolating any single vertex requires cutting 3 edges).
@@ -268,6 +279,7 @@ test "stoer_wagner: complete graph K4" {
   assert_eq(global_min_cut(g), 3)
 }
 
+///|
 test "stoer_wagner: multi-edge" {
   // Triangle: 0-1 weight 3, 0-2 weight 3, 1-2 weight 2
   // Min cut = min(3+3, 3+2, 3+2) = 5 (isolate vertex 1 or 2)
@@ -278,6 +290,7 @@ test "stoer_wagner: multi-edge" {
   assert_eq(global_min_cut(g), 5)
 }
 
+///|
 test "stoer_wagner: star graph" {
   // Star: center 0 connected to 1,2,3,4 each with weight 1
   // Min cut = 1 (cut any single edge to isolate a leaf)
@@ -289,12 +302,14 @@ test "stoer_wagner: star graph" {
   assert_eq(global_min_cut(g), 1)
 }
 
+///|
 test "stoer_wagner: two vertices" {
   let g = new_graph(2)
   add_edge(g, 0, 1, 100)
   assert_eq(global_min_cut(g), 100)
 }
 
+///|
 test "stoer_wagner: larger graph" {
   // Graph where min cut is clearly defined.
   // Two groups of 3 vertices, connected by 2 edges of weight 2 each.

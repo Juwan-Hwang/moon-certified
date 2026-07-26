@@ -30,16 +30,19 @@
 // GF(2^8) field arithmetic
 // ---------------------------------------------------------------------------
 
+///|
 /// Primitive polynomial for GF(2^8): x^8 + x^4 + x^3 + x^2 + 1 = 0x11D.
 const GF_PRIMITIVE : Int = 0x11D
 
+///|
 /// GF(2^8) field: 256-element Galois field.
 /// Uses log/antilog tables for fast multiplication.
 pub struct GF256 {
-  priv exp_table : FixedArray[Int]  // exp[i] = α^i
-  priv log_table : FixedArray[Int]  // log[i] = log_α(i)
+  priv exp_table : FixedArray[Int] // exp[i] = α^i
+  priv log_table : FixedArray[Int] // log[i] = log_α(i)
 }
 
+///|
 /// Create a GF(2^8) field.
 pub fn gf256_new() -> GF256 {
   let exp = FixedArray::make(512, 0) // doubled for easy modular arithmetic
@@ -57,19 +60,22 @@ pub fn gf256_new() -> GF256 {
   for i = 255; i < 512; i = i + 1 {
     exp[i] = exp[i - 255]
   }
-  GF256::{ exp_table : exp, log_table : log }
+  GF256::{ exp_table: exp, log_table: log }
 }
 
+///|
 /// Add two field elements (XOR in GF(2^m)).
 pub fn gf_add(_gf : GF256, a : Int, b : Int) -> Int {
   a ^ b
 }
 
+///|
 /// Subtract two field elements (same as add in GF(2^m)).
 pub fn gf_sub(gf : GF256, a : Int, b : Int) -> Int {
   gf_add(gf, a, b)
 }
 
+///|
 /// Multiply two field elements.
 pub fn gf_mul(gf : GF256, a : Int, b : Int) -> Int {
   if a == 0 || b == 0 {
@@ -79,6 +85,7 @@ pub fn gf_mul(gf : GF256, a : Int, b : Int) -> Int {
   }
 }
 
+///|
 /// Divide two field elements.
 pub fn gf_div(gf : GF256, a : Int, b : Int) -> Int {
   if a == 0 {
@@ -90,6 +97,7 @@ pub fn gf_div(gf : GF256, a : Int, b : Int) -> Int {
   }
 }
 
+///|
 /// Power: a^exp in the field.
 pub fn gf_pow(gf : GF256, a : Int, exp : Int) -> Int {
   if a == 0 {
@@ -99,10 +107,11 @@ pub fn gf_pow(gf : GF256, a : Int, exp : Int) -> Int {
       0
     }
   } else {
-    gf.exp_table[(gf.log_table[a] * exp) % 255]
+    gf.exp_table[gf.log_table[a] * exp % 255]
   }
 }
 
+///|
 /// Inverse of a field element.
 pub fn gf_inv(gf : GF256, a : Int) -> Int {
   if a == 0 {
@@ -116,8 +125,13 @@ pub fn gf_inv(gf : GF256, a : Int) -> Int {
 // Polynomial operations over GF(256)
 // ---------------------------------------------------------------------------
 
+///|
 /// Polynomial multiplication (convolution).
-fn poly_mul(gf : GF256, a : FixedArray[Int], b : FixedArray[Int]) -> FixedArray[Int] {
+fn poly_mul(
+  gf : GF256,
+  a : FixedArray[Int],
+  b : FixedArray[Int],
+) -> FixedArray[Int] {
   let la = a.length()
   let lb = b.length()
   let result = FixedArray::make(la + lb - 1, 0)
@@ -129,6 +143,7 @@ fn poly_mul(gf : GF256, a : FixedArray[Int], b : FixedArray[Int]) -> FixedArray[
   result
 }
 
+///|
 /// Polynomial division: returns (quotient, remainder).
 fn poly_div(
   gf : GF256,
@@ -162,6 +177,7 @@ fn poly_div(
   (quot, rem_trimmed)
 }
 
+///|
 /// Evaluate polynomial at point x using Horner's method.
 fn poly_eval(gf : GF256, coeffs : FixedArray[Int], x : Int) -> Int {
   let mut result = 0
@@ -175,6 +191,7 @@ fn poly_eval(gf : GF256, coeffs : FixedArray[Int], x : Int) -> Int {
 // Reed-Solomon encoder
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the generator polynomial for t error-correction symbols.
 /// g(x) = (x - α^0)(x - α^1)...(x - α^(t-1))
 /// In GF(2^m), subtraction = addition, so each factor is (x + α^i).
@@ -191,6 +208,7 @@ fn build_generator(gf : GF256, t : Int) -> FixedArray[Int] {
   g
 }
 
+///|
 /// Reed-Solomon encoder for GF(256).
 ///
 /// Encodes `k` data symbols into `n = k + 2*t` symbols (data + parity).
@@ -201,7 +219,11 @@ fn build_generator(gf : GF256, t : Int) -> FixedArray[Int] {
 ///
 /// # Returns
 /// The full codeword (data followed by parity symbols).
-pub fn rs_encode(gf : GF256, data : FixedArray[Int], t : Int) -> FixedArray[Int] {
+pub fn rs_encode(
+  gf : GF256,
+  data : FixedArray[Int],
+  t : Int,
+) -> FixedArray[Int] {
   let k = data.length()
   let n = k + 2 * t
   // Generator polynomial.
@@ -233,6 +255,7 @@ pub fn rs_encode(gf : GF256, data : FixedArray[Int], t : Int) -> FixedArray[Int]
 // Reed-Solomon decoder (Berlekamp-Massey + Chien + Forney)
 // ---------------------------------------------------------------------------
 
+///|
 /// Reed-Solomon decoder for GF(256).
 ///
 /// Attempts to decode the received codeword, correcting up to `t` symbol
@@ -296,7 +319,11 @@ pub fn rs_decode(
   let s_poly = FixedArray::makei(nsym, fn(i) { syndromes[i] })
   // ω(x) = S(x) * Λ(x) mod x^nsym
   let omega_full = poly_mul(gf, s_poly, err_loc)
-  let omega_len = if nsym < omega_full.length() { nsym } else { omega_full.length() }
+  let omega_len = if nsym < omega_full.length() {
+    nsym
+  } else {
+    omega_full.length()
+  }
   let omega = FixedArray::make(omega_len, 0)
   for i = 0; i < omega_len; i = i + 1 {
     omega[i] = omega_full[i]
@@ -340,6 +367,7 @@ pub fn rs_decode(
   Some(FixedArray::makei(k, fn(i) { corrected[2 * t + i] }))
 }
 
+///|
 /// Berlekamp-Massey algorithm to find the error locator polynomial.
 ///
 /// Standard implementation with explicit degree L tracking.
@@ -400,6 +428,7 @@ fn berlekamp_massey(gf : GF256, syndromes : FixedArray[Int]) -> FixedArray[Int] 
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "gf256: basic operations" {
   let gf = gf256_new()
   assert_eq(gf_add(gf, 5, 3), 6) // 5 XOR 3 = 6
@@ -413,65 +442,78 @@ test "gf256: basic operations" {
   assert_eq(gf_mul(gf, 2, gf_inv(gf, 2)), 1)
 }
 
+///|
 test "rs: encode and decode no errors" {
   let gf = gf256_new()
   let data = FixedArray::make(4, 0)
-  data[0] = 32; data[1] = 64; data[2] = 96; data[3] = 128
+  data[0] = 32
+  data[1] = 64
+  data[2] = 96
+  data[3] = 128
   let t = 2 // correct up to 2 errors
   let codeword = rs_encode(gf, data, t)
   assert_eq(codeword.length(), 4 + 2 * t)
   // Decode with no errors.
   match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => assert_true(false)
   }
 }
 
+///|
 test "rs: correct single error" {
   let gf = gf256_new()
   let data = FixedArray::make(4, 0)
-  data[0] = 32; data[1] = 64; data[2] = 96; data[3] = 128
+  data[0] = 32
+  data[1] = 64
+  data[2] = 96
+  data[3] = 128
   let t = 2
   let codeword = rs_encode(gf, data, t)
   // Introduce one error.
   codeword[2] = codeword[2] ^ 0x55
   match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => abort("should have corrected the error")
   }
 }
 
+///|
 test "rs: correct two errors" {
   let gf = gf256_new()
   let data = FixedArray::make(4, 0)
-  data[0] = 10; data[1] = 20; data[2] = 30; data[3] = 40
+  data[0] = 10
+  data[1] = 20
+  data[2] = 30
+  data[3] = 40
   let t = 2
   let codeword = rs_encode(gf, data, t)
   // Introduce two errors.
   codeword[1] = codeword[1] ^ 0x33
   codeword[5] = codeword[5] ^ 0x77
   match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => abort("should have corrected 2 errors")
   }
 }
 
+///|
 test "rs: detect too many errors" {
   let gf = gf256_new()
   let data = FixedArray::make(4, 0)
-  data[0] = 10; data[1] = 20; data[2] = 30; data[3] = 40
+  data[0] = 10
+  data[1] = 20
+  data[2] = 30
+  data[3] = 40
   let t = 1 // only 1 error correctable
   let codeword = rs_encode(gf, data, t)
   // Introduce 2 errors (beyond correction capability).

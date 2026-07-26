@@ -31,6 +31,7 @@
 /// which cross-checks against trial division and includes Carmichael numbers
 /// and the largest 32-bit prime.
 
+///|
 /// Test whether `n` is prime.
 ///
 /// Returns `false` for `n < 2`, `true` for `n == 2` or `n == 3`, `false` for
@@ -49,6 +50,7 @@ pub fn is_prime(n : Int) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Trial-division primality test, independent of Miller-Rabin, used only to
 /// cross-check `is_prime` in the test below.
 fn is_prime_trial(n : Int) -> Bool {
@@ -71,6 +73,7 @@ fn is_prime_trial(n : Int) -> Bool {
   true
 }
 
+///|
 test "is_prime: small primes" {
   assert_eq(is_prime(2), true)
   assert_eq(is_prime(3), true)
@@ -80,6 +83,7 @@ test "is_prime: small primes" {
   assert_eq(is_prime(13), true)
 }
 
+///|
 test "is_prime: small composites" {
   assert_eq(is_prime(4), false)
   assert_eq(is_prime(6), false)
@@ -89,11 +93,13 @@ test "is_prime: small composites" {
   assert_eq(is_prime(21), false)
 }
 
+///|
 test "is_prime: zero and one are not prime" {
   assert_eq(is_prime(0), false)
   assert_eq(is_prime(1), false)
 }
 
+///|
 test "is_prime: negative numbers are not prime" {
   assert_eq(is_prime(-1), false)
   assert_eq(is_prime(-2), false)
@@ -101,12 +107,14 @@ test "is_prime: negative numbers are not prime" {
   assert_eq(is_prime(-100), false)
 }
 
+///|
 test "is_prime: even numbers above two" {
   assert_eq(is_prime(100), false)
   assert_eq(is_prime(1000), false)
   assert_eq(is_prime(2147483646), false)
 }
 
+///|
 test "is_prime: perfect squares of primes" {
   // Squares of primes are composite; the test must still catch them.
   assert_eq(is_prime(121), false) // 11 * 11
@@ -115,6 +123,7 @@ test "is_prime: perfect squares of primes" {
   assert_eq(is_prime(841), false) // 29 * 29
 }
 
+///|
 test "is_prime: large prime near Int32 max" {
   // 2^31 - 1 = 2147483647 is a Mersenne prime (M31).
   assert_eq(is_prime(2147483647), true)
@@ -122,11 +131,13 @@ test "is_prime: large prime near Int32 max" {
   assert_eq(is_prime(2147483646), false)
 }
 
+///|
 test "is_prime: odd composite near Int32 max" {
   // 2147483645 = 5 * 429496729; odd, so it exercises the full test path.
   assert_eq(is_prime(2147483645), false)
 }
 
+///|
 test "is_prime: more large primes" {
   assert_eq(is_prime(1000003), true)
   assert_eq(is_prime(9999991), true)
@@ -134,6 +145,7 @@ test "is_prime: more large primes" {
   assert_eq(is_prime(2147483629), true)
 }
 
+///|
 test "is_prime: Carmichael numbers are composite" {
   // Carmichael numbers pass the Fermat test for every coprime base but are
   // composite; Miller-Rabin must still detect them.
@@ -145,6 +157,7 @@ test "is_prime: Carmichael numbers are composite" {
   assert_eq(is_prime(6601), false)
 }
 
+///|
 test "is_prime: agrees with trial division up to 5000" {
   for n = 0; n <= 5000; n = n + 1 {
     assert_eq(is_prime(n), is_prime_trial(n))

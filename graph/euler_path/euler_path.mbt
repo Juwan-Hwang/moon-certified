@@ -50,6 +50,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of Euler path/circuit computation.
 ///
 /// - `path`: a `FixedArray[Int]` of vertex indices in the order they are
@@ -66,6 +67,7 @@ pub struct EulerResult {
 // Degree computation
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute in-degree and out-degree for each vertex.
 ///
 /// Returns `(in_deg, out_deg)` as a pair of `FixedArray[Int]`.
@@ -91,17 +93,14 @@ fn compute_degrees(
 // Connectivity check (BFS)
 // ---------------------------------------------------------------------------
 
+///|
 /// Check whether all edges are in the same weakly connected component.
 ///
 /// A vertex with zero total degree is ignored (it has no edges and doesn't
 /// affect Euler path existence). The check ensures that every vertex with
 /// at least one edge is reachable from the start vertex when edge directions
 /// are ignored.
-fn check_connectivity(
-  adj : Array[Array[Int]],
-  n : Int,
-  start : Int,
-) -> Bool {
+fn check_connectivity(adj : Array[Array[Int]], n : Int, start : Int) -> Bool {
   // Build undirected adjacency for connectivity.
   let undirected : Array[Array[Int]] = []
   for _i = 0; _i < n; _i = _i + 1 {
@@ -148,6 +147,7 @@ fn check_connectivity(
 // Hierholzer's algorithm (iterative)
 // ---------------------------------------------------------------------------
 
+///|
 /// Run Hierholzer's algorithm starting from `start`.
 ///
 /// Uses an iterative approach with two stacks:
@@ -157,11 +157,7 @@ fn check_connectivity(
 /// Each vertex maintains a pointer (`ptr`) into its adjacency list. When
 /// all edges of the current vertex are consumed, it is moved to the
 /// `circuit` stack.
-fn hierholzer(
-  adj : Array[Array[Int]],
-  n : Int,
-  start : Int,
-) -> FixedArray[Int] {
+fn hierholzer(adj : Array[Array[Int]], n : Int, start : Int) -> FixedArray[Int] {
   let ptr = FixedArray::make(n, 0) // next edge index for each vertex
   let stack : Array[Int] = [start]
   let circuit : Array[Int] = []
@@ -196,6 +192,7 @@ fn hierholzer(
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Find an Euler path or circuit in a directed graph.
 ///
 /// # Parameters
@@ -218,10 +215,7 @@ fn hierholzer(
 ///
 /// The algorithm is iterative (explicit stack), preventing stack overflow on
 /// large graphs.
-pub fn find_euler_path(
-  adj : Array[Array[Int]],
-  n : Int,
-) -> EulerResult {
+pub fn find_euler_path(adj : Array[Array[Int]], n : Int) -> EulerResult {
   if n <= 0 || adj.length() < n {
     return { path: FixedArray::make(0, 0), is_circuit: false }
   }
@@ -290,6 +284,7 @@ pub fn find_euler_path(
   { path, is_circuit }
 }
 
+///|
 /// Check whether a directed graph has an Euler circuit.
 ///
 /// An Euler circuit exists when every vertex has equal in-degree and
@@ -298,6 +293,7 @@ pub fn has_euler_circuit(adj : Array[Array[Int]], n : Int) -> Bool {
   find_euler_path(adj, n).is_circuit
 }
 
+///|
 /// Check whether a directed graph has an Euler path (including circuits).
 pub fn has_euler_path(adj : Array[Array[Int]], n : Int) -> Bool {
   find_euler_path(adj, n).path.length() > 0
@@ -307,6 +303,7 @@ pub fn has_euler_path(adj : Array[Array[Int]], n : Int) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "euler: simple circuit (directed cycle)" {
   // 0 -> 1 -> 2 -> 0
   let n = 3
@@ -318,6 +315,7 @@ test "euler: simple circuit (directed cycle)" {
   assert_eq(result.path[0], result.path[3])
 }
 
+///|
 test "euler: self-loop circuit" {
   // 0 -> 0
   let adj : Array[Array[Int]] = [[0]]
@@ -328,6 +326,7 @@ test "euler: self-loop circuit" {
   assert_eq(result.path[1], 0)
 }
 
+///|
 test "euler: path (not circuit)" {
   // 0 -> 1 -> 2
   let adj : Array[Array[Int]] = [[1], [2], []]
@@ -339,6 +338,7 @@ test "euler: path (not circuit)" {
   assert_eq(result.path[2], 2)
 }
 
+///|
 test "euler: no path (degree mismatch)" {
   // 0 -> 1, 0 -> 2
   let adj : Array[Array[Int]] = [[1, 2], [], []]
@@ -346,6 +346,7 @@ test "euler: no path (degree mismatch)" {
   assert_eq(result.path.length(), 0)
 }
 
+///|
 test "euler: disconnected graph" {
   // 0 -> 1, 2 -> 3 (two disconnected edges)
   let adj : Array[Array[Int]] = [[1], [], [3], []]
@@ -353,6 +354,7 @@ test "euler: disconnected graph" {
   assert_eq(result.path.length(), 0)
 }
 
+///|
 test "euler: multi-edge circuit" {
   // 0 -> 1, 0 -> 1, 1 -> 0, 1 -> 0
   let adj : Array[Array[Int]] = [[1, 1], [0, 0]]
@@ -361,6 +363,7 @@ test "euler: multi-edge circuit" {
   assert_eq(result.path.length(), 5) // 4 edges + 1 vertex
 }
 
+///|
 test "euler: complex circuit" {
   // Two cycles sharing vertex 0:
   // 0 -> 1 -> 0, 0 -> 2 -> 0
@@ -372,6 +375,7 @@ test "euler: complex circuit" {
   assert_eq(result.path[0], result.path[4])
 }
 
+///|
 test "euler: path with detour" {
   // 0 -> 1 -> 2 (path)
   // 1 -> 3 -> 1 (detour at vertex 1)
@@ -391,18 +395,21 @@ test "euler: path with detour" {
   assert_eq(result.path[4], 2)
 }
 
+///|
 test "euler: empty graph" {
   let adj : Array[Array[Int]] = [[], [], []]
   let result = find_euler_path(adj, 3)
   assert_eq(result.path.length(), 0)
 }
 
+///|
 test "euler: invalid n" {
   let adj : Array[Array[Int]] = []
   let result = find_euler_path(adj, 0)
   assert_eq(result.path.length(), 0)
 }
 
+///|
 test "euler: single edge" {
   // 0 -> 1
   let adj : Array[Array[Int]] = [[1], []]
@@ -413,6 +420,7 @@ test "euler: single edge" {
   assert_eq(result.path[1], 1)
 }
 
+///|
 test "euler: large circuit (stack safety)" {
   // Ring of 1000 nodes: 0 -> 1 -> 2 -> ... -> 999 -> 0
   let n = 1000
@@ -430,6 +438,7 @@ test "euler: large circuit (stack safety)" {
   assert_eq(result.path[0], result.path[n])
 }
 
+///|
 test "has_euler_circuit: basic checks" {
   // Circuit exists.
   assert_eq(has_euler_circuit([[1], [2], [0]], 3), true)
@@ -439,6 +448,7 @@ test "has_euler_circuit: basic checks" {
   assert_eq(has_euler_circuit([[1, 2], [], []], 3), false)
 }
 
+///|
 test "has_euler_path: basic checks" {
   // Circuit is also a path.
   assert_eq(has_euler_path([[1], [2], [0]], 3), true)

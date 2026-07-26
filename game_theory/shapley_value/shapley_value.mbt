@@ -1,3 +1,4 @@
+///|
 /// Shapley Value — cooperative game theory solution concept.
 ///
 /// The Shapley value distributes the total worth of a coalition among its
@@ -34,6 +35,7 @@ priv struct SMRng {
   mut state : Int64
 }
 
+///|
 fn sm_next(rng : SMRng) -> Int64 {
   rng.state = rng.state + 0x9E3779B97F4A7C15L
   let mut z = rng.state
@@ -43,6 +45,7 @@ fn sm_next(rng : SMRng) -> Int64 {
   z
 }
 
+///|
 fn sm_next_int(rng : SMRng, max_exclusive : Int) -> Int {
   if max_exclusive <= 0 {
     return 0
@@ -66,6 +69,7 @@ fn sm_next_int(rng : SMRng, max_exclusive : Int) -> Int {
 // Exact Shapley value via bitmask DP
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the exact Shapley value for `n` players.
 ///
 /// # Parameters
@@ -78,10 +82,7 @@ fn sm_next_int(rng : SMRng, max_exclusive : Int) -> Int {
 ///
 /// # Complexity
 /// O(2^n × n) time, O(2^n) space.
-pub fn shapley_exact(
-  v : (Int) -> Double,
-  n : Int,
-) -> FixedArray[Double] {
+pub fn shapley_exact(v : (Int) -> Double, n : Int) -> FixedArray[Double] {
   if n <= 0 {
     return FixedArray::make(0, 0.0)
   }
@@ -121,6 +122,7 @@ pub fn shapley_exact(
   result
 }
 
+///|
 /// Count the number of set bits in an integer (population count).
 fn popcount(x : Int) -> Int {
   let mut v = x
@@ -136,6 +138,7 @@ fn popcount(x : Int) -> Int {
 // Approximate Shapley value via Monte Carlo sampling
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute an approximate Shapley value using Monte Carlo sampling.
 ///
 /// Generates `samples` random permutations of players and averages the
@@ -199,6 +202,7 @@ pub fn shapley_approximate(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "shapley: two-player equal split" {
   // v(∅) = 0, v({0}) = 0, v({1}) = 0, v({0,1}) = 100
   // Both players contribute equally → Shapley = 50 each.
@@ -216,6 +220,7 @@ test "shapley: two-player equal split" {
   assert_true(abs(result[1] - 50.0) < 0.001)
 }
 
+///|
 test "shapley: efficiency (sum = v(N))" {
   // Random 3-player game.
   let v_table = [0.0, 10.0, 20.0, 40.0, 30.0, 50.0, 60.0, 100.0]
@@ -228,6 +233,7 @@ test "shapley: efficiency (sum = v(N))" {
   assert_true(abs(sum - 100.0) < 0.001)
 }
 
+///|
 test "shapley: dummy player gets zero" {
   // Player 2 is a dummy: adding them never changes the value.
   // v(S) = v(S ∪ {2}) for all S.
@@ -246,12 +252,13 @@ test "shapley: dummy player gets zero" {
   assert_true(abs(result[2]) < 0.001)
 }
 
+///|
 test "shapley: symmetry" {
   // Players 0 and 1 are symmetric (swapping them doesn't change v).
   let v = fn(mask : Int) -> Double {
     // v depends only on |S ∩ {0,1}|, not on which specific players.
     let count01 = (if (mask & 1) != 0 { 1 } else { 0 }) +
-                  (if (mask & 2) != 0 { 1 } else { 0 })
+      (if (mask & 2) != 0 { 1 } else { 0 })
     let has2 = if (mask & 4) != 0 { 1 } else { 0 }
     (count01 * 10 + has2 * 5).to_double()
   }
@@ -259,6 +266,7 @@ test "shapley: symmetry" {
   assert_true(abs(result[0] - result[1]) < 0.001)
 }
 
+///|
 test "shapley: approximate vs exact" {
   // Simple 4-player game: v(S) = |S|^2.
   let v = fn(mask : Int) -> Double {
@@ -272,14 +280,14 @@ test "shapley: approximate vs exact" {
   }
 }
 
+///|
 test "shapley: single player" {
-  let v = fn(mask : Int) -> Double {
-    if mask == 1 { 42.0 } else { 0.0 }
-  }
+  let v = fn(mask : Int) -> Double { if mask == 1 { 42.0 } else { 0.0 } }
   let result = shapley_exact(v, 1)
   assert_true(abs(result[0] - 42.0) < 0.001)
 }
 
+///|
 test "shapley: zero game" {
   // All coalitions have value 0.
   let v = fn(_mask : Int) -> Double { 0.0 }
@@ -289,13 +297,12 @@ test "shapley: zero game" {
   }
 }
 
+///|
 test "shapley: unanimity game" {
   // Only the grand coalition has value 1; all others 0.
   let n = 3
   let grand = (1 << n) - 1
-  let v = fn(mask : Int) -> Double {
-    if mask == grand { 1.0 } else { 0.0 }
-  }
+  let v = fn(mask : Int) -> Double { if mask == grand { 1.0 } else { 0.0 } }
   let result = shapley_exact(v, n)
   // Each player gets 1/n.
   for i = 0; i < n; i = i + 1 {
@@ -304,6 +311,12 @@ test "shapley: unanimity game" {
 }
 
 // Helper for tests.
+
+///|
 fn abs(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }

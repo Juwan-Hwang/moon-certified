@@ -45,6 +45,7 @@
 // Internal LCG (Linear Congruential Generator)
 // ---------------------------------------------------------------------------
 
+///|
 /// LCG multiplier (≡ 1 mod 4) and increment (odd). Together with the
 /// `& 0x7FFFFFFF` mask they yield a full-period generator mod 2^31
 /// (Hull-Dobell theorem). Because the mask keeps only the low 31 bits, the
@@ -52,24 +53,29 @@
 /// `Int` product `state * lcg_a + lcg_c`.
 let lcg_a : Int = 1103515245
 
+///|
 let lcg_c : Int = 12345
 
+///|
 /// Default LCG seed. Any fixed non-zero value makes the default `shuffle_int`
 /// deterministic and independent of test execution order.
 let default_seed : Int = 0x1A2B3C4D
 
+///|
 /// Internal mutable LCG state. A private reference type so that a closure can
 /// hold on to it and advance it across calls.
 priv struct Lcg {
   mut state : Int
 }
 
+///|
 /// Create an LCG whose state is the seed masked to 31 bits (always
 /// non-negative, even for negative or wrapped seeds).
 fn Lcg::new(seed : Int) -> Lcg {
   { state: seed & 0x7FFFFFFF }
 }
 
+///|
 /// Advance the LCG one step and return the new state, a non-negative `Int` in
 /// [0, 2^31).
 fn Lcg::next(self : Lcg) -> Int {
@@ -77,6 +83,7 @@ fn Lcg::next(self : Lcg) -> Int {
   self.state
 }
 
+///|
 /// Build a closure-based LCG seeded with `seed`.
 ///
 /// The returned `() -> Int` advances the LCG on each call and yields a
@@ -86,15 +93,14 @@ fn Lcg::next(self : Lcg) -> Int {
 /// no custom generator is needed.
 pub fn make_lcg(seed : Int) -> () -> Int {
   let rng = Lcg::new(seed)
-  fn() {
-    rng.next()
-  }
+  fn() { rng.next() }
 }
 
 // ---------------------------------------------------------------------------
 // Fisher-Yates shuffle
 // ---------------------------------------------------------------------------
 
+///|
 /// Swap two elements of a generic array in place.
 fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   let tmp = xs[i]
@@ -102,6 +108,7 @@ fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
   xs[j] = tmp
 }
 
+///|
 /// Shuffle a `FixedArray[T]` in place using the Fisher-Yates (Knuth)
 /// algorithm.
 ///
@@ -127,6 +134,7 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
   }
 }
 
+///|
 /// Convenience: shuffle an `Int` array in place using the default-seeded LCG.
 ///
 /// Equivalent to `fisher_yates_shuffle(xs, make_lcg(default_seed))`. The fixed
@@ -141,6 +149,7 @@ pub fn shuffle_int(xs : FixedArray[Int]) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fisher_yates: basic shuffle" {
   let xs = FixedArray::makei(10, fn(i) { i }) // [0, 1, ..., 9]
   fisher_yates_shuffle(xs, make_lcg(42))
@@ -165,6 +174,7 @@ test "fisher_yates: basic shuffle" {
   assert_true(moved)
 }
 
+///|
 test "fisher_yates: all elements preserved (permutation)" {
   let n = 100
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 97 })
@@ -186,29 +196,31 @@ test "fisher_yates: all elements preserved (permutation)" {
   }
 }
 
+///|
 test "fisher_yates: empty array" {
   let xs = FixedArray::make(0, 0)
   fisher_yates_shuffle(xs, make_lcg(1))
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "fisher_yates: single element" {
   let xs = FixedArray::make(1, 42)
   fisher_yates_shuffle(xs, make_lcg(1))
   assert_eq(xs[0], 42)
 }
 
+///|
 test "fisher_yates: two elements" {
   let xs = FixedArray::make(2, 0)
   xs[0] = 10
   xs[1] = 20
   fisher_yates_shuffle(xs, make_lcg(7))
   // The result must be one of the two valid permutations of {10, 20}.
-  assert_true(
-    (xs[0] == 10 && xs[1] == 20) || (xs[0] == 20 && xs[1] == 10),
-  )
+  assert_true((xs[0] == 10 && xs[1] == 20) || (xs[0] == 20 && xs[1] == 10))
 }
 
+///|
 test "fisher_yates: shuffle_int convenience" {
   let xs = FixedArray::makei(20, fn(i) { i })
   shuffle_int(xs)
@@ -222,6 +234,7 @@ test "fisher_yates: shuffle_int convenience" {
   }
 }
 
+///|
 test "fisher_yates: reproducible with same seed" {
   let xs1 = FixedArray::makei(15, fn(i) { i })
   let xs2 = FixedArray::makei(15, fn(i) { i })
@@ -232,6 +245,7 @@ test "fisher_yates: reproducible with same seed" {
   }
 }
 
+///|
 test "fisher_yates: uniform distribution (histogram / chi-square)" {
   // Shuffle a 6-element array many times with distinct seeds and count how
   // often each value lands in each position. A uniform shuffle makes every
@@ -266,6 +280,7 @@ test "fisher_yates: uniform distribution (histogram / chi-square)" {
   assert_true(chi2 < 120.0)
 }
 
+///|
 test "fisher_yates: generic with String" {
   let xs = FixedArray::make(5, "")
   xs[0] = "cherry"

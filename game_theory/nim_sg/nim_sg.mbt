@@ -27,6 +27,7 @@
 /// Nim
 /// ---------------------------------------------------------------------------
 
+///|
 /// Compute the Nim-sum (XOR) of an array of pile sizes.
 ///
 /// The Nim-sum determines the outcome of a Nim game:
@@ -40,14 +41,20 @@ pub fn nim_sum(piles : Array[Int]) -> Int {
   result
 }
 
+///|
 /// Determine the winner of a Nim game given pile sizes.
 ///
 /// Returns `0` if the first player wins, `1` if the second player wins.
 /// An empty game (no piles or all piles empty) is a second-player win.
 pub fn nim_winner(piles : Array[Int]) -> Int {
-  if nim_sum(piles) != 0 { 0 } else { 1 }
+  if nim_sum(piles) != 0 {
+    0
+  } else {
+    1
+  }
 }
 
+///|
 /// Find a winning move for the first player in Nim.
 ///
 /// Returns `Some((pile_index, new_size))` — the index of the pile to reduce
@@ -75,6 +82,7 @@ pub fn nim_winning_move(piles : Array[Int]) -> (Int, Int)? {
 // Sprague–Grundy
 // ---------------------------------------------------------------------------
 
+///|
 /// Minimum excludant (mex): the smallest non-negative integer **not** in the
 /// given array.
 ///
@@ -101,6 +109,7 @@ pub fn mex(values : Array[Int]) -> Int {
   n + 1
 }
 
+///|
 /// Compute Grundy numbers for all positions `0..n` using a transition
 /// function.
 ///
@@ -117,10 +126,7 @@ pub fn mex(values : Array[Int]) -> Int {
 /// - Subtraction games (remove 1..k stones)
 /// - Kayles
 /// - Green Hackenbush on paths
-pub fn grundy_dp(
-  n : Int,
-  transitions : (Int) -> Array[Int],
-) -> FixedArray[Int] {
+pub fn grundy_dp(n : Int, transitions : (Int) -> Array[Int]) -> FixedArray[Int] {
   if n < 0 {
     return FixedArray::make(0, 0)
   }
@@ -140,6 +146,7 @@ pub fn grundy_dp(
   g
 }
 
+///|
 /// Compute the Grundy number of a disjunctive sum of sub-games.
 ///
 /// By the Sprague–Grundy theorem, the combined Grundy number is the XOR of
@@ -153,18 +160,24 @@ pub fn grundy_sum(grundy_numbers : Array[Int]) -> Int {
   result
 }
 
+///|
 /// Determine the winner of a disjunctive sum of impartial games.
 ///
 /// `grundy_numbers[i]` is the Grundy number of the i-th sub-game.
 /// Returns `0` if the first player wins, `1` if the second player wins.
 pub fn game_sum_winner(grundy_numbers : Array[Int]) -> Int {
-  if grundy_sum(grundy_numbers) != 0 { 0 } else { 1 }
+  if grundy_sum(grundy_numbers) != 0 {
+    0
+  } else {
+    1
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Classic game Grundy numbers
 // ---------------------------------------------------------------------------
 
+///|
 /// Grundy number for a single-pile subtraction game: remove 1..k stones per
 /// turn. The last player to move wins (normal play).
 ///
@@ -182,6 +195,7 @@ pub fn subtraction_game_grundy(n : Int, k : Int) -> FixedArray[Int] {
   g
 }
 
+///|
 /// Grundy number for Kayles: a bowling pins game where a player can knock
 /// down one pin or two adjacent pins per turn.
 ///
@@ -219,6 +233,7 @@ pub fn kayles_grundy(n : Int) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "nim: basic nim-sum" {
   assert_eq(nim_sum([1, 2, 3]), 0)
   assert_eq(nim_sum([1, 2, 4]), 7)
@@ -227,6 +242,7 @@ test "nim: basic nim-sum" {
   assert_eq(nim_sum([7, 7]), 0)
 }
 
+///|
 test "nim: winner" {
   // 1,2,3 → nim-sum = 0, second player wins
   assert_eq(nim_winner([1, 2, 3]), 1)
@@ -240,6 +256,7 @@ test "nim: winner" {
   assert_eq(nim_winner([0, 0, 0]), 1)
 }
 
+///|
 test "nim: winning move" {
   // 1,2,4 → nim-sum = 7. Pile 2 (size 4): 4^7 = 3 < 4.
   let mv = nim_winning_move([1, 2, 4])
@@ -262,6 +279,7 @@ test "nim: winning move" {
   assert_eq(s2, 0)
 }
 
+///|
 test "mex: basic" {
   assert_eq(mex([0, 1, 2, 3]), 4)
   assert_eq(mex([1, 2, 3]), 0)
@@ -271,12 +289,14 @@ test "mex: basic" {
   assert_eq(mex([0, 1, 2, 3, 4, 5]), 6)
 }
 
+///|
 test "mex: with negatives and duplicates" {
   assert_eq(mex([-1, 0, 1]), 2)
   assert_eq(mex([0, 0, 1, 1, 2, 2]), 3)
   assert_eq(mex([5, 6, 7]), 0)
 }
 
+///|
 test "grundy_dp: subtraction game (k=3)" {
   // Subtraction game: remove 1..3 stones. Grundy(n) = n mod 4.
   let g = grundy_dp(20, fn(pos) {
@@ -293,6 +313,7 @@ test "grundy_dp: subtraction game (k=3)" {
   }
 }
 
+///|
 test "grundy_dp: subtraction game (k=2)" {
   // Remove 1..2 stones. Grundy(n) = n mod 3.
   let g = grundy_dp(15, fn(pos) {
@@ -309,6 +330,7 @@ test "grundy_dp: subtraction game (k=2)" {
   }
 }
 
+///|
 test "grundy_sum: xor of Grundy numbers" {
   assert_eq(grundy_sum([0, 0, 0]), 0)
   assert_eq(grundy_sum([1, 2, 3]), 0)
@@ -317,6 +339,7 @@ test "grundy_sum: xor of Grundy numbers" {
   assert_eq(grundy_sum([1, 2, 4]), 7)
 }
 
+///|
 test "game_sum_winner: basic" {
   // All zeros → second player
   assert_eq(game_sum_winner([0, 0, 0]), 1)
@@ -326,6 +349,7 @@ test "game_sum_winner: basic" {
   assert_eq(game_sum_winner([1, 2, 3]), 1)
 }
 
+///|
 test "subtraction_game: pattern" {
   let g = subtraction_game_grundy(20, 3)
   for i = 0; i <= 20; i = i + 1 {
@@ -337,11 +361,12 @@ test "subtraction_game: pattern" {
   }
 }
 
+///|
 test "kayles: known values" {
   // Known Grundy values for Kayles (OEIS A071426):
   let expected = [
-    0, 1, 2, 3, 1, 4, 3, 2, 1, 4, 2, 6, 4, 1, 2, 7, 1, 4, 3, 2, 1, 4, 6, 7,
-    4, 1, 2, 8, 5, 4, 7,
+    0, 1, 2, 3, 1, 4, 3, 2, 1, 4, 2, 6, 4, 1, 2, 7, 1, 4, 3, 2, 1, 4, 6, 7, 4, 1,
+    2, 8, 5, 4, 7,
   ]
   let g = kayles_grundy(30)
   for i = 0; i <= 30; i = i + 1 {
@@ -349,6 +374,7 @@ test "kayles: known values" {
   }
 }
 
+///|
 test "kayles: periodicity" {
   // Kayles is periodic with period 12 for n >= 72
   let g = kayles_grundy(90)
@@ -357,6 +383,7 @@ test "kayles: periodicity" {
   }
 }
 
+///|
 test "nim: misère variant (last player loses)" {
   // In misère Nim, the winning condition is the same as normal Nim,
   // except when all piles have size ≤ 1. In that case, the winner is

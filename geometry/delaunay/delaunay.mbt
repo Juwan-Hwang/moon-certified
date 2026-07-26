@@ -29,22 +29,26 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A 2D point with `Int64` coordinates for robust arithmetic.
 pub struct DPoint {
   x : Int64
   y : Int64
 }
 
+///|
 /// Construct a [`DPoint`].
 pub fn dpoint(x : Int, y : Int) -> DPoint {
   { x: x.to_int64(), y: y.to_int64() }
 }
 
+///|
 /// Construct a [`DPoint`] from `Int64` coordinates.
 pub fn dpoint64(x : Int64, y : Int64) -> DPoint {
   { x, y }
 }
 
+///|
 /// A triangle defined by three vertex indices into the points array.
 pub struct Triangle {
   v0 : Int
@@ -52,11 +56,13 @@ pub struct Triangle {
   v2 : Int
 }
 
+///|
 /// Construct a [`Triangle`].
 pub fn triangle(v0 : Int, v1 : Int, v2 : Int) -> Triangle {
   { v0, v1, v2 }
 }
 
+///|
 /// The result of Delaunay triangulation: a list of triangles.
 pub struct DelaunayResult {
   /// The triangulation as a flat array of vertex indices:
@@ -66,6 +72,7 @@ pub struct DelaunayResult {
   count : Int
 }
 
+///|
 /// Compute the Delaunay triangulation of a set of 2D points.
 ///
 /// # Parameters
@@ -100,7 +107,9 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
   })
   let unique_pts : Array[DPoint] = []
   for i = 0; i < sorted.length(); i = i + 1 {
-    if i == 0 || sorted[i].x != sorted[i - 1].x || sorted[i].y != sorted[i - 1].y {
+    if i == 0 ||
+      sorted[i].x != sorted[i - 1].x ||
+      sorted[i].y != sorted[i - 1].y {
       unique_pts.push(sorted[i])
     }
   }
@@ -168,12 +177,8 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
     let bad : Array[Int] = []
     for t_idx = 0; t_idx < triangles.length(); t_idx = t_idx + 1 {
       let t = triangles[t_idx]
-      if in_circle_safe(
-        all_points[t.v0],
-        all_points[t.v1],
-        all_points[t.v2],
-        p,
-      ) > 0L {
+      if in_circle_safe(all_points[t.v0], all_points[t.v1], all_points[t.v2], p) >
+        0L {
         bad.push(t_idx)
       }
     }
@@ -237,6 +242,7 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
   { triangles: result, count }
 }
 
+///|
 /// Check if an edge appears in another bad triangle (different from the one
 /// at `skip_idx`).
 fn edge_in_bad(
@@ -261,12 +267,14 @@ fn edge_in_bad(
   false
 }
 
+///|
 /// Check if an edge `(ea, eb)` equals `(a, b)` ignoring direction.
 fn edges_equal(e : (Int, Int), a : Int, b : Int) -> Bool {
   let (ea, eb) = e
   (ea == a && eb == b) || (ea == b && eb == a)
 }
 
+///|
 /// In-circle predicate: returns > 0 if point `d` is inside the circumcircle
 /// of triangle `(a, b, c)`, < 0 if outside, 0 if on the circle.
 ///
@@ -310,15 +318,18 @@ fn in_circle(a : DPoint, b : DPoint, c : DPoint, d : DPoint) -> Int64 {
   let a32 = cdy
   let a33 = cdx2 + cdy2
   // det = a11*(a22*a33 - a23*a32) - a12*(a21*a33 - a23*a31) + a13*(a21*a32 - a22*a31)
-  a11 * (a22 * a33 - a23 * a32) - a12 * (a21 * a33 - a23 * a31) +
+  a11 * (a22 * a33 - a23 * a32) -
+  a12 * (a21 * a33 - a23 * a31) +
   a13 * (a21 * a32 - a22 * a31)
 }
 
+///|
 /// Orientation predicate: > 0 if counterclockwise, < 0 if clockwise, 0 if collinear.
 fn orient(a : DPoint, b : DPoint, c : DPoint) -> Int64 {
   (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
 }
 
+///|
 /// Orientation-safe in-circle test: returns > 0 if `d` is strictly inside the
 /// circumcircle of `(a, b, c)`, regardless of the triangle's orientation.
 fn in_circle_safe(a : DPoint, b : DPoint, c : DPoint, d : DPoint) -> Int64 {
@@ -335,6 +346,7 @@ fn in_circle_safe(a : DPoint, b : DPoint, c : DPoint, d : DPoint) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "delaunay: minimum 3 points" {
   let pts = [dpoint(0, 0), dpoint(10, 0), dpoint(0, 10)]
   let result = triangulate(pts)
@@ -359,6 +371,7 @@ test "delaunay: minimum 3 points" {
   assert_true(has_2)
 }
 
+///|
 test "delaunay: fewer than 3 points" {
   let pts1 = [dpoint(0, 0)]
   let result1 = triangulate(pts1)
@@ -368,19 +381,22 @@ test "delaunay: fewer than 3 points" {
   assert_eq(result2.count, 0)
 }
 
+///|
 test "delaunay: square (2 triangles)" {
   // Four points forming a square: should produce 2 triangles.
-  let pts = [
-    dpoint(0, 0), dpoint(10, 0), dpoint(10, 10), dpoint(0, 10),
-  ]
+  let pts = [dpoint(0, 0), dpoint(10, 0), dpoint(10, 10), dpoint(0, 10)]
   let result = triangulate(pts)
   assert_eq(result.count, 2)
 }
 
+///|
 test "delaunay: 5 points with interior point" {
   // Square with center point: should produce 4 triangles (fan from center).
   let pts = [
-    dpoint(0, 0), dpoint(100, 0), dpoint(100, 100), dpoint(0, 100),
+    dpoint(0, 0),
+    dpoint(100, 0),
+    dpoint(100, 100),
+    dpoint(0, 100),
     dpoint(50, 50),
   ]
   let result = triangulate(pts)
@@ -401,12 +417,14 @@ test "delaunay: 5 points with interior point" {
   assert_eq(center_count, 4)
 }
 
+///|
 test "delaunay: collinear points" {
   let pts = [dpoint(0, 0), dpoint(5, 5), dpoint(10, 10)]
   let result = triangulate(pts)
   assert_eq(result.count, 0)
 }
 
+///|
 test "delaunay: hexagon" {
   // Regular hexagon: should produce 4 triangles (triangulation of convex hexagon).
   let pts = [
@@ -422,10 +440,14 @@ test "delaunay: hexagon" {
   assert_eq(result.count, 4)
 }
 
+///|
 test "delaunay: no degenerate triangles" {
   // All triangles should have 3 distinct vertices.
   let pts = [
-    dpoint(0, 0), dpoint(100, 0), dpoint(100, 100), dpoint(0, 100),
+    dpoint(0, 0),
+    dpoint(100, 0),
+    dpoint(100, 100),
+    dpoint(0, 100),
     dpoint(50, 50),
   ]
   let result = triangulate(pts)
@@ -439,12 +461,16 @@ test "delaunay: no degenerate triangles" {
   }
 }
 
+///|
 test "delaunay: deduplication of duplicate points" {
   // Input with duplicates: should deduplicate and still triangulate.
   let pts = [
-    dpoint(0, 0), dpoint(0, 0), // duplicate
-    dpoint(100, 0), dpoint(100, 0), // duplicate
-    dpoint(100, 100), dpoint(0, 100),
+    dpoint(0, 0),
+    dpoint(0, 0), // duplicate
+    dpoint(100, 0),
+    dpoint(100, 0), // duplicate
+    dpoint(100, 100),
+    dpoint(0, 100),
   ]
   let result = triangulate(pts)
   // After dedup, 4 unique points → 2 triangles (same as square test).
@@ -460,6 +486,7 @@ test "delaunay: deduplication of duplicate points" {
   }
 }
 
+///|
 test "delaunay: in_circle basic" {
   // Triangle (0,0), (10,0), (0,10). Circumcircle center is (5,5), radius sqrt(50).
   let a = dpoint(0, 0)

@@ -33,12 +33,14 @@
 /// Import the Delaunay triangulation module.
 /// (We use @delaunay as a sibling package.)
 
+///|
 /// A Voronoi vertex (circumcenter of a Delaunay triangle).
 pub struct VVertex {
   x : Double
   y : Double
 }
 
+///|
 /// A Voronoi edge connecting two Voronoi vertices.
 /// If `is_bounded` is `false`, the edge extends to infinity from `v0` in the
 /// direction of `(dx, dy)`.
@@ -51,6 +53,7 @@ pub struct VEdge {
   dy : Double
 }
 
+///|
 /// The Voronoi diagram: vertices and edges.
 pub struct VoronoiDiagram {
   vertices : Array[VVertex]
@@ -59,11 +62,17 @@ pub struct VoronoiDiagram {
   num_sites : Int
 }
 
+///|
 /// Absolute value of a double ( avoids depending on `@math.abs`).
 fn dbl_abs(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
+///|
 /// Compute the Voronoi diagram of a set of 2D points.
 ///
 /// Internally computes the Delaunay triangulation and constructs its dual.
@@ -119,9 +128,12 @@ pub fn compute(points : Array[@delaunay.DPoint]) -> VoronoiDiagram {
         let j0 = delaunay_result.triangles[j * 3]
         let j1 = delaunay_result.triangles[j * 3 + 1]
         let j2 = delaunay_result.triangles[j * 3 + 2]
-        if (j0 == a && j1 == b) || (j0 == b && j1 == a) ||
-          (j1 == a && j2 == b) || (j1 == b && j2 == a) ||
-          (j2 == a && j0 == b) || (j2 == b && j0 == a) {
+        if (j0 == a && j1 == b) ||
+          (j0 == b && j1 == a) ||
+          (j1 == a && j2 == b) ||
+          (j1 == b && j2 == a) ||
+          (j2 == a && j0 == b) ||
+          (j2 == b && j0 == a) {
           found_j = j
           break
         }
@@ -145,19 +157,14 @@ pub fn compute(points : Array[@delaunay.DPoint]) -> VoronoiDiagram {
         // Direction: from midpoint to circumcenter, extended to infinity.
         let dx = cc.x - midx
         let dy = cc.y - midy
-        edges.push({
-          v0: tri_to_vertex[i],
-          v1: -1,
-          is_bounded: false,
-          dx,
-          dy,
-        })
+        edges.push({ v0: tri_to_vertex[i], v1: -1, is_bounded: false, dx, dy })
       }
     }
   }
   { vertices, edges, num_sites: n }
 }
 
+///|
 /// Compute the circumcenter of a triangle defined by three points.
 ///
 /// The circumcenter is the center of the circle passing through all three
@@ -182,13 +189,17 @@ fn circumcenter(
     // Collinear: return a degenerate point.
     return { x: 0.0, y: 0.0 }
   }
-  let ux = ((ax * ax + ay * ay) * (by - cy) +
-    (bx * bx + by * by) * (cy - ay) +
-    (cx * cx + cy * cy) * (ay - by)) /
+  let ux = (
+      (ax * ax + ay * ay) * (by - cy) +
+      (bx * bx + by * by) * (cy - ay) +
+      (cx * cx + cy * cy) * (ay - by)
+    ) /
     d
-  let uy = ((ax * ax + ay * ay) * (cx - bx) +
-    (bx * bx + by * by) * (ax - cx) +
-    (cx * cx + cy * cy) * (bx - ax)) /
+  let uy = (
+      (ax * ax + ay * ay) * (cx - bx) +
+      (bx * bx + by * by) * (ax - cx) +
+      (cx * cx + cy * cy) * (bx - ax)
+    ) /
     d
   { x: ux, y: uy }
 }
@@ -197,6 +208,7 @@ fn circumcenter(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "voronoi: fewer than 3 points" {
   let pts = [@delaunay.dpoint(0, 0)]
   let vd = compute(pts)
@@ -204,6 +216,7 @@ test "voronoi: fewer than 3 points" {
   assert_eq(vd.edges.length(), 0)
 }
 
+///|
 test "voronoi: triangle produces one vertex" {
   let pts = [
     @delaunay.dpoint(0, 0),
@@ -218,6 +231,7 @@ test "voronoi: triangle produces one vertex" {
   assert_true(dbl_abs(vd.vertices[0].y - 50.0) < 0.001)
 }
 
+///|
 test "voronoi: square produces two vertices" {
   let pts = [
     @delaunay.dpoint(0, 0),
@@ -235,6 +249,7 @@ test "voronoi: square produces two vertices" {
   }
 }
 
+///|
 test "voronoi: bounded edges connect vertices" {
   let pts = [
     @delaunay.dpoint(0, 0),
@@ -253,6 +268,7 @@ test "voronoi: bounded edges connect vertices" {
   assert_true(has_bounded)
 }
 
+///|
 test "voronoi: unbounded edges at boundary" {
   // A triangle has all 3 edges on the convex hull boundary -> 3 unbounded edges.
   let pts = [
@@ -271,6 +287,7 @@ test "voronoi: unbounded edges at boundary" {
   assert_eq(unbounded_count, 3)
 }
 
+///|
 test "voronoi: circumcenter of right triangle" {
   // Right triangle with right angle at origin.
   // Circumcenter = midpoint of hypotenuse = (50, 50).
@@ -282,6 +299,7 @@ test "voronoi: circumcenter of right triangle" {
   assert_true(dbl_abs(cc.y - 50.0) < 0.001)
 }
 
+///|
 test "voronoi: collinear points produce no triangles" {
   let pts = [
     @delaunay.dpoint(0, 0),

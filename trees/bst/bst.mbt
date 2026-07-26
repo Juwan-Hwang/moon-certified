@@ -30,6 +30,7 @@
 /// Not formally verified. Correctness is ensured by a comprehensive test suite,
 /// including a 10^5-depth degenerate-tree stack-safety case.
 
+///|
 /// Binary Search Tree node type.
 /// Use `Node::Empty` to create an empty tree.
 pub enum Node {
@@ -37,6 +38,7 @@ pub enum Node {
   Node(Node, Int, Node)
 }
 
+///|
 /// Insert a value into the BST. Duplicates are ignored (the tree is returned
 /// unchanged). Iterative: the descent path is recorded on a heap stack and
 /// the spine rebuilt bottom-up, so insertion is stack-safe on degenerate trees.
@@ -65,6 +67,7 @@ pub fn insert(root : Node, val : Int) -> Node {
   rebuild_spine(path, Node(Empty, val, Empty))
 }
 
+///|
 /// Search for a value. Returns true if present. Iterative descent — O(1) in
 /// call-stack depth regardless of tree height.
 pub fn search(root : Node, val : Int) -> Bool {
@@ -88,6 +91,7 @@ pub fn search(root : Node, val : Int) -> Bool {
   found
 }
 
+///|
 /// Find the minimum value, or `None` if the tree is empty. Iterative left walk
 /// — stack-safe on degenerate trees.
 pub fn find_min(root : Node) -> Int? {
@@ -106,6 +110,7 @@ pub fn find_min(root : Node) -> Int? {
   result
 }
 
+///|
 /// Delete a value. If absent the tree is returned unchanged. Iterative: the
 /// descent path is heap-stacked and the spine rebuilt bottom-up, so deletion
 /// is stack-safe even on degenerate trees.
@@ -136,6 +141,7 @@ pub fn delete(root : Node, val : Int) -> Node {
   rebuild_spine(path, remove_at(cur))
 }
 
+///|
 /// Compute the subtree that replaces a located target node.
 /// - leaf / single child: the non-empty child (or `Empty`)
 /// - two children: hoist the in-order successor (min of the right subtree)
@@ -160,6 +166,7 @@ fn remove_at(node : Node) -> Node {
   }
 }
 
+///|
 /// Remove and return the minimum value of a subtree, together with the
 /// subtree that remains. Returns `None` if the subtree is empty. Iterative:
 /// walks left recording the spine, then rebuilds upward — no recursion, no
@@ -201,13 +208,11 @@ fn extract_min(root : Node) -> (Int, Node)? {
   result
 }
 
+///|
 /// Rebuild a path spine bottom-up. `start` is the new subtree at the bottom of
 /// the descent; each recorded `(value, sibling, dir)` frame produces a new
 /// ancestor with `start` attached on the descended side. Returns the new root.
-fn rebuild_spine(
-  path : Array[(Int, Node, Int)],
-  start : Node,
-) -> Node {
+fn rebuild_spine(path : Array[(Int, Node, Int)], start : Node) -> Node {
   let mut acc = start
   let mut go = true
   while go {
@@ -224,6 +229,7 @@ fn rebuild_spine(
   acc
 }
 
+///|
 /// Number of nodes. Iterative pre-order walk with an explicit stack — O(n) in
 /// time and heap space, O(1) in call-stack depth.
 pub fn size(root : Node) -> Int {
@@ -247,6 +253,7 @@ pub fn size(root : Node) -> Int {
   count
 }
 
+///|
 /// In-order traversal returning a sorted `FixedArray[Int]`. Iterative (standard
 /// left-spine stack), so it is stack-safe on degenerate trees.
 pub fn inorder(root : Node) -> FixedArray[Int] {
@@ -286,6 +293,7 @@ pub fn inorder(root : Node) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "insert: basic" {
   let tree = insert(Empty, 5)
   assert_eq(size(tree), 1)
@@ -294,6 +302,7 @@ test "insert: basic" {
   assert_eq(size(tree), 3)
 }
 
+///|
 test "insert: duplicate ignored" {
   let tree = insert(Empty, 5)
   let tree = insert(tree, 5) // duplicate
@@ -303,6 +312,7 @@ test "insert: duplicate ignored" {
   assert_eq(size(tree), 2)
 }
 
+///|
 test "search: found" {
   let tree = insert(Empty, 10)
   let tree = insert(tree, 5)
@@ -316,6 +326,7 @@ test "search: found" {
   assert_eq(search(tree, 7), true)
 }
 
+///|
 test "search: not found" {
   let tree = insert(Empty, 10)
   let tree = insert(tree, 5)
@@ -326,10 +337,12 @@ test "search: not found" {
   assert_eq(search(tree, 12), false)
 }
 
+///|
 test "search: empty tree" {
   assert_eq(search(Empty, 42), false)
 }
 
+///|
 test "delete: leaf node" {
   let tree = insert(Empty, 5)
   let tree = insert(tree, 3)
@@ -342,6 +355,7 @@ test "delete: leaf node" {
   assert_eq(search(tree, 7), true)
 }
 
+///|
 test "delete: node with one child (left)" {
   //     5
   //    /
@@ -359,6 +373,7 @@ test "delete: node with one child (left)" {
   assert_eq(search(tree, 5), true)
 }
 
+///|
 test "delete: node with one child (right)" {
   //   5
   //    \
@@ -376,6 +391,7 @@ test "delete: node with one child (right)" {
   assert_eq(search(tree, 5), true)
 }
 
+///|
 test "delete: node with two children" {
   //       5
   //      / \
@@ -406,6 +422,7 @@ test "delete: node with two children" {
   assert_eq(arr[4], 9)
 }
 
+///|
 test "delete: root node with two children" {
   //       5
   //      / \
@@ -425,6 +442,7 @@ test "delete: root node with two children" {
   assert_eq(arr[1], 7)
 }
 
+///|
 test "delete: non-existent value" {
   let tree = insert(Empty, 5)
   let tree = insert(tree, 3)
@@ -434,11 +452,13 @@ test "delete: non-existent value" {
   assert_eq(search(tree, 5), true)
 }
 
+///|
 test "delete: from empty tree" {
   let tree = delete(Empty, 42)
   assert_eq(size(tree), 0)
 }
 
+///|
 test "delete: all elements one by one" {
   let tree = insert(Empty, 5)
   let tree = insert(tree, 3)
@@ -464,6 +484,7 @@ test "delete: all elements one by one" {
   assert_eq(size(tree), 0)
 }
 
+///|
 test "inorder: sorted output" {
   let tree = insert(Empty, 50)
   let tree = insert(tree, 30)
@@ -483,11 +504,13 @@ test "inorder: sorted output" {
   assert_eq(arr[6], 80)
 }
 
+///|
 test "inorder: empty tree" {
   let arr = inorder(Empty)
   assert_eq(arr.length(), 0)
 }
 
+///|
 test "inorder: single node" {
   let tree = insert(Empty, 42)
   let arr = inorder(tree)
@@ -495,10 +518,12 @@ test "inorder: single node" {
   assert_eq(arr[0], 42)
 }
 
+///|
 test "size: empty tree" {
   assert_eq(size(Empty), 0)
 }
 
+///|
 test "inorder: comprehensive" {
   // Insert elements in non-sorted order
   let tree = insert(Empty, 5)
@@ -519,6 +544,7 @@ test "inorder: comprehensive" {
   }
 }
 
+///|
 test "delete: root with two children and deep successor" {
   //        50
   //       /  \
@@ -552,6 +578,7 @@ test "delete: root with two children and deep successor" {
   assert_eq(arr[6], 85)
 }
 
+///|
 test "find_min: basic and empty" {
   let tree = insert(Empty, 50)
   let tree = insert(tree, 30)
@@ -562,6 +589,7 @@ test "find_min: basic and empty" {
   assert_true(find_min(Empty) is None)
 }
 
+///|
 test "bst: deep degenerate tree is stack-safe" {
   // Build a left-leaning chain of 10^5 nodes by direct construction — O(n),
   // not the O(n^2) of sequential `insert`. Under the previous recursive
@@ -597,6 +625,7 @@ test "bst: deep degenerate tree is stack-safe" {
   assert_eq(find_min(tree3).unwrap(), 2)
 }
 
+///|
 test "bst: right-leaning degenerate tree is stack-safe" {
   // Mirror of the left-leaning case: a right chain, exercising the right
   // descent / right-sibling rebuild path of every operation.

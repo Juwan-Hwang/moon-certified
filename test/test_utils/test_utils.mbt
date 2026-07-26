@@ -4,6 +4,7 @@
 /// (e.g. the `str_cmp` comparator that was previously copy-pasted into 11+
 /// test files) and are not part of the public algorithm library API.
 
+///|
 /// Lexicographic string comparator: compares character-by-character, then
 /// by length. Returns a negative value when `a` precedes `b`, zero when
 /// equal, and a positive value when `a` follows `b`.

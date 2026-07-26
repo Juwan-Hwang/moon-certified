@@ -24,6 +24,7 @@
 // a_star, dijkstra_heap, and johnson. The shared implementation is in
 // graph/graph_utils/graph_utils.mbt.
 
+///|
 /// Manhattan distance between two grid points `(x1, y1)` and `(x2, y2)`.
 fn manhattan(x1 : Int, y1 : Int, x2 : Int, y2 : Int) -> Int {
   let dx = if x1 > x2 { x1 - x2 } else { x2 - x1 }
@@ -31,6 +32,7 @@ fn manhattan(x1 : Int, y1 : Int, x2 : Int, y2 : Int) -> Int {
   dx + dy
 }
 
+///|
 /// Outcome of an A* search.
 ///
 /// `goal_g` is `Some(g)` when the goal was reached in `g` steps, or `None`
@@ -43,12 +45,14 @@ priv struct AStarResult {
   came_from : FixedArray[Int]
 }
 
+///|
 /// Sentinel result for searches that do not reach the goal (invalid input or
 /// no path). The `came_from` array is empty and never indexed by callers.
 fn no_path() -> AStarResult {
   { goal_g: None, came_from: FixedArray::make(0, 0) }
 }
 
+///|
 /// Core A* search shared by `a_star` and `a_star_path`.
 ///
 /// Validates the input, runs the heap-driven A* loop, and returns the goal's
@@ -102,7 +106,7 @@ fn a_star_search(
     match @graph_utils.MinHeap::pop(pq) {
       Some({ dist: _, vertex: current }) => {
         if closed[current] {
-          continue  // Skip stale entries (lazy deletion)
+          continue // Skip stale entries (lazy deletion)
         }
         let current_g = g_score[current]
         if current == goal_idx {
@@ -134,6 +138,7 @@ fn a_star_search(
   no_path()
 }
 
+///|
 /// Compute the shortest path length from `(start_x, start_y)` to
 /// `(goal_x, goal_y)` on the grid using A* search.
 ///
@@ -151,6 +156,7 @@ pub fn a_star(
   a_star_search(grid, width, height, start_x, start_y, goal_x, goal_y).goal_g
 }
 
+///|
 /// Compute the shortest path from `(start_x, start_y)` to
 /// `(goal_x, goal_y)` on the grid, returning the actual path.
 ///
@@ -190,11 +196,13 @@ pub fn a_star_path(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "a_star: basic path" {
   let grid = FixedArray::make(9, 0)
   assert_eq(a_star(grid, 3, 3, 0, 0, 2, 2), Some(4))
 }
 
+///|
 test "a_star: no path - wall blocks" {
   let grid = FixedArray::make(9, 0)
   grid[0 * 3 + 1] = 1
@@ -203,11 +211,13 @@ test "a_star: no path - wall blocks" {
   assert_true(a_star(grid, 3, 3, 0, 0, 2, 0) is None)
 }
 
+///|
 test "a_star: straight line" {
   let grid = FixedArray::make(5, 0)
   assert_eq(a_star(grid, 5, 1, 0, 0, 4, 0), Some(4))
 }
 
+///|
 test "a_star: around obstacle" {
   let grid = FixedArray::make(9, 0)
   grid[1 * 3 + 0] = 1
@@ -215,21 +225,25 @@ test "a_star: around obstacle" {
   assert_eq(a_star(grid, 3, 3, 0, 0, 0, 2), Some(6))
 }
 
+///|
 test "a_star: diagonal goal" {
   let grid = FixedArray::make(25, 0)
   assert_eq(a_star(grid, 5, 5, 0, 0, 4, 4), Some(8))
 }
 
+///|
 test "a_star: start equals goal" {
   let grid = FixedArray::make(9, 0)
   assert_eq(a_star(grid, 3, 3, 1, 1, 1, 1), Some(0))
 }
 
+///|
 test "a_star: large grid 20x20" {
   let grid = FixedArray::make(400, 0)
   assert_eq(a_star(grid, 20, 20, 0, 0, 19, 19), Some(38))
 }
 
+///|
 test "a_star: shortest path optimization" {
   let grid = FixedArray::make(25, 0)
   grid[1 * 5 + 0] = 1
@@ -238,19 +252,21 @@ test "a_star: shortest path optimization" {
   assert_eq(a_star(grid, 5, 5, 0, 0, 0, 4), Some(6))
 }
 
+///|
 test "a_star_path: basic path reconstruction" {
   let grid = FixedArray::make(9, 0)
   let path = a_star_path(grid, 3, 3, 0, 0, 2, 2)
   match path {
     Some(p) => {
       assert_eq(p.length(), 5) // 4 steps + start
-      assert_eq(p[0], 0)       // start at (0,0) = index 0
-      assert_eq(p[4], 8)       // goal at (2,2) = index 8
+      assert_eq(p[0], 0) // start at (0,0) = index 0
+      assert_eq(p[4], 8) // goal at (2,2) = index 8
     }
     None => abort("expected a path")
   }
 }
 
+///|
 test "a_star_path: no path returns None" {
   let grid = FixedArray::make(9, 0)
   grid[0 * 3 + 1] = 1
@@ -259,6 +275,7 @@ test "a_star_path: no path returns None" {
   assert_true(a_star_path(grid, 3, 3, 0, 0, 2, 0) is None)
 }
 
+///|
 test "a_star_path: start equals goal" {
   let grid = FixedArray::make(9, 0)
   let path = a_star_path(grid, 3, 3, 1, 1, 1, 1)

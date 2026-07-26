@@ -30,6 +30,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A bounded Treiber stack using a pre-allocated node pool.
 ///
 /// Nodes live in a `FixedArray` pool; no per-operation heap allocation.
@@ -45,6 +46,7 @@ pub struct TreiberStack[T] {
   priv capacity : Int
 }
 
+///|
 /// Create a bounded Treiber stack with the given `capacity`.
 ///
 /// Negative capacity is clamped to 0. Internally allocates `capacity`
@@ -69,6 +71,7 @@ pub fn[T] treiber_stack_new(capacity : Int) -> TreiberStack[T] {
   }
 }
 
+///|
 /// Push `item` onto the stack.
 ///
 /// Returns `true` on success, `false` if the pool is full.
@@ -90,6 +93,7 @@ pub fn[T] treiber_stack_push(stack : TreiberStack[T], item : T) -> Bool {
   true
 }
 
+///|
 /// Pop the top element from the stack.
 ///
 /// Returns `Some(item)` on success, `None` if the stack is empty.
@@ -111,26 +115,31 @@ pub fn[T] treiber_stack_pop(stack : TreiberStack[T]) -> T? {
   value
 }
 
+///|
 /// Number of elements. O(1).
 pub fn[T] treiber_stack_size(stack : TreiberStack[T]) -> Int {
   stack.count
 }
 
+///|
 /// True if the stack is empty. O(1).
 pub fn[T] treiber_stack_is_empty(stack : TreiberStack[T]) -> Bool {
   stack.head < 0
 }
 
+///|
 /// True if the stack is full (pool exhausted). O(1).
 pub fn[T] treiber_stack_is_full(stack : TreiberStack[T]) -> Bool {
   stack.free_top == 0
 }
 
+///|
 /// Maximum capacity. O(1).
 pub fn[T] treiber_stack_capacity(stack : TreiberStack[T]) -> Int {
   stack.capacity
 }
 
+///|
 /// Total simulated CAS operations performed. O(1).
 pub fn[T] treiber_stack_cas_count(stack : TreiberStack[T]) -> Int {
   stack.cas_count
@@ -140,6 +149,7 @@ pub fn[T] treiber_stack_cas_count(stack : TreiberStack[T]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "treiber_stack: basic push and pop" {
   let s : TreiberStack[Int] = treiber_stack_new(4)
   assert_true(treiber_stack_is_empty(s))
@@ -152,6 +162,7 @@ test "treiber_stack: basic push and pop" {
   assert_true(treiber_stack_is_empty(s))
 }
 
+///|
 test "treiber_stack: LIFO order" {
   let s : TreiberStack[Int] = treiber_stack_new(100)
   for i = 0; i < 50; i = i + 1 {
@@ -163,6 +174,7 @@ test "treiber_stack: LIFO order" {
   assert_true(treiber_stack_is_empty(s))
 }
 
+///|
 test "treiber_stack: full stack" {
   let s : TreiberStack[Int] = treiber_stack_new(3)
   assert_true(treiber_stack_push(s, 1))
@@ -175,6 +187,7 @@ test "treiber_stack: full stack" {
   assert_true(treiber_stack_push(s, 99))
 }
 
+///|
 test "treiber_stack: cas count" {
   let s : TreiberStack[Int] = treiber_stack_new(10)
   ignore(treiber_stack_push(s, 1))
@@ -183,6 +196,7 @@ test "treiber_stack: cas count" {
   assert_eq(treiber_stack_cas_count(s), 3)
 }
 
+///|
 test "treiber_stack: generic with String" {
   let s : TreiberStack[String] = treiber_stack_new(5)
   ignore(treiber_stack_push(s, "a"))
@@ -193,6 +207,7 @@ test "treiber_stack: generic with String" {
   assert_eq(treiber_stack_pop(s), Some("a"))
 }
 
+///|
 test "treiber_stack: interleave push and pop" {
   let s : TreiberStack[Int] = treiber_stack_new(10)
   ignore(treiber_stack_push(s, 1))

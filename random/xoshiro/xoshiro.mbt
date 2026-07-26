@@ -23,6 +23,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// xoshiro256** generator state (4 × 64-bit words).
 pub struct Xoshiro256 {
   priv mut s0 : UInt64
@@ -31,9 +32,11 @@ pub struct Xoshiro256 {
   priv mut s3 : UInt64
 }
 
+///|
 /// Golden ratio (2^64 / φ) constant used by SplitMix64.
 let golden : UInt64 = 0x9E3779B97F4A7C15UL
 
+///|
 /// SplitMix64 — used for seeding (avoids catastrophic seeding).
 fn splitmix64(x : UInt64) -> UInt64 {
   let mut z = x + golden
@@ -42,6 +45,7 @@ fn splitmix64(x : UInt64) -> UInt64 {
   z ^ (z >> 31)
 }
 
+///|
 /// Create a new xoshiro256** generator seeded with `seed`.
 ///
 /// Uses SplitMix64 to expand the 64-bit seed into four 64-bit state words,
@@ -58,11 +62,13 @@ pub fn new(seed : UInt64) -> Xoshiro256 {
   { s0: w0, s1: w1, s2: w2, s3: w3 }
 }
 
+///|
 /// Left-rotate a 64-bit value by `n` bits.
 fn rotl64(x : UInt64, n : Int) -> UInt64 {
   (x << n) | (x >> (64 - n))
 }
 
+///|
 /// Generate the next 64-bit random number (xoshiro256** output function).
 pub fn next(x : Xoshiro256) -> UInt64 {
   let result = rotl64(x.s1 * 5UL, 7) * 9UL
@@ -76,6 +82,7 @@ pub fn next(x : Xoshiro256) -> UInt64 {
   result
 }
 
+///|
 /// Generate a random Int in [0, n).
 pub fn next_int(x : Xoshiro256, n : Int) -> Int {
   if n <= 0 {
@@ -85,6 +92,7 @@ pub fn next_int(x : Xoshiro256, n : Int) -> Int {
   (v % n.to_uint64()).to_int()
 }
 
+///|
 /// Generate a random Double in [0.0, 1.0).
 pub fn next_double(x : Xoshiro256) -> Double {
   let v = next(x)
@@ -95,6 +103,7 @@ pub fn next_double(x : Xoshiro256) -> Double {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "xoshiro256: deterministic with same seed" {
   let r1 = new(42UL)
   let r2 = new(42UL)
@@ -103,6 +112,7 @@ test "xoshiro256: deterministic with same seed" {
   }
 }
 
+///|
 test "xoshiro256: different seeds produce different sequences" {
   let r1 = new(1UL)
   let r2 = new(2UL)
@@ -115,6 +125,7 @@ test "xoshiro256: different seeds produce different sequences" {
   assert_true(diff > 90)
 }
 
+///|
 test "xoshiro256: next_int in range" {
   let rng = new(42UL)
   for _ in 0..<1000 {
@@ -123,6 +134,7 @@ test "xoshiro256: next_int in range" {
   }
 }
 
+///|
 test "xoshiro256: next_double in [0,1)" {
   let rng = new(42UL)
   for _ in 0..<1000 {
@@ -131,6 +143,7 @@ test "xoshiro256: next_double in [0,1)" {
   }
 }
 
+///|
 test "xoshiro256: uniformity" {
   let rng = new(999UL)
   let bins = 10
@@ -147,6 +160,7 @@ test "xoshiro256: uniformity" {
   }
 }
 
+///|
 test "xoshiro256: no short period" {
   let rng = new(12345UL)
   let first = next(rng)
@@ -160,6 +174,7 @@ test "xoshiro256: no short period" {
   assert_false(repeat)
 }
 
+///|
 test "xoshiro256: zero seed handled (SplitMix64 avoids all-zero state)" {
   let rng = new(0UL)
   // Should not produce all zeros.

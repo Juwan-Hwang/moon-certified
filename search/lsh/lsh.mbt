@@ -36,12 +36,14 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// A single LSH hash table entry: composite hash key -> point indices.
 pub struct Bucket {
   key : String
   indices : Array[Int]
 }
 
+///|
 /// A single LSH hash table.
 pub struct LSHTable {
   projections : Array[Array[Double]]
@@ -50,6 +52,7 @@ pub struct LSHTable {
   buckets : Array[Bucket]
 }
 
+///|
 /// The LSH index.
 pub struct LSHIndex {
   tables : Array[LSHTable]
@@ -61,15 +64,18 @@ pub struct LSHIndex {
   seed : Int
 }
 
+///|
 /// A simple linear congruential generator for reproducible randomness.
 priv struct LCG {
   mut state : Int64
 }
 
+///|
 fn lcg_new(seed : Int) -> LCG {
   { state: seed.to_int64() & 0x7FFFFFFFFFFFFFFFL }
 }
 
+///|
 fn lcg_next(lcg : LCG) -> Int64 {
   // Using glibc LCG parameters.
   lcg.state = (6364136223846793005L * lcg.state + 1442695040888963407L) &
@@ -77,6 +83,7 @@ fn lcg_next(lcg : LCG) -> Int64 {
   lcg.state
 }
 
+///|
 fn lcg_next_double(lcg : LCG) -> Double {
   let v = lcg_next(lcg)
   v.to_double() / 9223372036854775807.0
@@ -86,6 +93,7 @@ fn lcg_next_double(lcg : LCG) -> Double {
 // Math helpers (MoonBit @math lacks floor and ln)
 // ---------------------------------------------------------------------------
 
+///|
 fn lsh_floor(x : Double) -> Double {
   let i = x.to_int()
   if x < 0.0 && x != i.to_double() {
@@ -95,8 +103,10 @@ fn lsh_floor(x : Double) -> Double {
   }
 }
 
+///|
 const LSH_LN2 : Double = 0.6931471805599453
 
+///|
 fn lsh_ln(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -126,6 +136,7 @@ fn lsh_ln(x : Double) -> Double {
   sum * 2.0 - k.to_double() * LSH_LN2
 }
 
+///|
 fn lsh_sqrt(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -139,6 +150,7 @@ fn lsh_sqrt(x : Double) -> Double {
   r
 }
 
+///|
 fn lsh_cos(x : Double) -> Double {
   // Taylor series for cos(x), reduced to [-pi, pi].
   let pi = 3.14159265358979323846
@@ -163,6 +175,7 @@ fn lsh_cos(x : Double) -> Double {
   result
 }
 
+///|
 /// Sample from a standard Gaussian distribution using the Box-Muller transform.
 fn gaussian(rng : LCG) -> Double {
   let u1 = lcg_next_double(rng)
@@ -175,6 +188,7 @@ fn gaussian(rng : LCG) -> Double {
 // String join helper (MoonBit Array lacks join for String)
 // ---------------------------------------------------------------------------
 
+///|
 fn join_strings(parts : Array[String], sep : String) -> String {
   let mut buf = ""
   for i = 0; i < parts.length(); i = i + 1 {
@@ -191,6 +205,7 @@ fn join_strings(parts : Array[String], sep : String) -> String {
 // Bucket lookup helper
 // ---------------------------------------------------------------------------
 
+///|
 fn bucket_get(table : LSHTable, key : String) -> Array[Int]? {
   for i = 0; i < table.buckets.length(); i = i + 1 {
     if table.buckets[i].key == key {
@@ -200,6 +215,7 @@ fn bucket_get(table : LSHTable, key : String) -> Array[Int]? {
   None
 }
 
+///|
 fn bucket_get_or_create(table : LSHTable, key : String) -> Array[Int] {
   match bucket_get(table, key) {
     Some(bucket) => bucket
@@ -215,6 +231,7 @@ fn bucket_get_or_create(table : LSHTable, key : String) -> Array[Int] {
 // Core operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Build an LSH index from a set of points.
 ///
 /// # Parameters
@@ -245,12 +262,7 @@ pub fn build(
       projections.push(proj)
       offsets.push(lcg_next_double(rng) * w)
     }
-    let table : LSHTable = {
-      projections,
-      offsets,
-      w,
-      buckets: [],
-    }
+    let table : LSHTable = { projections, offsets, w, buckets: [] }
     // Insert all points into this table.
     for i = 0; i < n; i = i + 1 {
       let h = hash_point(table, points[i])
@@ -262,6 +274,7 @@ pub fn build(
   { tables, k, l, w, d, points, seed }
 }
 
+///|
 /// Compute the composite hash of a point for a given table.
 fn hash_point(table : LSHTable, point : Array[Double]) -> String {
   let parts : Array[String] = []
@@ -277,6 +290,7 @@ fn hash_point(table : LSHTable, point : Array[Double]) -> String {
   join_strings(parts, "|")
 }
 
+///|
 /// Squared Euclidean distance between two points.
 fn euclidean_sq(a : Array[Double], b : Array[Double]) -> Double {
   let mut sum = 0.0
@@ -288,6 +302,7 @@ fn euclidean_sq(a : Array[Double], b : Array[Double]) -> Double {
   sum
 }
 
+///|
 /// Find the approximate nearest neighbour of a query point.
 ///
 /// Searches all buckets that the query hashes to and returns the closest
@@ -318,6 +333,7 @@ pub fn nearest_neighbor(index : LSHIndex, query : Array[Double]) -> Int {
   best_idx
 }
 
+///|
 /// Find all approximate neighbours within `radius` of the query.
 pub fn range_search(
   index : LSHIndex,
@@ -352,15 +368,20 @@ pub fn range_search(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "lsh: basic nearest neighbor" {
   let points : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 1.0], [10.0, 10.0], [11.0, 11.0],
+    [0.0, 0.0],
+    [1.0, 1.0],
+    [10.0, 10.0],
+    [11.0, 11.0],
   ]
   let index = build(points, 4.0, 3, 10, 42)
   let nn = nearest_neighbor(index, [0.5, 0.5])
   assert_true(nn == 0 || nn == 1)
 }
 
+///|
 test "lsh: empty index" {
   let points : Array[Array[Double]] = []
   let index = build(points, 4.0, 3, 5, 42)
@@ -368,19 +389,23 @@ test "lsh: empty index" {
   assert_eq(nn, -1)
 }
 
+///|
 test "lsh: exact match query" {
-  let points : Array[Array[Double]] = [
-    [1.0, 2.0], [3.0, 4.0], [5.0, 6.0],
-  ]
+  let points : Array[Array[Double]] = [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
   let index = build(points, 4.0, 2, 10, 42)
   let nn = nearest_neighbor(index, [3.0, 4.0])
   assert_eq(nn, 1)
 }
 
+///|
 test "lsh: well-separated clusters" {
   let points : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 0.0], [0.0, 1.0],
-    [100.0, 100.0], [101.0, 100.0], [100.0, 101.0],
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [0.0, 1.0],
+    [100.0, 100.0],
+    [101.0, 100.0],
+    [100.0, 101.0],
   ]
   let index = build(points, 4.0, 3, 20, 42)
   let nn = nearest_neighbor(index, [0.5, 0.5])
@@ -389,9 +414,12 @@ test "lsh: well-separated clusters" {
   assert_true(nn2 >= 3 && nn2 < 6)
 }
 
+///|
 test "lsh: range search" {
   let points : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [2.0, 0.0],
     [100.0, 100.0],
   ]
   let index = build(points, 4.0, 2, 20, 42)
@@ -399,6 +427,7 @@ test "lsh: range search" {
   assert_true(result.length() >= 1)
 }
 
+///|
 test "lsh: high dimensional" {
   let points : Array[Array[Double]] = []
   for i = 0; i < 20; i = i + 1 {

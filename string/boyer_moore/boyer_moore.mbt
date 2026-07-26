@@ -35,6 +35,7 @@
 // Bad character table
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the bad-character shift table.
 ///
 /// Returns a `Map[Int, Int]` mapping each character code point to its
@@ -56,6 +57,7 @@ fn build_bad_char(pattern : String) -> Map[Int, Int] {
 // Good suffix table
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the good-suffix shift table.
 ///
 /// `good_suffix[j]` = the minimum shift such that the matched suffix
@@ -113,6 +115,7 @@ fn build_good_suffix(pattern : String) -> FixedArray[Int] {
 // Search
 // ---------------------------------------------------------------------------
 
+///|
 /// Search for the first occurrence of `pattern` in `text`.
 ///
 /// Returns `Some(index)` if found, `None` if not found or if `pattern` is
@@ -145,6 +148,7 @@ pub fn search(text : String, pattern : String) -> Int? {
   None
 }
 
+///|
 /// Find all occurrences of `pattern` in `text`.
 ///
 /// Returns an array of starting indices, in ascending order.
@@ -181,41 +185,49 @@ pub fn search_all(text : String, pattern : String) -> FixedArray[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "boyer_moore: basic match" {
   assert_eq(search("hello world", "world"), Some(6))
   assert_eq(search("hello world", "hello"), Some(0))
   assert_eq(search("ababcababc", "abc"), Some(2))
 }
 
+///|
 test "boyer_moore: no match" {
   assert_true(search("hello world", "xyz") is None)
   assert_true(search("abc", "abcd") is None)
 }
 
+///|
 test "boyer_moore: empty pattern" {
   assert_true(search("hello", "") is None)
 }
 
+///|
 test "boyer_moore: full match" {
   assert_eq(search("abc", "abc"), Some(0))
 }
 
+///|
 test "boyer_moore: repeated pattern" {
   assert_eq(search("aaaaaa", "aa"), Some(0))
   assert_eq(search("ababab", "ab"), Some(0))
 }
 
+///|
 test "boyer_moore: single char" {
   assert_eq(search("hello", "e"), Some(1))
   assert_eq(search("hello", "o"), Some(4))
   assert_true(search("hello", "z") is None)
 }
 
+///|
 test "boyer_moore: pattern at end" {
   assert_eq(search("abcdefghij", "hij"), Some(7))
   assert_eq(search("abcdefghij", "ij"), Some(8))
 }
 
+///|
 test "boyer_moore: search_all" {
   let positions = search_all("ababcababc", "ab")
   assert_eq(positions.length(), 4)
@@ -225,6 +237,7 @@ test "boyer_moore: search_all" {
   assert_eq(positions[3], 7)
 }
 
+///|
 test "boyer_moore: search_all overlapping" {
   let positions = search_all("aaaaaa", "aa")
   assert_eq(positions.length(), 5)
@@ -233,22 +246,25 @@ test "boyer_moore: search_all overlapping" {
   }
 }
 
+///|
 test "boyer_moore: search_all no match" {
   let positions = search_all("hello world", "xyz")
   assert_eq(positions.length(), 0)
 }
 
+///|
 test "boyer_moore: search_all single occurrence" {
   let positions = search_all("abcdef", "def")
   assert_eq(positions.length(), 1)
   assert_eq(positions[0], 3)
 }
 
+///|
 test "boyer_moore: large text" {
   // Build a large text with known pattern.
   let text_buf : Array[Char] = []
   for i = 0; i < 1000; i = i + 1 {
-    text_buf.push(((i % 26) + 97).to_char().unwrap())
+    text_buf.push((i % 26 + 97).to_char().unwrap())
   }
   // The base text is periodic with period 26, so a slice taken at position 500
   // (500 mod 26 == 6) would also match at position 6. Overwrite positions
@@ -263,10 +279,12 @@ test "boyer_moore: large text" {
   assert_eq(search(text, pat), Some(500))
 }
 
+///|
 test "boyer_moore: pattern longer than text" {
   assert_true(search("ab", "abc") is None)
 }
 
+///|
 test "boyer_moore: matches KMP semantics" {
   // Cross-check with brute force on various inputs.
   let texts = ["ababcababc", "mississippi", "aaaaaaaab", "xyzxyzxyz"]
@@ -282,6 +300,7 @@ test "boyer_moore: matches KMP semantics" {
   }
 }
 
+///|
 fn brute_search(text : String, pattern : String) -> Int? {
   if pattern.length() == 0 || pattern.length() > text.length() {
     return None

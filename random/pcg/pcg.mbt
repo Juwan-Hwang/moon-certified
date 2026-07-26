@@ -26,6 +26,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// PCG32 generator state.
 ///
 /// Uses 64-bit state with 32-bit output via the PCG-XSH-RR scheme.
@@ -35,12 +36,15 @@ pub struct PCG32 {
   priv increment : UInt64
 }
 
+///|
 /// Default multiplier for 64-bit LCG state transition.
 let pcg_mult : UInt64 = 6364136223846793005UL
 
+///|
 /// Default increment for the default stream (odd, as required).
 let pcg_default_inc : UInt64 = 1442695040888963407UL
 
+///|
 /// Create a new PCG32 with the given seed and stream.
 ///
 /// `seed` sets the initial state; `stream` selects which independent
@@ -55,11 +59,13 @@ pub fn new(seed : UInt64, stream : UInt64) -> PCG32 {
   pcg
 }
 
+///|
 /// Create a PCG32 with a default stream.
 pub fn new_default(seed : UInt64) -> PCG32 {
   new(seed, pcg_default_inc)
 }
 
+///|
 /// Generate the next 32-bit random number using PCG-XSH-RR.
 pub fn next(pcg : PCG32) -> UInt {
   let oldstate = pcg.state
@@ -68,20 +74,22 @@ pub fn next(pcg : PCG32) -> UInt {
   // Output function: XSH-RR (xor-shift, random rotation)
   let xorshifted = ((oldstate >> 18) ^ oldstate) >> 27
   let rot = (oldstate >> 59).to_int()
-  let result = (xorshifted >> rot) | (xorshifted << ((-rot) & 31))
+  let result = (xorshifted >> rot) | (xorshifted << (-rot & 31))
   // Take low 32 bits
   (result & 0xFFFFFFFFUL).to_uint()
 }
 
+///|
 /// Generate a random Int in [0, n).
 pub fn next_int(pcg : PCG32, n : Int) -> Int {
   if n <= 0 {
     return 0
   }
   let x = next(pcg)
-  ((x >> 1).reinterpret_as_int()) % n
+  (x >> 1).reinterpret_as_int() % n
 }
 
+///|
 /// Generate a random Double in [0.0, 1.0).
 pub fn next_double(pcg : PCG32) -> Double {
   let v = next(pcg)
@@ -92,6 +100,7 @@ pub fn next_double(pcg : PCG32) -> Double {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "pcg32: deterministic with same seed" {
   let r1 = new_default(42UL)
   let r2 = new_default(42UL)
@@ -100,6 +109,7 @@ test "pcg32: deterministic with same seed" {
   }
 }
 
+///|
 test "pcg32: different seeds produce different sequences" {
   let r1 = new_default(1UL)
   let r2 = new_default(2UL)
@@ -112,6 +122,7 @@ test "pcg32: different seeds produce different sequences" {
   assert_true(diff > 90)
 }
 
+///|
 test "pcg32: different streams produce different sequences" {
   let r1 = new(42UL, 1UL)
   let r2 = new(42UL, 2UL)
@@ -124,6 +135,7 @@ test "pcg32: different streams produce different sequences" {
   assert_true(diff > 90)
 }
 
+///|
 test "pcg32: next_int in range" {
   let rng = new_default(42UL)
   for _ in 0..<1000 {
@@ -132,6 +144,7 @@ test "pcg32: next_int in range" {
   }
 }
 
+///|
 test "pcg32: next_double in [0,1)" {
   let rng = new_default(42UL)
   for _ in 0..<1000 {
@@ -140,6 +153,7 @@ test "pcg32: next_double in [0,1)" {
   }
 }
 
+///|
 test "pcg32: uniformity" {
   let rng = new_default(999UL)
   let bins = 10
@@ -156,6 +170,7 @@ test "pcg32: uniformity" {
   }
 }
 
+///|
 test "pcg32: no short period" {
   let rng = new_default(12345UL)
   let first = next(rng)

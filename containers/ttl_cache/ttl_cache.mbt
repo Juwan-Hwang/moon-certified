@@ -22,6 +22,7 @@
 /// `tick` and `size` are O(n) in the number of live entries because they walk
 /// the map (to evict / to count non-expired entries).
 
+///|
 /// A single cache entry: the stored value plus its bookkeeping timestamps.
 ///
 /// `expires_at`   — the logical tick at which the entry becomes stale
@@ -34,6 +35,7 @@ pub struct Entry[V] {
   priv inserted_at : Int64
 }
 
+///|
 /// A TTL cache mapping keys of type `K` to values of type `V`.
 ///
 /// `K` must implement the built-in `Hash` and `Eq` traits (required by MoonBit's
@@ -49,6 +51,7 @@ pub struct TtlCache[K, V] {
   priv mut entries : Map[K, Entry[V]]
 }
 
+///|
 /// Create a new TTL cache with the given fixed `capacity` and `ttl` (in ticks).
 ///
 /// A non-positive `capacity` yields a cache that silently stores nothing.
@@ -57,13 +60,18 @@ pub fn[K : Hash + Eq, V] new(capacity : Int, ttl : Int) -> TtlCache[K, V] {
   { capacity, ttl: ttl.to_int64(), clock: 0L, entries: Map([]) }
 }
 
+///|
 /// Insert or update an entry.
 ///
 /// On update, the value is replaced and the entry's expiration is refreshed to
 /// `clock + ttl`. On insert, if the cache is at capacity, the oldest entry (by
 /// insertion time) is evicted first. Inserting into a non-positive-capacity
 /// cache is a no-op.
-pub fn[K : Hash + Eq, V] put(cache : TtlCache[K, V], key : K, value : V) -> Unit {
+pub fn[K : Hash + Eq, V] put(
+  cache : TtlCache[K, V],
+  key : K,
+  value : V,
+) -> Unit {
   if cache.capacity <= 0 {
     return
   }
@@ -71,36 +79,34 @@ pub fn[K : Hash + Eq, V] put(cache : TtlCache[K, V], key : K, value : V) -> Unit
   if !cache.entries.contains(key) && cache.entries.length() >= cache.capacity {
     evict_oldest(cache)
   }
-  cache.entries[key] = {
-    value,
-    expires_at: now + cache.ttl,
-    inserted_at: now,
-  }
+  cache.entries[key] = { value, expires_at: now + cache.ttl, inserted_at: now }
 }
 
+///|
 /// Look up `key`.
 ///
 /// Returns `Some(v)` if the entry exists and has not expired; `None` otherwise.
 /// An expired entry is removed lazily on access.
 pub fn[K : Hash + Eq, V] get(cache : TtlCache[K, V], key : K) -> V? {
   match cache.entries.get(key) {
-    Some(entry) => {
+    Some(entry) =>
       if entry.expires_at <= cache.clock {
         let _ = cache.entries.remove(key)
         None
       } else {
         Some(entry.value)
       }
-    }
     None => None
   }
 }
 
+///|
 /// Remove the entry for `key`, if any.
 pub fn[K : Hash + Eq, V] remove(cache : TtlCache[K, V], key : K) -> Unit {
   let _ = cache.entries.remove(key)
 }
 
+///|
 /// Advance the logical clock by `delta` ticks, then eagerly evict every
 /// entry whose TTL has expired.
 pub fn[K : Hash + Eq, V] tick(cache : TtlCache[K, V], delta : Int) -> Unit {
@@ -108,6 +114,7 @@ pub fn[K : Hash + Eq, V] tick(cache : TtlCache[K, V], delta : Int) -> Unit {
   evict_expired(cache)
 }
 
+///|
 /// Number of non-expired entries currently held.
 ///
 /// This walks the map and counts entries with `expires_at > clock`; it does not
@@ -123,12 +130,14 @@ pub fn[K, V] size(cache : TtlCache[K, V]) -> Int {
   count
 }
 
+///|
 /// Remove every entry. The logical clock is left untouched (time is not
 /// rewound).
 pub fn[K : Hash + Eq, V] clear(cache : TtlCache[K, V]) -> Unit {
   cache.entries = Map([])
 }
 
+///|
 /// Remove every entry whose `expires_at` is at or before the current clock.
 fn[K : Hash + Eq, V] evict_expired(cache : TtlCache[K, V]) -> Unit {
   let now = cache.clock
@@ -143,6 +152,7 @@ fn[K : Hash + Eq, V] evict_expired(cache : TtlCache[K, V]) -> Unit {
   }
 }
 
+///|
 /// Evict the single entry with the smallest `inserted_at` (the oldest).
 /// Ties are broken by insertion order, since `Map` preserves insertion order.
 fn[K : Hash + Eq, V] evict_oldest(cache : TtlCache[K, V]) -> Unit {
@@ -160,7 +170,9 @@ fn[K : Hash + Eq, V] evict_oldest(cache : TtlCache[K, V]) -> Unit {
     }
   }
   match victim {
-    Some(k) => { let _ = cache.entries.remove(k) }
+    Some(k) => {
+      let _ = cache.entries.remove(k)
+    }
     None => ()
   }
 }
@@ -169,6 +181,7 @@ fn[K : Hash + Eq, V] evict_oldest(cache : TtlCache[K, V]) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "ttl: basic put and get" {
   let c : TtlCache[Int, String] = new(3, 5)
   put(c, 1, "one")
@@ -179,6 +192,7 @@ test "ttl: basic put and get" {
   assert_eq(size(c), 2)
 }
 
+///|
 test "ttl: expired entry returns None after tick" {
   let c : TtlCache[Int, String] = new(3, 3)
   put(c, 1, "one") // expires_at = 3
@@ -190,6 +204,7 @@ test "ttl: expired entry returns None after tick" {
   assert_eq(size(c), 0)
 }
 
+///|
 test "ttl: update existing key" {
   let c : TtlCache[Int, String] = new(3, 5)
   put(c, 1, "old")
@@ -198,6 +213,7 @@ test "ttl: update existing key" {
   assert_eq(size(c), 1)
 }
 
+///|
 test "ttl: remove entry" {
   let c : TtlCache[Int, String] = new(3, 5)
   put(c, 1, "one")
@@ -208,6 +224,7 @@ test "ttl: remove entry" {
   assert_eq(size(c), 1)
 }
 
+///|
 test "ttl: capacity eviction evicts oldest" {
   let c : TtlCache[Int, String] = new(2, 100)
   put(c, 1, "one") // inserted_at = 0
@@ -221,6 +238,7 @@ test "ttl: capacity eviction evicts oldest" {
   assert_eq(size(c), 2)
 }
 
+///|
 test "ttl: clear" {
   let c : TtlCache[Int, String] = new(3, 5)
   put(c, 1, "a")
@@ -232,6 +250,7 @@ test "ttl: clear" {
   assert_eq(get(c, 3), Some("c"))
 }
 
+///|
 test "ttl: size after expiration" {
   let c : TtlCache[Int, Int] = new(5, 3)
   put(c, 1, 10)
@@ -251,6 +270,7 @@ test "ttl: size after expiration" {
   assert_eq(get(c2, 2), Some(20))
 }
 
+///|
 test "ttl: multiple ticks accumulate" {
   let c : TtlCache[Int, String] = new(5, 5)
   put(c, 1, "v") // expires_at = 5
@@ -263,6 +283,7 @@ test "ttl: multiple ticks accumulate" {
   assert_eq(size(c), 0)
 }
 
+///|
 test "ttl: ttl 0 means immediate expiration" {
   let c : TtlCache[Int, String] = new(3, 0)
   put(c, 1, "instant") // expires_at = 0
@@ -273,6 +294,7 @@ test "ttl: ttl 0 means immediate expiration" {
   assert_eq(size(c), 0)
 }
 
+///|
 test "ttl: string keys and mixed ttl" {
   let c : TtlCache[String, Int] = new(3, 4)
   put(c, "apple", 1) // expires_at = 4

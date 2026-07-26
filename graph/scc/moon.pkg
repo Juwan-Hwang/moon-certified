@@ -1,0 +1,7 @@
+import {
+  "moon-certified/graph/graph_utils",
+}
+
+options(
+  "proof-enabled": false,
+)

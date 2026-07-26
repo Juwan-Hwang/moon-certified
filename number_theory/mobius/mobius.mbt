@@ -23,6 +23,7 @@
 // Möbius function (single value)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the Möbius function `μ(n)`.
 ///
 /// Returns:
@@ -66,6 +67,7 @@ pub fn mobius(n : Int) -> Int {
 // Möbius sieve
 // ---------------------------------------------------------------------------
 
+///|
 /// Sieve the Möbius function for all `n` in `[1, N]`.
 ///
 /// Returns a `FixedArray[Int]` of length `N+1` where index `i` holds `μ(i)`.
@@ -103,6 +105,7 @@ pub fn mobius_sieve(n : Int) -> FixedArray[Int] {
 // Möbius inversion
 // ---------------------------------------------------------------------------
 
+///|
 /// Given `f(d)` for all divisors `d` of `n`, compute `g(n) = Σ μ(d)·f(n/d)`.
 ///
 /// This is the Möbius inversion formula: if `f(n) = Σ_{d|n} g(d)`, then
@@ -136,6 +139,7 @@ pub fn mobius_invert(n : Int, f : (Int) -> Int) -> Int {
 // Euler's totient via Möbius
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute Euler's totient `φ(n)` using the Möbius function:
 /// `φ(n) = Σ_{d|n} μ(d) · (n/d)`.
 ///
@@ -152,6 +156,7 @@ pub fn euler_totient_mobius(n : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mobius: basic values" {
   assert_eq(mobius(1), 1)
   assert_eq(mobius(2), -1) // prime
@@ -169,11 +174,13 @@ test "mobius: basic values" {
   assert_eq(mobius(210), 1) // 2*3*5*7, four primes
 }
 
+///|
 test "mobius: zero and negative" {
   assert_eq(mobius(0), 0)
   assert_eq(mobius(-5), 0)
 }
 
+///|
 test "mobius_sieve: first 30 values" {
   let mu = mobius_sieve(30)
   // Verify against known values.
@@ -187,6 +194,7 @@ test "mobius_sieve: first 30 values" {
   }
 }
 
+///|
 test "mobius_sieve: stress test 1000" {
   let n = 1000
   let mu = mobius_sieve(n)
@@ -195,6 +203,7 @@ test "mobius_sieve: stress test 1000" {
   }
 }
 
+///|
 test "mobius_invert: Euler's totient" {
   // φ(n) = Σ_{d|n} μ(d) * (n/d) = Σ_{d|n} μ(d) * f(n/d)
   // where f(n) = n.
@@ -204,6 +213,7 @@ test "mobius_invert: Euler's totient" {
   assert_eq(euler_totient_mobius(36), 12)
 }
 
+///|
 test "mobius_invert: identity" {
   // If f(n) = Σ_{d|n} g(d), then g(n) = Σ_{d|n} μ(d) * f(n/d).
   // Test: g(n) = 1 for all n → f(n) = d(n) (number of divisors).
@@ -229,6 +239,7 @@ test "mobius_invert: identity" {
   }
 }
 
+///|
 test "mobius: prime powers" {
   // μ(p) = -1 for prime p
   assert_eq(mobius(13), -1)
@@ -241,6 +252,7 @@ test "mobius: prime powers" {
   assert_eq(mobius(49), 0)
 }
 
+///|
 test "mobius: squarefree numbers" {
   // Squarefree numbers have μ = ±1.
   // 6 = 2*3 → μ = 1
@@ -255,6 +267,7 @@ test "mobius: squarefree numbers" {
   assert_eq(mobius(210), 1)
 }
 
+///|
 test "mobius_sieve: edge cases" {
   let mu0 = mobius_sieve(0)
   assert_eq(mu0.length(), 0)

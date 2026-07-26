@@ -1,6 +1,0 @@
-{
-  "root": "src",
-  "import": [
-    "moonbitlang/core/math"
-  ]
-}

@@ -16,12 +16,14 @@
 /// negative value. Callers should ensure values and their cumulative sums
 /// fit in 32-bit `Int` range.
 
+///|
 /// 1-indexed Fenwick tree. `tree` has length `n + 1`; index 0 is unused.
 pub struct Fenwick {
   priv tree : FixedArray[Int]
   priv n : Int
 }
 
+///|
 /// Build a Fenwick tree from a 0-indexed array in O(n).
 ///
 /// Element `arr[i]` becomes internal position `i + 1`.
@@ -34,7 +36,7 @@ pub fn build(arr : FixedArray[Int]) -> Fenwick {
   }
   // Propagate each cell to its parent in one bottom-up pass.
   for i = 1; i <= n; i = i + 1 {
-    let j = i + (i & (-i))
+    let j = i + (i & -i)
     if j <= n {
       tree[j] = tree[j] + tree[i]
     }
@@ -42,6 +44,7 @@ pub fn build(arr : FixedArray[Int]) -> Fenwick {
   { tree, n }
 }
 
+///|
 /// Add `delta` to the element at 1-indexed position `idx`.
 /// No-op when `idx` is out of bounds (`idx < 1` or `idx > n`).
 pub fn update(ft : Fenwick, idx : Int, delta : Int) -> Unit {
@@ -51,10 +54,11 @@ pub fn update(ft : Fenwick, idx : Int, delta : Int) -> Unit {
   let mut i = idx
   while i <= ft.n {
     ft.tree[i] = ft.tree[i] + delta
-    i = i + (i & (-i))
+    i = i + (i & -i)
   }
 }
 
+///|
 /// Prefix sum of positions `[1, idx]`.
 /// Returns `0` when `idx <= 0`. For `idx > n` the sum is clamped to `[1, n]`.
 pub fn query(ft : Fenwick, idx : Int) -> Int {
@@ -68,11 +72,12 @@ pub fn query(ft : Fenwick, idx : Int) -> Int {
   let mut sum = 0
   while i > 0 {
     sum = sum + ft.tree[i]
-    i = i - (i & (-i))
+    i = i - (i & -i)
   }
   sum
 }
 
+///|
 /// Inclusive sum of positions `[l, r]`.
 /// Returns `0` for empty or entirely out-of-bounds ranges. Otherwise the
 /// bounds are clamped to `[1, n]` before computing `query(r) - query(l - 1)`.
@@ -89,6 +94,7 @@ pub fn range_query(ft : Fenwick, l : Int, r : Int) -> Int {
 // Range-add / point-query Fenwick variant
 // ---------------------------------------------------------------------------
 
+///|
 /// A Fenwick tree configured for range-add and point-query.
 /// Internally stores the difference array; point_query returns the actual value.
 pub struct FenwickRange {
@@ -96,12 +102,14 @@ pub struct FenwickRange {
   priv n : Int
 }
 
+///|
 /// Create an empty range-add Fenwick of size `n`.
 pub fn build_range(n : Int) -> FenwickRange {
   let n = if n < 0 { 0 } else { n }
   { diff: FixedArray::make(n + 1, 0), n }
 }
 
+///|
 /// Add `val` to all positions in `[l, r]` (1-indexed, inclusive).
 pub fn range_add(ft : FenwickRange, l : Int, r : Int, val : Int) -> Unit {
   if l > r || l > ft.n {
@@ -112,7 +120,7 @@ pub fn range_add(ft : FenwickRange, l : Int, r : Int, val : Int) -> Unit {
   let mut i = cl
   while i <= ft.n {
     ft.diff[i] = ft.diff[i] + val
-    i = i + (i & (-i))
+    i = i + (i & -i)
   }
   // diff[r+1] -= val
   let r1 = r + 1
@@ -120,11 +128,12 @@ pub fn range_add(ft : FenwickRange, l : Int, r : Int, val : Int) -> Unit {
     let mut j = r1
     while j <= ft.n {
       ft.diff[j] = ft.diff[j] - val
-      j = j + (j & (-j))
+      j = j + (j & -j)
     }
   }
 }
 
+///|
 /// Query the value at position `idx` (1-indexed).
 pub fn point_query(ft : FenwickRange, idx : Int) -> Int {
   if idx < 1 || idx > ft.n {
@@ -134,7 +143,7 @@ pub fn point_query(ft : FenwickRange, idx : Int) -> Int {
   let mut i = idx
   while i > 0 {
     sum = sum + ft.diff[i]
-    i = i - (i & (-i))
+    i = i - (i & -i)
   }
   sum
 }
@@ -143,12 +152,14 @@ pub fn point_query(ft : FenwickRange, idx : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "fenwick: build and query full range" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 }) // [1, 2, 3, 4, 5]
   let ft = build(arr)
   assert_eq(query(ft, 5), 15)
 }
 
+///|
 test "fenwick: query single element" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 }) // [1, 2, 3, 4, 5]
   let ft = build(arr)
@@ -157,6 +168,7 @@ test "fenwick: query single element" {
   assert_eq(query(ft, 5), 15) // prefix [1,5] = 1+2+3+4+5
 }
 
+///|
 test "fenwick: point update" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 }) // [1, 2, 3, 4, 5]
   let ft = build(arr)
@@ -165,6 +177,7 @@ test "fenwick: point update" {
   assert_eq(query(ft, 5), 25) // 1 + 2 + 13 + 4 + 5
 }
 
+///|
 test "fenwick: range query" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 }) // [1, 2, 3, 4, 5]
   let ft = build(arr)
@@ -173,6 +186,7 @@ test "fenwick: range query" {
   assert_eq(range_query(ft, 3, 3), 3) // single element
 }
 
+///|
 test "fenwick: single element array" {
   let arr = FixedArray::make(1, 42)
   let ft = build(arr)
@@ -182,6 +196,7 @@ test "fenwick: single element array" {
   assert_eq(query(ft, 1), 50)
 }
 
+///|
 test "fenwick: negative values" {
   let arr = FixedArray::make(4, 0)
   arr[0] = -1
@@ -195,6 +210,7 @@ test "fenwick: negative values" {
   assert_eq(range_query(ft, 1, 3), 0) // -1 + -2 + 3
 }
 
+///|
 test "fenwick: large array with brute-force cross-check" {
   let n = 100
   let arr = FixedArray::makei(n, fn(i) { (i * 3 + 7) % 17 - 5 })
@@ -217,6 +233,7 @@ test "fenwick: large array with brute-force cross-check" {
   }
 }
 
+///|
 test "fenwick: multiple updates" {
   // [1, 2, 3, 4, 5] after updates: [101, 2, 53, 4, 205]
   let arr = FixedArray::makei(5, fn(i) { i + 1 })
@@ -232,6 +249,7 @@ test "fenwick: multiple updates" {
   assert_eq(range_query(ft, 2, 4), 59) // 2 + 53 + 4
 }
 
+///|
 test "fenwick: query idx <= 0 returns 0" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 })
   let ft = build(arr)
@@ -240,6 +258,7 @@ test "fenwick: query idx <= 0 returns 0" {
   assert_eq(query(ft, -100), 0)
 }
 
+///|
 test "fenwick: query idx > n clamps to full range" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 })
   let ft = build(arr)
@@ -247,6 +266,7 @@ test "fenwick: query idx > n clamps to full range" {
   assert_eq(query(ft, 100), 15)
 }
 
+///|
 test "fenwick: update out of bounds is no-op" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 })
   let ft = build(arr)
@@ -256,6 +276,7 @@ test "fenwick: update out of bounds is no-op" {
   assert_eq(query(ft, 5), 15) // unchanged
 }
 
+///|
 test "fenwick: range query edge cases" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 })
   let ft = build(arr)
@@ -271,6 +292,7 @@ test "fenwick: range query edge cases" {
   assert_eq(range_query(ft, 3, 10), 12) // 3 + 4 + 5
 }
 
+///|
 test "fenwick: empty array" {
   let arr : FixedArray[Int] = FixedArray::make(0, 0)
   let ft = build(arr)
@@ -280,6 +302,7 @@ test "fenwick: empty array" {
   assert_eq(query(ft, 1), 0)
 }
 
+///|
 test "fenwick: update then query consistency" {
   let n = 50
   let arr = FixedArray::makei(n, fn(i) { i + 1 })
@@ -304,6 +327,7 @@ test "fenwick: update then query consistency" {
 // Int64 Checked Fenwick Tree with Overflow Detection
 // ===========================================================================
 
+///|
 /// Checked Fenwick Tree for `Int64` with overflow detection.
 ///
 /// Provides the same operations as [`Fenwick`] but uses `Int64` internally.
@@ -315,6 +339,7 @@ pub struct Fenwick64 {
   priv n : Int
 }
 
+///|
 /// Build a checked Fenwick Tree from an `Int64` array in O(n).
 pub fn build64(arr : FixedArray[Int64]) -> Fenwick64 {
   let n = arr.length()
@@ -323,7 +348,7 @@ pub fn build64(arr : FixedArray[Int64]) -> Fenwick64 {
     tree[i] = arr[i - 1]
   }
   for i = 1; i <= n; i = i + 1 {
-    let j = i + (i & (-i))
+    let j = i + (i & -i)
     if j <= n {
       tree[j] = tree[j] + tree[i]
     }
@@ -331,6 +356,7 @@ pub fn build64(arr : FixedArray[Int64]) -> Fenwick64 {
   { tree, n }
 }
 
+///|
 /// Add `delta` to position `idx` (1-indexed). Returns `None` on overflow.
 pub fn update64(ft : Fenwick64, idx : Int, delta : Int64) -> Unit? {
   if idx < 1 || idx > ft.n {
@@ -343,11 +369,12 @@ pub fn update64(ft : Fenwick64, idx : Int, delta : Int64) -> Unit? {
     if (delta > 0L && ft.tree[i] < prev) || (delta < 0L && ft.tree[i] > prev) {
       return None
     }
-    i = i + (i & (-i))
+    i = i + (i & -i)
   }
   Some(())
 }
 
+///|
 /// Prefix sum of positions `[1, idx]`. Returns `None` on overflow.
 pub fn query64(ft : Fenwick64, idx : Int) -> Int64? {
   if idx <= 0 {
@@ -364,11 +391,12 @@ pub fn query64(ft : Fenwick64, idx : Int) -> Int64? {
     if (ft.tree[i] > 0L && sum < prev) || (ft.tree[i] < 0L && sum > prev) {
       return None
     }
-    i = i - (i & (-i))
+    i = i - (i & -i)
   }
   Some(sum)
 }
 
+///|
 /// Inclusive sum of `[l, r]`. Returns `None` on overflow.
 pub fn range_query64(ft : Fenwick64, l : Int, r : Int) -> Int64? {
   if l > r || r < 1 || l > ft.n {
@@ -393,6 +421,7 @@ pub fn range_query64(ft : Fenwick64, l : Int, r : Int) -> Int64? {
   }
 }
 
+///|
 test "fenwick64: basic build and query" {
   let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
   let ft = build64(arr)
@@ -400,6 +429,7 @@ test "fenwick64: basic build and query" {
   assert_eq(query64(ft, 3), Some(6L))
 }
 
+///|
 test "fenwick64: update and query" {
   let arr = FixedArray::makei(5, fn(i) { (i + 1).to_int64() })
   let ft = build64(arr)
@@ -408,6 +438,7 @@ test "fenwick64: update and query" {
   assert_eq(range_query64(ft, 3, 3), Some(13L))
 }
 
+///|
 test "fenwick64: overflow detection" {
   let arr = FixedArray::make(1, 9223372036854775807L)
   let ft = build64(arr)
@@ -415,6 +446,7 @@ test "fenwick64: overflow detection" {
   assert_eq(update64(ft, 1, 1L), None)
 }
 
+///|
 test "fenwick64: brute-force cross-check" {
   let n = 100
   let arr = FixedArray::makei(n, fn(i) { ((i * 3 + 7) % 17 - 5).to_int64() })

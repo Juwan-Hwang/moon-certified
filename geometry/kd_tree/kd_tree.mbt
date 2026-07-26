@@ -19,11 +19,13 @@
 // @geometry_utils.Point and point are imported from @geometry_utils.
 // This eliminates code duplication across geometry packages.
 
+///|
 /// Convenience constructor — delegates to @geometry_utils.point.
 pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
   @geometry_utils.point(x, y)
 }
 
+///|
 /// KD-Tree node. `Empty` is the empty tree; `Node(left, pt, right, sz)`
 /// stores the point, subtrees, and cached subtree size.
 pub enum KDNode {
@@ -31,6 +33,7 @@ pub enum KDNode {
   Node(KDNode, @geometry_utils.Point, KDNode, Int) // (left, point, right, size)
 }
 
+///|
 /// Construct an empty KD-Tree.
 pub fn empty() -> KDNode {
   Empty
@@ -40,8 +43,7 @@ pub fn empty() -> KDNode {
 // Helpers
 // ---------------------------------------------------------------------------
 
-
-
+///|
 /// Merge sort of a @geometry_utils.Point subarray by the given axis (0 = x, 1 = y).
 fn msort_points(
   pts : Array[@geometry_utils.Point],
@@ -73,8 +75,13 @@ fn msort_points(
   }
 }
 
+///|
 /// True if `a` should come before `b` when sorted by the given axis.
-fn le_axis(a : @geometry_utils.Point, b : @geometry_utils.Point, axis : Int) -> Bool {
+fn le_axis(
+  a : @geometry_utils.Point,
+  b : @geometry_utils.Point,
+  axis : Int,
+) -> Bool {
   if axis == 0 {
     a.x <= b.x
   } else {
@@ -86,6 +93,7 @@ fn le_axis(a : @geometry_utils.Point, b : @geometry_utils.Point, axis : Int) -> 
 // Build
 // ---------------------------------------------------------------------------
 
+///|
 /// Recursively build the KD-Tree from `pts[lo, hi)`.
 fn build_rec(
   pts : Array[@geometry_utils.Point],
@@ -102,10 +110,11 @@ fn build_rec(
   let mid = lo + (hi - lo) / 2
   let left = build_rec(pts, lo, mid, depth + 1, tmp)
   let right = build_rec(pts, mid + 1, hi, depth + 1, tmp)
-  let sz = (mid - lo) + (hi - mid - 1) + 1
+  let sz = mid - lo + (hi - mid - 1) + 1
   Node(left, pts[mid], right, sz)
 }
 
+///|
 /// Build a KD-Tree from an array of points.
 ///
 /// The input array is copied internally, so the caller's array is not modified.
@@ -129,6 +138,7 @@ pub fn build(points : Array[@geometry_utils.Point]) -> KDNode {
 // Nearest neighbor
 // ---------------------------------------------------------------------------
 
+///|
 /// Recursively search for the nearest neighbor of `target`.
 ///
 /// `best` is the current best point (or `None`), `best_d` is its squared
@@ -157,11 +167,7 @@ fn nearest_rec(
       } else {
         target.y.to_int64() - pt.y.to_int64()
       }
-      let (near, far) = if diff <= 0L {
-        (left, right)
-      } else {
-        (right, left)
-      }
+      let (near, far) = if diff <= 0L { (left, right) } else { (right, left) }
       // Search the near subtree first.
       let (b1, d1) = nearest_rec(near, target, depth + 1, cur_best, cur_d)
       // Only search the far subtree if the splitting plane is closer
@@ -176,10 +182,14 @@ fn nearest_rec(
   }
 }
 
+///|
 /// Find the nearest neighbor of `target` in the KD-Tree.
 ///
 /// Returns `Some(point)` if the tree is non-empty, `None` otherwise.
-pub fn nearest_neighbor(tree : KDNode, target : @geometry_utils.Point) -> @geometry_utils.Point? {
+pub fn nearest_neighbor(
+  tree : KDNode,
+  target : @geometry_utils.Point,
+) -> @geometry_utils.Point? {
   let (best, _) = nearest_rec(tree, target, 0, None, 9223372036854775807L)
   best
 }
@@ -188,6 +198,7 @@ pub fn nearest_neighbor(tree : KDNode, target : @geometry_utils.Point) -> @geome
 // Range search
 // ---------------------------------------------------------------------------
 
+///|
 /// Recursively collect all points within the axis-aligned bounding box
 /// [lo.x, hi.x] × [lo.y, hi.y].
 fn range_rec(
@@ -226,10 +237,15 @@ fn range_rec(
   }
 }
 
+///|
 /// Find all points within the axis-aligned bounding box [lo, hi] (inclusive).
 ///
 /// Returns an array of points, possibly empty.
-pub fn range_search(tree : KDNode, lo : @geometry_utils.Point, hi : @geometry_utils.Point) -> Array[@geometry_utils.Point] {
+pub fn range_search(
+  tree : KDNode,
+  lo : @geometry_utils.Point,
+  hi : @geometry_utils.Point,
+) -> Array[@geometry_utils.Point] {
   let result : Array[@geometry_utils.Point] = []
   range_rec(tree, lo, hi, 0, result)
   result
@@ -239,6 +255,7 @@ pub fn range_search(tree : KDNode, lo : @geometry_utils.Point, hi : @geometry_ut
 // Utility
 // ---------------------------------------------------------------------------
 
+///|
 /// Return the number of points stored in the KD-Tree. O(1).
 pub fn size(tree : KDNode) -> Int {
   match tree {
@@ -251,12 +268,22 @@ pub fn size(tree : KDNode) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "kd_tree: build and size" {
-  let pts = [point(3, 6), point(17, 15), point(13, 15), point(6, 12), point(9, 1), point(2, 7), point(10, 19)]
+  let pts = [
+    point(3, 6),
+    point(17, 15),
+    point(13, 15),
+    point(6, 12),
+    point(9, 1),
+    point(2, 7),
+    point(10, 19),
+  ]
   let tree = build(pts)
   assert_eq(size(tree), 7)
 }
 
+///|
 test "kd_tree: empty tree" {
   let tree = build([])
   assert_eq(size(tree), 0)
@@ -264,6 +291,7 @@ test "kd_tree: empty tree" {
   assert_eq(range_search(tree, point(0, 0), point(10, 10)).length(), 0)
 }
 
+///|
 test "kd_tree: single point" {
   let tree = build([point(5, 5)])
   assert_eq(size(tree), 1)
@@ -274,8 +302,16 @@ test "kd_tree: single point" {
   assert_eq(p.y, 5)
 }
 
+///|
 test "kd_tree: nearest neighbor basic" {
-  let pts = [point(2, 3), point(5, 4), point(9, 6), point(4, 7), point(8, 1), point(7, 2)]
+  let pts = [
+    point(2, 3),
+    point(5, 4),
+    point(9, 6),
+    point(4, 7),
+    point(8, 1),
+    point(7, 2),
+  ]
   let tree = build(pts)
   let nn = nearest_neighbor(tree, point(6, 3)).unwrap()
   // Both (5,4) and (7,2) are at distance²=2 from (6,3); either is valid.
@@ -283,6 +319,7 @@ test "kd_tree: nearest neighbor basic" {
   assert_eq(d2, 2)
 }
 
+///|
 test "kd_tree: nearest neighbor exact match" {
   let pts = [point(2, 3), point(5, 4), point(9, 6), point(4, 7)]
   let tree = build(pts)
@@ -291,13 +328,28 @@ test "kd_tree: nearest neighbor exact match" {
   assert_eq(nn.y, 4)
 }
 
+///|
 test "kd_tree: nearest neighbor vs brute force" {
   let pts = [
-    point(1, 1), point(2, 5), point(3, 3), point(4, 2), point(5, 5),
-    point(6, 1), point(7, 4), point(8, 6), point(9, 8), point(10, 3),
+    point(1, 1),
+    point(2, 5),
+    point(3, 3),
+    point(4, 2),
+    point(5, 5),
+    point(6, 1),
+    point(7, 4),
+    point(8, 6),
+    point(9, 8),
+    point(10, 3),
   ]
   let tree = build(pts)
-  let targets = [point(3, 4), point(7, 2), point(5, 7), point(0, 0), point(11, 11)]
+  let targets = [
+    point(3, 4),
+    point(7, 2),
+    point(5, 7),
+    point(0, 0),
+    point(11, 11),
+  ]
   for i = 0; i < targets.length(); i = i + 1 {
     let t = targets[i]
     let nn = nearest_neighbor(tree, t).unwrap()
@@ -318,10 +370,19 @@ test "kd_tree: nearest neighbor vs brute force" {
   }
 }
 
+///|
 test "kd_tree: range search basic" {
   let pts = [
-    point(1, 1), point(2, 5), point(3, 3), point(4, 2), point(5, 5),
-    point(6, 1), point(7, 4), point(8, 6), point(9, 8), point(10, 3),
+    point(1, 1),
+    point(2, 5),
+    point(3, 3),
+    point(4, 2),
+    point(5, 5),
+    point(6, 1),
+    point(7, 4),
+    point(8, 6),
+    point(9, 8),
+    point(10, 3),
   ]
   let tree = build(pts)
   let result = range_search(tree, point(3, 2), point(7, 5))
@@ -335,6 +396,7 @@ test "kd_tree: range search basic" {
   }
 }
 
+///|
 test "kd_tree: range search entire plane" {
   let pts = [point(1, 1), point(2, 5), point(3, 3), point(4, 2)]
   let tree = build(pts)
@@ -342,6 +404,7 @@ test "kd_tree: range search entire plane" {
   assert_eq(result.length(), 4)
 }
 
+///|
 test "kd_tree: range search empty" {
   let pts = [point(1, 1), point(2, 5), point(3, 3)]
   let tree = build(pts)
@@ -349,6 +412,7 @@ test "kd_tree: range search empty" {
   assert_eq(result.length(), 0)
 }
 
+///|
 test "kd_tree: range search single point" {
   let pts = [point(5, 5), point(1, 1), point(9, 9)]
   let tree = build(pts)
@@ -358,6 +422,7 @@ test "kd_tree: range search single point" {
   assert_eq(result[0].y, 5)
 }
 
+///|
 test "kd_tree: duplicate points" {
   let pts = [point(3, 3), point(3, 3), point(3, 3)]
   let tree = build(pts)
@@ -369,6 +434,7 @@ test "kd_tree: duplicate points" {
   assert_eq(nn.y, 3)
 }
 
+///|
 test "kd_tree: collinear points" {
   let pts = [point(0, 0), point(1, 0), point(2, 0), point(3, 0), point(4, 0)]
   let tree = build(pts)
@@ -378,9 +444,12 @@ test "kd_tree: collinear points" {
   assert_eq(nn.y, 0)
 }
 
+///|
 test "kd_tree: nearest neighbor with large coordinates" {
   let pts = [
-    point(1000000, 2000000), point(3000000, 1000000), point(500000, 500000),
+    point(1000000, 2000000),
+    point(3000000, 1000000),
+    point(500000, 500000),
   ]
   let tree = build(pts)
   let nn = nearest_neighbor(tree, point(900000, 1800000)).unwrap()
@@ -388,6 +457,7 @@ test "kd_tree: nearest neighbor with large coordinates" {
   assert_eq(nn.y, 2000000)
 }
 
+///|
 test "kd_tree: random nearest neighbor" {
   // Generate 50 random points and verify nearest neighbor against brute force.
   let pts : Array[@geometry_utils.Point] = []

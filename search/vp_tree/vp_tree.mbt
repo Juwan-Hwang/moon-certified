@@ -19,6 +19,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// VP-Tree node.
 pub enum VPNode {
   Empty
@@ -26,6 +27,7 @@ pub enum VPNode {
   Node(Int, Double, VPNode, VPNode)
 }
 
+///|
 /// The VP-Tree.
 pub struct VPTree {
   root : VPNode
@@ -33,6 +35,7 @@ pub struct VPTree {
   dist : (Int, Int) -> Double
 }
 
+///|
 /// Build a VP-Tree from `n` points with the given metric distance function.
 pub fn build(n : Int, dist : (Int, Int) -> Double) -> VPTree {
   if n == 0 {
@@ -46,10 +49,8 @@ pub fn build(n : Int, dist : (Int, Int) -> Double) -> VPTree {
   { root, n, dist }
 }
 
-fn build_recursive(
-  indices : Array[Int],
-  dist : (Int, Int) -> Double,
-) -> VPNode {
+///|
+fn build_recursive(indices : Array[Int], dist : (Int, Int) -> Double) -> VPNode {
   let m = indices.length()
   if m == 0 {
     return Empty
@@ -78,11 +79,7 @@ fn build_recursive(
   })
   // Threshold: median distance.
   let mid = others.length() / 2
-  let threshold = if others.length() > 0 {
-    others[mid].1
-  } else {
-    0.0
-  }
+  let threshold = if others.length() > 0 { others[mid].1 } else { 0.0 }
   // Split: near (distance <= threshold) go left, far go right.
   let near : Array[Int] = []
   let far : Array[Int] = []
@@ -98,6 +95,7 @@ fn build_recursive(
   Node(vp, threshold, left, right)
 }
 
+///|
 /// Find the nearest neighbour of query point `q_idx`.
 ///
 /// Returns the index of the nearest point (not including `q_idx` itself).
@@ -109,6 +107,7 @@ pub fn nearest_neighbor(tree : VPTree, q_idx : Int) -> Int {
   nn_recursive(tree.root, q_idx, tree.dist, -1, 1.0e18)
 }
 
+///|
 fn nn_recursive(
   node : VPNode,
   q_idx : Int,
@@ -154,17 +153,15 @@ fn nn_recursive(
   }
 }
 
+///|
 /// Find all points within `radius` of query point `q_idx`.
-pub fn range_search(
-  tree : VPTree,
-  q_idx : Int,
-  radius : Double,
-) -> Array[Int] {
+pub fn range_search(tree : VPTree, q_idx : Int, radius : Double) -> Array[Int] {
   let result : Array[Int] = []
   range_recursive(tree.root, q_idx, radius, tree.dist, result)
   result
 }
 
+///|
 fn range_recursive(
   node : VPNode,
   q_idx : Int,
@@ -184,11 +181,7 @@ fn range_recursive(
       // Prune: only search children if they could contain points within radius.
       // A point in the "near" subtree has distance to vp <= threshold.
       // If |d - threshold| <= radius, the near subtree might contain results.
-      let d = if vp != q_idx {
-        dist(q_idx, vp)
-      } else {
-        0.0
-      }
+      let d = if vp != q_idx { dist(q_idx, vp) } else { 0.0 }
       // Near subtree: points with dist(vp, p) <= threshold.
       // By triangle inequality: dist(q, p) >= |dist(q, vp) - dist(vp, p)|.
       // For near subtree: dist(vp, p) <= threshold, so
@@ -211,10 +204,16 @@ fn range_recursive(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 fn dbl_abs(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
+///|
 fn dbl_sqrt(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -228,6 +227,7 @@ fn dbl_sqrt(x : Double) -> Double {
   r
 }
 
+///|
 fn euclidean_dist(points : Array[(Int, Int)]) -> (Int, Int) -> Double {
   fn(i : Int, j : Int) -> Double {
     let (xi, yi) = points[i]
@@ -238,16 +238,19 @@ fn euclidean_dist(points : Array[(Int, Int)]) -> (Int, Int) -> Double {
   }
 }
 
+///|
 test "vp_tree: empty tree" {
   let tree = build(0, fn(_, _) { 0.0 })
   assert_eq(nearest_neighbor(tree, 0), -1)
 }
 
+///|
 test "vp_tree: single point" {
   let tree = build(1, fn(_, _) { 0.0 })
   assert_eq(nearest_neighbor(tree, 0), -1)
 }
 
+///|
 test "vp_tree: two points" {
   let points = [(0, 0), (10, 0)]
   let dist = euclidean_dist(points)
@@ -256,10 +259,9 @@ test "vp_tree: two points" {
   assert_eq(nearest_neighbor(tree, 1), 0)
 }
 
+///|
 test "vp_tree: nearest neighbor cross-check" {
-  let points = [
-    (0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1),
-  ]
+  let points = [(0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1)]
   let n = points.length()
   let dist = euclidean_dist(points)
   let tree = build(n, dist)
@@ -281,10 +283,9 @@ test "vp_tree: nearest neighbor cross-check" {
   }
 }
 
+///|
 test "vp_tree: range search cross-check" {
-  let points = [
-    (0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1),
-  ]
+  let points = [(0, 0), (10, 0), (5, 5), (3, 4), (7, 8), (2, 9), (8, 1)]
   let n = points.length()
   let dist = euclidean_dist(points)
   let tree = build(n, dist)
@@ -299,6 +300,7 @@ test "vp_tree: range search cross-check" {
   assert_eq(result.length(), expected.length())
 }
 
+///|
 test "vp_tree: range search empty for small radius" {
   let points = [(0, 0), (100, 100), (200, 200)]
   let dist = euclidean_dist(points)

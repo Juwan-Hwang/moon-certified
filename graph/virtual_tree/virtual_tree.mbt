@@ -53,6 +53,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Preprocessed tree capable of answering virtual-tree queries.
 ///
 /// Built once per tree with [`build`]; reuse it for every
@@ -67,6 +68,7 @@ pub struct VirtualTreeBuilder {
   root : Int // the root vertex
 }
 
+///|
 /// A virtual tree over a subset of vertices.
 ///
 /// - `vertices[i]` is the `i`-th virtual vertex (an original vertex id),
@@ -91,6 +93,7 @@ pub struct VirtualTree {
 // Preprocessing
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the LCA / DFS-order preprocessing for a tree.
 ///
 /// # Parameters
@@ -102,7 +105,11 @@ pub struct VirtualTree {
 /// # Returns
 /// A [`VirtualTreeBuilder`] holding the DFS times, depths and binary-lifting
 /// table. Pass it to [`build_virtual`] for each subset query.
-pub fn build(adj : Array[Array[Int]], root : Int, n : Int) -> VirtualTreeBuilder {
+pub fn build(
+  adj : Array[Array[Int]],
+  root : Int,
+  n : Int,
+) -> VirtualTreeBuilder {
   if n <= 0 {
     return {
       up: [],
@@ -173,6 +180,7 @@ pub fn build(adj : Array[Array[Int]], root : Int, n : Int) -> VirtualTreeBuilder
   { up, depth, tin, tout, log_n, n, root }
 }
 
+///|
 /// Floor of log2 for `n >= 1` (position of the highest set bit).
 fn ilog2(n : Int) -> Int {
   let mut r = 0
@@ -188,6 +196,7 @@ fn ilog2(n : Int) -> Int {
 // Virtual-tree construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the virtual tree of a subset of vertices.
 ///
 /// # Parameters
@@ -254,7 +263,7 @@ pub fn build_virtual(
     let l = lca(vt, v, stack[stack.length() - 1])
     // Close branches whose join is at least as deep as l.
     while stack.length() >= 2 &&
-      vt.depth[stack[stack.length() - 2]] >= vt.depth[l] {
+          vt.depth[stack[stack.length() - 2]] >= vt.depth[l] {
       let a = stack[stack.length() - 2]
       let b = stack[stack.length() - 1]
       adj[pos[a]].push(b)
@@ -286,6 +295,7 @@ pub fn build_virtual(
 // Query utilities
 // ---------------------------------------------------------------------------
 
+///|
 /// Lowest common ancestor of `u` and `v` in the original tree.
 ///
 /// Returns `-1` if either index is out of range; returns `u` if `u == v`.
@@ -326,6 +336,7 @@ pub fn lca(vt : VirtualTreeBuilder, u_in : Int, v_in : Int) -> Int {
   vt.up[0][a]
 }
 
+///|
 /// Depth of vertex `v` (distance in edges from the root). `O(1)`.
 pub fn depth_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   if v < 0 || v >= vt.n {
@@ -334,6 +345,7 @@ pub fn depth_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   vt.depth[v]
 }
 
+///|
 /// DFS entry time of vertex `v`. `O(1)`.
 pub fn tin_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   if v < 0 || v >= vt.n {
@@ -342,6 +354,7 @@ pub fn tin_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   vt.tin[v]
 }
 
+///|
 /// DFS exit time of vertex `v`. `O(1)`.
 pub fn tout_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   if v < 0 || v >= vt.n {
@@ -350,6 +363,7 @@ pub fn tout_of(vt : VirtualTreeBuilder, v : Int) -> Int {
   vt.tout[v]
 }
 
+///|
 /// Whether `u` is an ancestor of `v` in the original tree (inclusive: a
 /// vertex is its own ancestor). `O(1)`.
 pub fn is_ancestor(vt : VirtualTreeBuilder, u : Int, v : Int) -> Bool {
@@ -363,6 +377,7 @@ pub fn is_ancestor(vt : VirtualTreeBuilder, u : Int, v : Int) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Build an undirected adjacency list from an edge list.
 fn make_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   let adj : Array[Array[Int]] = []
@@ -378,6 +393,7 @@ fn make_adj(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   adj
 }
 
+///|
 /// Index of original id `v` within a virtual tree's `vertices`, or `-1`.
 fn vt_index(vt : VirtualTree, v : Int) -> Int {
   for i = 0; i < vt.vertices.length(); i = i + 1 {
@@ -388,6 +404,7 @@ fn vt_index(vt : VirtualTree, v : Int) -> Int {
   -1
 }
 
+///|
 /// Whether the undirected edge `{u, v}` exists in a virtual tree.
 fn has_edge(vt : VirtualTree, u : Int, v : Int) -> Bool {
   let i = vt_index(vt, u)
@@ -402,6 +419,7 @@ fn has_edge(vt : VirtualTree, u : Int, v : Int) -> Bool {
   false
 }
 
+///|
 /// Number of undirected edges in a virtual tree.
 fn edge_count(vt : VirtualTree) -> Int {
   let mut total = 0
@@ -412,6 +430,7 @@ fn edge_count(vt : VirtualTree) -> Int {
   total / 2
 }
 
+///|
 test "virtual_tree: builder lca utilities" {
   //       0
   //      / \
@@ -445,6 +464,7 @@ test "virtual_tree: builder lca utilities" {
   assert_false(is_ancestor(vt, -1, 0))
 }
 
+///|
 test "virtual_tree: simple tree" {
   //       0
   //      /|\
@@ -473,6 +493,7 @@ test "virtual_tree: simple tree" {
   assert_true(res.vertices.length() <= 2 * 3 - 1)
 }
 
+///|
 test "virtual_tree: path graph" {
   // 0 - 1 - 2 - 3 - 4
   let adj = make_adj(5, [(0, 1), (1, 2), (2, 3), (3, 4)])
@@ -487,6 +508,7 @@ test "virtual_tree: path graph" {
   assert_eq(edge_count(res), 2)
 }
 
+///|
 test "virtual_tree: star graph" {
   // 0 is the centre; 1,2,3,4 are leaves.
   let adj = make_adj(5, [(0, 1), (0, 2), (0, 3), (0, 4)])
@@ -502,6 +524,7 @@ test "virtual_tree: star graph" {
   assert_eq(edge_count(res), 3)
 }
 
+///|
 test "virtual_tree: all vertices selected" {
   //       0
   //      /|\
@@ -522,6 +545,7 @@ test "virtual_tree: all vertices selected" {
   assert_eq(edge_count(res), 5)
 }
 
+///|
 test "virtual_tree: single vertex" {
   let adj = make_adj(6, [(0, 1), (0, 2), (0, 3), (1, 4), (1, 5)])
   let vt = build(adj, 0, 6)
@@ -532,6 +556,7 @@ test "virtual_tree: single vertex" {
   assert_eq(edge_count(res), 0)
 }
 
+///|
 test "virtual_tree: empty selection" {
   let adj = make_adj(5, [(0, 1), (1, 2), (2, 3), (3, 4)])
   let vt = build(adj, 0, 5)
@@ -541,6 +566,7 @@ test "virtual_tree: empty selection" {
   assert_eq(res.root, -1)
 }
 
+///|
 test "virtual_tree: two sibling leaves" {
   //       0
   //      /|\
@@ -560,6 +586,7 @@ test "virtual_tree: two sibling leaves" {
   assert_eq(res.vertices.length(), 2 * 2 - 1)
 }
 
+///|
 test "virtual_tree: larger tree" {
   //         0
   //       /   \
@@ -570,7 +597,14 @@ test "virtual_tree: larger tree" {
   //  7   8
   //  DFS order (tin): 0,1,3,7,8,4,2,5,6
   let adj = make_adj(9, [
-    (0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7), (3, 8),
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (1, 4),
+    (2, 5),
+    (2, 6),
+    (3, 7),
+    (3, 8),
   ])
   let vt = build(adj, 0, 9)
   let s = [7, 8, 5, 6]
@@ -607,6 +641,7 @@ test "virtual_tree: larger tree" {
   }
 }
 
+///|
 test "virtual_tree: edges preserve ancestry" {
   //         0
   //       /   \
@@ -616,7 +651,14 @@ test "virtual_tree: edges preserve ancestry" {
   //   / \
   //  7   8
   let adj = make_adj(9, [
-    (0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7), (3, 8),
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (1, 4),
+    (2, 5),
+    (2, 6),
+    (3, 7),
+    (3, 8),
   ])
   let vt = build(adj, 0, 9)
   let res = build_virtual(vt, [7, 4, 5, 6])
@@ -643,10 +685,18 @@ test "virtual_tree: edges preserve ancestry" {
   }
 }
 
+///|
 test "virtual_tree: input order independence" {
   // The result must not depend on the order of the input subset.
   let adj = make_adj(9, [
-    (0, 1), (0, 2), (1, 3), (1, 4), (2, 5), (2, 6), (3, 7), (3, 8),
+    (0, 1),
+    (0, 2),
+    (1, 3),
+    (1, 4),
+    (2, 5),
+    (2, 6),
+    (3, 7),
+    (3, 8),
   ])
   let vt = build(adj, 0, 9)
   let s1 = [7, 8, 5, 6]
@@ -661,6 +711,7 @@ test "virtual_tree: input order independence" {
   assert_eq(edge_count(r1), edge_count(r2))
 }
 
+///|
 test "virtual_tree: duplicates collapsed" {
   let adj = make_adj(6, [(0, 1), (0, 2), (0, 3), (1, 4), (1, 5)])
   let vt = build(adj, 0, 6)
@@ -670,6 +721,7 @@ test "virtual_tree: duplicates collapsed" {
   assert_eq(edge_count(res), 2)
 }
 
+///|
 test "virtual_tree: deep chain (no stack overflow)" {
   // A chain of 1000 nodes; the iterative DFS must not overflow.
   let n = 1000
@@ -700,6 +752,7 @@ test "virtual_tree: deep chain (no stack overflow)" {
   }
 }
 
+///|
 test "virtual_tree: balanced binary tree" {
   // Complete binary tree of depth 3 (15 nodes); node i has children 2i+1, 2i+2.
   let n = 15

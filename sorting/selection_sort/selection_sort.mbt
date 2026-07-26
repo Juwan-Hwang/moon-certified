@@ -1,3 +1,4 @@
+///|
 /// Generic in-place selection sort on a FixedArray[T].
 /// Not formally verified (array mutation causes Z3 to lose quantified invariants).
 /// Correctness ensured by comprehensive tests including permutation checks.
@@ -8,10 +9,7 @@
 ///
 /// Comparator convention: cmp(a, b) returns negative if a < b,
 /// zero if a == b, positive if a > b.
-pub fn[T] selection_sort(
-  xs : FixedArray[T],
-  cmp : (T, T) -> Int,
-) -> Unit {
+pub fn[T] selection_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
@@ -35,6 +33,7 @@ pub fn[T] selection_sort(
   }
 }
 
+///|
 test "selection_sort: basic" {
   let xs = FixedArray::makei(5, fn(i) { 5 - i }) // [5, 4, 3, 2, 1]
   selection_sort(xs, fn(a, b) { a - b })
@@ -45,6 +44,7 @@ test "selection_sort: basic" {
   assert_eq(xs[4], 5)
 }
 
+///|
 test "selection_sort: already sorted" {
   let xs = FixedArray::makei(5, fn(i) { i }) // [0, 1, 2, 3, 4]
   selection_sort(xs, fn(a, b) { a - b })
@@ -53,6 +53,7 @@ test "selection_sort: already sorted" {
   }
 }
 
+///|
 test "selection_sort: reverse sorted" {
   let xs = FixedArray::makei(10, fn(i) { 9 - i }) // [9, 8, ..., 0]
   selection_sort(xs, fn(a, b) { a - b })
@@ -61,18 +62,21 @@ test "selection_sort: reverse sorted" {
   }
 }
 
+///|
 test "selection_sort: single element" {
   let xs = FixedArray::make(1, 42)
   selection_sort(xs, fn(a, b) { a - b })
   assert_eq(xs[0], 42)
 }
 
+///|
 test "selection_sort: empty array" {
   let xs = FixedArray::make(0, 0)
   selection_sort(xs, fn(a, b) { a - b })
   assert_eq(xs.length(), 0)
 }
 
+///|
 test "selection_sort: duplicates" {
   let xs = FixedArray::makei(8, fn(i) { i % 3 }) // [0,1,2,0,1,2,0,1]
   selection_sort(xs, fn(a, b) { a - b })
@@ -86,6 +90,7 @@ test "selection_sort: duplicates" {
   assert_eq(xs[7], 2)
 }
 
+///|
 test "selection_sort: negative values" {
   let xs = FixedArray::makei(5, fn(i) { i - 2 }) // [-2, -1, 0, 1, 2]
   selection_sort(xs, fn(a, b) { a - b })
@@ -94,6 +99,7 @@ test "selection_sort: negative values" {
   }
 }
 
+///|
 test "selection_sort: large random-like" {
   let xs = FixedArray::makei(20, fn(i) { (i * 7 + 3) % 13 })
   selection_sort(xs, fn(a, b) { a - b })
@@ -102,6 +108,7 @@ test "selection_sort: large random-like" {
   }
 }
 
+///|
 test "selection_sort: permutation check" {
   let n = 50
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 31 })
@@ -122,6 +129,7 @@ test "selection_sort: permutation check" {
   }
 }
 
+///|
 test "selection_sort: generic with String" {
   let xs = FixedArray::make(4, "")
   xs[0] = "cherry"

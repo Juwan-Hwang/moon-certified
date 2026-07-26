@@ -33,6 +33,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A bounded MPMC queue using Vyukov's algorithm.
 pub struct MPMCQueue[T] {
   priv buffer : FixedArray[T?]
@@ -43,6 +44,7 @@ pub struct MPMCQueue[T] {
   priv capacity : Int
 }
 
+///|
 /// Create a bounded MPMC queue with the given `capacity`.
 ///
 /// Capacity is rounded up to the next power of two for O(1) modular
@@ -60,16 +62,10 @@ pub fn[T] mpmc_queue_new(capacity : Int) -> MPMCQueue[T] {
   for i = 0; i < cap; i = i + 1 {
     sequences[i] = i
   }
-  {
-    buffer,
-    sequences,
-    head: 0,
-    tail: 0,
-    mask: cap - 1,
-    capacity: cap,
-  }
+  { buffer, sequences, head: 0, tail: 0, mask: cap - 1, capacity: cap }
 }
 
+///|
 /// Try to enqueue `item`.
 ///
 /// Returns `true` on success, `false` if the queue is full.
@@ -96,6 +92,7 @@ pub fn[T] mpmc_queue_enqueue(q : MPMCQueue[T], item : T) -> Bool {
   false // unreachable
 }
 
+///|
 /// Try to dequeue an element.
 ///
 /// Returns `Some(item)` on success, `None` if the queue is empty.
@@ -123,18 +120,25 @@ pub fn[T] mpmc_queue_dequeue(q : MPMCQueue[T]) -> T? {
   None // unreachable
 }
 
+///|
 /// Number of elements currently in the queue. O(1).
 pub fn[T] mpmc_queue_size(q : MPMCQueue[T]) -> Int {
   let t = q.tail
   let h = q.head
-  if t >= h { t - h } else { 0 }
+  if t >= h {
+    t - h
+  } else {
+    0
+  }
 }
 
+///|
 /// True if the queue is empty. O(1).
 pub fn[T] mpmc_queue_is_empty(q : MPMCQueue[T]) -> Bool {
   q.head == q.tail
 }
 
+///|
 /// Maximum capacity. O(1).
 pub fn[T] mpmc_queue_capacity(q : MPMCQueue[T]) -> Int {
   q.capacity
@@ -144,6 +148,7 @@ pub fn[T] mpmc_queue_capacity(q : MPMCQueue[T]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mpmc_queue: basic enqueue and dequeue" {
   let q : MPMCQueue[Int] = mpmc_queue_new(4)
   assert_true(mpmc_queue_is_empty(q))
@@ -156,6 +161,7 @@ test "mpmc_queue: basic enqueue and dequeue" {
   assert_true(mpmc_queue_is_empty(q))
 }
 
+///|
 test "mpmc_queue: FIFO order" {
   let q : MPMCQueue[Int] = mpmc_queue_new(100)
   for i = 0; i < 50; i = i + 1 {
@@ -166,6 +172,7 @@ test "mpmc_queue: FIFO order" {
   }
 }
 
+///|
 test "mpmc_queue: full queue" {
   let q : MPMCQueue[Int] = mpmc_queue_new(4)
   assert_true(mpmc_queue_enqueue(q, 1))
@@ -179,6 +186,7 @@ test "mpmc_queue: full queue" {
   assert_true(mpmc_queue_enqueue(q, 99))
 }
 
+///|
 test "mpmc_queue: wrap-around" {
   let q : MPMCQueue[Int] = mpmc_queue_new(4)
   for i = 0; i < 3; i = i + 1 {
@@ -196,6 +204,7 @@ test "mpmc_queue: wrap-around" {
   }
 }
 
+///|
 test "mpmc_queue: generic with String" {
   let q : MPMCQueue[String] = mpmc_queue_new(4)
   ignore(mpmc_queue_enqueue(q, "hello"))
@@ -204,6 +213,7 @@ test "mpmc_queue: generic with String" {
   assert_eq(mpmc_queue_dequeue(q), Some("world"))
 }
 
+///|
 test "mpmc_queue: interleave" {
   let q : MPMCQueue[Int] = mpmc_queue_new(8)
   ignore(mpmc_queue_enqueue(q, 1))
@@ -217,6 +227,7 @@ test "mpmc_queue: interleave" {
   assert_true(mpmc_queue_is_empty(q))
 }
 
+///|
 test "mpmc_queue: capacity is power of 2" {
   let q : MPMCQueue[Int] = mpmc_queue_new(5)
   assert_eq(mpmc_queue_capacity(q), 8)

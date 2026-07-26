@@ -54,6 +54,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A segment tree node storing aggregate statistics and a lazy add value.
 pub struct LazySegNode {
   priv mut sum : Int64
@@ -62,6 +63,7 @@ pub struct LazySegNode {
   priv mut lazy_val : Int64 // pending addition to propagate to children
 }
 
+///|
 /// The segment tree.
 ///
 /// - `nodes` is a 1-indexed array of `4 * n` elements (standard binary heap layout).
@@ -75,14 +77,18 @@ pub struct LazySegTree {
   priv values : FixedArray[Int64]
 }
 
+///|
 /// Sentinel values for empty segments.
 const INF_LAZY : Int64 = 9223372036854775807L
+
+///|
 const NEG_INF_LAZY : Int64 = -9223372036854775808L
 
 // ---------------------------------------------------------------------------
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build a segment tree from an array of `Int` values.
 ///
 /// The tree supports range additions and range queries on the original array.
@@ -93,11 +99,7 @@ pub fn build(arr : FixedArray[Int]) -> LazySegTree {
   for i = 0; i < n; i = i + 1 {
     values[i] = arr[i].to_int64()
   }
-  let st : LazySegTree = {
-    nodes: [],
-    n,
-    values,
-  }
+  let st : LazySegTree = { nodes: [], n, values }
   // Allocate 4*n nodes.
   for i = 0; i < 4 * n + 4; i = i + 1 {
     st.nodes.push({ sum: 0L, mn: INF_LAZY, mx: NEG_INF_LAZY, lazy_val: 0L })
@@ -108,6 +110,7 @@ pub fn build(arr : FixedArray[Int]) -> LazySegTree {
   st
 }
 
+///|
 fn build_helper(
   st : LazySegTree,
   arr : FixedArray[Int],
@@ -133,6 +136,7 @@ fn build_helper(
 // Internal: push_up / push_down
 // ---------------------------------------------------------------------------
 
+///|
 /// Recompute aggregates from children.
 fn push_up(st : LazySegTree, node : Int) -> Unit {
   let left = node * 2
@@ -150,6 +154,7 @@ fn push_up(st : LazySegTree, node : Int) -> Unit {
   }
 }
 
+///|
 /// Propagate lazy value to children.
 fn push_down(st : LazySegTree, node : Int, lo : Int, hi : Int) -> Unit {
   if st.nodes[node].lazy_val != 0L {
@@ -163,6 +168,7 @@ fn push_down(st : LazySegTree, node : Int, lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 /// Apply a lazy addition to a node, updating its aggregates.
 fn apply_lazy(
   st : LazySegTree,
@@ -182,24 +188,21 @@ fn apply_lazy(
 // Range operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Add `val` to every element in `[l, r]` (inclusive).
 ///
 /// Uses lazy propagation: only the nodes on the update path are modified,
 /// and the pending additions are pushed down when needed. O(log n).
 ///
 /// Does nothing if `l > r`, `l < 0`, or `r >= n`.
-pub fn range_add(
-  st : LazySegTree,
-  l : Int,
-  r : Int,
-  val : Int64,
-) -> Unit {
+pub fn range_add(st : LazySegTree, l : Int, r : Int, val : Int64) -> Unit {
   if st.n == 0 || l < 0 || r >= st.n || l > r {
     return
   }
   update_helper(st, 1, 0, st.n - 1, l, r, val)
 }
 
+///|
 fn update_helper(
   st : LazySegTree,
   node : Int,
@@ -224,6 +227,7 @@ fn update_helper(
   push_up(st, node)
 }
 
+///|
 /// Sum of elements in `[l, r)` (half-open interval).
 ///
 /// Returns 0 if `l >= r` or the range is out of bounds. O(log n).
@@ -234,6 +238,7 @@ pub fn range_sum(st : LazySegTree, l : Int, r : Int) -> Int64 {
   query_sum_helper(st, 1, 0, st.n - 1, l, r - 1)
 }
 
+///|
 fn query_sum_helper(
   st : LazySegTree,
   node : Int,
@@ -257,6 +262,7 @@ fn query_sum_helper(
   result
 }
 
+///|
 /// Minimum element in `[l, r)` (half-open interval).
 ///
 /// Returns `INF` if the range is empty or out of bounds. O(log n).
@@ -267,6 +273,7 @@ pub fn range_min(st : LazySegTree, l : Int, r : Int) -> Int64 {
   query_min_helper(st, 1, 0, st.n - 1, l, r - 1)
 }
 
+///|
 fn query_min_helper(
   st : LazySegTree,
   node : Int,
@@ -296,6 +303,7 @@ fn query_min_helper(
   result
 }
 
+///|
 /// Maximum element in `[l, r)` (half-open interval).
 ///
 /// Returns `-INF` if the range is empty or out of bounds. O(log n).
@@ -306,6 +314,7 @@ pub fn range_max(st : LazySegTree, l : Int, r : Int) -> Int64 {
   query_max_helper(st, 1, 0, st.n - 1, l, r - 1)
 }
 
+///|
 fn query_max_helper(
   st : LazySegTree,
   node : Int,
@@ -335,6 +344,7 @@ fn query_max_helper(
   result
 }
 
+///|
 /// Get the **base** value at index `idx`. **O(1)**.
 ///
 /// Returns the last value set via `point_set` or `build` at this position,
@@ -352,6 +362,7 @@ pub fn point_get(st : LazySegTree, idx : Int) -> Int64 {
   st.values[idx]
 }
 
+///|
 /// Get the **current** value at index `idx`, including all pending
 /// `range_add` updates. **O(log n)**.
 ///
@@ -367,6 +378,7 @@ pub fn current_value(st : LazySegTree, idx : Int) -> Int64 {
   range_sum(st, idx, idx + 1)
 }
 
+///|
 /// Set `arr[idx] = val`. O(log n).
 ///
 /// Uses a **direct single-traversal update**: pushes down lazy tags along the
@@ -386,6 +398,7 @@ pub fn point_set(st : LazySegTree, idx : Int, val : Int64) -> Unit {
   point_set_helper(st, 1, 0, st.n - 1, idx, val)
 }
 
+///|
 fn point_set_helper(
   st : LazySegTree,
   node : Int,
@@ -410,6 +423,7 @@ fn point_set_helper(
   push_up(st, node)
 }
 
+///|
 /// Number of elements in the underlying array. O(1).
 pub fn size(st : LazySegTree) -> Int {
   st.n
@@ -419,6 +433,7 @@ pub fn size(st : LazySegTree) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "LazySegTree: build and point_get" {
   let arr = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   let st = build(arr)
@@ -427,6 +442,7 @@ test "LazySegTree: build and point_get" {
   assert_eq(point_get(st, 4), 5L)
 }
 
+///|
 test "LazySegTree: range_sum" {
   let arr = FixedArray::makei(10, fn(i) { i }) // [0..9]
   let st = build(arr)
@@ -436,6 +452,7 @@ test "LazySegTree: range_sum" {
   assert_eq(range_sum(st, 5, 6), 5L)
 }
 
+///|
 test "LazySegTree: range_add then sum" {
   let arr = FixedArray::make(5, 0) // [0,0,0,0,0]
   let st = build(arr)
@@ -454,6 +471,7 @@ test "LazySegTree: range_add then sum" {
   assert_eq(range_sum(st, 0, 5), 65L)
 }
 
+///|
 test "LazySegTree: range_min and range_max" {
   let arr = FixedArray::makei(8, fn(i) { (i * 3 + 1) % 10 }) // [1,4,7,0,3,6,9,2]
   let st = build(arr)
@@ -467,6 +485,7 @@ test "LazySegTree: range_min and range_max" {
   assert_eq(range_max(st, 0, 8), 109L) // 9+100
 }
 
+///|
 test "LazySegTree: point_set" {
   let arr = FixedArray::makei(5, fn(i) { i * 10 }) // [0,10,20,30,40]
   let st = build(arr)
@@ -475,6 +494,7 @@ test "LazySegTree: point_set" {
   assert_eq(range_sum(st, 0, 5), 105L) // 0+10+25+30+40
 }
 
+///|
 test "LazySegTree: overlapping range adds" {
   let arr = FixedArray::make(10, 0)
   let st = build(arr)
@@ -490,6 +510,7 @@ test "LazySegTree: overlapping range adds" {
   assert_eq(range_sum(st, 0, 10), 17L) // 1+1+1+2+2+3+2+2+2+1
 }
 
+///|
 test "LazySegTree: single element" {
   let arr = FixedArray::make(1, 42)
   let st = build(arr)
@@ -500,6 +521,7 @@ test "LazySegTree: single element" {
   assert_eq(current_value(st, 0), 50L)
 }
 
+///|
 test "LazySegTree: out of bounds" {
   let arr = FixedArray::make(3, 0)
   let st = build(arr)
@@ -513,13 +535,14 @@ test "LazySegTree: out of bounds" {
   assert_eq(range_sum(st, 0, 3), 0L)
 }
 
+///|
 test "LazySegTree: stress test (many range adds)" {
   let n = 100
   let arr = FixedArray::make(n, 0)
   let st = build(arr)
   // Perform 50 range adds.
   for i = 0; i < 50; i = i + 1 {
-    let l = (i * 7) % n
+    let l = i * 7 % n
     let r = (l + 13) % n
     let (lo, hi) = if l <= r { (l, r) } else { (r, l) }
     range_add(st, lo, hi, i.to_int64())
@@ -527,7 +550,7 @@ test "LazySegTree: stress test (many range adds)" {
   // Brute-force verify.
   let expected = FixedArray::make(n, 0L)
   for i = 0; i < 50; i = i + 1 {
-    let l = (i * 7) % n
+    let l = i * 7 % n
     let r = (l + 13) % n
     let (lo, hi) = if l <= r { (l, r) } else { (r, l) }
     for j = lo; j <= hi; j = j + 1 {
@@ -545,6 +568,7 @@ test "LazySegTree: stress test (many range adds)" {
   assert_eq(range_max(st, 0, n), range_max_brute(expected, 0, n))
 }
 
+///|
 fn range_sum_brute(arr : FixedArray[Int64], l : Int, r : Int) -> Int64 {
   let mut sum = 0L
   for i = l; i < r; i = i + 1 {
@@ -553,6 +577,7 @@ fn range_sum_brute(arr : FixedArray[Int64], l : Int, r : Int) -> Int64 {
   sum
 }
 
+///|
 fn range_min_brute(arr : FixedArray[Int64], l : Int, r : Int) -> Int64 {
   let mut m = INF_LAZY
   for i = l; i < r; i = i + 1 {
@@ -563,6 +588,7 @@ fn range_min_brute(arr : FixedArray[Int64], l : Int, r : Int) -> Int64 {
   m
 }
 
+///|
 fn range_max_brute(arr : FixedArray[Int64], l : Int, r : Int) -> Int64 {
   let mut m = NEG_INF_LAZY
   for i = l; i < r; i = i + 1 {

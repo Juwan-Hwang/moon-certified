@@ -23,6 +23,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A node in the wavelet tree.
 struct WTNode {
   bitvector : FixedArray[Bool] // bit[i] = true if character goes right
@@ -33,6 +34,7 @@ struct WTNode {
   hi_alpha : Int // max alphabet index in this node's range
 }
 
+///|
 /// The wavelet tree.
 pub struct WaveletTree {
   priv nodes : Array[WTNode]
@@ -45,11 +47,12 @@ pub struct WaveletTree {
 // Build
 // ---------------------------------------------------------------------------
 
+///|
 /// Build a wavelet tree from a string.
 pub fn build(text : String) -> WaveletTree {
   let n = text.length()
   if n == 0 {
-    return { nodes : [], n : 0, alphabet : [], char_index : Map([]) }
+    return { nodes: [], n: 0, alphabet: [], char_index: Map([]) }
   }
   // Collect and sort alphabet.
   let char_set : Map[Int, Unit] = Map([])
@@ -80,6 +83,7 @@ pub fn build(text : String) -> WaveletTree {
   { nodes, n, alphabet, char_index }
 }
 
+///|
 /// Recursively build a wavelet tree node.
 fn build_node(
   nodes : Array[WTNode],
@@ -94,10 +98,10 @@ fn build_node(
   if lo_alpha == hi_alpha {
     // Leaf node: no bitvector needed.
     nodes.push({
-      bitvector : FixedArray::make(0, false),
-      prefix_sum : FixedArray::make(1, 0),
-      left_child : -1,
-      right_child : -1,
+      bitvector: FixedArray::make(0, false),
+      prefix_sum: FixedArray::make(1, 0),
+      left_child: -1,
+      right_child: -1,
       lo_alpha,
       hi_alpha,
     })
@@ -130,10 +134,10 @@ fn build_node(
     }
   }
   nodes.push({
-    bitvector : bv,
-    prefix_sum : ps,
-    left_child : -1, // will be set after children are built
-    right_child : -1,
+    bitvector: bv,
+    prefix_sum: ps,
+    left_child: -1, // will be set after children are built
+    right_child: -1,
     lo_alpha,
     hi_alpha,
   })
@@ -142,7 +146,13 @@ fn build_node(
     nodes, left_indices, 0, left_count, lo_alpha, mid, alphabet,
   )
   let right_idx = build_node(
-    nodes, right_indices, 0, right_count, mid + 1, hi_alpha, alphabet,
+    nodes,
+    right_indices,
+    0,
+    right_count,
+    mid + 1,
+    hi_alpha,
+    alphabet,
   )
   nodes[node_idx].left_child = left_idx
   nodes[node_idx].right_child = right_idx
@@ -153,6 +163,7 @@ fn build_node(
 // Operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Access the character at position `i` (0-indexed).
 /// Returns the character code as `Int`.
 pub fn access(tree : WaveletTree, i : Int) -> Int? {
@@ -181,6 +192,7 @@ pub fn access(tree : WaveletTree, i : Int) -> Int? {
   None
 }
 
+///|
 /// Count occurrences of character `c` in positions `[0, i)`.
 pub fn rank(tree : WaveletTree, c : Int, i : Int) -> Int {
   if i <= 0 || tree.nodes.length() == 0 {
@@ -216,6 +228,7 @@ pub fn rank(tree : WaveletTree, c : Int, i : Int) -> Int {
   0
 }
 
+///|
 /// Find the position of the k-th (0-indexed) occurrence of character `c`.
 /// Returns the 0-indexed position, or `None` if there aren't k+1 occurrences.
 pub fn select(tree : WaveletTree, c : Int, k : Int) -> Int? {
@@ -244,6 +257,7 @@ pub fn select(tree : WaveletTree, c : Int, k : Int) -> Int? {
   }
 }
 
+///|
 /// Count occurrences of character `c` in positions `[l, r)`.
 pub fn range_count(tree : WaveletTree, l : Int, r : Int, c : Int) -> Int {
   if l >= r || l < 0 || r > tree.n {
@@ -252,6 +266,7 @@ pub fn range_count(tree : WaveletTree, l : Int, r : Int, c : Int) -> Int {
   rank(tree, c, r) - rank(tree, c, l)
 }
 
+///|
 /// The length of the indexed sequence.
 pub fn length(tree : WaveletTree) -> Int {
   tree.n
@@ -261,6 +276,7 @@ pub fn length(tree : WaveletTree) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "wavelet: access" {
   let wt = build("banana")
   assert_eq(access(wt, 0), Some('b'.to_int()))
@@ -269,6 +285,7 @@ test "wavelet: access" {
   assert_eq(access(wt, 5), Some('a'.to_int()))
 }
 
+///|
 test "wavelet: rank" {
   let wt = build("banana")
   assert_eq(rank(wt, 'a'.to_int(), 6), 3)
@@ -277,6 +294,7 @@ test "wavelet: rank" {
   assert_eq(rank(wt, 'b'.to_int(), 6), 1)
 }
 
+///|
 test "wavelet: select" {
   let wt = build("banana")
   assert_eq(select(wt, 'a'.to_int(), 0), Some(1))
@@ -285,6 +303,7 @@ test "wavelet: select" {
   assert_eq(select(wt, 'a'.to_int(), 3), None)
 }
 
+///|
 test "wavelet: range_count" {
   let wt = build("mississippi")
   assert_eq(range_count(wt, 0, 11, 's'.to_int()), 4)
@@ -292,6 +311,7 @@ test "wavelet: range_count" {
   assert_eq(range_count(wt, 5, 11, 'i'.to_int()), 2)
 }
 
+///|
 test "wavelet: single character string" {
   let wt = build("a")
   assert_eq(access(wt, 0), Some('a'.to_int()))
@@ -299,6 +319,7 @@ test "wavelet: single character string" {
   assert_eq(rank(wt, 'a'.to_int(), 0), 0)
 }
 
+///|
 test "wavelet: all same characters" {
   let wt = build("aaaa")
   assert_eq(rank(wt, 'a'.to_int(), 4), 4)
@@ -306,6 +327,7 @@ test "wavelet: all same characters" {
   assert_eq(select(wt, 'a'.to_int(), 2), Some(2))
 }
 
+///|
 test "wavelet: out of bounds" {
   let wt = build("hello")
   assert_eq(access(wt, -1), None)
@@ -313,6 +335,7 @@ test "wavelet: out of bounds" {
   assert_eq(rank(wt, 'h'.to_int(), 0), 0)
 }
 
+///|
 test "wavelet: length" {
   let wt = build("banana")
   assert_eq(length(wt), 6)

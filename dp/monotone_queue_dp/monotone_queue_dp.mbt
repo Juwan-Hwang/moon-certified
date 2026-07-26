@@ -10,6 +10,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Maximum of every contiguous window of size `k`.
 ///
 /// Returns an empty array for invalid inputs (`k <= 0`, `k > n`, or `n == 0`).
@@ -41,6 +42,7 @@ pub fn sliding_window_max(arr : Array[Int], k : Int) -> Array[Int] {
   result
 }
 
+///|
 /// Maximum sum of any contiguous subarray of length exactly `k`.
 ///
 /// Returns `0` for invalid inputs (`k <= 0`, `k > n`, or `n == 0`).
@@ -67,19 +69,23 @@ pub fn max_sum_subarray(arr : Array[Int], k : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "sliding_window_max: standard" {
   let arr = [1, 3, -1, -3, 5, 3, 6, 7]
   assert_eq(sliding_window_max(arr, 3), [3, 3, 5, 5, 6, 7])
 }
 
+///|
 test "sliding_window_max: window size one" {
   assert_eq(sliding_window_max([5, 3, 4], 1), [5, 3, 4])
 }
 
+///|
 test "max_sum_subarray: ascending array" {
   assert_eq(max_sum_subarray([1, 2, 3, 4, 5], 2), 9)
 }
 
+///|
 test "max_sum_subarray: mixed signs" {
   assert_eq(max_sum_subarray([-1, 2, 3, -4, 5], 2), 5)
 }

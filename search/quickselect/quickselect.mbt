@@ -10,6 +10,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Find the k-th smallest element (0-indexed) using Hoare partition.
 /// Mutates the array (partial sort). Returns `None` if k is out of bounds.
 pub fn quickselect(arr : Array[Int], k : Int) -> Int? {
@@ -32,6 +33,7 @@ pub fn quickselect(arr : Array[Int], k : Int) -> Int? {
   Some(arr[lo])
 }
 
+///|
 /// Deterministic quickselect using median-of-medians (BFPTR algorithm).
 /// Guarantees O(n) worst-case time.
 pub fn quickselect_deterministic(arr : Array[Int], k : Int) -> Int? {
@@ -55,6 +57,7 @@ pub fn quickselect_deterministic(arr : Array[Int], k : Int) -> Int? {
   Some(arr[lo])
 }
 
+///|
 /// Find the median of an array (odd length) or lower median (even length).
 pub fn median(arr : Array[Int]) -> Int? {
   let n = arr.length()
@@ -64,6 +67,7 @@ pub fn median(arr : Array[Int]) -> Int? {
   quickselect(arr, n / 2)
 }
 
+///|
 fn partition(arr : Array[Int], lo : Int, hi : Int) -> Int {
   // Median-of-three pivot.
   let mid = lo + (hi - lo) / 2
@@ -89,6 +93,7 @@ fn partition(arr : Array[Int], lo : Int, hi : Int) -> Int {
   i
 }
 
+///|
 fn partition_around(arr : Array[Int], lo : Int, hi : Int, pivot : Int) -> Int {
   let mut i = lo
   for j = lo; j <= hi; j = j + 1 {
@@ -108,6 +113,7 @@ fn partition_around(arr : Array[Int], lo : Int, hi : Int, pivot : Int) -> Int {
   idx
 }
 
+///|
 fn median_of_medians(arr : Array[Int], lo : Int, hi : Int) -> Int {
   let n = hi - lo + 1
   if n <= 5 {
@@ -174,6 +180,7 @@ fn median_of_medians(arr : Array[Int], lo : Int, hi : Int) -> Int {
   }
 }
 
+///|
 fn swap(arr : Array[Int], a : Int, b : Int) -> Unit {
   let tmp = arr[a]
   arr[a] = arr[b]
@@ -184,6 +191,7 @@ fn swap(arr : Array[Int], a : Int, b : Int) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "quickselect: k-th smallest" {
   let arr = [7, 10, 4, 3, 20, 15]
   assert_eq(quickselect(arr.copy(), 0), Some(3))
@@ -194,35 +202,44 @@ test "quickselect: k-th smallest" {
   assert_eq(quickselect(arr.copy(), 5), Some(20))
 }
 
+///|
 test "quickselect: out of bounds" {
   let arr = [1, 2, 3]
   assert_eq(quickselect(arr, -1), None)
   assert_eq(quickselect(arr, 3), None)
 }
 
+///|
 test "quickselect: single element" {
   assert_eq(quickselect([42], 0), Some(42))
 }
 
+///|
 test "quickselect: duplicates" {
   let arr = [3, 3, 3, 1, 1, 2, 2, 2, 1, 3]
   assert_eq(quickselect(arr.copy(), 0), Some(1))
   assert_eq(quickselect(arr.copy(), 9), Some(3))
 }
 
+///|
 test "quickselect: deterministic matches hoare" {
   let arr1 = [7, 10, 4, 3, 20, 15, 8, 12, 6, 1]
   let arr2 = arr1.copy()
   for k = 0; k < 10; k = k + 1 {
-    assert_eq(quickselect(arr1.copy(), k), quickselect_deterministic(arr2.copy(), k))
+    assert_eq(
+      quickselect(arr1.copy(), k),
+      quickselect_deterministic(arr2.copy(), k),
+    )
   }
 }
 
+///|
 test "quickselect: median" {
   let arr = [5, 2, 8, 1, 9, 3, 7]
   assert_eq(median(arr.copy()), Some(5))
 }
 
+///|
 test "quickselect: large array" {
   let arr : Array[Int] = []
   let mut seed = 99999

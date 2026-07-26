@@ -1,3 +1,4 @@
+///|
 /// Metropolis-Hastings MCMC sampler.
 ///
 /// Draws samples from any unnormalised target density `p(x)` via a symmetric
@@ -12,6 +13,7 @@ priv struct Rng {
   mut state : Int64
 }
 
+///|
 fn make_rng(seed : Int64) -> () -> Double {
   let r = { state: if seed == 0L { 0x9E3779B97F4A7C15L } else { seed } }
   fn() {
@@ -25,6 +27,7 @@ fn make_rng(seed : Int64) -> () -> Double {
   }
 }
 
+///|
 /// Draw one N(0, std^2) sample via Box-Muller.
 fn normal_sample(std : Double, rng : () -> Double) -> Double {
   let u1 = 1.0 - rng()
@@ -34,6 +37,7 @@ fn normal_sample(std : Double, rng : () -> Double) -> Double {
   r * @math.cos(theta) * std
 }
 
+///|
 /// Run MH-MCMC, returning all `iterations` samples (including burn-in).
 pub fn metropolis_hastings(
   target : (Double) -> Double,
@@ -63,6 +67,7 @@ pub fn metropolis_hastings(
   samples
 }
 
+///|
 /// Sample mean of an array of doubles.
 pub fn mcmc_mean(samples : Array[Double]) -> Double {
   let mut sum = 0.0
@@ -72,6 +77,7 @@ pub fn mcmc_mean(samples : Array[Double]) -> Double {
   sum / samples.length().to_double()
 }
 
+///|
 /// Sample standard deviation (population, dividing by n).
 pub fn mcmc_std(samples : Array[Double]) -> Double {
   let n = samples.length().to_double()
@@ -82,13 +88,18 @@ pub fn mcmc_std(samples : Array[Double]) -> Double {
     sum_sq = sum_sq + d * d
   }
   let variance = sum_sq / n
-  if variance <= 0.0 { 0.0 } else { variance.sqrt() }
+  if variance <= 0.0 {
+    0.0
+  } else {
+    variance.sqrt()
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mcmc: standard normal — mean near 0" {
   let rng = make_rng(42L)
   let target = fn(x) { @math.exp(-x * x / 2.0) }
@@ -101,6 +112,7 @@ test "mcmc: standard normal — mean near 0" {
   assert_true(mcmc_mean(post).abs() < 0.1)
 }
 
+///|
 test "mcmc: standard normal — std near 1" {
   let rng = make_rng(137L)
   let target = fn(x) { @math.exp(-x * x / 2.0) }

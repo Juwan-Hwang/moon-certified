@@ -29,6 +29,7 @@
 // Euler's totient (naive)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute Euler's totient `φ(n)` for `n >= 1`.
 ///
 /// Uses trial division to factorise `n`, then applies the formula
@@ -62,6 +63,7 @@ pub fn euler_totient(n : Int64) -> Int64 {
 // Factorisation of φ(n)
 // ---------------------------------------------------------------------------
 
+///|
 /// Return the distinct prime factors of `m` as a sorted array.
 fn prime_factors(m : Int64) -> Array[Int64] {
   let factors : Array[Int64] = []
@@ -86,6 +88,7 @@ fn prime_factors(m : Int64) -> Array[Int64] {
 // Primitive root
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the smallest primitive root modulo `n`.
 ///
 /// Returns `Some(g)` where `g` is the smallest primitive root, or `None`
@@ -163,6 +166,7 @@ pub fn primitive_root(n : Int64) -> Int64? {
   None
 }
 
+///|
 /// Check if `g` is a primitive root modulo `n`.
 pub fn is_primitive_root(g : Int64, n : Int64) -> Bool {
   if @int64_utils.gcd64(g, n) != 1L {
@@ -179,6 +183,7 @@ pub fn is_primitive_root(g : Int64, n : Int64) -> Bool {
   true
 }
 
+///|
 /// Count the number of primitive roots modulo `n`.
 ///
 /// If `n` has primitive roots, the count is `φ(φ(n))`. Otherwise, 0.
@@ -191,6 +196,7 @@ pub fn count_primitive_roots(n : Int64) -> Int64 {
 // Discrete logarithm (Baby-step Giant-step)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the discrete logarithm: find `x` such that `g^x ≡ y (mod n)`.
 ///
 /// Uses the baby-step giant-step algorithm.
@@ -257,6 +263,7 @@ pub fn discrete_log(g : Int64, y : Int64, n : Int64) -> Int64? {
   }
 }
 
+///|
 /// Modular inverse via extended Euclidean algorithm.
 fn mod_inverse(a : Int64, m : Int64) -> Int64? {
   let a_mod = @int64_utils.mod64(a, m)
@@ -284,6 +291,7 @@ fn mod_inverse(a : Int64, m : Int64) -> Int64? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "euler_totient: basic" {
   assert_eq(euler_totient(1L), 1L)
   assert_eq(euler_totient(2L), 1L)
@@ -292,6 +300,7 @@ test "euler_totient: basic" {
   assert_eq(euler_totient(36L), 12L)
 }
 
+///|
 test "primitive_root: small primes" {
   // Primitive root of 7 is 3.
   assert_eq(primitive_root(7L), Some(3L))
@@ -303,12 +312,14 @@ test "primitive_root: small primes" {
   assert_eq(primitive_root(5L), Some(2L))
 }
 
+///|
 test "primitive_root: special cases" {
   assert_eq(primitive_root(1L), Some(0L))
   assert_eq(primitive_root(2L), Some(1L))
   assert_eq(primitive_root(4L), Some(3L))
 }
 
+///|
 test "primitive_root: no primitive root" {
   // 8 = 2^3 has no primitive root.
   assert_true(primitive_root(8L) is None)
@@ -316,6 +327,7 @@ test "primitive_root: no primitive root" {
   assert_true(primitive_root(15L) is None)
 }
 
+///|
 test "is_primitive_root: verification" {
   // 3 is a primitive root of 7.
   assert_true(is_primitive_root(3L, 7L))
@@ -327,6 +339,7 @@ test "is_primitive_root: verification" {
   assert_false(is_primitive_root(3L, 11L))
 }
 
+///|
 test "count_primitive_roots: basic" {
   // φ(φ(7)) = φ(6) = 2
   assert_eq(count_primitive_roots(7L), 2L)
@@ -334,6 +347,7 @@ test "count_primitive_roots: basic" {
   assert_eq(count_primitive_roots(11L), 4L)
 }
 
+///|
 test "discrete_log: basic" {
   // g = 3, n = 7: 3^1=3, 3^2=2, 3^3=6, 3^4=4, 3^5=5, 3^6=1
   assert_eq(discrete_log(3L, 3L, 7L), Some(1L))
@@ -344,6 +358,7 @@ test "discrete_log: basic" {
   assert_eq(discrete_log(3L, 1L, 7L), Some(0L))
 }
 
+///|
 test "discrete_log: g = 2, n = 11" {
   // 2 is a primitive root of 11.
   // 2^1=2, 2^2=4, 2^3=8, 2^4=5, 2^5=10, 2^6=9, 2^7=7, 2^8=3, 2^9=6, 2^10=1
@@ -356,12 +371,14 @@ test "discrete_log: g = 2, n = 11" {
   assert_eq(discrete_log(2L, 1L, 11L), Some(0L))
 }
 
+///|
 test "discrete_log: no solution" {
   // 3 is not a power of 2 mod 11 (since 3 = 2^8 mod 11, it IS a solution).
   // Let's check a non-existent one: 0 can't be a power of a coprime g.
   assert_true(discrete_log(2L, 0L, 11L) is None)
 }
 
+///|
 test "primitive_root: prime powers" {
   // 9 = 3^2, primitive root exists.
   let r = primitive_root(9L)
@@ -378,6 +395,7 @@ test "primitive_root: prime powers" {
   assert_true(r3 is Some(_))
 }
 
+///|
 test "discrete_log: large prime" {
   // p = 1000000007, g = 5 (a primitive root of 1000000007)
   // First verify 5 is a primitive root.
@@ -390,6 +408,7 @@ test "discrete_log: large prime" {
   assert_eq(r2, Some(3L))
 }
 
+///|
 test "mod_inverse: basic" {
   assert_eq(mod_inverse(3L, 7L), Some(5L)) // 3*5=15≡1 mod 7
   assert_eq(mod_inverse(2L, 5L), Some(3L)) // 2*3=6≡1 mod 5

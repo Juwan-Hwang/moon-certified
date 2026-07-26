@@ -28,6 +28,7 @@
 // Lyndon factorization (Duval's algorithm)
 // ---------------------------------------------------------------------------
 
+///|
 /// Decompose `s` into its Lyndon factors using Duval's algorithm.
 ///
 /// Returns an array of `(start, length)` pairs. Each factor is a Lyndon word,
@@ -65,6 +66,7 @@ pub fn lyndon_factorization(s : String) -> Array[(Int, Int)] {
 // Minimum rotation (minimum representation algorithm)
 // ---------------------------------------------------------------------------
 
+///|
 /// Find the starting index of the lexicographically smallest rotation of `s`.
 ///
 /// Uses the minimum representation algorithm: two candidate pointers `i` and
@@ -112,6 +114,7 @@ pub fn min_rotation_index(s : String) -> Int {
 // Lyndon word check
 // ---------------------------------------------------------------------------
 
+///|
 /// Check if `s` is a Lyndon word.
 ///
 /// A string is a Lyndon word iff it is strictly smaller than all its proper
@@ -155,6 +158,7 @@ pub fn is_lyndon(s : String) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "lyndon: factorization of simple string" {
   // "abc" is already a Lyndon word (a < b < c)
   let factors = lyndon_factorization("abc")
@@ -162,6 +166,7 @@ test "lyndon: factorization of simple string" {
   assert_eq(factors[0], (0, 3))
 }
 
+///|
 test "lyndon: factorization of repeated chars" {
   // "aaa" → "a", "a", "a" (single chars are Lyndon words)
   let factors = lyndon_factorization("aaa")
@@ -171,6 +176,7 @@ test "lyndon: factorization of repeated chars" {
   assert_eq(factors[2], (2, 1))
 }
 
+///|
 test "lyndon: factorization of abab" {
   // "ab" is a Lyndon word. "abab" → "ab", "ab"
   let factors = lyndon_factorization("abab")
@@ -179,6 +185,7 @@ test "lyndon: factorization of abab" {
   assert_eq(factors[1], (2, 2))
 }
 
+///|
 test "lyndon: factorization covers entire string" {
   let test_strings = ["hello", "cba", "aaaa", "abracadabra", "z", ""]
   for s in test_strings {
@@ -191,14 +198,15 @@ test "lyndon: factorization covers entire string" {
   }
 }
 
+///|
 test "lyndon: factors are non-increasing" {
   let s = "dcbaab"
   let factors = lyndon_factorization(s)
   for i = 0; i < factors.length() - 1; i = i + 1 {
     let (s1, l1) = factors[i]
     let (s2, l2) = factors[i + 1]
-    let w1 = s[s1 : s1 + l1].to_owned()
-    let w2 = s[s2 : s2 + l2].to_owned()
+    let w1 = s[s1:s1 + l1].to_owned()
+    let w2 = s[s2:s2 + l2].to_owned()
     // w1 >= w2 lexicographically: compare char by char
     let mut cmp = 0
     for j = 0; j < w1.length() && j < w2.length(); j = j + 1 {
@@ -217,6 +225,7 @@ test "lyndon: factors are non-increasing" {
   }
 }
 
+///|
 test "lyndon: factorization of cba" {
   // "c", "b", "a" — each is a single-char Lyndon word, non-increasing
   let factors = lyndon_factorization("cba")
@@ -226,6 +235,7 @@ test "lyndon: factorization of cba" {
   assert_eq(factors[2], (2, 1))
 }
 
+///|
 test "lyndon: factorization of aabaa" {
   // Duval: "aabaa"
   //   i=0, j=1, k=0
@@ -250,6 +260,7 @@ test "lyndon: factorization of aabaa" {
   assert_eq(factors[2], (4, 1))
 }
 
+///|
 test "lyndon: factorization each factor is Lyndon" {
   let test_strings = [
     "hello", "cba", "aaaa", "abracadabra", "aabaa", "abab", "abcabc",
@@ -257,12 +268,13 @@ test "lyndon: factorization each factor is Lyndon" {
   for s in test_strings {
     let factors = lyndon_factorization(s)
     for f in factors {
-      let word = s[f.0 : f.0 + f.1].to_owned()
+      let word = s[f.0:f.0 + f.1].to_owned()
       assert_true(is_lyndon(word))
     }
   }
 }
 
+///|
 test "lyndon: is_lyndon basic" {
   assert_true(is_lyndon("a"))
   assert_true(is_lyndon("ab"))
@@ -277,6 +289,7 @@ test "lyndon: is_lyndon basic" {
   assert_true(is_lyndon("aaab"))
 }
 
+///|
 test "lyndon: min_rotation basic" {
   assert_eq(min_rotation_index("abc"), 0)
   // "bca" → rotations: bca, cab, abc → min "abc" at index 2
@@ -288,6 +301,7 @@ test "lyndon: min_rotation basic" {
   assert_eq(min_rotation_index("a"), 0)
 }
 
+///|
 test "lyndon: min_rotation of repeated pattern" {
   // "abab" rotations: "abab", "baba", "abab", "baba"
   // minimum is "abab" at index 0
@@ -297,6 +311,7 @@ test "lyndon: min_rotation of repeated pattern" {
   assert_eq(min_rotation_index("baba"), 1)
 }
 
+///|
 test "lyndon: min_rotation complex" {
   // rotations of "dcba": dcba, cbad, badc, adcb
   // sorted: adcb, badc, cbad, dcba → min at index 3
@@ -306,11 +321,11 @@ test "lyndon: min_rotation complex" {
   assert_eq(min_rotation_index("cdab"), 2)
 }
 
+///|
 test "lyndon: min_rotation brute force check" {
   // Verify against brute force for various strings
   let test_strings = [
-    "hello", "world", "abracadabra", "mississippi", "aabaa",
-    "xyzabc", "zzz", "cbcba",
+    "hello", "world", "abracadabra", "mississippi", "aabaa", "xyzabc", "zzz", "cbcba",
   ]
   for s in test_strings {
     let n = s.length()

@@ -13,6 +13,7 @@
 /// will be incorrect due to integer overflow. Callers should ensure the
 /// total MST weight fits in 32-bit `Int` range.
 
+///|
 /// A weighted undirected edge between vertex `from` and vertex `to`.
 ///
 /// The type is `pub` so callers in other packages can read `.from`, `.to` and
@@ -25,12 +26,14 @@ pub struct Edge {
   weight : Int
 }
 
+///|
 /// Construct an [`Edge`]. This is the canonical way for external callers to
 /// create edges.
 pub fn edge(from : Int, to : Int, weight : Int) -> Edge {
   { from, to, weight }
 }
 
+///|
 /// Merge sort for edges by ascending weight. O(E log E).
 /// Uses a temporary buffer for merging.
 fn sort_edges(edges : FixedArray[Edge]) -> Unit {
@@ -42,6 +45,7 @@ fn sort_edges(edges : FixedArray[Edge]) -> Unit {
   merge_sort_edges(edges, buf, 0, n)
 }
 
+///|
 fn merge_sort_edges(
   edges : FixedArray[Edge],
   buf : FixedArray[Edge],
@@ -57,6 +61,7 @@ fn merge_sort_edges(
   merge_edges(edges, buf, lo, mid, hi)
 }
 
+///|
 fn merge_edges(
   edges : FixedArray[Edge],
   buf : FixedArray[Edge],
@@ -94,6 +99,7 @@ fn merge_edges(
   }
 }
 
+///|
 /// Compute the Minimum Spanning Tree (forest) of an undirected graph.
 ///
 /// # Parameters
@@ -140,6 +146,7 @@ pub fn kruskal_mst(
   (mst, total)
 }
 
+///|
 /// Convenience wrapper around [`kruskal_mst`] that returns only the total
 /// weight of the minimum spanning forest.
 pub fn mst_weight(edges : FixedArray[Edge], n : Int) -> Int {
@@ -151,6 +158,7 @@ pub fn mst_weight(edges : FixedArray[Edge], n : Int) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "kruskal: simple connected graph (triangle)" {
   // 0--1 (1)
   // |  /
@@ -165,6 +173,7 @@ test "kruskal: simple connected graph (triangle)" {
   assert_eq(w, 3)
 }
 
+///|
 test "kruskal: disconnected graph yields a forest" {
   // Two components: {0,1} and {2,3}. 4 nodes but only 2 MST edges.
   let edges = FixedArray::make(2, edge(0, 0, 0))
@@ -175,6 +184,7 @@ test "kruskal: disconnected graph yields a forest" {
   assert_eq(w, 3)
 }
 
+///|
 test "kruskal: single edge" {
   let edges = FixedArray::make(1, edge(0, 0, 0))
   edges[0] = edge(0, 1, 5)
@@ -183,6 +193,7 @@ test "kruskal: single edge" {
   assert_eq(w, 5)
 }
 
+///|
 test "kruskal: no edges returns empty" {
   let edges = FixedArray::make(0, edge(0, 0, 0))
   let (mst, w) = kruskal_mst(edges, 3)
@@ -190,6 +201,7 @@ test "kruskal: no edges returns empty" {
   assert_eq(w, 0)
 }
 
+///|
 test "kruskal: non-positive n returns empty" {
   let edges = FixedArray::make(1, edge(0, 1, 1))
   let (mst, w) = kruskal_mst(edges, 0)
@@ -200,6 +212,7 @@ test "kruskal: non-positive n returns empty" {
   assert_eq(w2, 0)
 }
 
+///|
 test "kruskal: complete graph K4" {
   // K4: 4 nodes, 6 edges. The three cheapest form the MST (1+2+3 = 6).
   let edges = FixedArray::make(6, edge(0, 0, 0))
@@ -214,6 +227,7 @@ test "kruskal: complete graph K4" {
   assert_eq(w, 6)
 }
 
+///|
 test "kruskal: equal weights" {
   // Square with unit weights. MST has 3 edges, weight 3.
   let edges = FixedArray::make(4, edge(0, 0, 0))
@@ -226,6 +240,7 @@ test "kruskal: equal weights" {
   assert_eq(w, 3)
 }
 
+///|
 test "kruskal: negative weights" {
   // Sorted: 0-1(-5), 0-2(1), 1-2(3). MST = {0-1, 0-2}, weight -4.
   let edges = FixedArray::make(3, edge(0, 0, 0))
@@ -237,6 +252,7 @@ test "kruskal: negative weights" {
   assert_eq(w, -4)
 }
 
+///|
 test "kruskal: star topology" {
   // Center 0 linked to 1..4. All star edges are mutually non-cycling.
   let edges = FixedArray::make(4, edge(0, 0, 0))
@@ -249,6 +265,7 @@ test "kruskal: star topology" {
   assert_eq(w, 10)
 }
 
+///|
 test "kruskal: line topology with heavy chord" {
   // Path 0-1-2-3-4 plus a heavy shortcut 0-4. MST = the path, weight 10.
   let edges = FixedArray::make(5, edge(0, 0, 0))
@@ -262,6 +279,7 @@ test "kruskal: line topology with heavy chord" {
   assert_eq(w, 10)
 }
 
+///|
 test "kruskal: MST is acyclic" {
   // A graph rich in cycles; re-unioning the MST edges must never collide.
   let edges = FixedArray::make(6, edge(0, 0, 0))
@@ -280,6 +298,7 @@ test "kruskal: MST is acyclic" {
   }
 }
 
+///|
 test "kruskal: connected graph yields exactly n-1 edges" {
   // 5-node connected graph; MST must have exactly 4 edges and span all nodes.
   let edges = FixedArray::make(7, edge(0, 0, 0))
@@ -301,14 +320,27 @@ test "kruskal: connected graph yields exactly n-1 edges" {
   assert_eq(@union_find.count(uf), 1)
 }
 
+///|
 test "kruskal: large graph (10 nodes, 24 edges)" {
   let n = 10
   // 9 light line edges (weights 1..9) span all nodes and form the MST.
   // 15 heavy chords (weight 100) connect non-adjacent nodes and are rejected.
   let chords = [
-    (0, 2), (0, 3), (1, 3), (1, 4), (2, 4),
-    (2, 5), (3, 5), (3, 6), (4, 6), (4, 7),
-    (5, 7), (5, 8), (6, 8), (6, 9), (7, 9),
+    (0, 2),
+    (0, 3),
+    (1, 3),
+    (1, 4),
+    (2, 4),
+    (2, 5),
+    (3, 5),
+    (3, 6),
+    (4, 6),
+    (4, 7),
+    (5, 7),
+    (5, 8),
+    (6, 8),
+    (6, 9),
+    (7, 9),
   ]
   let edges = FixedArray::make(9 + chords.length(), edge(0, 0, 0))
   for i = 0; i < 9; i = i + 1 {
@@ -323,6 +355,7 @@ test "kruskal: large graph (10 nodes, 24 edges)" {
   assert_eq(w, 45) // 1 + 2 + ... + 9
 }
 
+///|
 test "kruskal: mst_weight matches kruskal_mst" {
   let edges = FixedArray::make(3, edge(0, 0, 0))
   edges[0] = edge(0, 1, 1)
@@ -337,6 +370,7 @@ test "kruskal: mst_weight matches kruskal_mst" {
 // Checked Kruskal's MST with Int64 overflow detection
 // ---------------------------------------------------------------------------
 
+///|
 /// Checked Kruskal's MST with `Int64` weight accumulation and overflow detection.
 ///
 /// Returns `None` if the total MST weight would overflow `Int64`. Otherwise
@@ -370,6 +404,7 @@ pub fn kruskal_mst_checked(
   Some((mst, total))
 }
 
+///|
 test "kruskal: checked basic" {
   let edges = FixedArray::make(3, edge(0, 0, 0))
   edges[0] = edge(0, 1, 1)
@@ -385,6 +420,7 @@ test "kruskal: checked basic" {
   }
 }
 
+///|
 test "kruskal: checked matches unchecked" {
   let edges = FixedArray::make(5, edge(0, 0, 0))
   edges[0] = edge(0, 1, 1)

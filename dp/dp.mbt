@@ -7,6 +7,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Return the maximum of two integers.
 fn max2(a : Int, b : Int) -> Int {
   if a >= b {
@@ -16,6 +17,7 @@ fn max2(a : Int, b : Int) -> Int {
   }
 }
 
+///|
 /// Return the minimum of two integers.
 fn min2(a : Int, b : Int) -> Int {
   if a <= b {
@@ -29,6 +31,7 @@ fn min2(a : Int, b : Int) -> Int {
 // Longest Common Subsequence
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the length of the longest common subsequence of two arrays.
 ///
 /// O(n*m) time, O(min(n,m)) space DP using a rolling array. Conceptually
@@ -78,6 +81,7 @@ pub fn lcs(a : FixedArray[Int], b : FixedArray[Int]) -> Int? {
 // Edit Distance (Levenshtein)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the minimum edit distance between two arrays.
 /// Operations: insert, delete, replace (each costs 1).
 ///
@@ -135,6 +139,7 @@ pub fn edit_distance(a : FixedArray[Int], b : FixedArray[Int]) -> Int? {
 // 0/1 Knapsack
 // ---------------------------------------------------------------------------
 
+///|
 /// Solve 0/1 knapsack: max value with given weight capacity.
 /// weights[i] and values[i] describe item i. Each item used at most once.
 ///
@@ -194,6 +199,7 @@ pub fn knapsack(
 
 // --- LCS --------------------------------------------------------------------
 
+///|
 test "lcs: basic match" {
   let a = FixedArray::makei(5, fn(i) { i + 1 }) // [1,2,3,4,5]
   let b = FixedArray::make(3, 0)
@@ -203,12 +209,14 @@ test "lcs: basic match" {
   assert_eq(lcs(a, b), Some(3))
 }
 
+///|
 test "lcs: no match" {
   let a = FixedArray::makei(3, fn(i) { i + 1 }) // [1,2,3]
   let b = FixedArray::makei(3, fn(i) { i + 4 }) // [4,5,6]
   assert_eq(lcs(a, b), Some(0))
 }
 
+///|
 test "lcs: one empty" {
   let a = FixedArray::make(0, 0)
   let b = FixedArray::makei(3, fn(i) { i + 1 })
@@ -216,18 +224,21 @@ test "lcs: one empty" {
   assert_eq(lcs(b, a), Some(0))
 }
 
+///|
 test "lcs: both empty" {
   let a = FixedArray::make(0, 0)
   let b = FixedArray::make(0, 0)
   assert_eq(lcs(a, b), Some(0))
 }
 
+///|
 test "lcs: full match" {
   let a = FixedArray::makei(3, fn(i) { i + 1 })
   let b = FixedArray::makei(3, fn(i) { i + 1 })
   assert_eq(lcs(a, b), Some(3))
 }
 
+///|
 test "lcs: partial match" {
   let a = FixedArray::makei(4, fn(i) { i + 1 }) // [1,2,3,4]
   let b = FixedArray::make(4, 0)
@@ -238,6 +249,7 @@ test "lcs: partial match" {
   assert_eq(lcs(a, b), Some(3)) // [1,3,4]
 }
 
+///|
 test "lcs: duplicates" {
   let a = FixedArray::make(5, 0)
   a[0] = 1
@@ -253,6 +265,7 @@ test "lcs: duplicates" {
   assert_eq(lcs(a, b), Some(4)) // [1,2,2,3]
 }
 
+///|
 test "lcs: OOM protection" {
   // (n+1)*(m+1) > 10^7: should return None to prevent OOM.
   let a = FixedArray::make(4000, 1)
@@ -262,12 +275,14 @@ test "lcs: OOM protection" {
 
 // --- Edit distance ----------------------------------------------------------
 
+///|
 test "edit_distance: identical arrays" {
   let a = FixedArray::makei(3, fn(i) { i + 1 })
   let b = FixedArray::makei(3, fn(i) { i + 1 })
   assert_eq(edit_distance(a, b), Some(0))
 }
 
+///|
 test "edit_distance: one empty" {
   let empty = FixedArray::make(0, 0)
   let other = FixedArray::makei(3, fn(i) { i + 1 })
@@ -275,17 +290,20 @@ test "edit_distance: one empty" {
   assert_eq(edit_distance(other, empty), Some(3))
 }
 
+///|
 test "edit_distance: both empty" {
   let empty = FixedArray::make(0, 0)
   assert_eq(edit_distance(empty, empty), Some(0))
 }
 
+///|
 test "edit_distance: completely different" {
   let a = FixedArray::makei(3, fn(i) { i + 1 }) // [1,2,3]
   let b = FixedArray::makei(3, fn(i) { i + 4 }) // [4,5,6]
   assert_eq(edit_distance(a, b), Some(3))
 }
 
+///|
 test "edit_distance: partial similarity" {
   let a = FixedArray::makei(4, fn(i) { i + 1 }) // [1,2,3,4]
   let b = FixedArray::make(3, 0)
@@ -295,6 +313,7 @@ test "edit_distance: partial similarity" {
   assert_eq(edit_distance(a, b), Some(1)) // delete the 3
 }
 
+///|
 test "edit_distance: single element" {
   let one = FixedArray::make(1, 0)
   one[0] = 1
@@ -305,6 +324,7 @@ test "edit_distance: single element" {
   assert_eq(edit_distance(one, FixedArray::make(0, 0)), Some(1)) // delete
 }
 
+///|
 test "edit_distance: OOM protection" {
   // (n+1)*(m+1) > 10^7: should return None to prevent OOM.
   let a = FixedArray::make(4000, 1)
@@ -314,6 +334,7 @@ test "edit_distance: OOM protection" {
 
 // --- Knapsack ---------------------------------------------------------------
 
+///|
 test "knapsack: basic" {
   // (2,3), (3,4), (4,5); capacity 5 -> take items 0+1, weight 5, value 7.
   let weights = FixedArray::make(3, 0)
@@ -327,6 +348,7 @@ test "knapsack: basic" {
   assert_eq(knapsack(weights, values, 5), Some(7))
 }
 
+///|
 test "knapsack: no fit" {
   // Every item heavier than capacity.
   let weights = FixedArray::makei(3, fn(i) { i + 5 }) // [5,6,7]
@@ -334,6 +356,7 @@ test "knapsack: no fit" {
   assert_eq(knapsack(weights, values, 3), Some(0))
 }
 
+///|
 test "knapsack: exact fit" {
   // (2,4), (3,5); capacity 5 -> both fit exactly, value 9.
   let weights = FixedArray::make(2, 0)
@@ -345,6 +368,7 @@ test "knapsack: exact fit" {
   assert_eq(knapsack(weights, values, 5), Some(9))
 }
 
+///|
 test "knapsack: multiple optimal" {
   // Three unit-weight unit-value items, capacity 2: any pair gives value 2.
   let weights = FixedArray::make(3, 1)
@@ -352,18 +376,21 @@ test "knapsack: multiple optimal" {
   assert_eq(knapsack(weights, values, 2), Some(2))
 }
 
+///|
 test "knapsack: empty items" {
   let weights = FixedArray::make(0, 0)
   let values = FixedArray::make(0, 0)
   assert_eq(knapsack(weights, values, 10), Some(0))
 }
 
+///|
 test "knapsack: zero capacity" {
   let weights = FixedArray::makei(2, fn(i) { i + 2 }) // [2,3]
   let values = FixedArray::makei(2, fn(i) { (i + 1) * 4 }) // [4,8]
   assert_eq(knapsack(weights, values, 0), Some(0))
 }
 
+///|
 test "knapsack: invalid inputs" {
   // Mismatched lengths.
   let w1 = FixedArray::make(2, 1)
@@ -387,6 +414,7 @@ test "knapsack: invalid inputs" {
   assert_eq(knapsack(w4, v4, -1), None)
 }
 
+///|
 test "knapsack: OOM protection" {
   // n * capacity > 10^7: should return None to prevent OOM.
   let w = FixedArray::make(10000, 1)

@@ -1,0 +1,7 @@
+import {
+  "moon-certified/containers/hash_table",
+}
+
+options(
+  "proof-enabled": false,
+)

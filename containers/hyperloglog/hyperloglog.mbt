@@ -37,6 +37,7 @@
 // Data structure
 // ---------------------------------------------------------------------------
 
+///|
 /// A HyperLogLog cardinality sketch.
 ///
 /// - `registers` is a `m = 2^precision`-element `FixedArray[Int]`. Each entry
@@ -49,19 +50,23 @@ pub struct HyperLogLog {
   priv m : Int
 }
 
+///|
 /// 2^64 as a `Double`, the size of the 64-bit hash space. Used only by the
 /// (effectively unreachable) large-range correction.
 const HLL_TWO_POW_64 : Double = 1.8446744073709552e19
 
+///|
 /// FNV-1a 64-bit offset basis and prime.
 const HLL_FNV_OFFSET : Int64 = 0xcbf29ce484222325L
 
+///|
 const HLL_FNV_PRIME : Int64 = 0x100000001b3L
 
 // ---------------------------------------------------------------------------
 // Hashing: FNV-1a + shared fmix64 avalanche (from hash_utils)
 // ---------------------------------------------------------------------------
 
+///|
 /// FNV-1a 64-bit hash of a `String`, then avalanched.
 ///
 ///   h = offset_basis
@@ -78,6 +83,7 @@ fn fnv1a_64(data : String) -> Int64 {
   @hash_utils.fmix64(h)
 }
 
+///|
 /// FNV-1a 64-bit hash of an `Int` key, then avalanched.
 ///
 /// Both the value and its high 32 bits are folded in so that nearby integers
@@ -94,6 +100,7 @@ fn fnv1a_64_int(x : Int) -> Int64 {
 // Math helper: safe natural logarithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Safe natural logarithm. Returns 0.0 for non-positive inputs.
 /// Uses the standard library's `@math.ln` instead of a custom implementation.
 fn hll_ln(x : Double) -> Double {
@@ -107,6 +114,7 @@ fn hll_ln(x : Double) -> Double {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Create a HyperLogLog with `2^precision` registers.
 ///
 /// `precision` (a.k.a. `p`) controls the memory/accuracy trade-off: memory is
@@ -116,7 +124,13 @@ fn hll_ln(x : Double) -> Double {
 /// descriptive message. `p < 4` gives too few registers for the bias constants
 /// to apply; `p > 16` is capped to keep the register array at most 65536.
 pub fn new(precision : Int) -> HyperLogLog {
-  let precision = if precision < 4 { 4 } else { if precision > 16 { 16 } else { precision } }
+  let precision = if precision < 4 {
+    4
+  } else if precision > 16 {
+    16
+  } else {
+    precision
+  }
   let m = 1 << precision
   { registers: FixedArray::make(m, 0), precision, m }
 }
@@ -125,6 +139,7 @@ pub fn new(precision : Int) -> HyperLogLog {
 // Core operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Split a 64-bit hash into a register index and a rank.
 ///
 /// - `idx` = low `p` bits of `h` (a value in `[0, 2^p)`).
@@ -142,6 +157,7 @@ fn idx_rank(h : Int64, precision : Int) -> (Int, Int) {
   (idx, lz - precision + 1)
 }
 
+///|
 /// Update the register selected by `h` with its rank, keeping the maximum.
 fn add_hashed(hll : HyperLogLog, h : Int64) -> Unit {
   let (idx, rank) = idx_rank(h, hll.precision)
@@ -151,11 +167,13 @@ fn add_hashed(hll : HyperLogLog, h : Int64) -> Unit {
   }
 }
 
+///|
 /// Add a `String` key to the sketch.
 pub fn add(hll : HyperLogLog, key : String) -> Unit {
   add_hashed(hll, fnv1a_64(key))
 }
 
+///|
 /// Add an `Int` key to the sketch.
 pub fn add_int(hll : HyperLogLog, key : Int) -> Unit {
   add_hashed(hll, fnv1a_64_int(key))
@@ -165,6 +183,7 @@ pub fn add_int(hll : HyperLogLog, key : Int) -> Unit {
 // Estimation
 // ---------------------------------------------------------------------------
 
+///|
 /// Bias-correction constant `alpha_m` for the harmonic-mean estimator.
 ///
 ///   m = 16  -> 0.673
@@ -187,6 +206,7 @@ fn alpha_m(m : Int) -> Double {
   }
 }
 
+///|
 /// Estimate the number of distinct elements observed so far.
 ///
 /// Applies the standard HyperLogLog pipeline: the raw harmonic-mean estimate,
@@ -232,6 +252,7 @@ pub fn estimate(hll : HyperLogLog) -> Double {
 // Merge
 // ---------------------------------------------------------------------------
 
+///|
 /// Merge two sketches of identical precision into a fresh sketch.
 ///
 /// Each register of the result is the maximum of the corresponding input
@@ -257,6 +278,7 @@ pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hll: empty estimate is zero" {
   let hll = new(14)
   let est = estimate(hll)
@@ -265,6 +287,7 @@ test "hll: empty estimate is zero" {
   assert_true(est == 0.0)
 }
 
+///|
 test "hll: single element" {
   let hll = new(14)
   add(hll, "only")
@@ -275,6 +298,7 @@ test "hll: single element" {
   assert_true(est < 1.5)
 }
 
+///|
 test "hll: multiple distinct elements within 10%" {
   let hll = new(14)
   for i = 0; i < 1000; i = i + 1 {
@@ -286,6 +310,7 @@ test "hll: multiple distinct elements within 10%" {
   assert_true(est < 1100.0)
 }
 
+///|
 test "hll: duplicate elements do not increase count" {
   let hll = new(14)
   add(hll, "duplicate")
@@ -301,6 +326,7 @@ test "hll: duplicate elements do not increase count" {
   assert_true(e2 <= e1)
 }
 
+///|
 test "hll: large stream of 10000 distinct within 5%" {
   let hll = new(14)
   for i = 0; i < 10000; i = i + 1 {
@@ -312,6 +338,7 @@ test "hll: large stream of 10000 distinct within 5%" {
   assert_true(est < 10500.0)
 }
 
+///|
 test "hll: merge two sketches" {
   let hll1 = new(14)
   let hll2 = new(14)
@@ -335,6 +362,7 @@ test "hll: merge two sketches" {
   assert_true(e2 < 550.0)
 }
 
+///|
 test "hll: different precision levels" {
   let precisions = [4, 8, 12, 14, 16]
   for pi = 0; pi < precisions.length(); pi = pi + 1 {
@@ -353,6 +381,7 @@ test "hll: different precision levels" {
   }
 }
 
+///|
 test "hll: int key support" {
   let hll = new(14)
   for i = 0; i < 1000; i = i + 1 {
@@ -368,6 +397,7 @@ test "hll: int key support" {
   assert_true(est < 1100.0)
 }
 
+///|
 test "hll: raw harmonic-mean estimator for large cardinality" {
   // p=12 -> m=4096, small-range threshold 2.5*m = 10240. With 20000 distinct
   // the raw estimate exceeds the threshold, so the harmonic-mean estimator
@@ -381,6 +411,7 @@ test "hll: raw harmonic-mean estimator for large cardinality" {
   assert_true(est < 22000.0)
 }
 
+///|
 test "hll: precision out of range clamped" {
   // new clamps precision to [4, 16]; out-of-range values are clamped.
   let _low = new(2)

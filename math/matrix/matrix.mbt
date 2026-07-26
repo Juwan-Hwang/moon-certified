@@ -23,6 +23,7 @@
 // Identity
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the `n x n` identity matrix of `Int`.
 ///
 /// The diagonal is `1`, every off-diagonal entry is `0`. For `n <= 0` an
@@ -35,6 +36,7 @@ pub fn identity_int(n : Int) -> FixedArray[Int] {
   r
 }
 
+///|
 /// Build the `n x n` identity matrix of `Int64`.
 pub fn identity_int64(n : Int) -> FixedArray[Int64] {
   let r = FixedArray::make(n * n, 0L)
@@ -48,6 +50,7 @@ pub fn identity_int64(n : Int) -> FixedArray[Int64] {
 // Transpose
 // ---------------------------------------------------------------------------
 
+///|
 /// Transpose an `n x m` `Int` matrix into an `m x n` matrix.
 ///
 /// Element `(i, j)` of the input becomes element `(j, i)` of the output.
@@ -65,6 +68,7 @@ pub fn transpose_int(
   r
 }
 
+///|
 /// Transpose an `n x m` `Int64` matrix into an `m x n` matrix.
 pub fn transpose_int64(
   mat : FixedArray[Int64],
@@ -84,6 +88,7 @@ pub fn transpose_int64(
 // Matrix multiplication
 // ---------------------------------------------------------------------------
 
+///|
 /// Multiply `Int` matrix `A` (`n x m`) by `Int` matrix `B` (`m x p`).
 ///
 /// Returns the `n x p` product `C` where `C[i][j] = sum_k A[i][k] * B[k][j]`.
@@ -119,6 +124,7 @@ pub fn matmul_int(
   r
 }
 
+///|
 /// Overflow-safe `Int` matrix multiplication.
 ///
 /// Like `matmul_int` but returns `None` as soon as any element of the product
@@ -154,6 +160,7 @@ pub fn matmul_int_checked(
   Some(r)
 }
 
+///|
 /// Multiply `Int64` matrix `A` (`n x m`) by `Int64` matrix `B` (`m x p`).
 ///
 /// Returns the `n x p` product. All arithmetic is in `Int64`; the dot product
@@ -188,6 +195,7 @@ pub fn matmul_int64(
 // Matrix power (fast exponentiation)
 // ---------------------------------------------------------------------------
 
+///|
 /// Raise an `n x n` `Int` matrix to the power `exp` via binary exponentiation.
 ///
 /// Computes `A^exp` in `O(log exp)` matrix multiplications. Each multiplication
@@ -222,6 +230,7 @@ pub fn matpow_int(a : FixedArray[Int], n : Int, exp : Int) -> FixedArray[Int] {
   acc
 }
 
+///|
 /// Raise an `n x n` `Int64` matrix to the power `exp` via binary exponentiation.
 ///
 /// `exp == 0` yields the identity matrix. **`exp < 0` silently returns the
@@ -256,6 +265,7 @@ pub fn matpow_int64(
   acc
 }
 
+///|
 /// Checked matrix power: returns `Some(A^exp)` for `exp >= 0`, `None` for
 /// `exp < 0` (negative exponents require matrix invertibility, which is not
 /// verified here). Use this when the caller needs to distinguish a genuine
@@ -271,6 +281,7 @@ pub fn matpow_int_checked(
   Some(matpow_int(a, n, exp))
 }
 
+///|
 /// Checked `Int64` matrix power: returns `Some(A^exp)` for `exp >= 0`,
 /// `None` for `exp < 0`.
 pub fn matpow_int64_checked(
@@ -288,6 +299,7 @@ pub fn matpow_int64_checked(
 // Gaussian elimination (fraction-free / Bareiss-Montante)
 // ---------------------------------------------------------------------------
 
+///|
 /// Fraction-free Gaussian elimination on an `n x m` `Int64` matrix, in place.
 ///
 /// Reduces the matrix to row echelon form using only integer arithmetic.
@@ -347,6 +359,7 @@ pub fn gauss_int64(mat : FixedArray[Int64], n : Int, m : Int) -> Int {
   rank
 }
 
+///|
 /// Fraction-free Gaussian elimination on an `n x m` `Int` matrix, in place.
 ///
 /// Delegates to `gauss_int64` by widening to `Int64`, then writes the echelon
@@ -372,6 +385,7 @@ pub fn gauss_int(mat : FixedArray[Int], n : Int, m : Int) -> Int {
 // Determinant (fraction-free / Bareiss)
 // ---------------------------------------------------------------------------
 
+///|
 /// Determinant of an `n x n` `Int64` matrix via the Bareiss algorithm.
 ///
 /// A copy is reduced to upper-triangular form with exact integer divisions;
@@ -448,6 +462,7 @@ pub fn determinant_int64(mat : FixedArray[Int64], n : Int) -> Int64 {
   sign * a[(n - 1) * n + (n - 1)]
 }
 
+///|
 /// Determinant of an `n x n` `Int` matrix.
 ///
 /// Widens to `Int64` and delegates to `determinant_int64`, so the result is
@@ -467,6 +482,7 @@ pub fn determinant_int(mat : FixedArray[Int], n : Int) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "identity: Int and Int64, various sizes" {
   // 3x3: row-major [1,0,0, 0,1,0, 0,0,1]
   let id = identity_int(3)
@@ -489,6 +505,7 @@ test "identity: Int and Int64, various sizes" {
   assert_eq(empty.length(), 0)
 }
 
+///|
 test "transpose: Int and Int64 matrices" {
   // Int: 2x3 -> 3x2
   // [1 2 3]     [1 4]
@@ -523,6 +540,7 @@ test "transpose: Int and Int64 matrices" {
   assert_eq(t64[3], 4L)
 }
 
+///|
 test "matmul_int: basic multiplication and identity" {
   // [1 2]   [5 6]   [19 22]
   // [3 4] * [7 8] = [43 50]
@@ -560,6 +578,7 @@ test "matmul_int: basic multiplication and identity" {
   assert_eq(c2[5], 6)
 }
 
+///|
 test "matmul_int: Int64 accumulation prevents overflow" {
   // 50000 * 50000 = 2,500,000,000 which overflows 32-bit Int (> 2,147,483,647).
   // The factors are widened to Int64 *before* multiplying, so each product is
@@ -579,6 +598,7 @@ test "matmul_int: Int64 accumulation prevents overflow" {
   assert_eq(c[1], 0)
 }
 
+///|
 test "matmul: dimension mismatch returns empty (Int and Int64)" {
   // Int: b is only length 4, needs 3*2=6
   let a = FixedArray::make(6, 0)
@@ -592,6 +612,7 @@ test "matmul: dimension mismatch returns empty (Int and Int64)" {
   assert_eq(c64.length(), 0)
 }
 
+///|
 test "matmul_int_checked: basic multiplication" {
   let a = FixedArray::make(4, 0)
   a[0] = 1
@@ -610,6 +631,7 @@ test "matmul_int_checked: basic multiplication" {
   assert_eq(c.unwrap()[3], 50)
 }
 
+///|
 test "matmul_int_checked: overflow detected" {
   // [40000 40000] * [40000 40000] = [3.2e9 ...] > Int32::MAX
   let a = FixedArray::make(4, 0)
@@ -625,12 +647,14 @@ test "matmul_int_checked: overflow detected" {
   assert_true(matmul_int_checked(a, 2, 2, b, 2) is None)
 }
 
+///|
 test "matmul_int_checked: invalid dimensions" {
   let a = FixedArray::make(6, 0)
   let b = FixedArray::make(4, 0)
   assert_true(matmul_int_checked(a, 2, 3, b, 2) is None)
 }
 
+///|
 test "matmul_int64: large values beyond Int32 range" {
   // Entries and products far exceed 32-bit Int; Int64 keeps them exact.
   // [100000 200000]   [500000 600000]   [1.9e11 2.2e11]
@@ -652,6 +676,7 @@ test "matmul_int64: large values beyond Int32 range" {
   assert_eq(c[3], 500000000000L)
 }
 
+///|
 test "matpow_int: zero, one, square, and cube" {
   let a = FixedArray::make(4, 0)
   a[0] = 1
@@ -683,6 +708,7 @@ test "matpow_int: zero, one, square, and cube" {
   assert_eq(cu[3], 118)
 }
 
+///|
 test "matpow: Fibonacci via matrix power (Int and Int64)" {
   // [[1,1],[1,0]]^n = [[F(n+1), F(n)], [F(n), F(n-1)]]
   // Int: F(10)=55, F(11)=89, F(9)=34
@@ -707,6 +733,7 @@ test "matpow: Fibonacci via matrix power (Int and Int64)" {
   assert_eq(r64[3], 1779979416004714189L) // F(89)
 }
 
+///|
 test "matpow_checked: negative exponent returns None" {
   let a = FixedArray::make(4, 0)
   a[0] = 1
@@ -733,6 +760,7 @@ test "matpow_checked: negative exponent returns None" {
   assert_true(matpow_int64_checked(a64, 2, 0).unwrap()[0] == 1L)
 }
 
+///|
 test "gauss: full rank, rank-deficient, zero column, and rank 1" {
   // Full rank 3x3 (det = -3 != 0):
   // [1 2 3]
@@ -790,6 +818,7 @@ test "gauss: full rank, rank-deficient, zero column, and rank 1" {
   assert_eq(gauss_int64(r1, 3, 3), 1)
 }
 
+///|
 test "determinant: 2x2, 3x3, and singular matrices" {
   // 2x2: [4 3; 6 3] -> 4*3 - 3*6 = 12 - 18 = -6
   let m2 = FixedArray::make(4, 0)
@@ -824,6 +853,7 @@ test "determinant: 2x2, 3x3, and singular matrices" {
   assert_eq(determinant_int(s, 3), 0L)
 }
 
+///|
 test "determinant: zero pivot row swap and edge cases" {
   // [0 2; 3 4] -> det = 0*4 - 2*3 = -6
   // A zero leading pivot forces a row swap (sign flips) during Bareiss.
@@ -848,6 +878,7 @@ test "determinant: zero pivot row swap and edge cases" {
   assert_eq(determinant_int(empty, 0), 1L)
 }
 
+///|
 test "determinant_int64: input not modified" {
   let m = FixedArray::make(4, 0L)
   m[0] = 4L

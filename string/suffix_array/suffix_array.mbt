@@ -17,6 +17,7 @@
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
 
+///|
 /// Stable bottom-up (iterative) merge sort of `arr[lo, hi)` by comparator.
 ///
 /// Uses an explicit bottom-up approach: merge sub-arrays of width 1, 2, 4,
@@ -64,6 +65,7 @@ fn msort_int(
   }
 }
 
+///|
 /// Build the suffix array of `s`.
 /// Returns a `FixedArray[Int]` of sorted suffix start indices.
 pub fn build(s : String) -> FixedArray[Int] {
@@ -131,6 +133,7 @@ pub fn build(s : String) -> FixedArray[Int] {
   sa
 }
 
+///|
 /// Compare `pattern` with the suffix of `s` starting at `pos`.
 /// Returns < 0 if the suffix is lexicographically smaller than `pattern`,
 /// 0 if the suffix starts with `pattern`, > 0 if the suffix is greater.
@@ -152,16 +155,13 @@ fn compare_suffix_pattern(s : String, pos : Int, pattern : String) -> Int {
   0
 }
 
+///|
 /// Binary search for `pattern` in the suffix array of `s`.
 ///
 /// Returns `Some(pos)` where `pos` is the starting index in `s` of the
 /// lexicographically smallest suffix that begins with `pattern`, or `None`
 /// if no suffix starts with `pattern`.
-pub fn search(
-  sa : FixedArray[Int],
-  s : String,
-  pattern : String,
-) -> Int? {
+pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
   let n = s.length()
   let m = pattern.length()
   if m == 0 {
@@ -192,6 +192,7 @@ pub fn search(
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Compare two suffixes of `s` starting at `a` and `b` lexicographically.
 /// Returns < 0, 0, or > 0.
 fn compare_suffixes(s : String, a : Int, b : Int) -> Int {
@@ -208,12 +209,13 @@ fn compare_suffixes(s : String, a : Int, b : Int) -> Int {
   if a + i >= n && b + i >= n {
     0
   } else if a + i >= n {
-    -1  // a is shorter, so a < b
+    -1 // a is shorter, so a < b
   } else {
-    1   // b is shorter, so a > b
+    1 // b is shorter, so a > b
   }
 }
 
+///|
 /// Check that the suffix array produces lexicographically sorted suffixes.
 fn is_sorted_suffixes(sa : FixedArray[Int], s : String) -> Bool {
   let n = sa.length()
@@ -232,6 +234,7 @@ fn is_sorted_suffixes(sa : FixedArray[Int], s : String) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "build: basic string" {
   let sa = build("banana")
   // Suffixes sorted: a(5) < ana(3) < anana(1) < banana(0) < na(4) < nana(2)
@@ -245,11 +248,13 @@ test "build: basic string" {
   assert_true(is_sorted_suffixes(sa, "banana"))
 }
 
+///|
 test "build: empty string" {
   let sa = build("")
   assert_eq(sa.length(), 0)
 }
 
+///|
 test "build: single char" {
   let sa = build("a")
   assert_eq(sa.length(), 1)
@@ -257,6 +262,7 @@ test "build: single char" {
   assert_true(is_sorted_suffixes(sa, "a"))
 }
 
+///|
 test "build: repeated chars aaaa" {
   let sa = build("aaaa")
   // Suffixes: a(3) < aa(2) < aaa(1) < aaaa(0)
@@ -268,6 +274,7 @@ test "build: repeated chars aaaa" {
   assert_true(is_sorted_suffixes(sa, "aaaa"))
 }
 
+///|
 test "build: banana" {
   let sa = build("banana")
   assert_eq(sa.length(), 6)
@@ -281,6 +288,7 @@ test "build: banana" {
   assert_eq(sa[5], 2)
 }
 
+///|
 test "search: pattern found" {
   let sa = build("banana")
   // "ana" occurs at positions 1 and 3 in "banana".
@@ -291,12 +299,14 @@ test "search: pattern found" {
   assert_eq(pos, 3)
 }
 
+///|
 test "search: pattern not found" {
   let sa = build("banana")
   assert_true(search(sa, "banana", "xyz") is None)
   assert_true(search(sa, "banana", "bananas") is None)
 }
 
+///|
 test "build: large string 100 chars" {
   // Build a 100-character string with a repeating pattern.
   let mut s = ""
@@ -311,15 +321,18 @@ test "build: large string 100 chars" {
   // Verify: suffixes starting with 'a' (even indices) come before those
   // starting with 'b' (odd indices).
   for i = 0; i < 50; i = i + 1 {
-    assert_eq(sa[i] % 2, 0)  // even index starts with 'a'
+    assert_eq(sa[i] % 2, 0) // even index starts with 'a'
   }
   for i = 50; i < 100; i = i + 1 {
-    assert_eq(sa[i] % 2, 1)  // odd index starts with 'b'
+    assert_eq(sa[i] % 2, 1) // odd index starts with 'b'
   }
 }
 
+///|
 test "build: verify sorted suffixes for various strings" {
-  let strings = ["mississippi", "abracadabra", "abababab", "abcdefgh", "hgfedcba"]
+  let strings = [
+    "mississippi", "abracadabra", "abababab", "abcdefgh", "hgfedcba",
+  ]
   for i = 0; i < strings.length(); i = i + 1 {
     let s = strings[i]
     let sa = build(s)
@@ -327,11 +340,13 @@ test "build: verify sorted suffixes for various strings" {
   }
 }
 
+///|
 test "search: full string match" {
   let sa = build("banana")
   assert_eq(search(sa, "banana", "banana"), Some(0))
 }
 
+///|
 test "search: single char pattern" {
   let sa = build("banana")
   // "a" occurs at positions 1, 3, 5. Lex smallest suffix starting with "a"
@@ -341,11 +356,13 @@ test "search: single char pattern" {
   assert_eq(search(sa, "banana", "b"), Some(0))
 }
 
+///|
 test "search: empty pattern returns None" {
   let sa = build("banana")
   assert_true(search(sa, "banana", "") is None)
 }
 
+///|
 test "search: multiple matches returns valid position" {
   let s = "abababab"
   let sa = build(s)
@@ -353,16 +370,18 @@ test "search: multiple matches returns valid position" {
   assert_true(result is Some(_))
   let pos = result.unwrap()
   // Verify the pattern actually occurs at the returned position.
-  assert_eq(s[pos].to_int(), 97)  // 'a'
-  assert_eq(s[pos + 1].to_int(), 98)  // 'b'
+  assert_eq(s[pos].to_int(), 97) // 'a'
+  assert_eq(s[pos + 1].to_int(), 98) // 'b'
 }
 
+///|
 test "search: pattern at end of string" {
   let sa = build("abcdef")
   assert_eq(search(sa, "abcdef", "ef"), Some(4))
   assert_eq(search(sa, "abcdef", "f"), Some(5))
 }
 
+///|
 test "search: pattern longer than string" {
   let sa = build("abc")
   assert_true(search(sa, "abc", "abcd") is None)

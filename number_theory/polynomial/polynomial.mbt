@@ -1,3 +1,4 @@
+///|
 /// Polynomial operations modulo NTT_MOD (998244353).
 ///
 /// Supports polynomial inverse, square root, logarithm, and exponential
@@ -28,6 +29,7 @@
 
 const MOD : Int64 = 998244353L
 
+///|
 /// Pad a polynomial to exactly `n` elements with zeros.
 fn pad(a : Array[Int64], n : Int) -> Array[Int64] {
   let result : Array[Int64] = []
@@ -41,11 +43,13 @@ fn pad(a : Array[Int64], n : Int) -> Array[Int64] {
   result
 }
 
+///|
 /// Modular inverse of a single element `a` mod MOD.
 fn mod_inv(a : Int64) -> Int64 {
   @int64_utils.pow_mod64(a, MOD - 2L, MOD)
 }
 
+///|
 /// Polynomial multiplication mod MOD via NTT.
 fn poly_mul(a : Array[Int64], b : Array[Int64]) -> Array[Int64] {
   @ntt.multiply(a, b)
@@ -55,6 +59,7 @@ fn poly_mul(a : Array[Int64], b : Array[Int64]) -> Array[Int64] {
 // Polynomial inverse
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute `h = f^{-1} mod x^n`, i.e., `f · h ≡ 1 (mod x^n)`.
 ///
 /// Requires `f[0] ≠ 0` (otherwise the inverse doesn't exist).
@@ -111,6 +116,7 @@ pub fn poly_inv(f : Array[Int64], n : Int) -> Array[Int64] {
 // Polynomial square root
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute `h = sqrt(f) mod x^n`, i.e., `h² ≡ f (mod x^n)`.
 ///
 /// Requires `f[0]` to be a quadratic residue mod MOD. Uses Tonelli-Shanks
@@ -163,6 +169,7 @@ pub fn poly_sqrt(f : Array[Int64], n : Int) -> Array[Int64] {
   }
 }
 
+///|
 /// Simple modular square root using Tonelli-Shanks.
 /// Returns None if a is not a QR.
 fn sqrt_mod_simple(a : Int64) -> Int64? {
@@ -220,6 +227,7 @@ fn sqrt_mod_simple(a : Int64) -> Int64? {
 // Polynomial logarithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute `h = ln(f) mod x^n`.
 ///
 /// Requires `f[0] = 1` (otherwise the logarithm doesn't exist as a
@@ -265,6 +273,7 @@ pub fn poly_log(f : Array[Int64], n : Int) -> Array[Int64] {
 // Polynomial exponential
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute `h = exp(f) mod x^n`.
 ///
 /// Requires `f[0] = 0` (otherwise the exponential doesn't exist as a
@@ -312,6 +321,7 @@ pub fn poly_exp(f : Array[Int64], n : Int) -> Array[Int64] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "poly_inv: basic" {
   // f = 1 + x → inv = 1 - x + x^2 - x^3 + ...
   let f : Array[Int64] = [1L, 1L]
@@ -323,6 +333,7 @@ test "poly_inv: basic" {
   assert_eq(h[3], MOD - 1L)
 }
 
+///|
 test "poly_inv: verify f * h = 1" {
   let f : Array[Int64] = [1L, 2L, 3L]
   let h = poly_inv(f, 8)
@@ -334,6 +345,7 @@ test "poly_inv: verify f * h = 1" {
   }
 }
 
+///|
 test "poly_sqrt: basic" {
   // f = 1 → sqrt = 1
   let f : Array[Int64] = [1L]
@@ -341,6 +353,7 @@ test "poly_sqrt: basic" {
   assert_eq(h[0], 1L)
 }
 
+///|
 test "poly_sqrt: (1+x)^2 = 1+2x+x^2" {
   // f = 1 + 2x + x^2 → sqrt = 1 + x
   let f : Array[Int64] = [1L, 2L, 1L]
@@ -350,6 +363,7 @@ test "poly_sqrt: (1+x)^2 = 1+2x+x^2" {
   assert_eq(h[2], 0L)
 }
 
+///|
 test "poly_sqrt: verify h^2 = f" {
   let f : Array[Int64] = [1L, 4L, 6L, 4L, 1L] // (1+x)^4
   let h = poly_sqrt(f, 8)
@@ -360,6 +374,7 @@ test "poly_sqrt: verify h^2 = f" {
   }
 }
 
+///|
 test "poly_log: basic" {
   // f = 1 + x → ln(1+x) = x - x^2/2 + x^3/3 - ...
   let f : Array[Int64] = [1L, 1L]
@@ -372,6 +387,7 @@ test "poly_log: basic" {
   assert_eq(h[4], @int64_utils.mul_mod(MOD - 1L, mod_inv(4L), MOD))
 }
 
+///|
 test "poly_log: verify exp(log(f)) = f" {
   // f = 1 + x + x^2
   let f : Array[Int64] = [1L, 1L, 1L]
@@ -382,6 +398,7 @@ test "poly_log: verify exp(log(f)) = f" {
   }
 }
 
+///|
 test "poly_exp: basic" {
   // f = x → exp(x) = 1 + x + x^2/2 + x^3/6 + ...
   let f : Array[Int64] = [0L, 1L]
@@ -394,6 +411,7 @@ test "poly_exp: basic" {
   assert_eq(h[4], mod_inv(24L))
 }
 
+///|
 test "poly_exp: verify log(exp(f)) = f" {
   let f : Array[Int64] = [0L, 1L, 2L, 3L]
   let ef = poly_exp(f, 8)
@@ -403,6 +421,7 @@ test "poly_exp: verify log(exp(f)) = f" {
   }
 }
 
+///|
 test "poly_inv: with larger polynomial" {
   // f = 1 + 2x + 3x^2
   let f : Array[Int64] = [1L, 2L, 3L]
@@ -415,6 +434,7 @@ test "poly_inv: with larger polynomial" {
   }
 }
 
+///|
 test "poly_log: f = 1/(1-x) = 1 + x + x^2 + ..., ln = -ln(1-x) = x + x^2/2 + x^3/3 + ..." {
   // Actually ln(1/(1-x)) = -ln(1-x) = Σ x^n/n.
   let f : Array[Int64] = [1L, 1L, 1L, 1L, 1L]

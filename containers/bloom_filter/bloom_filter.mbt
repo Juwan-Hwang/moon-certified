@@ -1,3 +1,4 @@
+///|
 /// Bloom filter for probabilistic set membership testing.
 ///
 /// Uses **double hashing**: a single user-supplied hash h₁ = hash(data) is
@@ -22,7 +23,6 @@
 /// where n = expected items, p = false positive rate.
 ///
 /// Not formally verified. Correctness ensured by comprehensive tests.
-
 pub struct BloomFilter[T] {
   priv bits : FixedArray[UInt64] // bit array stored as 64-bit words
   priv num_bits : Int
@@ -30,9 +30,11 @@ pub struct BloomFilter[T] {
   priv hash : (T) -> Int // user-supplied hash: turns an element into a seed
 }
 
+///|
 /// ln(2), used by parameter sizing formulas.
 const BF_LN2 : Double = 0.6931471805599453
 
+///|
 /// Safe natural logarithm. Returns 0.0 for non-positive inputs.
 /// Uses the standard library's `@math.ln` instead of a custom implementation.
 /// The caller `new()` already validates `false_positive_rate > 0.0 && < 1.0`,
@@ -44,6 +46,7 @@ fn bf_ln(x : Double) -> Double {
   @math.ln(x)
 }
 
+///|
 /// Create a Bloom filter sized for `expected_items` at the given
 /// `false_positive_rate`. Calculates optimal bit count and hash count.
 ///
@@ -63,7 +66,7 @@ pub fn[T] new(
   }
   let ln_p = bf_ln(p) // negative since p < 1
   // m = -n * ln(p) / (ln(2))^2
-  let m_d = n.to_double() * (-ln_p) / (BF_LN2 * BF_LN2)
+  let m_d = n.to_double() * -ln_p / (BF_LN2 * BF_LN2)
   let m = m_d.to_int()
   let num_bits = if m > 64 { m } else { 64 }
   // k = (m / n) * ln(2)
@@ -74,6 +77,7 @@ pub fn[T] new(
   { bits: FixedArray::make(num_words, 0UL), num_bits, num_hashes, hash }
 }
 
+///|
 /// Compute two base hashes for double hashing from a user-supplied hash.
 ///
 /// `h1` is the caller's hash of the data. `h2` is derived from `h1` by
@@ -87,11 +91,13 @@ fn[T] double_hash(hash_fn : (T) -> Int, data : T) -> (Int, Int) {
   (h1, h2)
 }
 
+///|
 /// Map a hash value to a non-negative bit position in [0, num_bits).
 fn bit_pos(h : Int, num_bits : Int) -> Int {
-  ((h % num_bits) + num_bits) % num_bits
+  (h % num_bits + num_bits) % num_bits
 }
 
+///|
 /// Set the bit at position `pos` in the word array.
 ///
 /// **Bounds guard**: A negative `pos` or a `pos` falling outside the backing
@@ -111,6 +117,7 @@ fn set_bit(bits : FixedArray[UInt64], pos : Int) -> Unit {
   bits[word] = bits[word] | (1UL << bit)
 }
 
+///|
 /// Test whether the bit at position `pos` is set.
 ///
 /// **Bounds guard**: Returns `false` for out-of-range positions, consistent
@@ -127,6 +134,7 @@ fn get_bit(bits : FixedArray[UInt64], pos : Int) -> Bool {
   (bits[word] & (1UL << bit)) != 0UL
 }
 
+///|
 /// Add an element to the filter. Sets k bits using double hashing:
 ///   pos_i = (h1 + i * h2) mod num_bits   for i = 0 .. k-1
 /// This requires only one hash evaluation (plus O(1) derivation) instead of
@@ -140,6 +148,7 @@ pub fn[T] add(bf : BloomFilter[T], data : T) -> Unit {
   }
 }
 
+///|
 /// Check if data *might* be in the set. False positives are possible;
 /// false negatives are impossible.
 ///
@@ -160,6 +169,7 @@ pub fn[T] contains(bf : BloomFilter[T], data : T) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Polynomial rolling hash for `String`, used by the unit tests below.
 fn str_hash(s : String) -> Int {
   let mut h = 0
@@ -169,6 +179,7 @@ fn str_hash(s : String) -> Int {
   h
 }
 
+///|
 test "bloom: basic add and contains" {
   let bf = new(100, 0.01, str_hash)
   add(bf, "hello")
@@ -177,10 +188,13 @@ test "bloom: basic add and contains" {
   assert_true(contains(bf, "world"))
 }
 
+///|
 test "bloom: no false negatives" {
   let bf = new(100, 0.01, str_hash)
-  let words = ["apple", "banana", "cherry", "date", "elderberry",
-               "fig", "grape", "honeydew", "kiwi", "lemon"]
+  let words = [
+    "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew",
+    "kiwi", "lemon",
+  ]
   for i = 0; i < words.length(); i = i + 1 {
     add(bf, words[i])
   }
@@ -189,18 +203,21 @@ test "bloom: no false negatives" {
   }
 }
 
+///|
 test "bloom: empty filter" {
   let bf = new(100, 0.01, str_hash)
   assert_false(contains(bf, "anything"))
   assert_false(contains(bf, ""))
 }
 
+///|
 test "bloom: single element" {
   let bf = new(100, 0.01, str_hash)
   add(bf, "test")
   assert_true(contains(bf, "test"))
 }
 
+///|
 test "bloom: multiple elements" {
   let bf = new(100, 0.01, str_hash)
   for i = 0; i < 50; i = i + 1 {
@@ -211,6 +228,7 @@ test "bloom: multiple elements" {
   }
 }
 
+///|
 test "bloom: large number of elements" {
   let bf = new(1000, 0.01, str_hash)
   for i = 0; i < 500; i = i + 1 {
@@ -222,6 +240,7 @@ test "bloom: large number of elements" {
   }
 }
 
+///|
 test "bloom: false positive rate" {
   let bf = new(100, 0.01, str_hash)
   // Add 100 items
@@ -240,6 +259,7 @@ test "bloom: false positive rate" {
   assert_true(false_positives < 100)
 }
 
+///|
 test "bloom: different false positive rates" {
   // A higher FPR filter should permit more false positives than a lower one.
   let bf_low = new(100, 0.001, str_hash) // 0.1% target
@@ -262,12 +282,14 @@ test "bloom: different false positive rates" {
   assert_true(fp_high >= fp_low)
 }
 
+///|
 test "bloom: bf_ln guard for non-positive input" {
   // These should not infinite-loop; they return 0.0
   let bf = new(10, 0.01, str_hash) // uses bf_ln internally, should not hang
   assert_true(contains(bf, "test") == false)
 }
 
+///|
 test "bloom: generic over non-String type (Int)" {
   // The filter is generic: here we hash Int elements directly.
   let int_hash = fn(x : Int) -> Int { x }

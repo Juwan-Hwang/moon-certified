@@ -1,3 +1,4 @@
+///|
 /// Timsort — adaptive stable merge sort (Java/Python default sort).
 ///
 /// Timsort combines insertion sort for small runs with a merge-based
@@ -36,9 +37,9 @@
 /// - Adaptive: yes.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 const MIN_MERGE : Int = 32
 
+///|
 /// Compute the minimum run length for an array of size `n`.
 ///
 /// If n < MIN_MERGE, returns n (no merging needed).
@@ -54,12 +55,18 @@ fn min_run_length(n : Int) -> Int {
   nn + r
 }
 
+///|
 /// Count the length of the run starting at `lo`.
 /// Returns (length, is_ascending).
 /// If ascending, length is the run of non-decreasing elements.
 /// If descending, length is the run of strictly decreasing elements
 /// (to be reversed for stability).
-fn[T] count_run(xs : FixedArray[T], lo : Int, hi : Int, cmp : (T, T) -> Int) -> (Int, Bool) {
+fn[T] count_run(
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  cmp : (T, T) -> Int,
+) -> (Int, Bool) {
   let run_hi = lo + 1
   if run_hi == hi {
     return (1, true)
@@ -82,6 +89,7 @@ fn[T] count_run(xs : FixedArray[T], lo : Int, hi : Int, cmp : (T, T) -> Int) -> 
   }
 }
 
+///|
 /// Reverse xs[lo..hi) in-place.
 fn[T] reverse_range(xs : FixedArray[T], lo : Int, hi : Int) -> Unit {
   let mut i = lo
@@ -95,6 +103,7 @@ fn[T] reverse_range(xs : FixedArray[T], lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 /// Binary search for the insertion point of `key` in xs[lo..hi).
 /// Returns the leftmost position where key should be inserted to maintain
 /// sorted order.
@@ -118,6 +127,7 @@ fn[T] binary_insert_pos(
   l
 }
 
+///|
 /// Binary insertion sort: sort xs[lo..hi) using binary search to find
 /// insertion points. O(n log n) comparisons, O(n²) moves.
 fn[T] binary_insertion_sort(
@@ -137,6 +147,7 @@ fn[T] binary_insertion_sort(
   }
 }
 
+///|
 /// Merge two adjacent runs using a temporary buffer.
 /// run1 = xs[base1..base1+len1), run2 = xs[base1+len1..base1+len1+len2)
 /// Both runs must be sorted. Result overwrites xs[base1..base1+len1+len2).
@@ -155,11 +166,11 @@ fn[T] merge_runs(
     for i = 0; i < len1; i = i + 1 {
       buf[i] = xs[base1 + i]
     }
-    let mut p1 = 0  // pointer into buf
-    let mut p2 = base2  // pointer into array (run2)
-    let mut out = base1  // output pointer
-    let mut win1 = 0  // consecutive wins from run1
-    let mut win2 = 0  // consecutive wins from run2
+    let mut p1 = 0 // pointer into buf
+    let mut p2 = base2 // pointer into array (run2)
+    let mut out = base1 // output pointer
+    let mut win1 = 0 // consecutive wins from run1
+    let mut win2 = 0 // consecutive wins from run2
     while p1 < len1 && p2 < base2 + len2 {
       if cmp(buf[p1], xs[p2]) <= 0 {
         xs[out] = buf[p1]
@@ -187,8 +198,8 @@ fn[T] merge_runs(
     for i = 0; i < len2; i = i + 1 {
       buf[i] = xs[base2 + i]
     }
-    let mut p1 = base1 + len1 - 1  // pointer into array (run1, from right)
-    let mut p2 = len2 - 1          // pointer into buf (from right)
+    let mut p1 = base1 + len1 - 1 // pointer into array (run1, from right)
+    let mut p2 = len2 - 1 // pointer into buf (from right)
     let mut out = base1 + len1 + len2 - 1
     while p1 >= base1 && p2 >= 0 {
       if cmp(xs[p1], buf[p2]) > 0 {
@@ -210,6 +221,7 @@ fn[T] merge_runs(
   }
 }
 
+///|
 /// Sort `xs` in-place using Timsort.
 ///
 /// ## Parameters
@@ -297,6 +309,7 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   }
 }
 
+///|
 /// Convenience: sort Int array in ascending order.
 pub fn sort_int(xs : FixedArray[Int]) -> Unit {
   timsort(xs, fn(a, b) { a - b })
@@ -306,18 +319,21 @@ pub fn sort_int(xs : FixedArray[Int]) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "timsort: empty array" {
   let arr = FixedArray::make(0, 0)
   sort_int(arr)
   assert_eq(arr.length(), 0)
 }
 
+///|
 test "timsort: single element" {
   let arr = FixedArray::make(1, 42)
   sort_int(arr)
   assert_eq(arr[0], 42)
 }
 
+///|
 test "timsort: already sorted" {
   let arr = FixedArray::makei(100, fn(i) { i })
   sort_int(arr)
@@ -326,6 +342,7 @@ test "timsort: already sorted" {
   }
 }
 
+///|
 test "timsort: reverse sorted" {
   let arr = FixedArray::makei(100, fn(i) { 99 - i })
   sort_int(arr)
@@ -334,6 +351,7 @@ test "timsort: reverse sorted" {
   }
 }
 
+///|
 test "timsort: random data" {
   let arr = FixedArray::makei(200, fn(i) { (i * 37 + 13) % 211 })
   sort_int(arr)
@@ -342,6 +360,7 @@ test "timsort: random data" {
   }
 }
 
+///|
 test "timsort: duplicates" {
   let arr = FixedArray::makei(50, fn(i) { i % 5 })
   sort_int(arr)
@@ -350,6 +369,7 @@ test "timsort: duplicates" {
   }
 }
 
+///|
 test "timsort: all same" {
   let arr = FixedArray::make(100, 7)
   sort_int(arr)
@@ -358,6 +378,7 @@ test "timsort: all same" {
   }
 }
 
+///|
 test "timsort: large array" {
   let n = 1000
   let arr = FixedArray::makei(n, fn(i) { (i * 73 + 17) % n })
@@ -375,6 +396,7 @@ test "timsort: large array" {
   }
 }
 
+///|
 test "timsort: stability check" {
   // Timsort is stable. Test with pairs (value, original_index).
   // After sorting by value, equal values should retain original order.
@@ -403,13 +425,19 @@ test "timsort: stability check" {
   }
 }
 
+///|
 test "timsort: descending runs" {
   // Test that descending runs are detected and reversed.
   let arr = FixedArray::makei(64, fn(i) {
-    if i < 16 { 15 - i }
-    else if i < 32 { i }
-    else if i < 48 { 79 - i }
-    else { i }
+    if i < 16 {
+      15 - i
+    } else if i < 32 {
+      i
+    } else if i < 48 {
+      79 - i
+    } else {
+      i
+    }
   })
   sort_int(arr)
   for i = 0; i < 64; i = i + 1 {
@@ -417,6 +445,7 @@ test "timsort: descending runs" {
   }
 }
 
+///|
 test "timsort: two elements" {
   let arr = FixedArray::make(2, 0)
   arr[0] = 5
@@ -426,6 +455,7 @@ test "timsort: two elements" {
   assert_eq(arr[1], 5)
 }
 
+///|
 test "timsort: string sort" {
   let arr = FixedArray::make(5, "")
   arr[0] = "banana"
@@ -440,7 +470,9 @@ test "timsort: string sort" {
     for k = 0; k < min; k = k + 1 {
       let ca = a[k].to_int()
       let cb = b[k].to_int()
-      if ca != cb { return ca - cb }
+      if ca != cb {
+        return ca - cb
+      }
     }
     la - lb
   })

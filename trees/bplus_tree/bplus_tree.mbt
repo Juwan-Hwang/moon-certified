@@ -1,3 +1,4 @@
+///|
 /// B+ Tree: a variant of B-Tree where all values are stored in leaf nodes.
 ///
 /// Unlike a B-Tree, B+ Tree internal nodes store only keys (for routing), and
@@ -17,9 +18,9 @@
 ///   starting leaf, scan forward without revisiting internal nodes.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
-
 const BPTREE_MIN_DEGREE : Int = 4 // t; max keys per node = 2t - 1 = 7
 
+///|
 /// B+ Tree leaf node.
 pub struct BPTreeLeaf {
   keys : Array[Int]
@@ -27,36 +28,34 @@ pub struct BPTreeLeaf {
   mut next : BPTreeLeaf? // Pointer to the next leaf (for range queries)
 }
 
+///|
 /// B+ Tree internal node.
 pub struct BPTreeNode {
   keys : Array[Int]
   children : Array[BPTreeChild]
 }
 
+///|
 /// B+ Tree child: either an internal node or a leaf.
 pub enum BPTreeChild {
   Node(BPTreeNode)
   Leaf(BPTreeLeaf)
 }
 
+///|
 /// B+ Tree root.
 pub struct BPTree {
   mut root : BPTreeChild
   mut size : Int
 }
 
+///|
 /// Create an empty B+ Tree.
 pub fn new() -> BPTree {
-  {
-    root: Leaf({
-      keys: [],
-      values: [],
-      next: None,
-    }),
-    size: 0,
-  }
+  { root: Leaf({ keys: [], values: [], next: None }), size: 0 }
 }
 
+///|
 /// Insert a (key, value) pair into the B+ Tree.
 ///
 /// If the key already exists, its value is updated (size unchanged).
@@ -83,6 +82,7 @@ pub fn insert(tree : BPTree, key : Int, value : Int) -> Unit {
   }
 }
 
+///|
 /// Insert into a child. Returns the (possibly new) child and a flag indicating
 /// whether the key was new (not an update).
 fn insert_child(
@@ -135,13 +135,10 @@ fn insert_child(
   }
 }
 
+///|
 /// Insert into a leaf node. Returns the (possibly new) leaf and whether the
 /// key was new (not an update).
-fn insert_leaf(
-  leaf : BPTreeLeaf,
-  key : Int,
-  value : Int,
-) -> (BPTreeLeaf, Bool) {
+fn insert_leaf(leaf : BPTreeLeaf, key : Int, value : Int) -> (BPTreeLeaf, Bool) {
   let mut idx = 0
   while idx < leaf.keys.length() && leaf.keys[idx] < key {
     idx = idx + 1
@@ -157,14 +154,11 @@ fn insert_leaf(
   }
 }
 
+///|
 /// Split a leaf node into two. Returns (left, right, separator_key).
 fn split_leaf(leaf : BPTreeLeaf) -> (BPTreeLeaf, BPTreeLeaf, Int) {
   let mid = leaf.keys.length() / 2
-  let right : BPTreeLeaf = {
-    keys: [],
-    values: [],
-    next: leaf.next,
-  }
+  let right : BPTreeLeaf = { keys: [], values: [], next: leaf.next }
   for i = mid; i < leaf.keys.length(); i = i + 1 {
     right.keys.push(leaf.keys[i])
     right.values.push(leaf.values[i])
@@ -179,10 +173,9 @@ fn split_leaf(leaf : BPTreeLeaf) -> (BPTreeLeaf, BPTreeLeaf, Int) {
   (leaf, right, sep)
 }
 
+///|
 /// Split an internal node. Returns (left, right, separator_key).
-fn split_node(
-  node : BPTreeNode,
-) -> (BPTreeNode, BPTreeNode, Int) {
+fn split_node(node : BPTreeNode) -> (BPTreeNode, BPTreeNode, Int) {
   let mid = node.keys.length() / 2
   let sep = node.keys[mid]
   let right : BPTreeNode = { keys: [], children: [] }
@@ -203,11 +196,13 @@ fn split_node(
   (node, right, sep)
 }
 
+///|
 /// Search for a key in the B+ Tree. Returns the value if found.
 pub fn search(tree : BPTree, key : Int) -> Int? {
   search_child(tree.root, key)
 }
 
+///|
 fn search_child(child : BPTreeChild, key : Int) -> Int? {
   match child {
     Leaf(leaf) => {
@@ -228,6 +223,7 @@ fn search_child(child : BPTreeChild, key : Int) -> Int? {
   }
 }
 
+///|
 /// Range query: find all (key, value) pairs with keys in [lo, hi].
 ///
 /// Returns a flat array of alternating keys and values:
@@ -256,6 +252,7 @@ pub fn range_query(tree : BPTree, lo : Int, hi : Int) -> Array[Int] {
   result
 }
 
+///|
 /// Find the leaf that should contain `key`.
 fn find_leaf(child : BPTreeChild, key : Int) -> BPTreeLeaf? {
   match child {
@@ -270,11 +267,13 @@ fn find_leaf(child : BPTreeChild, key : Int) -> BPTreeLeaf? {
   }
 }
 
+///|
 /// Get the number of entries in the tree.
 pub fn size(tree : BPTree) -> Int {
   tree.size
 }
 
+///|
 /// Collect all keys in sorted order (for testing).
 pub fn to_sorted_array(tree : BPTree) -> Array[Int] {
   let result : Array[Int] = []
@@ -282,6 +281,7 @@ pub fn to_sorted_array(tree : BPTree) -> Array[Int] {
   result
 }
 
+///|
 fn collect_keys(child : BPTreeChild, result : Array[Int]) -> Unit {
   match child {
     Leaf(leaf) =>
@@ -299,6 +299,7 @@ fn collect_keys(child : BPTreeChild, result : Array[Int]) -> Unit {
 // Delete with rebalancing (borrow / merge)
 // ---------------------------------------------------------------------------
 
+///|
 /// Delete a key from the B+ Tree.
 ///
 /// Returns `true` if the key was found and removed, `false` if the key
@@ -323,6 +324,7 @@ pub fn delete(tree : BPTree, key : Int) -> Bool {
   found
 }
 
+///|
 /// Dispatch deletion to the appropriate node type.
 fn delete_child(child : BPTreeChild, key : Int) -> Bool {
   match child {
@@ -331,6 +333,7 @@ fn delete_child(child : BPTreeChild, key : Int) -> Bool {
   }
 }
 
+///|
 /// Remove a key from a leaf node. Returns whether the key was found.
 fn delete_from_leaf(leaf : BPTreeLeaf, key : Int) -> Bool {
   let mut idx = 0
@@ -346,6 +349,7 @@ fn delete_from_leaf(leaf : BPTreeLeaf, key : Int) -> Bool {
   }
 }
 
+///|
 /// Remove a key from an internal node by descending to the appropriate child,
 /// then rebalancing if the child underflows.
 fn delete_from_node(node : BPTreeNode, key : Int) -> Bool {
@@ -371,6 +375,7 @@ fn delete_from_node(node : BPTreeNode, key : Int) -> Bool {
   true
 }
 
+///|
 /// Rebalance a leaf that has underflowed.
 /// Strategy: borrow from left sibling → borrow from right sibling → merge.
 fn rebalance_leaf(parent : BPTreeNode, idx : Int, cur : BPTreeLeaf) -> Unit {
@@ -427,6 +432,7 @@ fn rebalance_leaf(parent : BPTreeNode, idx : Int, cur : BPTreeLeaf) -> Unit {
   }
 }
 
+///|
 /// Merge the leaf at `left_idx + 1` into the leaf at `left_idx`.
 /// Removes the separator key and the right child from the parent.
 fn merge_leaf(parent : BPTreeNode, left_idx : Int) -> Unit {
@@ -450,6 +456,7 @@ fn merge_leaf(parent : BPTreeNode, left_idx : Int) -> Unit {
   ignore(parent.children.remove(left_idx + 1))
 }
 
+///|
 /// Rebalance an internal node that has underflowed.
 /// Strategy: borrow from left sibling → borrow from right sibling → merge.
 fn rebalance_node(parent : BPTreeNode, idx : Int, cur : BPTreeNode) -> Unit {
@@ -501,6 +508,7 @@ fn rebalance_node(parent : BPTreeNode, idx : Int, cur : BPTreeNode) -> Unit {
   }
 }
 
+///|
 /// Merge the internal node at `left_idx + 1` into the node at `left_idx`.
 /// Pulls the separator key down from the parent into the merged node.
 fn merge_node(parent : BPTreeNode, left_idx : Int) -> Unit {
@@ -530,6 +538,7 @@ fn merge_node(parent : BPTreeNode, left_idx : Int) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bptree: insert and search" {
   let tree = new()
   insert(tree, 10, 100)
@@ -541,6 +550,7 @@ test "bptree: insert and search" {
   assert_eq(search(tree, 15), None)
 }
 
+///|
 test "bptree: update existing key" {
   let tree = new()
   insert(tree, 10, 100)
@@ -549,6 +559,7 @@ test "bptree: update existing key" {
   assert_eq(size(tree), 1) // size counts unique keys
 }
 
+///|
 test "bptree: sorted order" {
   let tree = new()
   let keys = [50, 10, 30, 20, 40, 60, 5, 15, 25, 35]
@@ -563,6 +574,7 @@ test "bptree: sorted order" {
   }
 }
 
+///|
 test "bptree: range query" {
   let tree = new()
   for i = 0; i < 100; i = i + 1 {
@@ -579,6 +591,7 @@ test "bptree: range query" {
   assert_eq(result[result.length() - 1], 200)
 }
 
+///|
 test "bptree: range query with no results" {
   let tree = new()
   insert(tree, 10, 100)
@@ -587,6 +600,7 @@ test "bptree: range query with no results" {
   assert_eq(result.length(), 0)
 }
 
+///|
 test "bptree: large insert" {
   let tree = new()
   let n = 500
@@ -605,6 +619,7 @@ test "bptree: large insert" {
   }
 }
 
+///|
 test "bptree: reverse order insert" {
   let tree = new()
   for i = 0; i < 100; i = i + 1 {
@@ -616,6 +631,7 @@ test "bptree: reverse order insert" {
   }
 }
 
+///|
 test "bptree: duplicate keys" {
   let tree = new()
   insert(tree, 10, 100)
@@ -626,6 +642,7 @@ test "bptree: duplicate keys" {
   assert_eq(sorted.length(), 1) // only one key
 }
 
+///|
 test "bptree: negative keys" {
   let tree = new()
   insert(tree, -10, 100)
@@ -639,6 +656,7 @@ test "bptree: negative keys" {
   assert_eq(sorted[3], 5)
 }
 
+///|
 test "bptree: range query full range" {
   let tree = new()
   for i = 0; i < 50; i = i + 1 {
@@ -648,6 +666,7 @@ test "bptree: range query full range" {
   assert_eq(result.length(), 100) // 50 keys * 2
 }
 
+///|
 test "bptree: empty tree" {
   let tree = new()
   assert_eq(search(tree, 10), None)
@@ -655,12 +674,14 @@ test "bptree: empty tree" {
   assert_eq(range_query(tree, 0, 100).length(), 0)
 }
 
+///|
 test "bptree: delete from empty tree" {
   let tree = new()
   assert_eq(delete(tree, 42), false)
   assert_eq(size(tree), 0)
 }
 
+///|
 test "bptree: delete single element" {
   let tree = new()
   insert(tree, 10, 100)
@@ -669,6 +690,7 @@ test "bptree: delete single element" {
   assert_eq(size(tree), 0)
 }
 
+///|
 test "bptree: delete non-existent key" {
   let tree = new()
   insert(tree, 10, 100)
@@ -679,6 +701,7 @@ test "bptree: delete non-existent key" {
   assert_eq(search(tree, 20), Some(200))
 }
 
+///|
 test "bptree: delete and reinsert" {
   let tree = new()
   insert(tree, 10, 100)
@@ -692,6 +715,7 @@ test "bptree: delete and reinsert" {
   assert_eq(size(tree), 3)
 }
 
+///|
 test "bptree: delete all sequential" {
   let n = 200
   let tree = new()
@@ -707,6 +731,7 @@ test "bptree: delete all sequential" {
   assert_eq(to_sorted_array(tree).length(), 0)
 }
 
+///|
 test "bptree: delete all reverse" {
   let n = 200
   let tree = new()
@@ -720,6 +745,7 @@ test "bptree: delete all reverse" {
   assert_eq(to_sorted_array(tree).length(), 0)
 }
 
+///|
 test "bptree: delete every other" {
   let n = 100
   let tree = new()
@@ -747,6 +773,7 @@ test "bptree: delete every other" {
   }
 }
 
+///|
 test "bptree: delete triggers merge" {
   // Insert enough elements to create multiple levels, then delete
   // enough to trigger merges.
@@ -774,6 +801,7 @@ test "bptree: delete triggers merge" {
   }
 }
 
+///|
 test "bptree: delete maintains range query" {
   let tree = new()
   for i = 0; i < 100; i = i + 1 {
@@ -792,6 +820,7 @@ test "bptree: delete maintains range query" {
   assert_eq(result[1], 100)
 }
 
+///|
 test "bptree: delete root key" {
   let tree = new()
   insert(tree, 50, 500)
@@ -805,6 +834,7 @@ test "bptree: delete root key" {
   assert_eq(size(tree), 2)
 }
 
+///|
 test "bptree: stress delete" {
   let n = 1000
   let tree = new()

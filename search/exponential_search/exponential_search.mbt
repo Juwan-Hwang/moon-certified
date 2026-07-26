@@ -18,6 +18,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Exponential search on a sorted `FixedArray[Int]`.
 ///
 /// Returns `Some(index)` if `target` is present, otherwise `None`.
@@ -69,27 +70,32 @@ pub fn exponential_search(arr : FixedArray[Int], target : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "exponential_search: basic" {
   let xs = FixedArray::makei(9, fn(i) { i }) // [0,1,2,3,4,5,6,7,8]
   assert_eq(exponential_search(xs, 5), Some(5))
   assert_eq(exponential_search(xs, 3), Some(3))
 }
 
+///|
 test "exponential_search: first element" {
   let xs = FixedArray::makei(10, fn(i) { i * 3 }) // [0,3,6,...,27]
   assert_eq(exponential_search(xs, 0), Some(0))
 }
 
+///|
 test "exponential_search: last element" {
   let xs = FixedArray::makei(10, fn(i) { i * 3 }) // [0,3,6,...,27]
   assert_eq(exponential_search(xs, 27), Some(9))
 }
 
+///|
 test "exponential_search: middle element" {
   let xs = FixedArray::makei(11, fn(i) { i }) // [0..10]
   assert_eq(exponential_search(xs, 5), Some(5))
 }
 
+///|
 test "exponential_search: not found" {
   let xs = FixedArray::makei(5, fn(i) { i * 2 }) // [0,2,4,6,8]
   assert_eq(exponential_search(xs, 1), None)
@@ -97,6 +103,7 @@ test "exponential_search: not found" {
   assert_eq(exponential_search(xs, 7), None)
 }
 
+///|
 test "exponential_search: single element" {
   let xs = FixedArray::make(1, 42)
   assert_eq(exponential_search(xs, 42), Some(0))
@@ -104,11 +111,13 @@ test "exponential_search: single element" {
   assert_eq(exponential_search(xs, 43), None)
 }
 
+///|
 test "exponential_search: empty array" {
   let xs : FixedArray[Int] = FixedArray::make(0, 0)
   assert_eq(exponential_search(xs, 42), None)
 }
 
+///|
 test "exponential_search: large array" {
   let xs = FixedArray::makei(2000, fn(i) { i }) // [0..1999]
   assert_eq(exponential_search(xs, 0), Some(0))
@@ -118,18 +127,21 @@ test "exponential_search: large array" {
   assert_eq(exponential_search(xs, 2000), None)
 }
 
+///|
 test "exponential_search: target beyond last element" {
   let xs = FixedArray::makei(8, fn(i) { i * 2 }) // [0,2,4,...,14]
   assert_eq(exponential_search(xs, 100), None)
   assert_eq(exponential_search(xs, 15), None)
 }
 
+///|
 test "exponential_search: target before first element" {
   let xs = FixedArray::makei(8, fn(i) { i + 10 }) // [10,11,...,17]
   assert_eq(exponential_search(xs, 5), None)
   assert_eq(exponential_search(xs, 9), None)
 }
 
+///|
 test "exponential_search: duplicates" {
   // [1,1,1,2,2,2,3,3] -- any matching index is acceptable.
   let xs = FixedArray::makei(8, fn(i) { i / 3 + 1 })

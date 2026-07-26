@@ -11,6 +11,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Relaxed objective for a given Lagrange multiplier `lambda`.
 ///
 /// Picks every item whose net gain `cost - lambda` is strictly positive.
@@ -29,6 +30,7 @@ fn solve_lambda(costs : Array[Int], lambda : Int, n : Int) -> (Int, Int) {
   (val, cnt)
 }
 
+///|
 /// Maximum total value selecting at most `k` items from `costs[0..n)`.
 ///
 /// Returns `None` for invalid inputs (negative `n`/`k`, or `costs` shorter
@@ -80,16 +82,19 @@ pub fn aliens_trick(n : Int, costs : Array[Int], k : Int) -> Int? {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "aliens_trick: pick top k from distinct values" {
   // Pick 3 of [10, 20, 30, 40, 50] -> 30 + 40 + 50 = 120
   assert_eq(aliens_trick(5, [10, 20, 30, 40, 50], 3), Some(120))
 }
 
+///|
 test "aliens_trick: ties at boundary" {
   // Pick 2 of [5, 5, 5, 5] -> 5 + 5 = 10
   assert_eq(aliens_trick(4, [5, 5, 5, 5], 2), Some(10))
 }
 
+///|
 test "aliens_trick: at-most semantics with negatives" {
   // Only 10 and 20 are positive; k = 5 so take both -> 30
   assert_eq(aliens_trick(4, [10, -5, 20, -10], 5), Some(30))

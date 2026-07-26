@@ -44,6 +44,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// Result of bridge/articulation-point computation.
 ///
 /// - `articulation_points`: a `FixedArray[Int]` of vertex indices that are
@@ -59,6 +60,7 @@ pub struct BridgeArtResult {
 // Internal state
 // ---------------------------------------------------------------------------
 
+///|
 priv struct BridgeState {
   adj : Array[Array[Int]]
   mut timer : Int
@@ -70,6 +72,7 @@ priv struct BridgeState {
   bridges : Array[(Int, Int)]
 }
 
+///|
 fn BridgeState::new(adj : Array[Array[Int]], n : Int) -> BridgeState {
   {
     adj,
@@ -87,6 +90,7 @@ fn BridgeState::new(adj : Array[Array[Int]], n : Int) -> BridgeState {
 // Iterative DFS
 // ---------------------------------------------------------------------------
 
+///|
 /// Iterative Tarjan DFS from `start`.
 ///
 /// Uses an explicit stack of `(vertex, next_neighbor_index, parent_vertex,
@@ -171,6 +175,7 @@ fn dfs(state : BridgeState, start : Int) -> Unit {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Find all articulation points and bridges in an undirected graph.
 ///
 /// # Parameters
@@ -238,6 +243,7 @@ pub fn find_bridges_and_articulations(
   }
 }
 
+///|
 /// Find only articulation points (cut vertices) in an undirected graph.
 ///
 /// Convenience wrapper around `find_bridges_and_articulations` that returns
@@ -249,14 +255,12 @@ pub fn find_articulation_points(
   find_bridges_and_articulations(adj, n).articulation_points
 }
 
+///|
 /// Find only bridges in an undirected graph.
 ///
 /// Convenience wrapper around `find_bridges_and_articulations` that returns
 /// just the bridges.
-pub fn find_bridges(
-  adj : Array[Array[Int]],
-  n : Int,
-) -> FixedArray[(Int, Int)] {
+pub fn find_bridges(adj : Array[Array[Int]], n : Int) -> FixedArray[(Int, Int)] {
   find_bridges_and_articulations(adj, n).bridges
 }
 
@@ -264,6 +268,7 @@ pub fn find_bridges(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bridge_art: single node" {
   let adj : Array[Array[Int]] = [[]]
   let result = find_bridges_and_articulations(adj, 1)
@@ -271,6 +276,7 @@ test "bridge_art: single node" {
   assert_eq(result.bridges.length(), 0)
 }
 
+///|
 test "bridge_art: two nodes connected by single edge (bridge)" {
   // 0 -- 1: the edge is a bridge, neither node is an articulation point
   // (removing either node from a 2-node graph leaves a single node,
@@ -282,6 +288,7 @@ test "bridge_art: two nodes connected by single edge (bridge)" {
   assert_eq(result.bridges[0], (0, 1))
 }
 
+///|
 test "bridge_art: simple path 0-1-2 (articulation at 1, two bridges)" {
   // 0 -- 1 -- 2
   // Vertex 1 is an articulation point (removing it disconnects 0 and 2).
@@ -295,6 +302,7 @@ test "bridge_art: simple path 0-1-2 (articulation at 1, two bridges)" {
   assert_eq(result.bridges[1], (1, 2))
 }
 
+///|
 test "bridge_art: triangle (no bridges, no articulation points)" {
   // 0 -- 1
   // |    |
@@ -307,6 +315,7 @@ test "bridge_art: triangle (no bridges, no articulation points)" {
   assert_eq(result.bridges.length(), 0)
 }
 
+///|
 test "bridge_art: star graph (center is articulation, all edges are bridges)" {
   //   1
   //   |
@@ -330,6 +339,7 @@ test "bridge_art: star graph (center is articulation, all edges are bridges)" {
   assert_eq(result.bridges.length(), 4)
 }
 
+///|
 test "bridge_art: disconnected graph" {
   // Component 1: 0 -- 1 (bridge)
   // Component 2: 2 -- 3 -- 4 -- 2 (triangle, no bridges/articulations)
@@ -349,6 +359,7 @@ test "bridge_art: disconnected graph" {
   assert_eq(result.bridges[0], (0, 1))
 }
 
+///|
 test "bridge_art: multi-edge (parallel edges are not bridges)" {
   // 0 == 1 (two edges between 0 and 1)
   // Neither edge is a bridge (removing one still connects 0 and 1).
@@ -358,6 +369,7 @@ test "bridge_art: multi-edge (parallel edges are not bridges)" {
   assert_eq(result.articulation_points.length(), 0)
 }
 
+///|
 test "bridge_art: self-loop is not a bridge" {
   // 0 has a self-loop, 0 -- 1
   let adj : Array[Array[Int]] = [[0, 1], [0]]
@@ -367,6 +379,7 @@ test "bridge_art: self-loop is not a bridge" {
   assert_eq(result.bridges[0], (0, 1))
 }
 
+///|
 test "bridge_art: chain of 5 nodes" {
   // 0 -- 1 -- 2 -- 3 -- 4
   // Nodes 1, 2, 3 are articulation points; all 4 edges are bridges.
@@ -384,6 +397,7 @@ test "bridge_art: chain of 5 nodes" {
   assert_eq(result.bridges.length(), 4)
 }
 
+///|
 test "bridge_art: complete graph K4 (no bridges, no articulation)" {
   // Fully connected: removing any edge or vertex keeps it connected.
   let n = 4
@@ -400,6 +414,7 @@ test "bridge_art: complete graph K4 (no bridges, no articulation)" {
   assert_eq(result.bridges.length(), 0)
 }
 
+///|
 test "bridge_art: two triangles connected by a bridge" {
   // Triangle 0-1-2-0, bridge 2-3, triangle 3-4-5-3
   // Vertex 2 and 3 are articulation points; edge (2,3) is a bridge.
@@ -430,6 +445,7 @@ test "bridge_art: two triangles connected by a bridge" {
   assert_eq(result.bridges[0], (2, 3))
 }
 
+///|
 test "bridge_art: invalid n returns empty" {
   let adj : Array[Array[Int]] = []
   let result = find_bridges_and_articulations(adj, 0)
@@ -437,6 +453,7 @@ test "bridge_art: invalid n returns empty" {
   assert_eq(result.bridges.length(), 0)
 }
 
+///|
 test "bridge_art: large path (stack safety)" {
   // Chain of 5000 nodes: tests that the iterative DFS doesn't overflow.
   let n = 5000
@@ -457,6 +474,7 @@ test "bridge_art: large path (stack safety)" {
   assert_eq(result.articulation_points[n - 3], n - 2)
 }
 
+///|
 test "find_articulation_points: convenience wrapper" {
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1, 3], [2]]
   // Triangle 0-1-2, edge 2-3
@@ -466,6 +484,7 @@ test "find_articulation_points: convenience wrapper" {
   assert_eq(arts[0], 2)
 }
 
+///|
 test "find_bridges: convenience wrapper" {
   let adj : Array[Array[Int]] = [[1, 2], [0, 2], [0, 1, 3], [2]]
   let bridges = find_bridges(adj, 4)

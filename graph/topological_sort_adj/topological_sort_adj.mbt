@@ -36,6 +36,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Compute the in-degree of every vertex from the adjacency list.
 ///
 /// `in_deg[v]` counts how many edges point *into* `v`. Out-of-range neighbor
@@ -58,6 +59,7 @@ fn compute_in_degrees(
   in_deg
 }
 
+///|
 /// Compute a topological ordering of a directed graph using Kahn's algorithm.
 ///
 /// `graph[i]` is an `Array` of `(neighbor, weight)` pairs; weights are ignored.
@@ -68,10 +70,7 @@ fn compute_in_degrees(
 ///
 /// Using `Option` (rather than an empty array) eliminates the ambiguity
 /// between "cycle detected" and "valid empty result".
-pub fn topo_sort(
-  graph : Array[Array[(Int, Int)]],
-  n : Int,
-) -> FixedArray[Int]? {
+pub fn topo_sort(graph : Array[Array[(Int, Int)]], n : Int) -> FixedArray[Int]? {
   if n <= 0 || graph.length() < n {
     return None
   }
@@ -115,6 +114,7 @@ pub fn topo_sort(
   Some(result)
 }
 
+///|
 /// Check whether the directed graph contains a cycle.
 ///
 /// `graph[i]` is an `Array` of `(neighbor, weight)` pairs; weights are ignored.
@@ -124,10 +124,7 @@ pub fn topo_sort(
 ///
 /// Internally delegates to `topo_sort`: a cycle exists exactly when Kahn's
 /// algorithm cannot place all vertices.
-pub fn has_cycle(
-  graph : Array[Array[(Int, Int)]],
-  n : Int,
-) -> Bool {
+pub fn has_cycle(graph : Array[Array[(Int, Int)]], n : Int) -> Bool {
   if n <= 0 || graph.length() < n {
     return false
   }
@@ -141,6 +138,7 @@ pub fn has_cycle(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "topo_sort: linear DAG" {
   // 0 -> 1 -> 2 -> 3 -> 4
   let n = 5
@@ -156,6 +154,7 @@ test "topo_sort: linear DAG" {
   }
 }
 
+///|
 test "topo_sort: branching DAG" {
   //     0
   //    / \
@@ -189,6 +188,7 @@ test "topo_sort: branching DAG" {
   assert_true(pos[3] < pos[5])
 }
 
+///|
 test "topo_sort: cycle detection" {
   // 0 -> 1 -> 2 -> 0 (3-cycle)
   let n = 3
@@ -200,6 +200,7 @@ test "topo_sort: cycle detection" {
   assert_eq(has_cycle(graph, n), true)
 }
 
+///|
 test "topo_sort: single node" {
   let graph : Array[Array[(Int, Int)]] = [[]]
   let result = topo_sort(graph, 1).unwrap()
@@ -208,6 +209,7 @@ test "topo_sort: single node" {
   assert_eq(has_cycle(graph, 1), false)
 }
 
+///|
 test "topo_sort: disconnected DAG" {
   // Component A: 0 -> 1, Component B: 2 -> 3
   let n = 4
@@ -226,6 +228,7 @@ test "topo_sort: disconnected DAG" {
   assert_eq(has_cycle(graph, n), false)
 }
 
+///|
 test "topo_sort: complex DAG" {
   //       0
   //      / \
@@ -237,9 +240,7 @@ test "topo_sort: complex DAG" {
   //      \ /
   //       7
   let n = 8
-  let graph : Array[Array[(Int, Int)]] = [
-    [], [], [], [], [], [], [], [],
-  ]
+  let graph : Array[Array[(Int, Int)]] = [[], [], [], [], [], [], [], []]
   graph[0].push((1, 1))
   graph[0].push((2, 1))
   graph[1].push((3, 1))
@@ -268,6 +269,7 @@ test "topo_sort: complex DAG" {
   assert_eq(has_cycle(graph, n), false)
 }
 
+///|
 test "topo_sort: self-loop is a cycle" {
   let n = 2
   let graph : Array[Array[(Int, Int)]] = [[], []]
@@ -276,6 +278,7 @@ test "topo_sort: self-loop is a cycle" {
   assert_eq(has_cycle(graph, n), true)
 }
 
+///|
 test "topo_sort: two-node cycle" {
   // 0 -> 1 -> 0
   let n = 2
@@ -286,6 +289,7 @@ test "topo_sort: two-node cycle" {
   assert_eq(has_cycle(graph, n), true)
 }
 
+///|
 test "topo_sort: no edges" {
   // All vertices isolated: any permutation is a valid topological order.
   let n = 5
@@ -303,6 +307,7 @@ test "topo_sort: no edges" {
   assert_eq(has_cycle(graph, n), false)
 }
 
+///|
 test "topo_sort: diamond DAG" {
   //   0
   //  / \
@@ -321,6 +326,7 @@ test "topo_sort: diamond DAG" {
   assert_eq(result[n - 1], 3) // 3 has no successors
 }
 
+///|
 test "topo_sort: weights are ignored" {
   // Same diamond as above but with arbitrary weights.
   let n = 4
@@ -335,6 +341,7 @@ test "topo_sort: weights are ignored" {
   assert_eq(result[n - 1], 3)
 }
 
+///|
 test "topo_sort: cycle with extra nodes" {
   // 0 -> 1 -> 2 -> 3 -> 1  (cycle: 1 -> 2 -> 3 -> 1)
   // 0 is outside the cycle but feeds into it.
@@ -348,6 +355,7 @@ test "topo_sort: cycle with extra nodes" {
   assert_eq(has_cycle(graph, n), true)
 }
 
+///|
 test "topo_sort: partial cycle detection" {
   // 0 -> 1 -> 2 (DAG), plus 3 -> 4 -> 3 (cycle).
   let n = 5
@@ -360,6 +368,7 @@ test "topo_sort: partial cycle detection" {
   assert_eq(has_cycle(graph, n), true)
 }
 
+///|
 test "topo_sort: invalid input" {
   assert_true(topo_sort([], 0) is None) // n = 0
   assert_true(topo_sort([], -1) is None) // n < 0
@@ -371,6 +380,7 @@ test "topo_sort: invalid input" {
   assert_eq(has_cycle(small, 5), false)
 }
 
+///|
 test "topo_sort: complete DAG" {
   // Complete DAG: edges i -> j for all i < j.
   // The only valid topological ordering is 0, 1, 2, ..., n-1.
@@ -392,6 +402,7 @@ test "topo_sort: complete DAG" {
   assert_eq(has_cycle(graph, n), false)
 }
 
+///|
 test "topo_sort: larger linear chain" {
   let n = 100
   let graph : Array[Array[(Int, Int)]] = []

@@ -24,11 +24,13 @@
 // @geometry_utils.Point, point, dist2, cross64 are imported from @geometry_utils.
 // This eliminates code duplication across geometry packages.
 
+///|
 /// Convenience constructor — delegates to @geometry_utils.point.
 pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
   @geometry_utils.point(x, y)
 }
 
+///|
 /// Compute the squared diameter (farthest pair distance²) of a convex polygon.
 ///
 /// `hull` must be a convex polygon in counterclockwise (CCW) or clockwise (CW)
@@ -56,10 +58,12 @@ pub fn diameter_sq(hull : Array[@geometry_utils.Point]) -> Int64 {
   let mut i = 0
   let mut j = 0
   for k = 1; k < n; k = k + 1 {
-    if hull[k].y < hull[i].y || (hull[k].y == hull[i].y && hull[k].x < hull[i].x) {
+    if hull[k].y < hull[i].y ||
+      (hull[k].y == hull[i].y && hull[k].x < hull[i].x) {
       i = k
     }
-    if hull[k].y > hull[j].y || (hull[k].y == hull[j].y && hull[k].x > hull[j].x) {
+    if hull[k].y > hull[j].y ||
+      (hull[k].y == hull[j].y && hull[k].x > hull[j].x) {
       j = k
     }
   }
@@ -89,20 +93,19 @@ pub fn diameter_sq(hull : Array[@geometry_utils.Point]) -> Int64 {
         i = next_i
         j = next_j
       }
+    } else if c > 0L {
+      i = next_i
+    } else if c < 0L {
+      j = next_j
     } else {
-      if c > 0L {
-        i = next_i
-      } else if c < 0L {
-        j = next_j
-      } else {
-        i = next_i
-        j = next_j
-      }
+      i = next_i
+      j = next_j
     }
   }
   best
 }
 
+///|
 /// Compute the squared width (minimum distance between parallel supporting
 /// lines) of a convex polygon, times the corresponding edge length.
 ///
@@ -130,15 +133,11 @@ pub fn min_width_numerator(hull : Array[@geometry_utils.Point]) -> Int64 {
     let next_i = (i + 1) % n
     // Advance j while the next point is farther from edge (i, next_i).
     while @geometry_utils.cross64(hull[i], hull[next_i], hull[(j + 1) % n]) >
-      @geometry_utils.cross64(hull[i], hull[next_i], hull[j]) {
+          @geometry_utils.cross64(hull[i], hull[next_i], hull[j]) {
       j = (j + 1) % n
     }
     let area = @geometry_utils.cross64(hull[i], hull[next_i], hull[j])
-    let abs_area = if area < 0L {
-      -area
-    } else {
-      area
-    }
+    let abs_area = if area < 0L { -area } else { area }
     if abs_area < best {
       best = abs_area
     }
@@ -150,37 +149,44 @@ pub fn min_width_numerator(hull : Array[@geometry_utils.Point]) -> Int64 {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "diameter_sq: empty hull" {
   assert_eq(diameter_sq([]), 0L)
 }
 
+///|
 test "diameter_sq: single point" {
   assert_eq(diameter_sq([point(5, 5)]), 0L)
 }
 
+///|
 test "diameter_sq: two points" {
   let hull = [point(0, 0), point(3, 4)]
   assert_eq(diameter_sq(hull), 25L) // 3² + 4² = 25
 }
 
+///|
 test "diameter_sq: square" {
   // CCW square with side 4. Diameter = diagonal = 4√2, sq = 32.
   let hull = [point(0, 0), point(4, 0), point(4, 4), point(0, 4)]
   assert_eq(diameter_sq(hull), 32L)
 }
 
+///|
 test "diameter_sq: rectangle" {
   // CCW rectangle 6 × 8. Diameter = diagonal = 10, sq = 100.
   let hull = [point(0, 0), point(6, 0), point(6, 8), point(0, 8)]
   assert_eq(diameter_sq(hull), 100L)
 }
 
+///|
 test "diameter_sq: triangle" {
   // CCW triangle: (0,0), (3,0), (0,4). Farthest pair: (3,0)-(0,4), dist² = 25.
   let hull = [point(0, 0), point(3, 0), point(0, 4)]
   assert_eq(diameter_sq(hull), 25L)
 }
 
+///|
 test "diameter_sq: equilateral-like triangle" {
   // CCW triangle: (0,0), (4,0), (2,3). All sides: 4, √13, √13.
   // Farthest pair: (0,0)-(4,0) with dist² = 16, or (4,0)-(2,3) with dist² = 4+9=13.
@@ -189,27 +195,38 @@ test "diameter_sq: equilateral-like triangle" {
   assert_eq(diameter_sq(hull), 16L)
 }
 
+///|
 test "diameter_sq: regular hexagon" {
   // Regular hexagon with circumradius 5 (approximate with integer coords).
   // Points: (5,0), (3,-4), (-3,-4), (-5,0), (-3,4), (3,4)
   // Diameter = distance between opposite vertices = 10, sq = 100.
   let hull = [
-    point(5, 0), point(3, -4), point(-3, -4), point(-5, 0), point(-3, 4),
+    point(5, 0),
+    point(3, -4),
+    point(-3, -4),
+    point(-5, 0),
+    point(-3, 4),
     point(3, 4),
   ]
   assert_eq(diameter_sq(hull), 100L)
 }
 
+///|
 test "diameter_sq: collinear points" {
   // Three collinear points on the x-axis. Farthest pair: (0,0)-(5,0), sq=25.
   let hull = [point(0, 0), point(3, 0), point(5, 0)]
   assert_eq(diameter_sq(hull), 25L)
 }
 
+///|
 test "diameter_sq: vs brute force" {
   // Generate a convex polygon and verify against brute force.
   let hull = [
-    point(0, 0), point(10, 0), point(20, 5), point(15, 15), point(5, 20),
+    point(0, 0),
+    point(10, 0),
+    point(20, 5),
+    point(15, 15),
+    point(5, 20),
     point(0, 10),
   ]
   let result = diameter_sq(hull)
@@ -226,6 +243,7 @@ test "diameter_sq: vs brute force" {
   assert_eq(result, best)
 }
 
+///|
 test "diameter_sq: large polygon vs brute force" {
   // 20-point convex polygon (approximate circle).
   let hull : Array[@geometry_utils.Point] = []
@@ -233,22 +251,29 @@ test "diameter_sq: large polygon vs brute force" {
   for i = 0; i < 20; i = i + 1 {
     // Generate points on a circle (approximated with integer coords).
     let angle = i * 18 // degrees, simplified
-    let x = (radius * (angle * angle / 100 - 3600 / 100 + 100) / 100)
-    let y = (radius * (angle - 90) / 100 + 50)
+    let x = radius * (angle * angle / 100 - 3600 / 100 + 100) / 100
+    let y = radius * (angle - 90) / 100 + 50
     hull.push(point(x, y))
   }
   // This test may not produce a convex hull, so just verify diameter_sq
   // returns a non-negative value. For a proper test, we need a convex hull.
   // Let's use a known convex polygon instead.
   let hull2 = [
-    point(0, 0), point(50, 0), point(100, 0), point(100, 50),
-    point(100, 100), point(50, 100), point(0, 100), point(0, 50),
+    point(0, 0),
+    point(50, 0),
+    point(100, 0),
+    point(100, 50),
+    point(100, 100),
+    point(50, 100),
+    point(0, 100),
+    point(0, 50),
   ]
   let result = diameter_sq(hull2)
   // For a 100×100 square, diameter = 100√2, sq = 20000.
   assert_eq(result, 20000L)
 }
 
+///|
 test "min_width_numerator: square" {
   // Square with side 4. Width = 4, double area = 4*4 = 16.
   let hull = [point(0, 0), point(4, 0), point(4, 4), point(0, 4)]
@@ -257,6 +282,7 @@ test "min_width_numerator: square" {
   assert_eq(w, 16L)
 }
 
+///|
 test "min_width_numerator: triangle" {
   // Right triangle: (0,0), (6,0), (0,8). Width = min height.
   // Edge (0,0)-(6,0): height = 8, double area = 6*8 = 48.
@@ -268,16 +294,22 @@ test "min_width_numerator: triangle" {
   assert_eq(w, 48L)
 }
 
+///|
 test "min_width_numerator: fewer than 3 points" {
   assert_eq(min_width_numerator([point(0, 0), point(1, 1)]), 0L)
   assert_eq(min_width_numerator([point(0, 0)]), 0L)
   assert_eq(min_width_numerator([]), 0L)
 }
 
+///|
 test "diameter_sq: pentagon" {
   // Regular-ish pentagon. Check against brute force.
   let hull = [
-    point(0, 10), point(10, 3), point(6, -8), point(-6, -8), point(-10, 3),
+    point(0, 10),
+    point(10, 3),
+    point(6, -8),
+    point(-6, -8),
+    point(-10, 3),
   ]
   let result = diameter_sq(hull)
   let mut best = 0L
@@ -292,11 +324,10 @@ test "diameter_sq: pentagon" {
   assert_eq(result, best)
 }
 
+///|
 test "diameter_sq: starts at non-zero index" {
   // Hull where the bottommost point is not at index 0.
-  let hull = [
-    point(10, 10), point(20, 10), point(20, 0), point(10, 0),
-  ]
+  let hull = [point(10, 10), point(20, 10), point(20, 0), point(10, 0)]
   // This is a 10×10 square; diameter = 10√2, sq = 200.
   assert_eq(diameter_sq(hull), 200L)
 }

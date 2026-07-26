@@ -11,11 +11,17 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Helper: absolute value of double.
 fn absd(x : Double) -> Double {
-  if x < 0.0 { -x } else { x }
+  if x < 0.0 {
+    -x
+  } else {
+    x
+  }
 }
 
+///|
 /// Linear least-squares fit: y = a + b*x.
 /// Returns (a, b, r²) where r² is the coefficient of determination.
 pub fn linear_fit(points : Array[(Double, Double)]) -> (Double, Double, Double) {
@@ -57,6 +63,7 @@ pub fn linear_fit(points : Array[(Double, Double)]) -> (Double, Double, Double) 
   (a, b, r2)
 }
 
+///|
 /// Polynomial least-squares fit of degree `d`: y = c₀ + c₁x + ... + cₐxᵈ.
 /// Returns the coefficient array [c₀, c₁, ..., cₐ].
 pub fn polynomial_fit(
@@ -93,7 +100,12 @@ pub fn polynomial_fit(
   gaussian_solve(ata, aty, m)
 }
 
-fn gaussian_solve(a : FixedArray[Double], b : FixedArray[Double], n : Int) -> Array[Double] {
+///|
+fn gaussian_solve(
+  a : FixedArray[Double],
+  b : FixedArray[Double],
+  n : Int,
+) -> Array[Double] {
   // Augmented matrix in a copy.
   let aug = FixedArray::make(n * (n + 1), 0.0)
   for i = 0; i < n; i = i + 1 {
@@ -128,7 +140,8 @@ fn gaussian_solve(a : FixedArray[Double], b : FixedArray[Double], n : Int) -> Ar
     for row = col + 1; row < n; row = row + 1 {
       let factor = aug[row * (n + 1) + col] / pivot
       for j = col; j <= n; j = j + 1 {
-        aug[row * (n + 1) + j] = aug[row * (n + 1) + j] - factor * aug[col * (n + 1) + j]
+        aug[row * (n + 1) + j] = aug[row * (n + 1) + j] -
+          factor * aug[col * (n + 1) + j]
       }
     }
   }
@@ -155,6 +168,7 @@ fn gaussian_solve(a : FixedArray[Double], b : FixedArray[Double], n : Int) -> Ar
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "linear_fit: perfect line" {
   // y = 2 + 3x
   let points = [(0.0, 2.0), (1.0, 5.0), (2.0, 8.0), (3.0, 11.0)]
@@ -164,12 +178,14 @@ test "linear_fit: perfect line" {
   assert_true(absd(r2 - 1.0) < 0.0000000001)
 }
 
+///|
 test "linear_fit: noisy data" {
   let points = [(0.0, 1.1), (1.0, 2.9), (2.0, 3.2), (3.0, 4.8)]
   let (_, _, r2) = linear_fit(points)
   assert_true(r2 > 0.9)
 }
 
+///|
 test "linear_fit: horizontal line" {
   let points = [(0.0, 5.0), (1.0, 5.0), (2.0, 5.0)]
   let (a, b, _) = linear_fit(points)
@@ -177,21 +193,17 @@ test "linear_fit: horizontal line" {
   assert_true(absd(b) < 0.0000000001)
 }
 
+///|
 test "polynomial_fit: quadratic" {
   // y = 1 + 2x + 3x²
-  let points = [
-    (-2.0, 9.0),
-    (-1.0, 2.0),
-    (0.0, 1.0),
-    (1.0, 6.0),
-    (2.0, 17.0),
-  ]
+  let points = [(-2.0, 9.0), (-1.0, 2.0), (0.0, 1.0), (1.0, 6.0), (2.0, 17.0)]
   let coeffs = polynomial_fit(points, 2)
   assert_true(absd(coeffs[0] - 1.0) < 0.000001)
   assert_true(absd(coeffs[1] - 2.0) < 0.000001)
   assert_true(absd(coeffs[2] - 3.0) < 0.000001)
 }
 
+///|
 test "polynomial_fit: linear" {
   let points = [(0.0, 1.0), (1.0, 3.0), (2.0, 5.0), (3.0, 7.0)]
   let coeffs = polynomial_fit(points, 1)

@@ -30,6 +30,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A range query `[l, r]` (inclusive, 0-indexed) with its original index.
 pub struct Query {
   l : Int
@@ -37,6 +38,7 @@ pub struct Query {
   idx : Int
 }
 
+///|
 /// Construct a query.
 pub fn query(l : Int, r : Int, idx : Int) -> Query {
   { l, r, idx }
@@ -46,6 +48,7 @@ pub fn query(l : Int, r : Int, idx : Int) -> Query {
 // Mo's algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Execute a batch of range queries using Mo's algorithm.
 ///
 /// # Parameters
@@ -93,13 +96,11 @@ pub fn[T] mo(
     let bb = b.l / block_size
     if ba != bb {
       ba - bb
-    } else {
       // Odd blocks: sort r descending; even blocks: ascending.
-      if ba % 2 == 0 {
-        a.r - b.r
-      } else {
-        b.r - a.r
-      }
+    } else if ba % 2 == 0 {
+      a.r - b.r
+    } else {
+      b.r - a.r
     }
   })
   // Process queries.
@@ -138,6 +139,7 @@ pub fn[T] mo(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "mo: range sum queries" {
   // Array: [3, 1, 4, 1, 5, 9, 2, 6]
   let arr = [3, 1, 4, 1, 5, 9, 2, 6]
@@ -161,6 +163,7 @@ test "mo: range sum queries" {
   assert_eq(answers[4], 22)
 }
 
+///|
 test "mo: range distinct count" {
   // Array: [1, 2, 1, 3, 2, 1, 4]
   let arr = [1, 2, 1, 3, 2, 1, 4]
@@ -197,6 +200,7 @@ test "mo: range distinct count" {
   assert_eq(answers[4], 1)
 }
 
+///|
 test "mo: single element queries" {
   let arr = [42, 17, 99]
   let n = arr.length()
@@ -215,6 +219,7 @@ test "mo: single element queries" {
   assert_eq(answers[2], 99)
 }
 
+///|
 test "mo: full range query" {
   let arr = [1, 2, 3, 4, 5]
   let n = arr.length()
@@ -231,6 +236,7 @@ test "mo: full range query" {
   assert_eq(answers[0], 15)
 }
 
+///|
 test "mo: overlapping queries" {
   let arr = [5, 3, 8, 1, 9, 2, 7, 4, 6]
   let n = arr.length()
@@ -257,6 +263,7 @@ test "mo: overlapping queries" {
   assert_eq(answers[4], 12)
 }
 
+///|
 test "mo: stress test 1000 elements" {
   let n = 1000
   let arr : Array[Int] = []
@@ -290,12 +297,13 @@ test "mo: stress test 1000 elements" {
   }
 }
 
+///|
 test "mo: empty query list" {
   let answers : Array[Int] = mo(
     5,
     [],
-    fn(_idx) { },
-    fn(_idx) { },
+    fn(_idx) {  },
+    fn(_idx) {  },
     fn() { 0 },
     0,
   )

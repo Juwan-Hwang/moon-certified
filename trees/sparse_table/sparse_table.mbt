@@ -19,6 +19,7 @@
 /// - Query indices `l` and `r` must satisfy `0 ≤ l ≤ r < n`. Invalid ranges
 ///   return `None`.
 
+///|
 /// Sparse table for idempotent range queries.
 ///
 /// `table[k]` holds the combined values for all windows of length `2^k`.
@@ -30,14 +31,12 @@ pub struct SparseTable[T] {
   priv combine : (T, T) -> T
 }
 
+///|
 /// Build a sparse table over `arr` using the idempotent `combine` function.
 ///
 /// `combine` must be associative and idempotent: `combine(x, x) == x`.
 /// For range-min queries, pass `(a, b) => if a <= b { a } else { b }`.
-pub fn[T] build(
-  arr : Array[T],
-  combine : (T, T) -> T,
-) -> SparseTable[T] {
+pub fn[T] build(arr : Array[T], combine : (T, T) -> T) -> SparseTable[T] {
   let n = arr.length()
   if n == 0 {
     return { table: [], log2_table: FixedArray::make(1, 0), length: 0, combine }
@@ -70,6 +69,7 @@ pub fn[T] build(
   { table, log2_table, length: n, combine }
 }
 
+///|
 /// Query the combined value over the range `[l, r]` (inclusive, 0-indexed).
 /// Returns `None` if `l > r`, `l < 0`, or `r >= length`.
 ///
@@ -89,6 +89,7 @@ pub fn[T] query(st : SparseTable[T], l : Int, r : Int) -> T? {
   Some((st.combine)(left, right))
 }
 
+///|
 /// Return the number of elements in the table. O(1).
 pub fn[T] size(st : SparseTable[T]) -> Int {
   st.length
@@ -98,18 +99,34 @@ pub fn[T] size(st : SparseTable[T]) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 fn min_of(a : Int, b : Int) -> Int {
-  if a <= b { a } else { b }
+  if a <= b {
+    a
+  } else {
+    b
+  }
 }
 
+///|
 fn max_of(a : Int, b : Int) -> Int {
-  if a >= b { a } else { b }
+  if a >= b {
+    a
+  } else {
+    b
+  }
 }
 
+///|
 fn gcd_of(a : Int, b : Int) -> Int {
-  if b == 0 { a } else { gcd_of(b, a % b) }
+  if b == 0 {
+    a
+  } else {
+    gcd_of(b, a % b)
+  }
 }
 
+///|
 test "sparse_table: range minimum query" {
   let arr = [7, 2, 3, 0, 5, 10, 3, 12, 5]
   let st = build(arr, min_of)
@@ -121,6 +138,7 @@ test "sparse_table: range minimum query" {
   assert_eq(query(st, 5, 5), Some(10))
 }
 
+///|
 test "sparse_table: range maximum query" {
   let arr = [7, 2, 3, 0, 5, 10, 3, 12, 5]
   let st = build(arr, max_of)
@@ -130,6 +148,7 @@ test "sparse_table: range maximum query" {
   assert_eq(query(st, 1, 4), Some(5))
 }
 
+///|
 test "sparse_table: single element" {
   let arr = [42]
   let st = build(arr, min_of)
@@ -137,6 +156,7 @@ test "sparse_table: single element" {
   assert_eq(query(st, 0, 1), None) // out of range
 }
 
+///|
 test "sparse_table: empty array" {
   let arr : Array[Int] = []
   let st = build(arr, min_of)
@@ -144,6 +164,7 @@ test "sparse_table: empty array" {
   assert_eq(query(st, 0, 0), None)
 }
 
+///|
 test "sparse_table: two elements" {
   let arr = [5, 3]
   let st = build(arr, min_of)
@@ -152,6 +173,7 @@ test "sparse_table: two elements" {
   assert_eq(query(st, 1, 1), Some(3))
 }
 
+///|
 test "sparse_table: power-of-two length" {
   let arr = [8, 7, 6, 5, 4, 3, 2, 1]
   let st = build(arr, min_of)
@@ -171,6 +193,7 @@ test "sparse_table: power-of-two length" {
   }
 }
 
+///|
 test "sparse_table: all same elements" {
   let arr = [5, 5, 5, 5, 5]
   let st = build(arr, min_of)
@@ -178,6 +201,7 @@ test "sparse_table: all same elements" {
   assert_eq(query(st, 2, 3), Some(5))
 }
 
+///|
 test "sparse_table: ascending array" {
   let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   let st = build(arr, min_of)
@@ -186,6 +210,7 @@ test "sparse_table: ascending array" {
   assert_eq(query(st, 9, 9), Some(10))
 }
 
+///|
 test "sparse_table: descending array" {
   let arr = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
   let st = build(arr, min_of)
@@ -194,6 +219,7 @@ test "sparse_table: descending array" {
   assert_eq(query(st, 5, 9), Some(1))
 }
 
+///|
 test "sparse_table: large random brute-force check" {
   let arr = [73, 41, 92, 15, 88, 27, 64, 3, 56, 31, 97, 22, 49, 10, 68]
   let st = build(arr, min_of)
@@ -209,6 +235,7 @@ test "sparse_table: large random brute-force check" {
   }
 }
 
+///|
 test "sparse_table: invalid queries" {
   let arr = [1, 2, 3]
   let st = build(arr, min_of)
@@ -217,14 +244,19 @@ test "sparse_table: invalid queries" {
   assert_eq(query(st, 2, 1), None)
 }
 
+///|
 test "sparse_table: gcd query" {
   let arr = [12, 18, 24, 36, 8]
   let st = build(arr, gcd_of)
-  assert_eq(query(st, 0, 4), Some(gcd_of(gcd_of(gcd_of(gcd_of(12, 18), 24), 36), 8)))
+  assert_eq(
+    query(st, 0, 4),
+    Some(gcd_of(gcd_of(gcd_of(gcd_of(12, 18), 24), 36), 8)),
+  )
   assert_eq(query(st, 0, 1), Some(6))
   assert_eq(query(st, 2, 4), Some(4))
 }
 
+///|
 test "sparse_table: large array performance" {
   // Build table for 1000 elements and verify all queries
   let n = 1000

@@ -31,6 +31,7 @@
 // Core algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// Maximum-weight perfect bipartite matching.
 ///
 /// `cost` is a flat `n × n` matrix in row-major order. Returns
@@ -39,7 +40,7 @@
 /// matrix is too small.
 pub fn max_weight_matching(
   cost : FixedArray[Int64],
-  n : Int
+  n : Int,
 ) -> (Int64, FixedArray[Int])? {
   if n <= 0 || cost.length() < n * n {
     return None
@@ -51,12 +52,11 @@ pub fn max_weight_matching(
   }
   match min_cost_matching_core(neg_cost, n) {
     None => None
-    Some((min_total, assignment)) => {
-      Some((-min_total, assignment))
-    }
+    Some((min_total, assignment)) => Some((-min_total, assignment))
   }
 }
 
+///|
 /// Minimum-cost perfect bipartite matching.
 ///
 /// `cost` is a flat `n × n` matrix in row-major order. Returns
@@ -64,7 +64,7 @@ pub fn max_weight_matching(
 /// vertex assigned to left vertex `i`. Returns `None` for invalid input.
 pub fn min_cost_matching(
   cost : FixedArray[Int64],
-  n : Int
+  n : Int,
 ) -> (Int64, FixedArray[Int])? {
   if n <= 0 || cost.length() < n * n {
     return None
@@ -72,10 +72,11 @@ pub fn min_cost_matching(
   min_cost_matching_core(cost, n)
 }
 
+///|
 /// Core Kuhn-Munkres algorithm (minimum cost variant).
 fn min_cost_matching_core(
   cost : FixedArray[Int64],
-  n : Int
+  n : Int,
 ) -> (Int64, FixedArray[Int])? {
   // Use 1-indexed arrays for cleaner indexing.
   // u[1..n] = left potentials, v[1..n] = right potentials.
@@ -143,6 +144,7 @@ fn min_cost_matching_core(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hungarian: 1x1 min cost" {
   let cost : FixedArray[Int64] = [5L]
   let (total, assign) = min_cost_matching(cost, 1).unwrap()
@@ -150,6 +152,7 @@ test "hungarian: 1x1 min cost" {
   assert_eq(assign[0], 0)
 }
 
+///|
 test "hungarian: 1x1 max weight" {
   let cost : FixedArray[Int64] = [5L]
   let (total, assign) = max_weight_matching(cost, 1).unwrap()
@@ -157,6 +160,7 @@ test "hungarian: 1x1 max weight" {
   assert_eq(assign[0], 0)
 }
 
+///|
 test "hungarian: 2x2 min cost" {
   // Cost matrix:
   // [1, 2]
@@ -170,6 +174,7 @@ test "hungarian: 2x2 min cost" {
   assert_true(assign[0] != assign[1])
 }
 
+///|
 test "hungarian: 2x2 max weight" {
   // Weight matrix:
   // [1, 2]
@@ -182,17 +187,14 @@ test "hungarian: 2x2 max weight" {
   assert_true(assign[0] != assign[1])
 }
 
+///|
 test "hungarian: 3x3 min cost" {
   // Classic assignment problem.
   // [10, 5, 13]
   // [3, 7, 9]
   // [6, 8, 2]
   // Optimal: 0->1 (5), 1->0 (3), 2->2 (2) = 10
-  let cost : FixedArray[Int64] = [
-    10L, 5L, 13L,
-    3L, 7L, 9L,
-    6L, 8L, 2L,
-  ]
+  let cost : FixedArray[Int64] = [10L, 5L, 13L, 3L, 7L, 9L, 6L, 8L, 2L]
   let (total, assign) = min_cost_matching(cost, 3).unwrap()
   assert_eq(total, 10L)
   assert_eq(assign[0], 1) // 0 -> 1 (cost 5)
@@ -200,17 +202,14 @@ test "hungarian: 3x3 min cost" {
   assert_eq(assign[2], 2) // 2 -> 2 (cost 2)
 }
 
+///|
 test "hungarian: 3x3 max weight" {
   // Same matrix but maximised.
   // [10, 5, 13]
   // [3, 7, 9]
   // [6, 8, 2]
   // Optimal: 0->0 (10), 1->2 (9), 2->1 (8) = 27
-  let cost : FixedArray[Int64] = [
-    10L, 5L, 13L,
-    3L, 7L, 9L,
-    6L, 8L, 2L,
-  ]
+  let cost : FixedArray[Int64] = [10L, 5L, 13L, 3L, 7L, 9L, 6L, 8L, 2L]
   let (total, assign) = max_weight_matching(cost, 3).unwrap()
   assert_eq(total, 27L)
   assert_eq(assign[0], 0) // 0 -> 0 (weight 10)
@@ -218,6 +217,7 @@ test "hungarian: 3x3 max weight" {
   assert_eq(assign[2], 1) // 2 -> 1 (weight 8)
 }
 
+///|
 test "hungarian: 4x4 min cost" {
   // Classic problem from CLRS.
   // [9, 2, 7, 8]
@@ -226,10 +226,7 @@ test "hungarian: 4x4 min cost" {
   // [7, 6, 9, 4]
   // Optimal: 0->1 (2), 1->0 (6), 2->2 (1), 3->3 (4) = 13
   let cost : FixedArray[Int64] = [
-    9L, 2L, 7L, 8L,
-    6L, 4L, 3L, 7L,
-    5L, 8L, 1L, 8L,
-    7L, 6L, 9L, 4L,
+    9L, 2L, 7L, 8L, 6L, 4L, 3L, 7L, 5L, 8L, 1L, 8L, 7L, 6L, 9L, 4L,
   ]
   let (total, assign) = min_cost_matching(cost, 4).unwrap()
   assert_eq(total, 13L)
@@ -248,12 +245,14 @@ test "hungarian: 4x4 min cost" {
   assert_eq(verify, total)
 }
 
+///|
 test "hungarian: invalid input" {
   let cost : FixedArray[Int64] = []
   assert_true(min_cost_matching(cost, 0) is None)
   assert_true(max_weight_matching(cost, 0) is None)
 }
 
+///|
 test "hungarian: symmetric matrix" {
   // All costs equal — any perfect matching is optimal.
   let n = 4
@@ -268,14 +267,12 @@ test "hungarian: symmetric matrix" {
   }
 }
 
+///|
 test "hungarian: 5x5 random verify" {
   // 5x5 matrix, verify against brute force.
   let n = 5
   let cost : FixedArray[Int64] = [
-    3L, 8L, 2L, 9L, 1L,
-    7L, 4L, 6L, 3L, 5L,
-    2L, 7L, 9L, 4L, 8L,
-    6L, 3L, 1L, 8L, 7L,
+    3L, 8L, 2L, 9L, 1L, 7L, 4L, 6L, 3L, 5L, 2L, 7L, 9L, 4L, 8L, 6L, 3L, 1L, 8L, 7L,
     5L, 9L, 4L, 2L, 6L,
   ]
   let (total, _) = min_cost_matching(cost, n).unwrap()
@@ -284,13 +281,23 @@ test "hungarian: 5x5 random verify" {
   // Simple: try all 5! = 120 permutations.
   for a = 0; a < 5; a = a + 1 {
     for b = 0; b < 5; b = b + 1 {
-      if b == a { continue }
+      if b == a {
+        continue
+      }
       for c = 0; c < 5; c = c + 1 {
-        if c == a || c == b { continue }
+        if c == a || c == b {
+          continue
+        }
         for d = 0; d < 5; d = d + 1 {
-          if d == a || d == b || d == c { continue }
+          if d == a || d == b || d == c {
+            continue
+          }
           let e = 10 - a - b - c - d
-          let t = cost[a] + cost[5 + b] + cost[10 + c] + cost[15 + d] + cost[20 + e]
+          let t = cost[a] +
+            cost[5 + b] +
+            cost[10 + c] +
+            cost[15 + d] +
+            cost[20 + e]
           if t < best {
             best = t
           }

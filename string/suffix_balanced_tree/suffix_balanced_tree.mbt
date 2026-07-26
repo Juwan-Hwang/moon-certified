@@ -38,6 +38,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// A suffix balanced tree maintaining all suffixes of a fixed string.
 ///
 /// Characters are stored as `Int` code points. The string is provided upfront
@@ -47,6 +48,7 @@ pub struct SuffixBalancedTree {
   priv sorted : Array[Int] // suffix positions in lexicographic order
 }
 
+///|
 /// Compare two suffixes of `text` lexicographically.
 ///
 /// Returns negative if suffix at `i` < suffix at `j`, positive if >, 0 if equal.
@@ -70,6 +72,7 @@ fn compare_suffixes_array(text : Array[Int], i : Int, j : Int) -> Int {
   return 1 // suffix j is shorter -> smaller
 }
 
+///|
 /// Iterative bottom-up merge sort on an array of suffix positions.
 ///
 /// Sorts `arr` in-place using `compare_suffixes_array` as the ordering.
@@ -128,6 +131,7 @@ fn merge_sort_suffixes(text : Array[Int], arr : Array[Int]) -> Unit {
   }
 }
 
+///|
 /// Build a suffix balanced tree from an array of code points.
 ///
 /// Constructs the sorted suffix array using iterative bottom-up merge sort
@@ -142,11 +146,13 @@ pub fn SuffixBalancedTree::from_array(text : Array[Int]) -> SuffixBalancedTree {
   { text, sorted }
 }
 
+///|
 /// Number of characters (and suffixes) in the tree.
 pub fn SuffixBalancedTree::length(self : SuffixBalancedTree) -> Int {
   self.text.length()
 }
 
+///|
 /// Compare two suffixes lexicographically by direct character-by-character
 /// comparison.
 fn SuffixBalancedTree::compare_suffixes(
@@ -157,12 +163,9 @@ fn SuffixBalancedTree::compare_suffixes(
   compare_suffixes_array(self.text, i, j)
 }
 
+///|
 /// Compute LCP (longest common prefix) between suffixes at positions i and j.
-fn SuffixBalancedTree::lcp(
-  self : SuffixBalancedTree,
-  i : Int,
-  j : Int,
-) -> Int {
+fn SuffixBalancedTree::lcp(self : SuffixBalancedTree, i : Int, j : Int) -> Int {
   let n = self.text.length()
   let mut k = 0
   while i + k < n && j + k < n && self.text[i + k] == self.text[j + k] {
@@ -171,6 +174,7 @@ fn SuffixBalancedTree::lcp(
   k
 }
 
+///|
 /// Return the starting position of the k-th lexicographically smallest suffix.
 ///
 /// k is 0-based. Returns -1 if k is out of range.
@@ -184,13 +188,11 @@ pub fn SuffixBalancedTree::kth_suffix(
   self.sorted[k]
 }
 
+///|
 /// Return the rank (0-based) of the suffix at position `pos`.
 ///
 /// Returns -1 if `pos` is out of range.
-pub fn SuffixBalancedTree::rank_of(
-  self : SuffixBalancedTree,
-  pos : Int,
-) -> Int {
+pub fn SuffixBalancedTree::rank_of(self : SuffixBalancedTree, pos : Int) -> Int {
   let n = self.text.length()
   if pos < 0 || pos >= n {
     return -1
@@ -213,6 +215,7 @@ pub fn SuffixBalancedTree::rank_of(
   -1 // not found (shouldn't happen for valid pos)
 }
 
+///|
 /// Count the number of distinct substrings.
 ///
 /// Computed on demand using the formula:
@@ -236,6 +239,7 @@ pub fn SuffixBalancedTree::count_distinct_substrings(
   total_substrings - sum_lcp
 }
 
+///|
 /// Compare a pattern (as an array of code points) with the suffix at `pos`.
 ///
 /// Returns negative if pattern < suffix, 0 if pattern is a prefix of suffix,
@@ -258,6 +262,7 @@ fn SuffixBalancedTree::compare_pattern_with_suffix(
   0 // pattern is a prefix of suffix
 }
 
+///|
 /// Count the number of suffixes that start with the given pattern.
 ///
 /// `pattern` is an array of code points. Returns 0 if pattern is empty or
@@ -305,6 +310,7 @@ pub fn SuffixBalancedTree::pattern_count(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "suffix_balanced_tree: empty tree" {
   let tree = SuffixBalancedTree::from_array([])
   assert_eq(tree.length(), 0)
@@ -313,6 +319,7 @@ test "suffix_balanced_tree: empty tree" {
   assert_eq(tree.count_distinct_substrings(), 0L)
 }
 
+///|
 test "suffix_balanced_tree: single character" {
   let tree = SuffixBalancedTree::from_array([97]) // 'a'
   assert_eq(tree.length(), 1)
@@ -321,6 +328,7 @@ test "suffix_balanced_tree: single character" {
   assert_eq(tree.count_distinct_substrings(), 1L)
 }
 
+///|
 test "suffix_balanced_tree: sorted suffixes" {
   // String "abc": suffixes "abc"(0), "bc"(1), "c"(2)
   // Sorted: "abc" < "bc" < "c"
@@ -334,6 +342,7 @@ test "suffix_balanced_tree: sorted suffixes" {
   assert_eq(tree.rank_of(2), 2)
 }
 
+///|
 test "suffix_balanced_tree: reverse sorted" {
   // String "cba": suffixes "cba"(0), "ba"(1), "a"(2)
   // Sorted: "a"(2) < "ba"(1) < "cba"(0)
@@ -344,6 +353,7 @@ test "suffix_balanced_tree: reverse sorted" {
   assert_eq(tree.kth_suffix(2), 0) // "cba"
 }
 
+///|
 test "suffix_balanced_tree: repeated characters" {
   // String "aaa": suffixes "aaa"(0), "aa"(1), "a"(2)
   // Sorted: "a"(2) < "aa"(1) < "aaa"(0)
@@ -355,6 +365,7 @@ test "suffix_balanced_tree: repeated characters" {
   assert_eq(tree.count_distinct_substrings(), 3L)
 }
 
+///|
 test "suffix_balanced_tree: banana" {
   // String "banana": suffixes
   // 0: banana, 1: anana, 2: nana, 3: ana, 4: na, 5: a
@@ -371,6 +382,7 @@ test "suffix_balanced_tree: banana" {
   assert_eq(tree.count_distinct_substrings(), 15L)
 }
 
+///|
 test "suffix_balanced_tree: distinct substrings" {
   // String "abab": suffixes
   // 0: abab, 1: bab, 2: ab, 3: b
@@ -385,6 +397,7 @@ test "suffix_balanced_tree: distinct substrings" {
   assert_eq(tree.count_distinct_substrings(), 7L)
 }
 
+///|
 test "suffix_balanced_tree: pattern count" {
   // String "ababab": suffixes
   // 0: ababab, 1: babab, 2: abab, 3: bab, 4: ab, 5: b
@@ -400,11 +413,10 @@ test "suffix_balanced_tree: pattern count" {
   assert_eq(tree.pattern_count([97, 98, 97, 98, 97, 98]), 1)
 }
 
+///|
 test "suffix_balanced_tree: abcabcab" {
   // String "abcabcab"
-  let tree = SuffixBalancedTree::from_array([
-    97, 98, 99, 97, 98, 99, 97, 98,
-  ])
+  let tree = SuffixBalancedTree::from_array([97, 98, 99, 97, 98, 99, 97, 98])
   let n = tree.length()
   assert_eq(n, 8)
   // Sorted suffixes:
@@ -420,6 +432,7 @@ test "suffix_balanced_tree: abcabcab" {
   assert_eq(tree.kth_suffix(7), 2) // "cabcab"
 }
 
+///|
 test "suffix_balanced_tree: random stress test 50" {
   // Build a 50-character random string and verify suffix order
   let chars : Array[Int] = []
@@ -464,6 +477,7 @@ test "suffix_balanced_tree: random stress test 50" {
   }
 }
 
+///|
 test "suffix_balanced_tree: stress 100 chars" {
   let chars : Array[Int] = []
   let mut seed = 12345
@@ -497,7 +511,9 @@ test "suffix_balanced_tree: stress 100 chars" {
         break
       }
       if c1 > c2 {
-        abort("100-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}")
+        abort(
+          "100-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}",
+        )
       }
       i = i + 1
     }
@@ -507,6 +523,7 @@ test "suffix_balanced_tree: stress 100 chars" {
   }
 }
 
+///|
 test "suffix_balanced_tree: stress 200 chars" {
   let chars : Array[Int] = []
   let mut seed = 999
@@ -538,7 +555,9 @@ test "suffix_balanced_tree: stress 200 chars" {
         break
       }
       if c1 > c2 {
-        abort("200-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}")
+        abort(
+          "200-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}",
+        )
       }
       i = i + 1
     }
@@ -548,6 +567,7 @@ test "suffix_balanced_tree: stress 200 chars" {
   }
 }
 
+///|
 test "suffix_balanced_tree: rank_of consistency" {
   // rank_of(kth_suffix(k)) == k for all k
   let chars : Array[Int] = []
@@ -566,6 +586,7 @@ test "suffix_balanced_tree: rank_of consistency" {
   }
 }
 
+///|
 test "suffix_balanced_tree: distinct substrings ababa" {
   // String "ababa": suffixes
   // 0: ababa, 1: baba, 2: aba, 3: ba, 4: a
@@ -581,6 +602,7 @@ test "suffix_balanced_tree: distinct substrings ababa" {
   assert_eq(tree.count_distinct_substrings(), 9L)
 }
 
+///|
 test "suffix_balanced_tree: distinct substrings abac" {
   // String "abac": suffixes
   // 0: abac, 1: bac, 2: ac, 3: c

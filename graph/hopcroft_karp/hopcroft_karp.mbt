@@ -30,6 +30,7 @@
 // Bipartite graph representation
 // ---------------------------------------------------------------------------
 
+///|
 /// A bipartite graph with left vertices `{0..n-1}` and right vertices `{0..m-1}`.
 ///
 /// Edges are stored as adjacency lists for the left side.
@@ -39,12 +40,14 @@ pub struct BipartiteGraph {
   adj : Array[Array[Int]] // adj[u] = list of right vertices adjacent to left u
 }
 
+///|
 /// Create an empty bipartite graph with `n` left and `m` right vertices.
 pub fn new_graph(n : Int, m : Int) -> BipartiteGraph {
   let adj : Array[Array[Int]] = Array::makei(n, fn(_) { [] })
   { n, m, adj }
 }
 
+///|
 /// Add an edge from left vertex `u` to right vertex `v`.
 pub fn add_edge(graph : BipartiteGraph, u : Int, v : Int) -> Unit {
   graph.adj[u].push(v)
@@ -54,9 +57,11 @@ pub fn add_edge(graph : BipartiteGraph, u : Int, v : Int) -> Unit {
 // Hopcroft-Karp algorithm
 // ---------------------------------------------------------------------------
 
+///|
 /// INF sentinel for "unreachable" in BFS distances.
 const INF : Int = 1_000_000_000
 
+///|
 /// BFS: compute distances from unmatched left vertices.
 ///
 /// Returns `true` if at least one unmatched right vertex is reachable
@@ -112,6 +117,7 @@ fn bfs(
   found
 }
 
+///|
 /// DFS: find augmenting paths using the BFS layering.
 ///
 /// Returns `true` if an augmenting path was found from `u`.
@@ -155,6 +161,7 @@ fn dfs(
   false
 }
 
+///|
 /// Compute the maximum cardinality matching of a bipartite graph.
 ///
 /// Returns the matching size and the assignment arrays:
@@ -180,6 +187,7 @@ pub fn max_matching(graph : BipartiteGraph) -> (Int, Array[Int], Array[Int]) {
   (matching_size, match_l, match_r)
 }
 
+///|
 /// Compute only the size of the maximum matching (convenience wrapper).
 pub fn max_matching_size(graph : BipartiteGraph) -> Int {
   let (size, _, _) = max_matching(graph)
@@ -190,6 +198,7 @@ pub fn max_matching_size(graph : BipartiteGraph) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hopcroft_karp: simple matching" {
   // Left: 0, 1, 2   Right: 0, 1, 2
   // Edges: 0-0, 0-1, 1-1, 1-2, 2-2
@@ -203,17 +212,20 @@ test "hopcroft_karp: simple matching" {
   assert_eq(max_matching_size(g), 3)
 }
 
+///|
 test "hopcroft_karp: no edges" {
   let g = new_graph(3, 3)
   assert_eq(max_matching_size(g), 0)
 }
 
+///|
 test "hopcroft_karp: single edge" {
   let g = new_graph(1, 1)
   add_edge(g, 0, 0)
   assert_eq(max_matching_size(g), 1)
 }
 
+///|
 test "hopcroft_karp: star graph" {
   // Left: 0, 1, 2   Right: 0
   // All left vertices connect to right 0.
@@ -225,6 +237,7 @@ test "hopcroft_karp: star graph" {
   assert_eq(max_matching_size(g), 1)
 }
 
+///|
 test "hopcroft_karp: complete bipartite" {
   // K_{3,3}: every left connects to every right.
   // Max matching = 3 (perfect matching).
@@ -237,6 +250,7 @@ test "hopcroft_karp: complete bipartite" {
   assert_eq(max_matching_size(g), 3)
 }
 
+///|
 test "hopcroft_karp: asymmetric" {
   // Left: 0, 1   Right: 0, 1, 2
   // Edges: 0-0, 0-2, 1-1, 1-2
@@ -249,6 +263,7 @@ test "hopcroft_karp: asymmetric" {
   assert_eq(max_matching_size(g), 2)
 }
 
+///|
 test "hopcroft_karp: matching assignment" {
   // Left: 0, 1   Right: 0, 1
   // Edges: 0-0, 0-1, 1-0
@@ -265,6 +280,7 @@ test "hopcroft_karp: matching assignment" {
   }
 }
 
+///|
 test "hopcroft_karp: larger graph" {
   // Left: 0..4   Right: 0..4
   // A "chain" pattern: 0-0, 0-1, 1-1, 1-2, 2-2, 2-3, 3-3, 3-4, 4-4
@@ -279,6 +295,7 @@ test "hopcroft_karp: larger graph" {
   assert_eq(max_matching_size(g), 5)
 }
 
+///|
 test "hopcroft_karp: disconnected" {
   // Two components: {0-0, 1-1} and {2-2, 3-3}
   let g = new_graph(4, 4)

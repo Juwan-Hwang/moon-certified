@@ -36,6 +36,7 @@
 // Graph representation
 // ---------------------------------------------------------------------------
 
+///|
 /// An undirected graph using a bit-set adjacency matrix.
 ///
 /// `adj[i]` is a bit-set where bit `j` is set iff there is an edge between
@@ -45,6 +46,7 @@ pub struct Graph {
   adj : Array[Int] // bit-set adjacency: adj[i] has bit j set iff edge (i, j)
 }
 
+///|
 /// Create a new empty graph with `n` vertices.
 ///
 /// `n` must be at most 60 (limited by Int bit-width).
@@ -52,6 +54,7 @@ pub fn new_graph(n : Int) -> Graph {
   { n, adj: Array::make(n, 0) }
 }
 
+///|
 /// Add an undirected edge between `u` and `v`.
 pub fn add_edge(graph : Graph, u : Int, v : Int) -> Unit {
   if u == v {
@@ -61,6 +64,7 @@ pub fn add_edge(graph : Graph, u : Int, v : Int) -> Unit {
   graph.adj[v] = graph.adj[v] | (1 << u)
 }
 
+///|
 /// Check if there is an edge between `u` and `v`.
 pub fn has_edge(graph : Graph, u : Int, v : Int) -> Bool {
   (graph.adj[u] & (1 << v)) != 0
@@ -70,6 +74,7 @@ pub fn has_edge(graph : Graph, u : Int, v : Int) -> Bool {
 // Bron-Kerbosch with pivoting
 // ---------------------------------------------------------------------------
 
+///|
 /// Mutable state for the Bron-Kerbosch search.
 priv struct SearchState {
   adj : Array[Int]
@@ -78,6 +83,7 @@ priv struct SearchState {
   current : Array[Int]
 }
 
+///|
 /// Count the number of set bits in an Int (population count).
 fn popcount(x : Int) -> Int {
   let mut count = 0
@@ -89,6 +95,7 @@ fn popcount(x : Int) -> Int {
   count
 }
 
+///|
 /// Find the lowest set bit position, or -1 if none.
 fn lowest_bit(x : Int) -> Int {
   if x == 0 {
@@ -103,18 +110,14 @@ fn lowest_bit(x : Int) -> Int {
   pos
 }
 
+///|
 /// Bron-Kerbosch recursive search with pivoting.
 ///
 /// Parameters:
 /// - `r`: current clique (bit-set of vertices in the clique)
 /// - `p`: candidate vertices (bit-set)
 /// - `x`: excluded vertices (bit-set)
-fn bron_kerbosch(
-  state : SearchState,
-  r_size : Int,
-  p : Int,
-  x : Int,
-) -> Unit {
+fn bron_kerbosch(state : SearchState, r_size : Int, p : Int, x : Int) -> Unit {
   // If P and X are both empty, R is a maximal clique.
   if p == 0 && x == 0 {
     if r_size > state.best_size {
@@ -146,17 +149,13 @@ fn bron_kerbosch(
     v_list = v_list & (v_list - 1) // remove v
     let neighbors = state.adj[v]
     state.current.push(v)
-    bron_kerbosch(
-      state,
-      r_size + 1,
-      p & neighbors,
-      x & neighbors,
-    )
+    bron_kerbosch(state, r_size + 1, p & neighbors, x & neighbors)
     // Remove v from current.
     state.current.remove(state.current.length() - 1) |> ignore
   }
 }
 
+///|
 /// Find the size of the maximum clique in the graph.
 ///
 /// Returns 0 for an empty graph, or 1 for a graph with no edges
@@ -181,6 +180,7 @@ pub fn max_clique_size(graph : Graph) -> Int {
   state.best_size
 }
 
+///|
 /// Find the vertices of a maximum clique.
 ///
 /// Returns an array of vertex indices forming a maximum clique.
@@ -207,22 +207,26 @@ pub fn find_max_clique(graph : Graph) -> Array[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "max_clique: empty graph" {
   let g = new_graph(0)
   assert_eq(max_clique_size(g), 0)
 }
 
+///|
 test "max_clique: no edges" {
   let g = new_graph(5)
   assert_eq(max_clique_size(g), 1)
 }
 
+///|
 test "max_clique: single edge" {
   let g = new_graph(2)
   add_edge(g, 0, 1)
   assert_eq(max_clique_size(g), 2)
 }
 
+///|
 test "max_clique: triangle" {
   let g = new_graph(3)
   add_edge(g, 0, 1)
@@ -231,6 +235,7 @@ test "max_clique: triangle" {
   assert_eq(max_clique_size(g), 3)
 }
 
+///|
 test "max_clique: K4" {
   let g = new_graph(4)
   add_edge(g, 0, 1)
@@ -242,6 +247,7 @@ test "max_clique: K4" {
   assert_eq(max_clique_size(g), 4)
 }
 
+///|
 test "max_clique: two triangles" {
   // 0-1-2 form a triangle, 3-4-5 form a triangle, connected by edge 2-3.
   let g = new_graph(6)
@@ -258,6 +264,7 @@ test "max_clique: two triangles" {
   assert_eq(max_clique_size(g), 3)
 }
 
+///|
 test "max_clique: path graph" {
   // 0-1-2-3-4, max clique = 2 (any edge)
   let g = new_graph(5)
@@ -268,6 +275,7 @@ test "max_clique: path graph" {
   assert_eq(max_clique_size(g), 2)
 }
 
+///|
 test "max_clique: K4 plus extras" {
   // K4 on vertices 0,1,2,3 plus vertex 4 connected only to 0.
   let g = new_graph(5)
@@ -281,6 +289,7 @@ test "max_clique: K4 plus extras" {
   assert_eq(max_clique_size(g), 4)
 }
 
+///|
 test "max_clique: complete graph K5" {
   let g = new_graph(5)
   for i = 0; i < 5; i = i + 1 {
@@ -291,6 +300,7 @@ test "max_clique: complete graph K5" {
   assert_eq(max_clique_size(g), 5)
 }
 
+///|
 test "max_clique: find max clique" {
   // Triangle 0-1-2, plus vertex 3 connected to 0 and 1.
   // Max clique: {0, 1, 2} or {0, 1, 3} → size 3
@@ -310,6 +320,7 @@ test "max_clique: find max clique" {
   }
 }
 
+///|
 test "max_clique: pentagon" {
   // Pentagon (5-cycle): no triangles, max clique = 2
   let g = new_graph(5)
@@ -321,6 +332,7 @@ test "max_clique: pentagon" {
   assert_eq(max_clique_size(g), 2)
 }
 
+///|
 test "max_clique: complex graph" {
   // Graph with two K3's sharing one vertex, plus an extra edge.
   // Vertices: 0,1,2 (triangle), 0,3,4 (triangle), 5-6 edge.

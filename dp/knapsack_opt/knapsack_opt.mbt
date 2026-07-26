@@ -15,6 +15,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Multiple (bounded) knapsack via binary decomposition.
 ///
 /// Decomposes each item with count `c` into log(c) "meta-items" of sizes
@@ -70,6 +71,7 @@ pub fn multiple_knapsack(
   dp[capacity]
 }
 
+///|
 /// 2D Knapsack (two capacity constraints).
 ///
 /// Classic knapsack with both weight and volume limits.
@@ -95,13 +97,8 @@ pub fn knapsack_2d(
     return 0
   }
   // dp[w][v] = max value with weight cap w and volume cap v.
-  let dp = FixedArray::make(
-    (weight_cap + 1) * (volume_cap + 1),
-    0,
-  )
-  let idx = fn(w : Int, v : Int) -> Int {
-    w * (volume_cap + 1) + v
-  }
+  let dp = FixedArray::make((weight_cap + 1) * (volume_cap + 1), 0)
+  let idx = fn(w : Int, v : Int) -> Int { w * (volume_cap + 1) + v }
   for i = 0; i < n; i = i + 1 {
     let wi = weights[i]
     let vi = volumes[i]
@@ -126,6 +123,7 @@ pub fn knapsack_2d(
   dp[idx(weight_cap, volume_cap)]
 }
 
+///|
 /// Monotone-queue optimized bounded knapsack (single item).
 ///
 /// For a single item with weight `w`, value `v`, count `c`, and capacity
@@ -173,7 +171,8 @@ pub fn monotone_queue_knapsack(
         // The value we'd get by adding k items of this type.
         let adjusted = dp[pos] - k * v
         // Remove elements from back while they're <= adjusted.
-        while deque_val.length() > 0 && deque_val[deque_val.length() - 1] <= adjusted {
+        while deque_val.length() > 0 &&
+              deque_val[deque_val.length() - 1] <= adjusted {
           deque_idx.remove(deque_idx.length() - 1) |> ignore
           deque_val.remove(deque_val.length() - 1) |> ignore
         }
@@ -201,6 +200,7 @@ pub fn monotone_queue_knapsack(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "multiple_knapsack: basic" {
   // 3 items, each usable once.
   let w = [2, 3, 4]
@@ -209,6 +209,7 @@ test "multiple_knapsack: basic" {
   assert_eq(multiple_knapsack(w, v, c, 5), 7) // items 0+1
 }
 
+///|
 test "multiple_knapsack: multiple copies" {
   // Item: weight=2, value=3, count=3. Capacity=6.
   // Best: 3 copies = value 9.
@@ -218,6 +219,7 @@ test "multiple_knapsack: multiple copies" {
   assert_eq(multiple_knapsack(w, v, c, 6), 9)
 }
 
+///|
 test "multiple_knapsack: mixed" {
   let w = [1, 2, 3]
   let v = [1, 3, 5]
@@ -226,6 +228,7 @@ test "multiple_knapsack: mixed" {
   assert_eq(multiple_knapsack(w, v, c, 7), 11)
 }
 
+///|
 test "knapsack_2d: basic" {
   // Items: (w,v,val) = [(2,1,3), (1,2,4)]
   // Caps: weight=3, volume=3
@@ -236,6 +239,7 @@ test "knapsack_2d: basic" {
   assert_eq(knapsack_2d(w, vol, v, 3, 3), 7)
 }
 
+///|
 test "knapsack_2d: single constraint" {
   let w = [3, 4, 5]
   let vol = [1, 1, 1]
@@ -244,6 +248,7 @@ test "knapsack_2d: single constraint" {
   assert_eq(knapsack_2d(w, vol, v, 7, 3), 9)
 }
 
+///|
 test "monotone_queue_knapsack: matches multiple knapsack" {
   let w = [2, 3, 4]
   let v = [3, 4, 5]
@@ -251,6 +256,7 @@ test "monotone_queue_knapsack: matches multiple knapsack" {
   assert_eq(monotone_queue_knapsack(w, v, c, 5), 7)
 }
 
+///|
 test "monotone_queue_knapsack: multiple copies" {
   let w = [2]
   let v = [3]
@@ -258,6 +264,7 @@ test "monotone_queue_knapsack: multiple copies" {
   assert_eq(monotone_queue_knapsack(w, v, c, 6), 9)
 }
 
+///|
 test "monotone_queue_knapsack: large counts" {
   let w = [1, 2]
   let v = [1, 3]
@@ -266,6 +273,7 @@ test "monotone_queue_knapsack: large counts" {
   assert_eq(monotone_queue_knapsack(w, v, c, 10), 15)
 }
 
+///|
 test "multiple_knapsack: empty" {
   let w : Array[Int] = []
   let v : Array[Int] = []
@@ -273,6 +281,7 @@ test "multiple_knapsack: empty" {
   assert_eq(multiple_knapsack(w, v, c, 10), 0)
 }
 
+///|
 test "knapsack_2d: empty" {
   let w : Array[Int] = []
   let vol : Array[Int] = []

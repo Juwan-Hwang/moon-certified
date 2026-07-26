@@ -43,9 +43,11 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Sentinel for "no vertex" / "no edge".
 let nil : Int = -1
 
+///|
 /// A directed edge in the residual graph (linked-forward-star representation).
 ///
 /// Edges are stored in pairs: edge `i` (forward) and edge `i ^ 1` (reverse),
@@ -56,6 +58,7 @@ priv struct Edge {
   next : Int
 }
 
+///|
 /// The flow network.
 priv struct FlowGraph {
   head : Array[Int]
@@ -63,13 +66,10 @@ priv struct FlowGraph {
   mut edge_count : Int
 }
 
+///|
 /// Build the residual graph from an edge list.
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> FlowGraph {
-  let g : FlowGraph = {
-    head: Array::make(n, nil),
-    edges: [],
-    edge_count: 0,
-  }
+  let g : FlowGraph = { head: Array::make(n, nil), edges: [], edge_count: 0 }
   for k = 0; k < edge_list.length(); k = k + 1 {
     let (u, v, cap) = edge_list[k]
     if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0L {
@@ -85,6 +85,7 @@ fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> FlowGraph {
   g
 }
 
+///|
 /// Compute the maximum flow from `src` to `sink` using HLPP.
 ///
 /// # Parameters
@@ -265,35 +266,27 @@ pub fn max_flow(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "hlpp: simple chain" {
   let edges = [(0, 1, 10L), (1, 2, 10L), (2, 3, 10L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(10L))
 }
 
+///|
 test "hlpp: diamond network" {
   // 0 → 1 (10), 0 → 2 (10), 1 → 3 (10), 2 → 3 (10), 1 → 2 (1)
-  let edges = [
-    (0, 1, 10L),
-    (0, 2, 10L),
-    (1, 3, 10L),
-    (2, 3, 10L),
-    (1, 2, 1L),
-  ]
+  let edges = [(0, 1, 10L), (0, 2, 10L), (1, 3, 10L), (2, 3, 10L), (1, 2, 1L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(20L))
 }
 
+///|
 test "hlpp: bottleneck" {
   // 0 → 1 (10), 1 → 2 (5), 1 → 3 (5), 2 → 4 (5), 3 → 4 (5)
-  let edges = [
-    (0, 1, 10L),
-    (1, 2, 5L),
-    (1, 3, 5L),
-    (2, 4, 5L),
-    (3, 4, 5L),
-  ]
+  let edges = [(0, 1, 10L), (1, 2, 5L), (1, 3, 5L), (2, 4, 5L), (3, 4, 5L)]
   assert_eq(max_flow(5, 0, 4, edges), Some(10L))
 }
 
+///|
 test "hlpp: multiple sources and sinks via super node" {
   // Super source 0 → real sources 1, 2 (cap 10 each)
   // Real sinks 3, 4 → super sink 5 (cap 10 each)
@@ -311,22 +304,18 @@ test "hlpp: multiple sources and sinks via super node" {
   assert_eq(max_flow(6, 0, 5, edges), Some(20L))
 }
 
+///|
 test "hlpp: disconnected source and sink" {
   let edges = [(0, 1, 10L), (2, 3, 10L)]
   assert_eq(max_flow(4, 0, 3, edges), Some(0L))
 }
 
+///|
 test "hlpp: reverse edges used" {
   // Classic example where reverse edges are needed for optimality.
   // 0 → 1 (10), 0 → 2 (10), 1 → 2 (5), 1 → 3 (5), 2 → 3 (10)
   // Max flow = 15: push 10 through 0→1→3 and 0→2→3, but 1→2→3 uses reverse.
-  let edges = [
-    (0, 1, 10L),
-    (0, 2, 10L),
-    (1, 2, 5L),
-    (1, 3, 5L),
-    (2, 3, 10L),
-  ]
+  let edges = [(0, 1, 10L), (0, 2, 10L), (1, 2, 5L), (1, 3, 5L), (2, 3, 10L)]
   let result = max_flow(4, 0, 3, edges)
   match result {
     Some(f) => assert_true(f >= 15L && f <= 15L)
@@ -334,6 +323,7 @@ test "hlpp: reverse edges used" {
   }
 }
 
+///|
 test "hlpp: invalid inputs" {
   assert_eq(max_flow(0, 0, 1, []), None)
   assert_eq(max_flow(4, -1, 3, []), None)
@@ -341,6 +331,7 @@ test "hlpp: invalid inputs" {
   assert_eq(max_flow(4, 0, 0, []), None)
 }
 
+///|
 test "hlpp: large capacity no overflow" {
   // Total flow = 3 * 2^40 ≈ 3.3 * 10^12, fits in Int64.
   let big_cap = 1099511627776L // 2^40
@@ -359,6 +350,7 @@ test "hlpp: large capacity no overflow" {
   }
 }
 
+///|
 test "hlpp: medium graph known answer" {
   // A 6-vertex graph with a known max-flow of 23.
   // Constructed so that multiple augmenting paths and reverse edges are needed.
@@ -393,6 +385,7 @@ test "hlpp: medium graph known answer" {
   }
 }
 
+///|
 test "hlpp: dense graph stress" {
   // Complete graph K_10 with uniform capacity 5.
   // Max flow from 0 to 9 = min(9*5, 9*5) = 45 (9 parallel paths, each cap 5).
@@ -412,23 +405,22 @@ test "hlpp: dense graph stress" {
   }
 }
 
+///|
 test "hlpp: graph with zero-capacity edges" {
   // Edges with zero capacity should be ignored.
   let edges = [(0, 1, 0L), (0, 1, 10L), (1, 2, 10L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(10L))
 }
 
+///|
 test "hlpp: self-loop ignored" {
   let edges = [(0, 0, 100L), (0, 1, 10L), (1, 2, 10L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(10L))
 }
 
+///|
 test "hlpp: parallel edges" {
   // Two parallel edges 0→1 with capacity 10 each should give max flow 20.
-  let edges = [
-    (0, 1, 10L),
-    (0, 1, 10L),
-    (1, 2, 20L),
-  ]
+  let edges = [(0, 1, 10L), (0, 1, 10L), (1, 2, 20L)]
   assert_eq(max_flow(3, 0, 2, edges), Some(20L))
 }

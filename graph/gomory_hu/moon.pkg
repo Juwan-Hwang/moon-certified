@@ -1,0 +1,7 @@
+import {
+  "moon-certified/graph/max_flow",
+}
+
+options(
+  "proof-enabled": false,
+)

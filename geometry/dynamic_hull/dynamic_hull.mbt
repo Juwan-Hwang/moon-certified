@@ -32,6 +32,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
+///|
 /// Dynamic convex hull supporting online point insertion.
 ///
 /// Maintains the convex hull of a dynamic set of 2D integer points.
@@ -45,11 +46,17 @@ pub struct DynamicHull {
   mut dirty : Bool
 }
 
+///|
 /// Create an empty dynamic hull.
 pub fn new() -> DynamicHull {
-  { points: [], hull: FixedArray::make(0, @geometry_utils.point(0, 0)), dirty: false }
+  {
+    points: [],
+    hull: FixedArray::make(0, @geometry_utils.point(0, 0)),
+    dirty: false,
+  }
 }
 
+///|
 /// Insert a point into the dynamic hull.
 ///
 /// The point is added to the internal set; the hull is marked for rebuilding.
@@ -59,6 +66,7 @@ pub fn insert(dh : DynamicHull, p : @geometry_utils.Point) -> Unit {
   dh.dirty = true
 }
 
+///|
 /// Get the current convex hull.
 ///
 /// Returns the hull vertices in counterclockwise order. If the hull has been
@@ -70,6 +78,7 @@ pub fn hull(dh : DynamicHull) -> FixedArray[@geometry_utils.Point] {
   dh.hull
 }
 
+///|
 /// Rebuild the convex hull from all stored points.
 fn rebuild(dh : DynamicHull) -> Unit {
   let n = dh.points.length()
@@ -88,13 +97,7 @@ fn rebuild(dh : DynamicHull) -> Unit {
   for i = 0; i < n; i = i + 1 {
     sorted.push(dh.points[i])
   }
-  sorted.sort_by(fn(a, b) {
-    if a.x != b.x {
-      a.x - b.x
-    } else {
-      a.y - b.y
-    }
-  })
+  sorted.sort_by(fn(a, b) { if a.x != b.x { a.x - b.x } else { a.y - b.y } })
   // Remove duplicates.
   let unique : Array[@geometry_utils.Point] = [sorted[0]]
   for i = 1; i < sorted.length(); i = i + 1 {
@@ -113,11 +116,12 @@ fn rebuild(dh : DynamicHull) -> Unit {
   let lower : Array[@geometry_utils.Point] = []
   for i = 0; i < m; i = i + 1 {
     while lower.length() >= 2 &&
-      @geometry_utils.cross64(
-        lower[lower.length() - 2],
-        lower[lower.length() - 1],
-        unique[i],
-      ) <= 0L {
+          @geometry_utils.cross64(
+            lower[lower.length() - 2],
+            lower[lower.length() - 1],
+            unique[i],
+          ) <=
+          0L {
       ignore(lower.pop())
     }
     lower.push(unique[i])
@@ -125,11 +129,12 @@ fn rebuild(dh : DynamicHull) -> Unit {
   let upper : Array[@geometry_utils.Point] = []
   for i = m - 1; i >= 0; i = i - 1 {
     while upper.length() >= 2 &&
-      @geometry_utils.cross64(
-        upper[upper.length() - 2],
-        upper[upper.length() - 1],
-        unique[i],
-      ) <= 0L {
+          @geometry_utils.cross64(
+            upper[upper.length() - 2],
+            upper[upper.length() - 1],
+            unique[i],
+          ) <=
+          0L {
       ignore(upper.pop())
     }
     upper.push(unique[i])
@@ -137,7 +142,11 @@ fn rebuild(dh : DynamicHull) -> Unit {
   // Combine: lower[0..len-2] + upper[0..len-2] (skip last of each = first of other).
   let hull_size = lower.length() + upper.length() - 2
   let result = FixedArray::make(
-    if hull_size > 0 { hull_size } else { 0 },
+    if hull_size > 0 {
+      hull_size
+    } else {
+      0
+    },
     @geometry_utils.point(0, 0),
   )
   let mut idx = 0
@@ -153,6 +162,7 @@ fn rebuild(dh : DynamicHull) -> Unit {
   dh.dirty = false
 }
 
+///|
 /// Check if a point is strictly inside the convex hull.
 ///
 /// Uses binary search on the hull edges. Returns `false` for points on the
@@ -174,6 +184,7 @@ pub fn is_inside(dh : DynamicHull, p : @geometry_utils.Point) -> Bool {
   true
 }
 
+///|
 /// Check if a point is on or inside the convex hull.
 pub fn is_on_or_inside(dh : DynamicHull, p : @geometry_utils.Point) -> Bool {
   let h = hull(dh)
@@ -218,12 +229,14 @@ pub fn is_on_or_inside(dh : DynamicHull, p : @geometry_utils.Point) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "dynamic_hull: empty" {
   let dh = new()
   let h = hull(dh)
   assert_eq(h.length(), 0)
 }
 
+///|
 test "dynamic_hull: single point" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -233,6 +246,7 @@ test "dynamic_hull: single point" {
   assert_eq(h[0].y, 0)
 }
 
+///|
 test "dynamic_hull: two points" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -241,6 +255,7 @@ test "dynamic_hull: two points" {
   assert_eq(h.length(), 2)
 }
 
+///|
 test "dynamic_hull: triangle" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -250,6 +265,7 @@ test "dynamic_hull: triangle" {
   assert_eq(h.length(), 3)
 }
 
+///|
 test "dynamic_hull: interior point excluded" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -261,6 +277,7 @@ test "dynamic_hull: interior point excluded" {
   assert_eq(h.length(), 4) // (5,5) should be excluded
 }
 
+///|
 test "dynamic_hull: incremental insertion" {
   let dh = new()
   // Insert vertices of a square one by one.
@@ -282,6 +299,7 @@ test "dynamic_hull: incremental insertion" {
   assert_eq(h5.length(), 4)
 }
 
+///|
 test "dynamic_hull: is_inside" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -297,6 +315,7 @@ test "dynamic_hull: is_inside" {
   assert_false(is_inside(dh, @geometry_utils.point(0, 5)))
 }
 
+///|
 test "dynamic_hull: is_on_or_inside" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -312,6 +331,7 @@ test "dynamic_hull: is_on_or_inside" {
   assert_false(is_on_or_inside(dh, @geometry_utils.point(-1, 5)))
 }
 
+///|
 test "dynamic_hull: collinear points" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -322,6 +342,7 @@ test "dynamic_hull: collinear points" {
   assert_eq(h.length(), 2)
 }
 
+///|
 test "dynamic_hull: duplicates handled" {
   let dh = new()
   insert(dh, @geometry_utils.point(0, 0))
@@ -331,13 +352,23 @@ test "dynamic_hull: duplicates handled" {
   assert_eq(h.length(), 1)
 }
 
+///|
 test "dynamic_hull: large random cross-check" {
   // Insert many points and verify hull matches static computation.
   let dh = new()
   let pts = [
-    (0, 0), (10, 0), (10, 10), (0, 10),
-    (5, 5), (3, 7), (7, 3), (2, 8),
-    (8, 2), (5, 1), (1, 5), (9, 9),
+    (0, 0),
+    (10, 0),
+    (10, 10),
+    (0, 10),
+    (5, 5),
+    (3, 7),
+    (7, 3),
+    (2, 8),
+    (8, 2),
+    (5, 1),
+    (1, 5),
+    (9, 9),
   ]
   for i = 0; i < pts.length(); i = i + 1 {
     let (x, y) = pts[i]
@@ -347,7 +378,11 @@ test "dynamic_hull: large random cross-check" {
   // The hull should be the 4 corners.
   assert_eq(h.length(), 4)
   // Verify all corners are present.
-  let has_corner = fn(hull : FixedArray[@geometry_utils.Point], x : Int, y : Int) -> Bool {
+  let has_corner = fn(
+    hull : FixedArray[@geometry_utils.Point],
+    x : Int,
+    y : Int,
+  ) -> Bool {
     for i = 0; i < hull.length(); i = i + 1 {
       if hull[i].x == x && hull[i].y == y {
         return true

@@ -12,6 +12,7 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Sort an array in-place using pdqsort (ascending).
 pub fn pdq_sort(arr : Array[Int]) -> Unit {
   if arr.length() > 1 {
@@ -19,6 +20,7 @@ pub fn pdq_sort(arr : Array[Int]) -> Unit {
   }
 }
 
+///|
 /// Sort an array in-place using pdqsort (descending).
 pub fn pdq_sort_desc(arr : Array[Int]) -> Unit {
   if arr.length() > 1 {
@@ -26,6 +28,7 @@ pub fn pdq_sort_desc(arr : Array[Int]) -> Unit {
   }
 }
 
+///|
 fn max_depth(n : Int) -> Int {
   // 2 * log2(n) — depth limit before falling back to heapsort.
   let mut d = 0
@@ -37,8 +40,13 @@ fn max_depth(n : Int) -> Int {
   d * 2
 }
 
+///|
 fn pdq_sort_range(
-  arr : Array[Int], lo : Int, hi : Int, depth : Int, was_balanced : Bool,
+  arr : Array[Int],
+  lo : Int,
+  hi : Int,
+  depth : Int,
+  was_balanced : Bool,
 ) -> Unit {
   let mut lo = lo
   let mut hi = hi
@@ -97,8 +105,12 @@ fn pdq_sort_range(
   }
 }
 
+///|
 fn pdq_sort_range_desc(
-  arr : Array[Int], lo : Int, hi : Int, depth : Int,
+  arr : Array[Int],
+  lo : Int,
+  hi : Int,
+  depth : Int,
 ) -> Unit {
   let mut lo = lo
   let mut hi = hi
@@ -152,12 +164,14 @@ fn pdq_sort_range_desc(
   }
 }
 
+///|
 fn swap(arr : Array[Int], a : Int, b : Int) -> Unit {
   let tmp = arr[a]
   arr[a] = arr[b]
   arr[b] = tmp
 }
 
+///|
 fn insertion_sort_range(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   for i = lo + 1; i <= hi; i = i + 1 {
     let key = arr[i]
@@ -170,6 +184,7 @@ fn insertion_sort_range(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 fn insertion_sort_range_desc(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   for i = lo + 1; i <= hi; i = i + 1 {
     let key = arr[i]
@@ -182,6 +197,7 @@ fn insertion_sort_range_desc(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 fn heap_sort_range(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   let n = hi - lo + 1
   // Build max-heap.
@@ -199,6 +215,7 @@ fn heap_sort_range(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 fn heap_sort_range_desc(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   let n = hi - lo + 1
   let mut i = n / 2 - 1
@@ -214,6 +231,7 @@ fn heap_sort_range_desc(arr : Array[Int], lo : Int, hi : Int) -> Unit {
   }
 }
 
+///|
 fn sift_down(arr : Array[Int], offset : Int, i : Int, n : Int) -> Unit {
   let mut idx = i
   while true {
@@ -234,6 +252,7 @@ fn sift_down(arr : Array[Int], offset : Int, i : Int, n : Int) -> Unit {
   }
 }
 
+///|
 fn sift_down_min(arr : Array[Int], offset : Int, i : Int, n : Int) -> Unit {
   let mut idx = i
   while true {
@@ -258,6 +277,7 @@ fn sift_down_min(arr : Array[Int], offset : Int, i : Int, n : Int) -> Unit {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "pdq_sort: sorted output" {
   let arr = [5, 3, 8, 1, 9, 2, 7, 4, 6, 0]
   pdq_sort(arr)
@@ -266,6 +286,7 @@ test "pdq_sort: sorted output" {
   }
 }
 
+///|
 test "pdq_sort: already sorted" {
   let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   pdq_sort(arr)
@@ -274,6 +295,7 @@ test "pdq_sort: already sorted" {
   }
 }
 
+///|
 test "pdq_sort: reverse sorted" {
   let arr = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
   pdq_sort(arr)
@@ -282,18 +304,21 @@ test "pdq_sort: reverse sorted" {
   }
 }
 
+///|
 test "pdq_sort: duplicates" {
   let arr = [3, 3, 3, 1, 1, 2, 2, 2, 1, 3]
   pdq_sort(arr)
   assert_eq(arr, [1, 1, 1, 2, 2, 2, 3, 3, 3, 3])
 }
 
+///|
 test "pdq_sort: single element" {
   let arr = [42]
   pdq_sort(arr)
   assert_eq(arr, [42])
 }
 
+///|
 test "pdq_sort: descending" {
   let arr = [5, 3, 8, 1, 9, 2, 7, 4, 6, 0]
   pdq_sort_desc(arr)
@@ -302,6 +327,7 @@ test "pdq_sort: descending" {
   }
 }
 
+///|
 test "pdq_sort: large random" {
   let arr : Array[Int] = []
   let mut seed = 12345

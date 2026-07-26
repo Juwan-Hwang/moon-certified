@@ -30,11 +30,13 @@
 // This eliminates the code duplication that previously existed across all
 // geometry packages and ensures a single point representation.
 
+///|
 /// Convenience constructor — delegates to @geometry_utils.point.
 pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
   @geometry_utils.point(x, y)
 }
 
+///|
 /// Lexicographic comparator for points by (x, y). Returns a negative value
 /// when `a` should precede `b`.
 ///
@@ -43,23 +45,35 @@ pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
 fn cmp_point(a : @geometry_utils.Point, b : @geometry_utils.Point) -> Int {
   if a.x != b.x {
     let d = a.x.to_int64() - b.x.to_int64()
-    if d < 0L { -1 } else { 1 }
+    if d < 0L {
+      -1
+    } else {
+      1
+    }
   } else {
     let d = a.y.to_int64() - b.y.to_int64()
-    if d < 0L { -1 } else if d > 0L { 1 } else { 0 }
+    if d < 0L {
+      -1
+    } else if d > 0L {
+      1
+    } else {
+      0
+    }
   }
 }
 
+///|
 /// True if two points have identical coordinates.
 fn point_eq(a : @geometry_utils.Point, b : @geometry_utils.Point) -> Bool {
   a.x == b.x && a.y == b.y
 }
 
+///|
 /// Compute the convex hull of `points` (Andrew's monotone chain).
 ///
 /// Returns the hull vertices in counterclockwise order.
 pub fn convex_hull(
-  points : Array[@geometry_utils.Point]
+  points : Array[@geometry_utils.Point],
 ) -> Array[@geometry_utils.Point] {
   let n = points.length()
   // Fewer than 3 points cannot enclose an area: return them unchanged.
@@ -94,7 +108,12 @@ pub fn convex_hull(
   for i = 0; i < m; i = i + 1 {
     let p = uniq[i]
     while lower.length() >= 2 &&
-      @geometry_utils.cross64(lower[lower.length() - 2], lower[lower.length() - 1], p) <= 0L {
+          @geometry_utils.cross64(
+            lower[lower.length() - 2],
+            lower[lower.length() - 1],
+            p,
+          ) <=
+          0L {
       let _ = lower.pop()
     }
     lower.push(p)
@@ -104,7 +123,12 @@ pub fn convex_hull(
   for i = m - 1; i >= 0; i = i - 1 {
     let p = uniq[i]
     while upper.length() >= 2 &&
-      @geometry_utils.cross64(upper[upper.length() - 2], upper[upper.length() - 1], p) <= 0L {
+          @geometry_utils.cross64(
+            upper[upper.length() - 2],
+            upper[upper.length() - 1],
+            p,
+          ) <=
+          0L {
       let _ = upper.pop()
     }
     upper.push(p)
@@ -126,6 +150,7 @@ pub fn convex_hull(
 // Helpers for tests
 // ---------------------------------------------------------------------------
 
+///|
 fn min2(a : Int, b : Int) -> Int {
   if a <= b {
     a
@@ -134,6 +159,7 @@ fn min2(a : Int, b : Int) -> Int {
   }
 }
 
+///|
 fn max2(a : Int, b : Int) -> Int {
   if a >= b {
     a
@@ -142,6 +168,7 @@ fn max2(a : Int, b : Int) -> Int {
   }
 }
 
+///|
 /// True iff `hull` is a strictly counterclockwise convex polygon.
 fn is_convex_ccw(hull : Array[@geometry_utils.Point]) -> Bool {
   let m = hull.length()
@@ -159,6 +186,7 @@ fn is_convex_ccw(hull : Array[@geometry_utils.Point]) -> Bool {
   true
 }
 
+///|
 /// True iff `hull` contains no repeated vertex.
 fn has_no_duplicates(hull : Array[@geometry_utils.Point]) -> Bool {
   let m = hull.length()
@@ -172,6 +200,7 @@ fn has_no_duplicates(hull : Array[@geometry_utils.Point]) -> Bool {
   true
 }
 
+///|
 /// True iff every point of `points` lies on or inside `hull`.
 fn all_inside_or_on(
   points : Array[@geometry_utils.Point],
@@ -230,24 +259,41 @@ fn all_inside_or_on(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "andrew_hull: basic triangle" {
-  let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(2, 0), @geometry_utils.point(0, 2)]
+  let pts = [
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(2, 0),
+    @geometry_utils.point(0, 2),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 3)
   assert_true(is_convex_ccw(hull))
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: square" {
-  let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(2, 0), @geometry_utils.point(2, 2), @geometry_utils.point(0, 2)]
+  let pts = [
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(2, 0),
+    @geometry_utils.point(2, 2),
+    @geometry_utils.point(0, 2),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 4)
   assert_true(is_convex_ccw(hull))
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: collinear points" {
-  let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(1, 0), @geometry_utils.point(2, 0), @geometry_utils.point(3, 0)]
+  let pts = [
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(1, 0),
+    @geometry_utils.point(2, 0),
+    @geometry_utils.point(3, 0),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 2)
   // Only the two extremes remain (order not asserted, just the set).
@@ -257,6 +303,7 @@ test "andrew_hull: collinear points" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: single point" {
   let pts = [@geometry_utils.point(3, 3)]
   let hull = convex_hull(pts)
@@ -266,6 +313,7 @@ test "andrew_hull: single point" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: two points" {
   let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(1, 1)]
   let hull = convex_hull(pts)
@@ -273,29 +321,50 @@ test "andrew_hull: two points" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: all points on hull" {
   // A convex pentagon: every input point is a hull vertex.
-  let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(4, 0), @geometry_utils.point(4, 4), @geometry_utils.point(2, 6), @geometry_utils.point(0, 4)]
+  let pts = [
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(4, 0),
+    @geometry_utils.point(4, 4),
+    @geometry_utils.point(2, 6),
+    @geometry_utils.point(0, 4),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 5)
   assert_true(is_convex_ccw(hull))
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: point inside hull" {
   // Square corners plus one strictly interior point.
-  let pts = [@geometry_utils.point(0, 0), @geometry_utils.point(4, 0), @geometry_utils.point(4, 4), @geometry_utils.point(0, 4), @geometry_utils.point(2, 2)]
+  let pts = [
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(4, 0),
+    @geometry_utils.point(4, 4),
+    @geometry_utils.point(0, 4),
+    @geometry_utils.point(2, 2),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 4)
   assert_true(is_convex_ccw(hull))
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: duplicate points" {
   // Square corners (some duplicated) plus a duplicated interior point.
   let pts = [
-    @geometry_utils.point(0, 0), @geometry_utils.point(4, 0), @geometry_utils.point(4, 4), @geometry_utils.point(0, 4),
-    @geometry_utils.point(0, 0), @geometry_utils.point(4, 4), @geometry_utils.point(2, 2), @geometry_utils.point(2, 2),
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(4, 0),
+    @geometry_utils.point(4, 4),
+    @geometry_utils.point(0, 4),
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(4, 4),
+    @geometry_utils.point(2, 2),
+    @geometry_utils.point(2, 2),
   ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 4)
@@ -304,8 +373,13 @@ test "andrew_hull: duplicate points" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: all identical points" {
-  let pts = [@geometry_utils.point(1, 1), @geometry_utils.point(1, 1), @geometry_utils.point(1, 1)]
+  let pts = [
+    @geometry_utils.point(1, 1),
+    @geometry_utils.point(1, 1),
+    @geometry_utils.point(1, 1),
+  ]
   let hull = convex_hull(pts)
   assert_eq(hull.length(), 1)
   assert_eq(hull[0].x, 1)
@@ -313,6 +387,7 @@ test "andrew_hull: all identical points" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: large random set" {
   let pts : Array[@geometry_utils.Point] = []
   let mut st = 12345
@@ -330,12 +405,19 @@ test "andrew_hull: large random set" {
   assert_true(all_inside_or_on(pts, hull))
 }
 
+///|
 test "andrew_hull: hull is strictly convex (all turns CCW)" {
   // Square corners plus edge midpoints plus an interior point: the collinear
   // edge midpoints must be discarded, leaving exactly the four corners.
   let pts = [
-    @geometry_utils.point(0, 0), @geometry_utils.point(6, 0), @geometry_utils.point(6, 6), @geometry_utils.point(0, 6),
-    @geometry_utils.point(3, 0), @geometry_utils.point(6, 3), @geometry_utils.point(3, 6), @geometry_utils.point(0, 3),
+    @geometry_utils.point(0, 0),
+    @geometry_utils.point(6, 0),
+    @geometry_utils.point(6, 6),
+    @geometry_utils.point(0, 6),
+    @geometry_utils.point(3, 0),
+    @geometry_utils.point(6, 3),
+    @geometry_utils.point(3, 6),
+    @geometry_utils.point(0, 3),
     @geometry_utils.point(3, 3),
   ]
   let hull = convex_hull(pts)

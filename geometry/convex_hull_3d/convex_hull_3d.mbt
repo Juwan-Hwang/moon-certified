@@ -49,6 +49,7 @@
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 /// A 3D point with integer coordinates.
 pub struct Point3D {
   x : Int
@@ -56,11 +57,13 @@ pub struct Point3D {
   z : Int
 }
 
+///|
 /// Construct a 3D point.
 pub fn point3d(x : Int, y : Int, z : Int) -> Point3D {
   { x, y, z }
 }
 
+///|
 /// A triangular face: three vertex indices in CCW order from outside.
 priv struct Face {
   v0 : Int
@@ -68,6 +71,7 @@ priv struct Face {
   v2 : Int
 }
 
+///|
 /// The 3D convex hull.
 pub struct ConvexHull3D {
   priv points : Array[Point3D]
@@ -78,6 +82,7 @@ pub struct ConvexHull3D {
 // Geometric predicate
 // ---------------------------------------------------------------------------
 
+///|
 /// Signed volume × 6 of tetrahedron (a, b, c, d).
 ///
 /// Positive  => d is on the outside of the oriented face (a, b, c).
@@ -110,6 +115,7 @@ fn orient64(a : Point3D, b : Point3D, c : Point3D, d : Point3D) -> Int64 {
 // Construction
 // ---------------------------------------------------------------------------
 
+///|
 /// Build the 3D convex hull of `points`.
 ///
 /// Returns a hull with triangular faces oriented CCW from outside.
@@ -170,6 +176,7 @@ pub fn build(points : Array[Point3D]) -> ConvexHull3D {
   { points, faces }
 }
 
+///|
 /// Find 4 non-coplanar points for the initial tetrahedron.
 ///
 /// Scans the point array to find:
@@ -180,7 +187,7 @@ pub fn build(points : Array[Point3D]) -> ConvexHull3D {
 ///
 /// Returns (p0, p1, p2, p3, true) if found, (0,0,0,0,false) otherwise.
 fn find_initial_tetrahedron(
-  points : Array[Point3D]
+  points : Array[Point3D],
 ) -> (Int, Int, Int, Int, Bool) {
   let n = points.length()
   let p0 = 0
@@ -189,8 +196,8 @@ fn find_initial_tetrahedron(
   let mut p1 = -1
   for i = 1; i < n; i = i + 1 {
     if points[i].x != points[p0].x ||
-       points[i].y != points[p0].y ||
-       points[i].z != points[p0].z {
+      points[i].y != points[p0].y ||
+      points[i].z != points[p0].z {
       p1 = i
       break
     }
@@ -236,6 +243,7 @@ fn find_initial_tetrahedron(
   (p0, p1, p2, p3, true)
 }
 
+///|
 /// Add point `pi` to the hull, returning the updated face array.
 ///
 /// 1. Find all visible faces (where `pi` is on the outside).
@@ -307,11 +315,13 @@ fn add_point(
 // Queries
 // ---------------------------------------------------------------------------
 
+///|
 /// Number of triangular faces in the hull.
 pub fn face_count(hull : ConvexHull3D) -> Int {
   hull.faces.length()
 }
 
+///|
 /// Return all faces as vertex-index triples `(v0, v1, v2)` in CCW order
 /// from outside.
 pub fn get_faces(hull : ConvexHull3D) -> Array[(Int, Int, Int)] {
@@ -323,6 +333,7 @@ pub fn get_faces(hull : ConvexHull3D) -> Array[(Int, Int, Int)] {
   result
 }
 
+///|
 /// Return 6× the volume of the hull (integer arithmetic, no division).
 ///
 /// Computed via the divergence theorem:
@@ -335,12 +346,8 @@ pub fn get_volume6(hull : ConvexHull3D) -> Int64 {
   let mut total = 0L
   for i = 0; i < hull.faces.length(); i = i + 1 {
     let f = hull.faces[i]
-    total = total + orient64(
-      origin,
-      hull.points[f.v0],
-      hull.points[f.v1],
-      hull.points[f.v2],
-    )
+    total = total +
+      orient64(origin, hull.points[f.v0], hull.points[f.v1], hull.points[f.v2])
   }
   if total < 0L {
     -total
@@ -349,6 +356,7 @@ pub fn get_volume6(hull : ConvexHull3D) -> Int64 {
   }
 }
 
+///|
 /// Check if point `p` is inside or on the boundary of the hull.
 ///
 /// Returns `true` if `p` is on the inside (or on the boundary) of every
@@ -368,9 +376,13 @@ pub fn contains(hull : ConvexHull3D, p : Point3D) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "3d hull: tetrahedron" {
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(1, 0, 0), point3d(0, 1, 0), point3d(0, 0, 1),
+    point3d(0, 0, 0),
+    point3d(1, 0, 0),
+    point3d(0, 1, 0),
+    point3d(0, 0, 1),
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 4)
@@ -384,11 +396,15 @@ test "3d hull: tetrahedron" {
   assert_false(contains(hull, point3d(2, 0, 0)))
 }
 
+///|
 test "3d hull: octahedron" {
   let pts : Array[Point3D] = [
-    point3d(1, 0, 0), point3d(-1, 0, 0),
-    point3d(0, 1, 0), point3d(0, -1, 0),
-    point3d(0, 0, 1), point3d(0, 0, -1),
+    point3d(1, 0, 0),
+    point3d(-1, 0, 0),
+    point3d(0, 1, 0),
+    point3d(0, -1, 0),
+    point3d(0, 0, 1),
+    point3d(0, 0, -1),
   ]
   let hull = build(pts)
   // Octahedron has 8 triangular faces.
@@ -406,10 +422,16 @@ test "3d hull: octahedron" {
   assert_eq(get_volume6(hull), 8L)
 }
 
+///|
 test "3d hull: tetrahedron with interior points" {
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(10, 0, 0), point3d(0, 10, 0), point3d(0, 0, 10),
-    point3d(1, 1, 1), point3d(2, 2, 2), point3d(3, 3, 3),
+    point3d(0, 0, 0),
+    point3d(10, 0, 0),
+    point3d(0, 10, 0),
+    point3d(0, 0, 10),
+    point3d(1, 1, 1),
+    point3d(2, 2, 2),
+    point3d(3, 3, 3),
   ]
   let hull = build(pts)
   // Still 4 faces — interior points don't add faces.
@@ -422,40 +444,53 @@ test "3d hull: tetrahedron with interior points" {
   assert_eq(get_volume6(hull), 1000L)
 }
 
+///|
 test "3d hull: coplanar points (degenerate)" {
   // All points on z=0 plane — no 3D hull.
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(1, 0, 0), point3d(0, 1, 0), point3d(1, 1, 0),
+    point3d(0, 0, 0),
+    point3d(1, 0, 0),
+    point3d(0, 1, 0),
+    point3d(1, 1, 0),
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 0)
 }
 
+///|
 test "3d hull: collinear points (degenerate)" {
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(1, 0, 0), point3d(2, 0, 0), point3d(3, 0, 0),
+    point3d(0, 0, 0),
+    point3d(1, 0, 0),
+    point3d(2, 0, 0),
+    point3d(3, 0, 0),
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 0)
 }
 
+///|
 test "3d hull: identical points (degenerate)" {
   let pts : Array[Point3D] = [
-    point3d(5, 5, 5), point3d(5, 5, 5), point3d(5, 5, 5), point3d(5, 5, 5),
+    point3d(5, 5, 5),
+    point3d(5, 5, 5),
+    point3d(5, 5, 5),
+    point3d(5, 5, 5),
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 0)
 }
 
+///|
 test "3d hull: bipyramid" {
   // Triangular bipyramid: 5 vertices, 6 faces.
   // Two apex points + 3 non-collinear equatorial points.
   let pts : Array[Point3D] = [
-    point3d(0, 0, 10),    // top apex
-    point3d(0, 0, -10),   // bottom apex
-    point3d(10, 0, 0),    // equatorial
-    point3d(-10, 6, 0),   // equatorial (not exactly equilateral, avoids coplanarity)
-    point3d(-10, -6, 0),  // equatorial
+    point3d(0, 0, 10), // top apex
+    point3d(0, 0, -10), // bottom apex
+    point3d(10, 0, 0), // equatorial
+    point3d(-10, 6, 0), // equatorial (not exactly equilateral, avoids coplanarity)
+    point3d(-10, -6, 0), // equatorial
   ]
   let hull = build(pts)
   // Bipyramid over a triangle: 6 faces.
@@ -467,15 +502,19 @@ test "3d hull: bipyramid" {
   assert_false(contains(hull, point3d(0, 0, 20)))
 }
 
+///|
 test "3d hull: Euler formula check" {
   // For a convex polyhedron with triangular faces:
   //   V - E + F = 2, where E = 3F/2, V = 2 + F/2.
   // So F = 2*(V - 2) where V is the number of hull vertices.
   // Test with octahedron: V=6, F=8.
   let pts : Array[Point3D] = [
-    point3d(2, 0, 0), point3d(-2, 0, 0),
-    point3d(0, 2, 0), point3d(0, -2, 0),
-    point3d(0, 0, 2), point3d(0, 0, -2),
+    point3d(2, 0, 0),
+    point3d(-2, 0, 0),
+    point3d(0, 2, 0),
+    point3d(0, -2, 0),
+    point3d(0, 0, 2),
+    point3d(0, 0, -2),
   ]
   let hull = build(pts)
   let f = face_count(hull)
@@ -500,6 +539,7 @@ test "3d hull: Euler formula check" {
   assert_eq(v - e + f, 2)
 }
 
+///|
 test "3d hull: random points all inside" {
   // Generate 30 random points in a small range, build hull,
   // and verify all points are inside or on the hull.
@@ -521,6 +561,7 @@ test "3d hull: random points all inside" {
   }
 }
 
+///|
 test "3d hull: less than 4 points" {
   let hull1 = build([point3d(1, 2, 3)])
   assert_eq(face_count(hull1), 0)
@@ -530,9 +571,13 @@ test "3d hull: less than 4 points" {
   assert_eq(face_count(hull3), 0)
 }
 
+///|
 test "3d hull: large tetrahedron volume" {
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(100, 0, 0), point3d(0, 100, 0), point3d(0, 0, 100),
+    point3d(0, 0, 0),
+    point3d(100, 0, 0),
+    point3d(0, 100, 0),
+    point3d(0, 0, 100),
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 4)
@@ -540,10 +585,15 @@ test "3d hull: large tetrahedron volume" {
   assert_eq(get_volume6(hull), 1000000L)
 }
 
+///|
 test "3d hull: duplicate points ignored" {
   let pts : Array[Point3D] = [
-    point3d(0, 0, 0), point3d(1, 0, 0), point3d(0, 1, 0), point3d(0, 0, 1),
-    point3d(0, 0, 0), point3d(1, 0, 0), // duplicates
+    point3d(0, 0, 0),
+    point3d(1, 0, 0),
+    point3d(0, 1, 0),
+    point3d(0, 0, 1),
+    point3d(0, 0, 0),
+    point3d(1, 0, 0), // duplicates
   ]
   let hull = build(pts)
   assert_eq(face_count(hull), 4)

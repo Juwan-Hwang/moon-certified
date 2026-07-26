@@ -1,3 +1,4 @@
+///|
 /// Fast exponentiation using binary decomposition.
 /// Computes base^exp in O(log exp) multiplications.
 ///
@@ -17,7 +18,6 @@
 /// Not verified (requires nonlinear arithmetic beyond Z3's capability):
 /// - result == base^exp (full correctness)
 /// - result >= 1 when base >= 1 (monotonicity)
-
 pub fn fast_power(
   base : Int,
   exp : Int,
@@ -45,6 +45,7 @@ pub fn fast_power(
   }
 }
 
+///|
 /// Overflow-safe fast exponentiation.
 ///
 /// Returns `Some(result)` when `base^exp` fits in 32-bit `Int`,
@@ -91,29 +92,35 @@ pub fn fast_power_checked(base : Int, exp : Int) -> Int? {
   Some(result.to_int())
 }
 
+///|
 test "fast_power: basic" {
   assert_eq(fast_power(2, 10), 1024)
   assert_eq(fast_power(3, 4), 81)
   assert_eq(fast_power(5, 3), 125)
 }
 
+///|
 test "fast_power: zero exponent" {
   assert_eq(fast_power(7, 0), 1)
   assert_eq(fast_power(0, 0), 1)
 }
 
+///|
 test "fast_power: one exponent" {
   assert_eq(fast_power(6, 1), 6)
 }
 
+///|
 test "fast_power: zero base" {
   assert_eq(fast_power(0, 5), 0)
 }
 
+///|
 test "fast_power: large exponent" {
   assert_eq(fast_power(2, 20), 1048576)
 }
 
+///|
 test "fast_power: lower bound property" {
   let cases = [(1, 0), (1, 100), (2, 1), (2, 10), (3, 5), (10, 3)]
   for k = 0; k < 6; k = k + 1 {
@@ -122,6 +129,7 @@ test "fast_power: lower bound property" {
   }
 }
 
+///|
 test "fast_power_checked: no overflow" {
   assert_eq(fast_power_checked(2, 10), Some(1024))
   assert_eq(fast_power_checked(2, 20), Some(1048576))
@@ -130,6 +138,7 @@ test "fast_power_checked: no overflow" {
   assert_eq(fast_power_checked(0, 5), Some(0))
 }
 
+///|
 test "fast_power_checked: overflow detected" {
   // 2^31 = 2147483648 > Int::MAX (2147483647)
   assert_true(fast_power_checked(2, 31) is None)
@@ -139,6 +148,7 @@ test "fast_power_checked: overflow detected" {
   assert_true(fast_power_checked(10, 10) is None)
 }
 
+///|
 test "fast_power_checked: boundary cases" {
   // 2^30 = 1073741824 < Int::MAX
   assert_eq(fast_power_checked(2, 30), Some(1073741824))
@@ -149,12 +159,14 @@ test "fast_power_checked: boundary cases" {
   assert_true(fast_power_checked(2, -1) is None)
 }
 
+///|
 test "fast_power_checked: 65536^4 overflow detected" {
   // This was the original bug: b*b overflowed Int64, producing garbage.
   // The fix detects that b exceeds Int32 range before squaring.
   assert_true(fast_power_checked(65536, 4) is None)
 }
 
+///|
 test "fast_power_checked: large base with small exp" {
   // 2147483647^1 = 2147483647, fits exactly
   assert_eq(fast_power_checked(2147483647, 1), Some(2147483647))
@@ -162,6 +174,7 @@ test "fast_power_checked: large base with small exp" {
   assert_true(fast_power_checked(2147483647, 2) is None)
 }
 
+///|
 test "fast_power_checked: base just below sqrt(Int32::MAX)" {
   // 46340^2 = 2147395600 < Int::MAX (2147483647)
   assert_eq(fast_power_checked(46340, 2), Some(2147395600))
