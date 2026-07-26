@@ -1,0 +1,6 @@
+{
+  "proof-enabled": false,
+  "import": [
+    "moon-certified/test/test_utils"
+  ]
+}
