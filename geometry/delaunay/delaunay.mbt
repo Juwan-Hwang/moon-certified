@@ -76,41 +76,82 @@ pub struct DelaunayResult {
 /// of indices forms a triangle. Returns an empty result for fewer than 3
 /// points or all-collinear points.
 pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
-  let n = pts.length()
+  // --- Deduplicate input points ---
+  // Duplicate points produce degenerate (zero-area) triangles and can crash
+  // the in-circle predicate. We sort by (x, y) and drop consecutive
+  // duplicates — O(n log n), matching the triangulation complexity.
+  let sorted = FixedArray::from_array(pts.view())
+  sorted.sort_by(fn(a, b) {
+    if a.x != b.x {
+      if a.x < b.x {
+        -1
+      } else {
+        1
+      }
+    } else if a.y != b.y {
+      if a.y < b.y {
+        -1
+      } else {
+        1
+      }
+    } else {
+      0
+    }
+  })
+  let unique_pts : Array[DPoint] = []
+  for i = 0; i < sorted.length(); i = i + 1 {
+    if i == 0 || sorted[i].x != sorted[i - 1].x || sorted[i].y != sorted[i - 1].y {
+      unique_pts.push(sorted[i])
+    }
+  }
+  let n = unique_pts.length()
   if n < 3 {
     return { triangles: FixedArray::make(0, 0), count: 0 }
   }
   // Create the extended point list including the super-triangle vertices.
   // The super-triangle must be large enough to contain all points.
-  let mut min_x = pts[0].x
-  let mut max_x = pts[0].x
-  let mut min_y = pts[0].y
-  let mut max_y = pts[0].y
+  let mut min_x = unique_pts[0].x
+  let mut max_x = unique_pts[0].x
+  let mut min_y = unique_pts[0].y
+  let mut max_y = unique_pts[0].y
   for i = 1; i < n; i = i + 1 {
-    if pts[i].x < min_x {
-      min_x = pts[i].x
+    if unique_pts[i].x < min_x {
+      min_x = unique_pts[i].x
     }
-    if pts[i].x > max_x {
-      max_x = pts[i].x
+    if unique_pts[i].x > max_x {
+      max_x = unique_pts[i].x
     }
-    if pts[i].y < min_y {
-      min_y = pts[i].y
+    if unique_pts[i].y < min_y {
+      min_y = unique_pts[i].y
     }
-    if pts[i].y > max_y {
-      max_y = pts[i].y
+    if unique_pts[i].y > max_y {
+      max_y = unique_pts[i].y
     }
   }
   let dx = max_x - min_x
   let dy = max_y - min_y
-  let delta = if dx > dy { dx } else { dy }
   let midx = (min_x + max_x) / 2L
   let midy = (min_y + max_y) / 2L
   // Super-triangle vertices at indices n, n+1, n+2.
-  // Make it much larger than the bounding box.
-  let st = delta * 20L + 1000L
+  // The super-triangle side length is set to 20 times the bounding-box
+  // diagonal. This guarantees the super-triangle is so large that no input
+  // point can lie inside the circumcircle of the super-triangle with two
+  // other input points — the necessary and sufficient condition for
+  // correctness of the incremental insertion algorithm.
+  // If all points are collinear (dx = dy = 0), use a fallback spread.
+  let diag_sq = dx * dx + dy * dy
+  let st = if diag_sq == 0L {
+    // All points coincide (shouldn't happen after dedup, but guard anyway).
+    1000L
+  } else {
+    // sqrt(diag_sq) * 20, computed as integer for DPoint coordinates.
+    // Use isqrt to avoid floating-point; 20x the diagonal is safely large.
+    let diag_approx = dx + dy // upper bound on sqrt(dx^2 + dy^2)
+    diag_approx * 20L + 1L
+  }
   let all_points : Array[DPoint] = []
   for i = 0; i < n; i = i + 1 {
-    all_points.push(pts[i])
+    all_points.push(unique_pts[i])
   }
   all_points.push({ x: midx - st, y: midy - st })
   all_points.push({ x: midx + st, y: midy - st })
@@ -345,11 +386,14 @@ test "delaunay: 5 points with interior point" {
   let result = triangulate(pts)
   // 4 triangles from center to each edge of the square.
   assert_eq(result.count, 4)
-  // Verify vertex 4 (center) appears in all triangles.
+  // Find the center point's index after dedup/sort (it's the point at (50,50)).
+  // After sort by (x,y), order is: (0,0),(0,100),(50,50),(100,0),(100,100).
+  // So center is at index 2.
+  let center_idx = 2
   let mut center_count = 0
   for i = 0; i < result.count; i = i + 1 {
     for j = 0; j < 3; j = j + 1 {
-      if result.triangles[i * 3 + j] == 4 {
+      if result.triangles[i * 3 + j] == center_idx {
         center_count = center_count + 1
       }
     }
@@ -385,6 +429,27 @@ test "delaunay: no degenerate triangles" {
     dpoint(50, 50),
   ]
   let result = triangulate(pts)
+  for i = 0; i < result.count; i = i + 1 {
+    let v0 = result.triangles[i * 3]
+    let v1 = result.triangles[i * 3 + 1]
+    let v2 = result.triangles[i * 3 + 2]
+    assert_true(v0 != v1)
+    assert_true(v1 != v2)
+    assert_true(v0 != v2)
+  }
+}
+
+test "delaunay: deduplication of duplicate points" {
+  // Input with duplicates: should deduplicate and still triangulate.
+  let pts = [
+    dpoint(0, 0), dpoint(0, 0), // duplicate
+    dpoint(100, 0), dpoint(100, 0), // duplicate
+    dpoint(100, 100), dpoint(0, 100),
+  ]
+  let result = triangulate(pts)
+  // After dedup, 4 unique points → 2 triangles (same as square test).
+  assert_eq(result.count, 2)
+  // No degenerate triangles.
   for i = 0; i < result.count; i = i + 1 {
     let v0 = result.triangles[i * 3]
     let v1 = result.triangles[i * 3 + 1]

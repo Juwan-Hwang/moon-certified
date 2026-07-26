@@ -1,8 +1,8 @@
-/// B-Tree implementation with minimum degree t = 2.
+/// B-Tree implementation with configurable minimum degree `t`.
 ///
-/// A B-Tree of order M where M = 2*t - 1 = 3 (maximum keys per node).
-/// Each non-root node has at least t - 1 = 1 key. The root may have 0 keys
-/// (empty tree). All leaves are at the same depth.
+/// A B-Tree of minimum degree `t` has at most `2*t - 1` keys per node and at
+/// least `t - 1` keys per non-root node. The root may have 0 keys (empty tree).
+/// All leaves are at the same depth.
 ///
 /// **Generic**: works with any type `T` given a comparator function.
 ///
@@ -10,29 +10,43 @@
 /// traversal, and size. All operations run in O(log n) time.
 /// `size()` is O(1) via a cached count field.
 ///
+/// Use [`new_with_degree`] to create a B-Tree with a custom minimum degree.
+/// The default [`new`] uses `t = 2` (a 2-3 tree).
+///
 /// Not formally verified. Correctness ensured by comprehensive tests.
 
-const BTREE_MIN_DEGREE : Int = 2
+/// Default minimum degree when using `new()`.
+const BTREE_DEFAULT_DEGREE : Int = 2
 
 /// A B-Tree node.
 ///
 /// `keys` is a sorted array of keys. `children` is an array of child nodes
 /// (length = keys.length() + 1 for internal nodes, 0 for leaves). `count`
 /// is the cached total number of keys in this subtree, enabling O(1) `size`.
+/// `degree` is the minimum degree `t` (shared across all nodes in the tree).
 pub struct BTreeNode[T] {
   priv keys : Array[T]
   priv children : Array[BTreeNode[T]]
   priv leaf : Bool
   priv mut count : Int
+  priv degree : Int
 }
 
-/// Create an empty B-Tree (a single leaf node with no keys).
+/// Create an empty B-Tree with the default minimum degree `t = 2` (2-3 tree).
 pub fn[T] new() -> BTreeNode[T] {
-  { keys: [], children: [], leaf: true, count: 0 }
+  new_with_degree(BTREE_DEFAULT_DEGREE)
 }
 
-fn[T] btree_create(leaf : Bool) -> BTreeNode[T] {
-  { keys: [], children: [], leaf, count: 0 }
+/// Create an empty B-Tree with a custom minimum degree `t >= 2`.
+/// Higher `t` means wider, shallower trees — better for disk-based scenarios
+/// with large block sizes. `t < 2` is clamped to 2.
+pub fn[T] new_with_degree(degree : Int) -> BTreeNode[T] {
+  let t = if degree < 2 { BTREE_DEFAULT_DEGREE } else { degree }
+  { keys: [], children: [], leaf: true, count: 0, degree: t }
+}
+
+fn[T] btree_create(leaf : Bool, degree : Int) -> BTreeNode[T] {
+  { keys: [], children: [], leaf, count: 0, degree }
 }
 
 // ---------------------------------------------------------------------------
@@ -113,9 +127,9 @@ fn[T] split_child(
   i : Int,
   cmp : (T, T) -> Int,
 ) -> Unit {
-  let t = BTREE_MIN_DEGREE
+  let t = x.degree
   let y = x.children[i]
-  let z = btree_create(y.leaf)
+  let z = btree_create(y.leaf, y.degree)
   // Median key is at index t-1 in y.
   let median = y.keys[t - 1]
   // z gets keys at indices t .. 2t-2 (t-1 keys).
@@ -170,7 +184,7 @@ fn[T] insert_non_full(
     }
     i = i + 1
     // If that child is full, split it first.
-    if node.children[i].keys.length() == 2 * BTREE_MIN_DEGREE - 1 {
+    if node.children[i].keys.length() == 2 * node.degree - 1 {
       split_child(node, i, cmp)
       // After the split, decide which half to descend into.
       if cmp(node.keys[i], key) < 0 {
@@ -194,8 +208,8 @@ pub fn[T] insert(
     return root
   }
   // If the root is full, create a new root and split.
-  if root.keys.length() == 2 * BTREE_MIN_DEGREE - 1 {
-    let new_root = btree_create(false)
+  if root.keys.length() == 2 * root.degree - 1 {
+    let new_root = btree_create(false, root.degree)
     new_root.children.push(root)
     split_child(new_root, 0, cmp)
     insert_non_full(new_root, key, cmp)
@@ -335,7 +349,7 @@ fn[T] _merge(node : BTreeNode[T], idx : Int) -> Unit {
 /// Ensure `children[idx]` has at least t keys before descending, by
 /// borrowing from a sibling or merging with one.
 fn[T] _fill(node : BTreeNode[T], idx : Int) -> Unit {
-  let t = BTREE_MIN_DEGREE
+  let t = node.degree
   // A node with 0 keys has a single child that already has >= t keys
   // (from a previous merge), so nothing to do.
   if node.keys.length() == 0 {
@@ -366,7 +380,7 @@ fn[T] _delete_internal(
   idx : Int,
   cmp : (T, T) -> Int,
 ) -> Unit {
-  let t = BTREE_MIN_DEGREE
+  let t = node.degree
   let key = node.keys[idx]
   // Case 2a: left child has >= t keys — replace with predecessor.
   if node.children[idx].keys.length() >= t {
@@ -393,7 +407,7 @@ fn[T] _delete(
   key : T,
   cmp : (T, T) -> Int,
 ) -> Unit {
-  let t = BTREE_MIN_DEGREE
+  let t = node.degree
   let n = node.keys.length()
   // Find the first key >= key.
   let mut idx = 0
@@ -722,4 +736,49 @@ test "btree: generic with String keys" {
   root = delete(root, "banana", cmp)
   assert_false(search(root, "banana", cmp))
   assert_eq(size(root), 2)
+}
+
+test "btree: configurable degree t=3" {
+  // With t=3, max keys per node = 5. Insert 20 keys and verify correctness.
+  let mut root = new_with_degree(3)
+  for i = 1; i <= 20; i = i + 1 {
+    root = insert(root, i, int_cmp)
+  }
+  assert_eq(size(root), 20)
+  // All keys should be present.
+  for i = 1; i <= 20; i = i + 1 {
+    assert_true(search(root, i, int_cmp))
+  }
+  // In-order should be sorted.
+  let result : Array[Int] = []
+  inorder(root, fn(v) { result.push(v) })
+  assert_eq(result.length(), 20)
+  for i = 1; i < 20; i = i + 1 {
+    assert_true(result[i - 1] < result[i])
+  }
+  // Delete some keys and verify.
+  root = delete(root, 5, int_cmp)
+  root = delete(root, 10, int_cmp)
+  root = delete(root, 15, int_cmp)
+  assert_eq(size(root), 17)
+  assert_false(search(root, 5, int_cmp))
+  assert_false(search(root, 10, int_cmp))
+  assert_false(search(root, 15, int_cmp))
+}
+
+test "btree: configurable degree t=4" {
+  // With t=4, max keys = 7. Higher degree = wider, shallower tree.
+  let mut root = new_with_degree(4)
+  for i = 1; i <= 50; i = i + 1 {
+    root = insert(root, i, int_cmp)
+  }
+  assert_eq(size(root), 50)
+  for i = 1; i <= 50; i = i + 1 {
+    assert_true(search(root, i, int_cmp))
+  }
+  // Delete all and verify empty.
+  for i = 1; i <= 50; i = i + 1 {
+    root = delete(root, i, int_cmp)
+  }
+  assert_eq(size(root), 0)
 }

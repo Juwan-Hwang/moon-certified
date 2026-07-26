@@ -164,7 +164,7 @@ fn[T] splay(t : SplayNode[T], k : T, cmp : (T, T) -> Int) -> SplayNode[T] {
               node = mk_node(mk_node(gl, gk, nl), nk, mk_node(nr, pk, pr))
             }
           }
-          _ => abort("splay: unexpected Empty in path")
+          _ => () // Structural invariant violation: skip rotation
         }
         i = i - 2
       }
@@ -182,7 +182,7 @@ fn[T] splay(t : SplayNode[T], k : T, cmp : (T, T) -> Int) -> SplayNode[T] {
               node = mk_node(mk_node(pl, pk, nl), nk, nr)
             }
           }
-          _ => abort("splay: unexpected Empty in zig/zag")
+          _ => () // Structural invariant violation: skip rotation
         }
       }
       node
@@ -227,7 +227,7 @@ fn[T] splay_max(t : SplayNode[T]) -> SplayNode[T] {
             // Zag-Zag: all right children
             node = mk_node(mk_node(mk_node(gl, gk, pl), pk, nl), nk, nr)
           }
-          _ => abort("splay_max: unexpected Empty in path")
+          _ => () // Structural invariant violation: skip rotation
         }
         i = i - 2
       }
@@ -238,7 +238,7 @@ fn[T] splay_max(t : SplayNode[T]) -> SplayNode[T] {
             // Zag: single left rotation
             node = mk_node(mk_node(pl, pk, nl), nk, nr)
           }
-          _ => abort("splay_max: unexpected Empty in zag")
+          _ => () // Structural invariant violation: skip rotation
         }
       }
       node

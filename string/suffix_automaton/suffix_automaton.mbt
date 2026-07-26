@@ -110,33 +110,38 @@ fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
     // Reached the root: link to root.
     sam.states[cur].link = 0
   } else {
-    let q = get_trans(sam.states[p], c).unwrap()
-    if sam.states[p].len + 1 == sam.states[q].len {
-      sam.states[cur].link = q
-    } else {
-      // Clone state `q`.
-      let clone = sam.states.length()
-      sam.states.push({
-        len: sam.states[p].len + 1,
-        link: sam.states[q].link,
-        trans: copy_trans(sam.states[q].trans),
-        cnt: 0,
-      })
-      // Redirect transitions pointing to q to point to clone.
-      while p != -1 {
-        match get_trans(sam.states[p], c) {
-          Some(t) =>
-            if t == q {
-              set_trans(sam.states[p], c, clone)
-            } else {
-              break
+    // The while loop above guarantees that `p` has a transition on `c`.
+    // Use pattern matching instead of unwrap() for production safety.
+    match get_trans(sam.states[p], c) {
+      Some(q) =>
+        if sam.states[p].len + 1 == sam.states[q].len {
+          sam.states[cur].link = q
+        } else {
+          // Clone state `q`.
+          let clone = sam.states.length()
+          sam.states.push({
+            len: sam.states[p].len + 1,
+            link: sam.states[q].link,
+            trans: copy_trans(sam.states[q].trans),
+            cnt: 0,
+          })
+          // Redirect transitions pointing to q to point to clone.
+          while p != -1 {
+            match get_trans(sam.states[p], c) {
+              Some(t) =>
+                if t == q {
+                  set_trans(sam.states[p], c, clone)
+                } else {
+                  break
+                }
+              None => break
             }
-          None => break
+            p = sam.states[p].link
+          }
+          sam.states[q].link = clone
+          sam.states[cur].link = clone
         }
-        p = sam.states[p].link
-      }
-      sam.states[q].link = clone
-      sam.states[cur].link = clone
+      None => abort("suffix_automaton invariant violated: transition must exist")
     }
   }
   sam.last = cur

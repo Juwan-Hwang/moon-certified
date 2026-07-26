@@ -49,9 +49,6 @@ pub struct HyperLogLog {
   priv m : Int
 }
 
-/// ln(2), used by [`hll_ln`] for range reduction.
-const HLL_LN2 : Double = 0.6931471805599453
-
 /// 2^64 as a `Double`, the size of the 64-bit hash space. Used only by the
 /// (effectively unreachable) large-range correction.
 const HLL_TWO_POW_64 : Double = 1.8446744073709552e19
@@ -62,33 +59,14 @@ const HLL_FNV_OFFSET : Int64 = 0xcbf29ce484222325L
 const HLL_FNV_PRIME : Int64 = 0x100000001b3L
 
 // ---------------------------------------------------------------------------
-// Hashing: FNV-1a + MurmurHash3 fmix64 avalanche
+// Hashing: FNV-1a + shared fmix64 avalanche (from hash_utils)
 // ---------------------------------------------------------------------------
-
-/// MurmurHash3 `fmix64` avalanche finalizer.
-///
-/// Three xor-shift-multiply passes diffuse bits so that a single-bit change in
-/// the input propagates to roughly half of all output bits. This breaks the
-/// linear structure of the FNV-1a hash, making the register-index bits and the
-/// rank bits effectively independent.
-///
-/// Uses **unsigned** right shifts (via `reinterpret_as_uint64`) so that
-/// negative hashes do not sign-extend and degrade mixing.
-fn fmix64(input : Int64) -> Int64 {
-  let mut h = input
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h = h * 0xff51afd7ed558ccdL
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h = h * 0xc4ceb9fe1a85ec53L
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h
-}
 
 /// FNV-1a 64-bit hash of a `String`, then avalanched.
 ///
 ///   h = offset_basis
 ///   for each char c: h = (h XOR c) * prime
-///   return fmix64(h)
+///   return @hash_utils.fmix64(h)
 ///
 /// Each character's code point is folded in with XOR (the FNV-1a variant)
 /// rather than addition (FNV-1), then multiplied by the FNV prime.
@@ -97,7 +75,7 @@ fn fnv1a_64(data : String) -> Int64 {
   for i = 0; i < data.length(); i = i + 1 {
     h = (h ^ data[i].to_int().to_int64()) * HLL_FNV_PRIME
   }
-  fmix64(h)
+  @hash_utils.fmix64(h)
 }
 
 /// FNV-1a 64-bit hash of an `Int` key, then avalanched.
@@ -109,51 +87,20 @@ fn fnv1a_64_int(x : Int) -> Int64 {
   let mut h = HLL_FNV_OFFSET
   h = (h ^ k) * HLL_FNV_PRIME
   h = (h ^ (k >> 32)) * HLL_FNV_PRIME
-  fmix64(h)
+  @hash_utils.fmix64(h)
 }
 
 // ---------------------------------------------------------------------------
-// Math helper: natural logarithm
+// Math helper: safe natural logarithm
 // ---------------------------------------------------------------------------
 
-/// Natural logarithm via range reduction + the atanh series.
-///
-/// Reduces `x` to `val` in `[0.5, 1.0)` by multiplying/dividing by 2 and
-/// tracking the exponent `k`, so `ln(x) = ln(val) - k * ln(2)`. For `val` in
-/// that range, `|y| = |(val-1)/(val+1)| <= 1/3` and the series
-///   ln(val) = 2 * sum_{n=0}^{inf} y^(2n+1) / (2n+1)
-/// converges rapidly — 60 terms give full double precision.
-///
-/// **Guard**: returns `0.0` for `x <= 0.0` to prevent infinite loops in the
-/// range reduction. This makes the large-range correction safe even if
-/// `1 - E/2^64` were to go non-positive (it never does for realistic `E`).
+/// Safe natural logarithm. Returns 0.0 for non-positive inputs.
+/// Uses the standard library's `@math.ln` instead of a custom implementation.
 fn hll_ln(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
   }
-  let mut val = x
-  let mut k = 0
-  while val < 0.5 {
-    val = val * 2.0
-    k = k + 1
-  }
-  while val >= 1.0 {
-    val = val / 2.0
-    k = k - 1
-  }
-  let y = (val - 1.0) / (val + 1.0)
-  let y2 = y * y
-  let mut sum = 0.0
-  let mut ypow = y
-  let mut denom = 1.0
-  let mut i = 0
-  while i < 60 {
-    sum = sum + ypow / denom
-    ypow = ypow * y2
-    denom = denom + 2.0
-    i = i + 1
-  }
-  sum * 2.0 - k.to_double() * HLL_LN2
+  @math.ln(x)
 }
 
 // ---------------------------------------------------------------------------

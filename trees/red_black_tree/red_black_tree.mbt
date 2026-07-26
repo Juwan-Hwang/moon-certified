@@ -70,16 +70,25 @@ pub fn[T] height(root : RBNode[T]) -> Int {
   }
 }
 
+/// Iterative search — O(log n) time, O(1) stack depth.
 pub fn[T] search(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
-  match root {
-    Empty => false
-    Node(l, v, r, _, _) => {
-      let c = cmp(val, v)
-      if c < 0 { search(l, val, cmp) }
-      else if c > 0 { search(r, val, cmp) }
-      else { true }
+  let mut node = root
+  while true {
+    match node {
+      Empty => return false
+      Node(l, v, r, _, _) => {
+        let c = cmp(val, v)
+        if c < 0 {
+          node = l
+        } else if c > 0 {
+          node = r
+        } else {
+          return true
+        }
+      }
     }
   }
+  false
 }
 
 fn[T] is_red(node : RBNode[T]) -> Bool {
@@ -156,13 +165,25 @@ fn[T] ins(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
   }
 }
 
-/// Find the minimum value. Returns None if empty.
+/// Find the minimum value iteratively. Returns None if empty.
+/// O(log n) time, O(1) stack depth.
 pub fn[T] find_min(root : RBNode[T]) -> T? {
-  match root {
-    Empty => None
-    Node(Empty, v, _, _, _) => Some(v)
-    Node(l, _, _, _, _) => find_min(l)
+  let mut node = root
+  let mut result : T? = None
+  while true {
+    match node {
+      Empty => {
+        result = None
+        break
+      }
+      Node(Empty, v, _, _, _) => {
+        result = Some(v)
+        break
+      }
+      Node(l, _, _, _, _) => node = l
+    }
   }
+  result
 }
 
 // ===========================================================================
@@ -434,7 +455,8 @@ fn[T] bal_right_rotate(
 }
 
 /// In-order traversal via callback.
-/// Recursive but O(log n) depth for balanced RB trees — safe.
+/// Recursive with O(log n) stack depth (RB tree height guarantee).
+/// Safe for all tree sizes — no guard_depth needed.
 pub fn[T] inorder(root : RBNode[T], f : (T) -> Unit) -> Unit {
   match root {
     Empty => ()

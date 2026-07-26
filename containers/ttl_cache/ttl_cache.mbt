@@ -11,6 +11,11 @@
 /// - TTL = 0 means "already expired": such an entry is never observable via
 ///   `get` and is not counted by `size`.
 ///
+/// **Overflow safety**: the logical clock and all timestamps use `Int64`
+/// internally, preventing overflow even after ~9.2 × 10¹⁸ ticks. The public
+/// API accepts `Int` for `ttl` and `delta` parameters (typical values are
+/// small), but internally stores them as `Int64`.
+///
 /// Not formally verified. Correctness is ensured by the test suite below.
 ///
 /// Time complexity (average): O(1) for `get` / `put` / `remove`;
@@ -25,8 +30,8 @@
 ///                  used to pick the victim when capacity is exceeded.
 pub struct Entry[V] {
   priv value : V
-  priv expires_at : Int
-  priv inserted_at : Int
+  priv expires_at : Int64
+  priv inserted_at : Int64
 }
 
 /// A TTL cache mapping keys of type `K` to values of type `V`.
@@ -36,10 +41,10 @@ pub struct Entry[V] {
 pub struct TtlCache[K, V] {
   /// Maximum number of live entries. Fixed at construction.
   priv capacity : Int
-  /// Number of ticks an entry lives after being `put`.
-  priv ttl : Int
-  /// Current logical time; advanced by `tick`.
-  priv mut clock : Int
+  /// Number of ticks an entry lives after being `put` (Int64 to prevent overflow).
+  priv ttl : Int64
+  /// Current logical time; advanced by `tick` (Int64 to prevent overflow).
+  priv mut clock : Int64
   /// Live entries keyed by `K`.
   priv mut entries : Map[K, Entry[V]]
 }
@@ -49,7 +54,7 @@ pub struct TtlCache[K, V] {
 /// A non-positive `capacity` yields a cache that silently stores nothing.
 /// A non-positive `ttl` yields entries that are immediately expired.
 pub fn[K : Hash + Eq, V] new(capacity : Int, ttl : Int) -> TtlCache[K, V] {
-  { capacity, ttl, clock: 0, entries: Map([]) }
+  { capacity, ttl: ttl.to_int64(), clock: 0L, entries: Map([]) }
 }
 
 /// Insert or update an entry.
@@ -66,7 +71,11 @@ pub fn[K : Hash + Eq, V] put(cache : TtlCache[K, V], key : K, value : V) -> Unit
   if !cache.entries.contains(key) && cache.entries.length() >= cache.capacity {
     evict_oldest(cache)
   }
-  cache.entries[key] = { value, expires_at: now + cache.ttl, inserted_at: now }
+  cache.entries[key] = {
+    value,
+    expires_at: now + cache.ttl,
+    inserted_at: now,
+  }
 }
 
 /// Look up `key`.
@@ -95,7 +104,7 @@ pub fn[K : Hash + Eq, V] remove(cache : TtlCache[K, V], key : K) -> Unit {
 /// Advance the logical clock by `delta` ticks, then eagerly evict every
 /// entry whose TTL has expired.
 pub fn[K : Hash + Eq, V] tick(cache : TtlCache[K, V], delta : Int) -> Unit {
-  cache.clock = cache.clock + delta
+  cache.clock = cache.clock + delta.to_int64()
   evict_expired(cache)
 }
 
@@ -141,7 +150,7 @@ fn[K : Hash + Eq, V] evict_oldest(cache : TtlCache[K, V]) -> Unit {
     return
   }
   let mut victim : K? = None
-  let mut oldest_time = 0
+  let mut oldest_time = 0L
   let mut first = true
   for k, entry in cache.entries {
     if first || entry.inserted_at < oldest_time {

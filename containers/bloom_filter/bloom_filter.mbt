@@ -30,49 +30,18 @@ pub struct BloomFilter[T] {
   priv hash : (T) -> Int // user-supplied hash: turns an element into a seed
 }
 
-/// ln(2), shared by `bf_ln` (range reduction) and `new` (parameter sizing).
-/// Defined once to avoid duplicating the literal across call sites.
+/// ln(2), used by parameter sizing formulas.
 const BF_LN2 : Double = 0.6931471805599453
 
-/// Natural logarithm via range reduction + the atanh series.
-///
-/// We first reduce `x` to `val` in [0.5, 1.0) by multiplying/dividing by 2,
-/// tracking the exponent `k`. Then ln(x) = ln(val) - k * ln(2).
-/// For val in [0.5, 1.0), |y| = |(val-1)/(val+1)| <= 1/3, so the series
-///   ln(val) = 2 * sum_{n=0}^{inf} y^(2n+1)/(2n+1)
-/// converges rapidly — 60 terms give full double precision.
-///
-/// **Guard**: Returns 0.0 for x <= 0.0 to prevent infinite loops in the
-/// range reduction phase. The caller `new()` already validates
-/// `false_positive_rate > 0.0 && < 1.0`, so this guard is a safety net.
+/// Safe natural logarithm. Returns 0.0 for non-positive inputs.
+/// Uses the standard library's `@math.ln` instead of a custom implementation.
+/// The caller `new()` already validates `false_positive_rate > 0.0 && < 1.0`,
+/// so the guard is a safety net.
 fn bf_ln(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
   }
-  let mut val = x
-  let mut k = 0
-  // Reduce to [0.5, 1.0) so |y| <= 1/3.
-  while val < 0.5 {
-    val = val * 2.0
-    k = k + 1
-  }
-  while val >= 1.0 {
-    val = val / 2.0
-    k = k - 1
-  }
-  let y = (val - 1.0) / (val + 1.0)
-  let y2 = y * y
-  let mut sum = 0.0
-  let mut ypow = y
-  let mut denom = 1.0
-  let mut i = 0
-  while i < 60 {
-    sum = sum + ypow / denom
-    ypow = ypow * y2
-    denom = denom + 2.0
-    i = i + 1
-  }
-  sum * 2.0 - k.to_double() * BF_LN2
+  @math.ln(x)
 }
 
 /// Create a Bloom filter sized for `expected_items` at the given

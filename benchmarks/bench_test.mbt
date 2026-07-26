@@ -107,8 +107,8 @@ test "bench: merge_sort scaling (n vs 2n)" {
   println("  " + fmt_us(t1) + " → " + fmt_us(t2) + " (ratio: " + ratio.to_string() + ")")
   // For O(n log n), ratio should be ~2.1-2.3.
   // For O(n²), ratio would be ~4.0.
-  // Allow generous bounds to avoid flakiness.
-  assert_true(ratio < 4.0)
+  // Tighten upper bound to 3.5 to distinguish O(n log n) from O(n²).
+  assert_true(ratio < 3.5)
   assert_true(ratio > 1.5)
 }
 

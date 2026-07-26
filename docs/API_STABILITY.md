@@ -337,7 +337,7 @@ overflow-correct implementation.
 ### v0.11.0 (2026-07-26) — 97 new packages + production-grade fixes (non-breaking)
 
 **Theme.** The largest additive release to date. No existing public API was changed,
-removed, or renamed. Test count rose from 1599 to 2510; package count rose from
+removed, or renamed. Test count rose from 1599 to 2515; package count rose from
 113 to 210.
 
 New packages spanned sorting (TimSort, Introsort, PdqSort, Bucket Sort), game theory
@@ -584,7 +584,7 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At the released `v0.11.0` the suite comprises **2510 tests**; the development
+At the released `v0.11.0` the suite comprises **2515 tests**; the development
 branch adds further fuzz and stress coverage. The guarantees below apply to every
 package, with tier-specific additions.
 
@@ -683,7 +683,7 @@ A green CI is a prerequisite for any release.
 | 0.8.0 | 2026-07-24 | — | — | — | 8 new packages (euler_sieve, sparse_table, lca, dinic, closest_pair, segment_ops, combinatorics, matrix). |
 | 0.9.0 | 2026-07-24 | 86 | 1321 | — | 12 new packages; `int64_utils` shared module; encapsulation hardening; overflow fixes. |
 | 0.10.0 | 2026-07-25 | 113 | 1599 | 9/9 | 27 new packages (additive, non-breaking). |
-| 0.11.0 | 2026-07-26 | 210 | 2510 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
+| 0.11.0 | 2026-07-26 | 210 | 2515 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.

@@ -6,7 +6,23 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  MOONBIT_VERSION: "0.1.20260713"
+
 jobs:
+  format-check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit (pinned version)
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Check formatting
+        run: moon fmt --check
+
   test:
     strategy:
       fail-fast: false
@@ -16,9 +32,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache MoonBit installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.moon
+          key: moonbit-${{ env.MOONBIT_VERSION }}-${{ runner.os }}
+
       - name: Install MoonBit (pinned version)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=0.1.20260713 bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: MoonBit version
@@ -35,15 +58,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache MoonBit installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.moon
+          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
+
       - name: Install MoonBit (pinned version)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=0.1.20260713 bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Install Z3
         run: |
           pip3 install z3-solver==4.12.6.0
           echo "/usr/local/bin" >> $GITHUB_PATH
+
+      - name: Cache OPAM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.opam
+          key: opam-why3-1.7.2
 
       - name: Install OCaml and Why3
         run: |
