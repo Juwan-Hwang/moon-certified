@@ -494,28 +494,62 @@ fn[T] bal_right_rotate(
 
 ///|
 /// In-order traversal via callback.
-/// Recursive with O(log n) stack depth (RB tree height guarantee).
-/// Safe for all tree sizes — no guard_depth needed.
+/// Iterative implementation using an explicit stack to guarantee O(1) stack
+/// depth, consistent with the stack-safety policy for other operations.
 pub fn[T] inorder(root : RBNode[T], f : (T) -> Unit) -> Unit {
-  match root {
-    Empty => ()
-    Node(l, v, r, _, _) => {
-      inorder(l, f)
-      f(v)
-      inorder(r, f)
+  let stack : Array[RBNode[T]] = []
+  let mut cur : RBNode[T] = root
+  let mut done = false
+  while !done {
+    // Descend to leftmost node, pushing all nodes along the path.
+    let mut go_left = true
+    while go_left {
+      match cur {
+        Node(l, _, _, _, _) => {
+          stack.push(cur)
+          cur = l
+        }
+        Empty => go_left = false
+      }
+    }
+    // Pop the top node, visit it, then move to its right child.
+    if stack.length() > 0 {
+      match stack.pop().unwrap() {
+        Node(_, v, r, _, _) => {
+          f(v)
+          cur = r
+        }
+        Empty => ()
+      }
+    } else {
+      done = true
     }
   }
 }
 
 ///|
 /// Check no red-red violation.
+/// Iterative implementation using an explicit stack for stack safety.
 fn[T] check_no_red_red(root : RBNode[T]) -> Bool {
-  match root {
-    Empty => true
-    Node(l, _, r, Red, _) =>
-      !is_red(l) && !is_red(r) && check_no_red_red(l) && check_no_red_red(r)
-    Node(l, _, r, _, _) => check_no_red_red(l) && check_no_red_red(r)
+  let stack : Array[RBNode[T]] = []
+  if root is Empty {
+    return true
   }
+  stack.push(root)
+  while stack.length() > 0 {
+    match stack.pop().unwrap() {
+      Empty => continue
+      Node(l, _, r, color, _) => {
+        match color {
+          Red => if is_red(l) || is_red(r) { return false }
+          Black => ()
+        }
+        stack.push(l)
+        stack.push(r)
+      }
+    }
+  }
+  true
 }
 
 ///|

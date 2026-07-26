@@ -258,14 +258,38 @@ pub fn[T] inorder(root : AvlNode[T]) -> FixedArray[T] {
 }
 
 ///|
-/// Fill the buffer array in-order.
+/// Fill the buffer array in-order using iterative traversal.
+///
+/// Uses an explicit stack to avoid O(h) recursion depth. This is consistent
+/// with the stack-safety policy applied to `insert`, `delete`, and `search`
+/// via `guard_depth`.
 fn[T] inorder_fill(root : AvlNode[T], buf : Array[T]) -> Unit {
-  match root {
-    Empty => ()
-    Node(l, v, r, _, _) => {
-      inorder_fill(l, buf)
-      buf.push(v)
-      inorder_fill(r, buf)
+  let stack : Array[AvlNode[T]] = []
+  let mut cur : AvlNode[T] = root
+  let mut done = false
+  while !done {
+    // Descend to leftmost node, pushing all nodes along the path.
+    let mut go_left = true
+    while go_left {
+      match cur {
+        Node(l, _, _, _, _) => {
+          stack.push(cur)
+          cur = l
+        }
+        Empty => go_left = false
+      }
+    }
+    // Pop the top node, visit it, then move to its right child.
+    if stack.length() > 0 {
+      match stack.pop().unwrap() {
+        Node(_, v, r, _, _) => {
+          buf.push(v)
+          cur = r
+        }
+        Empty => ()
+      }
+    } else {
+      done = true
     }
   }
 }

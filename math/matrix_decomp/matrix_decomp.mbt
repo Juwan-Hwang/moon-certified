@@ -32,22 +32,8 @@ fn sgn(x : Double) -> Double {
   }
 }
 
-///|
-fn sqrt_d(x : Double) -> Double {
-  if x <= 0.0 {
-    return 0.0
-  }
-  let mut r = x
-  for _i = 0; _i < 100; _i = _i + 1 {
-    let nr = (r + x / r) / 2.0
-    let d = if nr > r { nr - r } else { r - nr }
-    r = nr
-    if d < 1.0e-15 * r {
-      break
-    }
-  }
-  r
-}
+// `sqrt` is provided by `@newton_method` (dependency declared in moon.pkg).
+// `abs` is a local helper for readability.
 
 ///|
 /// Multiply `Double` matrix `A` (m×k) by `B` (k×n) → m×n.
@@ -200,7 +186,7 @@ pub fn qr_decompose(a : FixedArray[Double], m : Int, n : Int) -> QR {
     for i = k; i < m; i = i + 1 {
       norm_x = norm_x + r[i * n + k] * r[i * n + k]
     }
-    norm_x = sqrt_d(norm_x)
+    norm_x = @newton_method.sqrt(norm_x)
     if norm_x < 1.0e-15 {
       continue
     }
@@ -290,13 +276,13 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
           beta = beta + uq * uq
           gamma = gamma + up * uq
         }
-        if abs(gamma) < tol * sqrt_d(alpha * beta + 1.0e-30) {
+        if abs(gamma) < tol * @newton_method.sqrt(alpha * beta + 1.0e-30) {
           continue
         }
         rotated = true
         let zeta = (beta - alpha) / (2.0 * gamma)
-        let t = sgn(zeta) / (abs(zeta) + sqrt_d(1.0 + zeta * zeta))
-        let c = 1.0 / sqrt_d(1.0 + t * t)
+        let t = sgn(zeta) / (abs(zeta) + @newton_method.sqrt(1.0 + zeta * zeta))
+        let c = 1.0 / @newton_method.sqrt(1.0 + t * t)
         let s = c * t
         // Rotate columns p and q of U.
         for i = 0; i < m; i = i + 1 {
@@ -325,7 +311,7 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
     for i = 0; i < m; i = i + 1 {
       norm = norm + u[i * n + j] * u[i * n + j]
     }
-    norm = sqrt_d(norm)
+    norm = @newton_method.sqrt(norm)
     s[j] = norm
     if norm > 1.0e-15 {
       for i = 0; i < m; i = i + 1 {
@@ -460,7 +446,7 @@ fn hessenberg(a : FixedArray[Double], n : Int) -> Unit {
     for i = k + 1; i < n; i = i + 1 {
       norm_x = norm_x + a[i * n + k] * a[i * n + k]
     }
-    norm_x = sqrt_d(norm_x)
+    norm_x = @newton_method.sqrt(norm_x)
     if norm_x < 1.0e-15 {
       continue // Column already zeroed below k+1
     }

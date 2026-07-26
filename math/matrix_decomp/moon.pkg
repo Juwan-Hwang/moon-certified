@@ -1,3 +1,7 @@
+import {
+  "moon-certified/math/newton_method",
+}
+
 options(
   "proof-enabled": false,
 )
