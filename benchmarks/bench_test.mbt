@@ -90,29 +90,59 @@ test "bench: radix_sort 100K elements" {
 // ---------------------------------------------------------------------------
 
 ///|
+/// Verify O(n log n) complexity by counting comparisons, not wall-clock time.
+///
+/// Timing-based assertions are inherently flaky on CI: CPU frequency scaling,
+/// thermal throttling, cache contention, and co-tenant noise can all distort
+/// measured ratios. Comparison counting is deterministic and platform-
+/// independent — the count depends only on the algorithm and input, not the
+/// hardware it runs on.
+///
+/// For merge sort on n elements, the expected comparison count is in
+/// [n/2 · log₂ n, n · log₂ n].  For O(n²) it would be Θ(n²).  We verify:
+///
+/// 1. The ratio c₂/c₁ is between 1.5 and 3.5 (expected ~2.2 for O(n log n),
+///    ~4.0 for O(n²)).
+/// 2. The absolute count c₂ is below n₂ · log₂(n₂) · 2 (upper bound for
+///    a correct merge sort).
 test "bench: merge_sort scaling (n vs 2n)" {
   let n1 = 50000
   let n2 = 100000
+  // Use Array[Int] as a mutable counter captured by the closure.
+  let cnt1 = Array::make(1, 0)
+  let cnt2 = Array::make(1, 0)
   let xs1 = FixedArray::makei(n1, fn(i) { (i * 7 + 3) % 10000 })
   let xs2 = FixedArray::makei(n2, fn(i) { (i * 7 + 3) % 10000 })
-  let t1 = time_us(fn() { @merge_sort.merge_sort(xs1, fn(a, b) { a - b }) })
-  let t2 = time_us(fn() { @merge_sort.merge_sort(xs2, fn(a, b) { a - b }) })
-  let ratio = t2 / t1
-  println("merge_sort scaling: " + n1.to_string() + " → " + n2.to_string())
+  @merge_sort.merge_sort(xs1, fn(a, b) {
+    cnt1[0] = cnt1[0] + 1
+    a - b
+  })
+  @merge_sort.merge_sort(xs2, fn(a, b) {
+    cnt2[0] = cnt2[0] + 1
+    a - b
+  })
+  let c1 = cnt1[0]
+  let c2 = cnt2[0]
+  let ratio = c2.to_double() / c1.to_double()
+  println(
+    "merge_sort comparison count: " + n1.to_string() + "→" + n2.to_string(),
+  )
   println(
     "  " +
-    fmt_us(t1) +
+    c1.to_string() +
     " → " +
-    fmt_us(t2) +
+    c2.to_string() +
     " (ratio: " +
     ratio.to_string() +
     ")",
   )
-  // For O(n log n), ratio should be ~2.1-2.3.
-  // For O(n²), ratio would be ~4.0.
-  // Tighten upper bound to 3.5 to distinguish O(n log n) from O(n²).
+  // For O(n log n): n2·log₂(n2) / (n1·log₂(n1)) ≈ 100000·17 / (50000·15.6) ≈ 2.18
+  // For O(n²): ratio would be ~4.0.
   assert_true(ratio < 3.5)
   assert_true(ratio > 1.5)
+  // Absolute upper bound: merge sort makes at most n·⌈log₂ n⌉ comparisons.
+  // n2 = 100000, log₂(100000) ≈ 16.6, so 100000 * 17 = 1,700,000 is a safe ceiling.
+  assert_true(c2 < n2 * 17)
 }
 
 // ---------------------------------------------------------------------------
