@@ -338,7 +338,7 @@ overflow-correct implementation.
 
 **Theme.** The largest additive release to date. No existing public API was changed,
 removed, or renamed. Test count rose from 1599 to 2515; package count rose from
-113 to 210.
+113 to 215.
 
 New packages spanned sorting (TimSort, Introsort, PdqSort, Bucket Sort), game theory
 (Alpha-Beta, MCTS, Gale-Shapley, Shapley Value), random (Mersenne Twister, PCG,
@@ -495,10 +495,10 @@ The following are **not** breaking and require at most a minor bump:
 
 ## 6. Package Categorization
 
-The current development tree contains **210 algorithm packages** (excluding the
+The current development tree contains **215 algorithm packages** (excluding the
 root module, shared `test_utils`, and `test/`/`benchmarks/` infrastructure
 packages). Each is assigned to exactly one stability tier. The released
-`v0.11.0` contained 210 packages.
+`v0.11.0` contained 215 packages.
 
 ### Verified tier (9 packages)
 
@@ -683,7 +683,7 @@ A green CI is a prerequisite for any release.
 | 0.8.0 | 2026-07-24 | — | — | — | 8 new packages (euler_sieve, sparse_table, lca, dinic, closest_pair, segment_ops, combinatorics, matrix). |
 | 0.9.0 | 2026-07-24 | 86 | 1321 | — | 12 new packages; `int64_utils` shared module; encapsulation hardening; overflow fixes. |
 | 0.10.0 | 2026-07-25 | 113 | 1599 | 9/9 | 27 new packages (additive, non-breaking). |
-| 0.11.0 | 2026-07-26 | 210 | 2515 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
+| 0.11.0 | 2026-07-26 | 215 | 2515 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.
