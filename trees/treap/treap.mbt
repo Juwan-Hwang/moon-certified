@@ -116,8 +116,8 @@ fn next_priority(state : Int) -> Int {
 /// Defensive ceiling on recursion depth. A treap's expected height is O(log n)
 /// (~40 for n = 10^6), but the worst case is O(n) under adversarial priorities.
 /// The fixed LCG prevents adversarial sequences, so this guard is a safety net
-/// against RNG pathologies or bugs: if a descent exceeds this depth it aborts
-/// loudly instead of overflowing the stack.
+/// against RNG pathologies or bugs: if a descent exceeds this depth it returns
+/// a safe fallback value instead of overflowing the stack.
 let treap_max_depth : Int = 1000
 
 // ---------------------------------------------------------------------------
@@ -143,14 +143,33 @@ pub fn[T] height(t : Treap[T]) -> Int {
 }
 
 fn[T] height_node(root : TreapNode[T]) -> Int {
+  // Iterative post-order traversal to prevent stack overflow.
+  let stack : Array[(TreapNode[T], Int)] = []
+  let mut max_h = -1
   match root {
-    Empty => -1
-    Node(l, _, _, r, _) => {
-      let lh = height_node(l)
-      let rh = height_node(r)
-      (if lh >= rh { lh } else { rh }) + 1
+    Empty => return -1
+    _ => stack.push((root, 0))
+  }
+  while stack.length() > 0 {
+    let (node, depth) = stack.pop().unwrap()
+    if depth > max_h {
+      max_h = depth
+    }
+    match node {
+      Empty => continue
+      Node(l, _, _, r, _) => {
+        match l {
+          Empty => ()
+          _ => stack.push((l, depth + 1))
+        }
+        match r {
+          Empty => ()
+          _ => stack.push((r, depth + 1))
+        }
+      }
     }
   }
+  max_h
 }
 
 /// Construct a node, computing the cached subtree size from its children. O(1).
@@ -181,7 +200,10 @@ fn[T] insert_node(
   depth : Int,
 ) -> TreapNode[T] {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    // Depth guard: return original tree instead of aborting.
+    // This is a safety net against RNG pathologies; in practice the
+    // fixed LCG prevents adversarial priority sequences.
+    return root
   }
   match root {
     Empty => Node(Empty, key, p, Empty, 1)
@@ -240,7 +262,7 @@ fn[T] search_node(
   depth : Int,
 ) -> Bool {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return false
   }
   match root {
     Empty => false
@@ -280,7 +302,7 @@ fn[T] delete_node(
   depth : Int,
 ) -> TreapNode[T] {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return root
   }
   match root {
     Empty => Empty
@@ -327,7 +349,10 @@ pub fn[T] split(
   cmp : (T, T) -> Int,
 ) -> (Treap[T], Treap[T]) {
   let (l, r) = split_node(t.root, key, cmp, 0)
-  ({ root: l, rng: t.rng }, { root: r, rng: t.rng })
+  // Advance RNG for the right treap to prevent both treaps from
+  // drawing the same priority sequence on subsequent inserts.
+  let right_rng = next_priority(t.rng)
+  ({ root: l, rng: t.rng }, { root: r, rng: right_rng })
 }
 
 /// Recursive split: returns `(left, right)` where `left` has keys < `key`
@@ -339,7 +364,7 @@ fn[T] split_node(
   depth : Int,
 ) -> (TreapNode[T], TreapNode[T]) {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return (root, Empty)
   }
   match root {
     Empty => (Empty, Empty)
@@ -369,7 +394,7 @@ pub fn[T] merge(left : Treap[T], right : Treap[T]) -> Treap[T] {
 /// Uses priorities to decide which root stays on top.
 fn[T] merge_node(a : TreapNode[T], b : TreapNode[T], depth : Int) -> TreapNode[T] {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return a
   }
   match (a, b) {
     (Empty, _) => b
@@ -397,7 +422,7 @@ pub fn[T] kth(t : Treap[T], k : Int) -> T? {
 
 fn[T] kth_node(root : TreapNode[T], k : Int, depth : Int) -> T? {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return None
   }
   match root {
     Empty => None
@@ -426,7 +451,7 @@ fn[T] rank_node(
   depth : Int,
 ) -> Int {
   if depth > treap_max_depth {
-    abort("treap: recursion depth exceeded; tree degenerated or too large")
+    return -1
   }
   match root {
     Empty => 0

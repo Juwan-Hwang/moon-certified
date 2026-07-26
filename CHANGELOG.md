@@ -218,7 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: Added macOS to the test matrix (was ubuntu-only).
 
 ### Changed
-- Updated README: 113 → 210 packages, 1599 → 2510 tests.
+- Updated README: 113 → 210 packages, 1599 → 2515 tests.
 - API_STABILITY.md updated to v0.11.0 with full package categorization.
 - CI matrix: ubuntu-22.04 → ubuntu-22.04 + ubuntu-latest + macos-latest.
 

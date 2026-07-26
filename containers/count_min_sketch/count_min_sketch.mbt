@@ -32,18 +32,16 @@
 /// A Count-Min Sketch frequency table.
 ///
 /// - `table` is a `depth`-element `FixedArray`, each row a `width`-element
-///   `FixedArray[Int]` of counters. It is `mut` because [`merge`] replaces a
-///   sketch's table with the merged result; per-item increments mutate the
-///   row arrays in place and do not require the field's mutability.
+///   `FixedArray[Int64]` of counters (64-bit to prevent overflow on high-volume
+///   streams). It is `mut` because [`merge`] replaces a sketch's table with
+///   the merged result; per-item increments mutate the row arrays in place and
+///   do not require the field's mutability.
 /// - `width` and `depth` are fixed at construction and never reassigned.
 pub struct CountMinSketch {
-  priv mut table : FixedArray[FixedArray[Int]]
+  priv mut table : FixedArray[FixedArray[Int64]]
   priv width : Int
   priv depth : Int
 }
-
-/// ln(2), used by [`cms_ln`] for range reduction.
-const CMS_LN2 : Double = 0.6931471805599453
 
 /// Golden-ratio derived 64-bit seeds for the two base hash functions.
 /// Different seeds make `h1` and `h2` behave as independent hashes even
@@ -56,35 +54,17 @@ const CMS_SEED2 : Int64 = 0xbf58476d1ce4e5b9L
 // Hashing
 // ---------------------------------------------------------------------------
 
-/// MurmurHash3 `fmix64` avalanche finalizer.
-///
-/// Xor-shift-multiply passes diffuse bits so that small input changes
-/// propagate to all output bits. This breaks the linear structure of the
-/// polynomial rolling hash, making seed-varied hashes effectively
-/// independent — the foundation of pairwise independence for double hashing.
-///
-/// Uses **unsigned** right shifts (via `reinterpret_as_uint64`) so that
-/// negative hashes do not sign-extend and degrade mixing.
-fn fmix64(input : Int64) -> Int64 {
-  let mut h = input
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h = h * 0xff51afd7ed558ccdL
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h = h * 0xc4ceb9fe1a85ec53L
-  h = h ^ ((h.reinterpret_as_uint64() >> 33).reinterpret_as_int64())
-  h
-}
-
 /// FNV-1a-style polynomial hash of a `String`, seeded, then avalanched.
 ///
 ///   h = seed; for each char c: h = h * FNV_prime + c
-/// followed by [`fmix64`]. The prime `0x100000001b3` is the FNV-64 1a prime.
+/// followed by the shared `fmix64` finalizer from `hash_utils`.
+/// The prime `0x100000001b3` is the FNV-64 1a prime.
 fn hash64_str(data : String, seed : Int64) -> Int64 {
   let mut h = seed
   for i = 0; i < data.length(); i = i + 1 {
     h = h * 0x100000001b3L + data[i].to_int().to_int64()
   }
-  fmix64(h)
+  @hash_utils.fmix64(h)
 }
 
 /// Hash of an `Int` key, seeded, then avalanched.
@@ -95,7 +75,7 @@ fn hash64_int(x : Int64, seed : Int64) -> Int64 {
   let mut h = seed
   h = h * 0x100000001b3L + x
   h = h * 0x100000001b3L + (x >> 32)
-  fmix64(h)
+  @hash_utils.fmix64(h)
 }
 
 /// Int64 modulo returning a non-negative residue in `[0, m)` for `m > 0`.
@@ -133,46 +113,16 @@ fn double_hash_int(key : Int) -> (Int64, Int64) {
 }
 
 // ---------------------------------------------------------------------------
-// Math helpers (MoonBit's Double lacks ln and ceil)
+// Math helpers
 // ---------------------------------------------------------------------------
 
-/// Natural logarithm via range reduction + the atanh series.
-///
-/// Reduces `x` to `val` in `[0.5, 1.0)` by multiplying/dividing by 2 and
-/// tracking the exponent `k`, so `ln(x) = ln(val) - k * ln(2)`. For `val` in
-/// that range, `|y| = |(val-1)/(val+1)| <= 1/3` and the series
-///   ln(val) = 2 * sum_{n=0}^{inf} y^(2n+1) / (2n+1)
-/// converges rapidly — 60 terms give full double precision.
-///
-/// **Guard**: returns `0.0` for `x <= 0.0`. Callers ([`new`]) already
-/// validate `delta` in `(0, 1)`, so this is a safety net.
-fn cms_ln(x : Double) -> Double {
+/// Safe natural logarithm. Returns 0.0 for non-positive inputs.
+/// Uses the standard library's `@math.ln` instead of a custom implementation.
+fn safe_ln(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
   }
-  let mut val = x
-  let mut k = 0
-  while val < 0.5 {
-    val = val * 2.0
-    k = k + 1
-  }
-  while val >= 1.0 {
-    val = val / 2.0
-    k = k - 1
-  }
-  let y = (val - 1.0) / (val + 1.0)
-  let y2 = y * y
-  let mut sum = 0.0
-  let mut ypow = y
-  let mut denom = 1.0
-  let mut i = 0
-  while i < 60 {
-    sum = sum + ypow / denom
-    ypow = ypow * y2
-    denom = denom + 2.0
-    i = i + 1
-  }
-  sum * 2.0 - k.to_double() * CMS_LN2
+  @math.ln(x)
 }
 
 /// Ceiling of a non-negative `Double`, returned as `Int`.
@@ -208,7 +158,7 @@ pub fn new(epsilon : Double, delta : Double) -> CountMinSketch {
   let epsilon = if epsilon <= 0.0 { 0.001 } else { epsilon }
   let delta = if delta <= 0.0 || delta >= 1.0 { 0.01 } else { delta }
   let width = ceil_pos(1.0 / epsilon)
-  let depth = ceil_pos(cms_ln(1.0 / delta))
+  let depth = ceil_pos(safe_ln(1.0 / delta))
   // Guard against degenerate inputs producing zero dimensions.
   make_sketch(if width > 0 { width } else { 1 }, if depth > 0 { depth } else { 1 })
 }
@@ -218,7 +168,7 @@ pub fn new(epsilon : Double, delta : Double) -> CountMinSketch {
 /// Each row is allocated independently via `makei` so that rows do not alias
 /// a shared inner array (which `make` would do, corrupting all rows together).
 fn make_sketch(width : Int, depth : Int) -> CountMinSketch {
-  let table = FixedArray::makei(depth, fn(_i) { FixedArray::make(width, 0) })
+  let table = FixedArray::makei(depth, fn(_i) { FixedArray::make(width, 0L) })
   { table, width, depth }
 }
 
@@ -250,7 +200,7 @@ fn add_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Unit {
   }
   for i = 0; i < cms.depth; i = i + 1 {
     let col = mod_nonneg(h1r + i.to_int64() * h2r, w).to_int()
-    cms.table[i][col] = cms.table[i][col] + 1
+    cms.table[i][col] = cms.table[i][col] + 1L
   }
 }
 
@@ -259,7 +209,7 @@ fn add_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Unit {
 /// Because every counter holding `key` also holds any colliding keys (whose
 /// counts are non-negative), each row over-estimates the true count; the
 /// minimum over `depth` rows is the tightest unbiased-from-above estimate.
-fn estimate_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Int {
+fn estimate_hashes(cms : CountMinSketch, h1 : Int64, h2 : Int64) -> Int64 {
   let w = cms.width.to_int64()
   let h1r = mod_nonneg(h1, w)
   let mut h2r = mod_nonneg(h2, w)
@@ -292,13 +242,13 @@ pub fn add_int(cms : CountMinSketch, key : Int) -> Unit {
 
 /// Estimate the frequency of `key`. Always `>=` the true count; with
 /// probability `>= 1 - delta` at most `true_count + epsilon * N` over.
-pub fn estimate(cms : CountMinSketch, key : String) -> Int {
+pub fn estimate(cms : CountMinSketch, key : String) -> Int64 {
   let (h1, h2) = double_hash_str(key)
   estimate_hashes(cms, h1, h2)
 }
 
 /// Estimate the frequency of the integer `key`.
-pub fn estimate_int(cms : CountMinSketch, key : Int) -> Int {
+pub fn estimate_int(cms : CountMinSketch, key : Int) -> Int64 {
   let (h1, h2) = double_hash_int(key)
   estimate_hashes(cms, h1, h2)
 }
@@ -321,7 +271,7 @@ pub fn merge(cms1 : CountMinSketch, cms2 : CountMinSketch) -> CountMinSketch {
     return cms1
   }
   let merged = FixedArray::makei(cms1.depth, fn(i) {
-    let row = FixedArray::make(cms1.width, 0)
+    let row = FixedArray::make(cms1.width, 0L)
     for j = 0; j < cms1.width; j = j + 1 {
       row[j] = cms1.table[i][j] + cms2.table[i][j]
     }
@@ -344,13 +294,13 @@ pub fn merge(cms1 : CountMinSketch, cms2 : CountMinSketch) -> CountMinSketch {
 /// `epsilon * ||a||_1 * ||b||_1`-scaled noise.
 ///
 /// **Precondition**: matching dimensions; a mismatch aborts.
-pub fn inner_product(cms1 : CountMinSketch, cms2 : CountMinSketch) -> Int {
+pub fn inner_product(cms1 : CountMinSketch, cms2 : CountMinSketch) -> Int64 {
   if cms1.width != cms2.width || cms1.depth != cms2.depth {
-    return 0
+    return 0L
   }
-  let mut best = 0
+  let mut best = 0L
   for i = 0; i < cms1.depth; i = i + 1 {
-    let mut row_sum = 0
+    let mut row_sum = 0L
     for j = 0; j < cms1.width; j = j + 1 {
       row_sum = row_sum + cms1.table[i][j] * cms2.table[i][j]
     }
@@ -368,12 +318,12 @@ pub fn inner_product(cms1 : CountMinSketch, cms2 : CountMinSketch) -> Int {
 test "single item count" {
   let cms = new(0.01, 0.01)
   add(cms, "apple")
-  assert_eq(estimate(cms, "apple"), 1)
+  assert_eq(estimate(cms, "apple"), 1L)
   add(cms, "apple")
   add(cms, "apple")
-  assert_eq(estimate(cms, "apple"), 3)
+  assert_eq(estimate(cms, "apple"), 3L)
   // A never-seen key estimates to 0 (no collisions in a near-empty sketch).
-  assert_eq(estimate(cms, "missing"), 0)
+  assert_eq(estimate(cms, "missing"), 0L)
 }
 
 test "multiple items with known counts" {
@@ -390,10 +340,10 @@ test "multiple items with known counts" {
   for i = 0; i < 10; i = i + 1 {
     add(cms, "d")
   }
-  assert_eq(estimate(cms, "a"), 1)
-  assert_eq(estimate(cms, "b"), 2)
-  assert_eq(estimate(cms, "c"), 3)
-  assert_eq(estimate(cms, "d"), 10)
+  assert_eq(estimate(cms, "a"), 1L)
+  assert_eq(estimate(cms, "b"), 2L)
+  assert_eq(estimate(cms, "c"), 3L)
+  assert_eq(estimate(cms, "d"), 10L)
 }
 
 test "overestimate property: estimate >= true count always" {
@@ -407,26 +357,26 @@ test "overestimate property: estimate >= true count always" {
     add(cms, "target")
   }
   // The estimate can only over- or exactly-estimate, never under.
-  assert_true(estimate(cms, "target") >= 5)
+  assert_true(estimate(cms, "target") >= 5L)
   // A key never added still has a non-negative estimate.
-  assert_true(estimate(cms, "never_added") >= 0)
+  assert_true(estimate(cms, "never_added") >= 0L)
   // Spot-check a few inserted keys: each was added once, so estimate >= 1.
-  assert_true(estimate(cms, "item_0") >= 1)
-  assert_true(estimate(cms, "item_500") >= 1)
-  assert_true(estimate(cms, "item_999") >= 1)
+  assert_true(estimate(cms, "item_0") >= 1L)
+  assert_true(estimate(cms, "item_500") >= 1L)
+  assert_true(estimate(cms, "item_999") >= 1L)
 }
 
 test "frequency estimation with bounded error" {
   // epsilon=0.01, delta=0.001 -> width=100, depth=7.
   let eps = 0.01
   let cms = new(eps, 0.001)
-  let true_count = 50
+  let true_count = 50L
   let total = 200
   // "heavy" appears 50 times; 150 distinct distractors appear once each.
-  for i = 0; i < true_count; i = i + 1 {
+  for i = 0; i < true_count.to_int(); i = i + 1 {
     add(cms, "heavy")
   }
-  for i = 0; i < total - true_count; i = i + 1 {
+  for i = 0; i < total - true_count.to_int(); i = i + 1 {
     add(cms, "distractor_" + i.to_string())
   }
   let est = estimate(cms, "heavy")
@@ -434,7 +384,7 @@ test "frequency estimation with bounded error" {
   assert_true(est >= true_count)
   // Bound: est <= true_count + eps * total (+ margin) with prob >= 1 - delta.
   // eps * total = 0.01 * 200 = 2; allow a generous 13-unit margin for safety.
-  assert_true(est <= true_count + 15)
+  assert_true(est <= true_count + 15L)
 }
 
 test "merge two sketches" {
@@ -452,12 +402,12 @@ test "merge two sketches" {
   add(cms2, "z")
   let m = merge(cms1, cms2)
   // Merged counts are the sum of the two streams.
-  assert_eq(estimate(m, "x"), 3) // 2 + 1
-  assert_eq(estimate(m, "y"), 2) // 1 + 1
-  assert_eq(estimate(m, "z"), 3) // 0 + 3
+  assert_eq(estimate(m, "x"), 3L) // 2 + 1
+  assert_eq(estimate(m, "y"), 2L) // 1 + 1
+  assert_eq(estimate(m, "z"), 3L) // 0 + 3
   // Inputs are left unchanged (non-destructive merge).
-  assert_eq(estimate(cms1, "x"), 2)
-  assert_eq(estimate(cms2, "z"), 3)
+  assert_eq(estimate(cms1, "x"), 2L)
+  assert_eq(estimate(cms2, "z"), 3L)
 }
 
 test "inner product estimation" {
@@ -480,8 +430,8 @@ test "inner product estimation" {
   }
   // True inner product = 3*4 + 2*5 = 22.
   let ip = inner_product(cms1, cms2)
-  assert_true(ip >= 22) // over-estimate
-  assert_true(ip < 22 + 30) // bounded (generous margin)
+  assert_true(ip >= 22L) // over-estimate
+  assert_true(ip < 22L + 30L) // bounded (generous margin)
 }
 
 test "heavy hitter identification" {
@@ -499,9 +449,9 @@ test "heavy hitter identification" {
   let hot_est = estimate(cms, "hot")
   let other_est = estimate(cms, "item_25")
   // The heavy hitter is estimated at least its true count.
-  assert_true(hot_est >= 500)
+  assert_true(hot_est >= 500L)
   // And it dominates every light item by a wide margin.
-  assert_true(hot_est > other_est * 5)
+  assert_true(hot_est > other_est * 5L)
   // "hot" is the single heaviest item: its estimate exceeds any light item.
   assert_true(hot_est > other_est)
 }
@@ -517,12 +467,12 @@ test "large stream test" {
   }
   // Every key's estimate is at least its true count (over-estimate property).
   for i = 0; i < 100; i = i + 1 {
-    assert_true(estimate(cms, "key_" + i.to_string()) >= 100)
+    assert_true(estimate(cms, "key_" + i.to_string()) >= 100L)
   }
   // And bounded: with width=10000 and only 100 distinct keys, collision noise
   // is negligible, so estimates stay close to 100.
   for i = 0; i < 100; i = i + 1 {
-    assert_true(estimate(cms, "key_" + i.to_string()) < 100 + 50)
+    assert_true(estimate(cms, "key_" + i.to_string()) < 100L + 50L)
   }
 }
 
@@ -531,15 +481,15 @@ test "int keys: add_int and estimate_int" {
   add_int(cms, 42)
   add_int(cms, 42)
   add_int(cms, 42)
-  assert_eq(estimate_int(cms, 42), 3)
+  assert_eq(estimate_int(cms, 42), 3L)
   add_int(cms, 7)
-  assert_eq(estimate_int(cms, 7), 1)
+  assert_eq(estimate_int(cms, 7), 1L)
   // Negative keys hash distinctly and behave like any other key.
   add_int(cms, -1)
   add_int(cms, -1)
-  assert_eq(estimate_int(cms, -1), 2)
+  assert_eq(estimate_int(cms, -1), 2L)
   // A never-seen int key has a non-negative estimate.
-  assert_true(estimate_int(cms, 9999) >= 0)
+  assert_true(estimate_int(cms, 9999) >= 0L)
 }
 
 test "parameter sizing: width and depth from epsilon/delta" {
