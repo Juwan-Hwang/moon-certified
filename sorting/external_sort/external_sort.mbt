@@ -3,16 +3,16 @@
 /// External sorting handles datasets that don't fit in memory by:
 /// 1. **Run generation**: Read chunks of `buffer_size` elements, sort each
 ///    chunk in memory, and write them as sorted "runs".
-/// 2. **K-way merge**: Merge K sorted runs at a time using a min-heap,
-///    reading and writing through bounded I/O buffers.
+/// 2. **K-way merge**: Merge K sorted runs at a time using a binary min-heap,
+///    achieving O(n log k) per merge pass (not O(n×k)).
 ///
 /// This in-memory simulation demonstrates the external sort algorithm
 /// without actual disk I/O. It operates on `FixedArray` and uses an
 /// internal "run list" to simulate disk-based sorted runs.
 ///
 /// ## Complexity
-/// - Time: O(n log n) with O(n/B) I/O operations, where B = buffer size.
-/// - Space: O(buffer_size) for in-memory sorting and merge buffers.
+/// - Time: O(n log n) — each merge pass is O(n log k), with ⌈log_k(runs)⌉ passes.
+/// - Space: O(buffer_size + k) for in-memory sorting and the merge heap.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
@@ -96,7 +96,11 @@ pub fn external_sort(
   }
 }
 
-/// K-way merge of sorted runs[start..start+k).
+/// K-way merge of sorted runs[start..start+k) using a binary min-heap.
+///
+/// ## Complexity
+/// - Time: O(n log k) where n = total elements, k = number of runs.
+/// - Space: O(k) for the heap.
 fn k_way_merge(
   runs : Array[FixedArray[Int]],
   start : Int,
@@ -108,23 +112,90 @@ fn k_way_merge(
     total = total + runs[start + i].length()
   }
   let result = FixedArray::make(total, 0)
-  // Pointers into each run.
+  if total == 0 {
+    return result
+  }
+  // Min-heap of (value, run_index). We use two parallel arrays for the heap
+  // because MoonBit doesn't have tuple-based heaps in the standard library.
+  // Heap capacity = k (at most one entry per run at any time).
+  let heap_cap = k
+  let heap_val = FixedArray::make(heap_cap, 0)
+  let heap_run = FixedArray::make(heap_cap, 0)
+  let mut heap_size = 0
+  // Pointers into each run (next unmerged index).
   let ptrs = FixedArray::make(k, 0)
-  for pos = 0; pos < total; pos = pos + 1 {
-    // Find the minimum element among all runs.
-    let mut best_run = -1
-    let mut best_val = 0
-    for r = 0; r < k; r = r + 1 {
-      if ptrs[r] < runs[start + r].length() {
-        let val = runs[start + r][ptrs[r]]
-        if best_run == -1 || val < best_val {
-          best_run = r
-          best_val = val
-        }
+  // Helper: push (val, run) onto the heap.
+  let push = fn(val : Int, run : Int) -> Unit {
+    heap_val[heap_size] = val
+    heap_run[heap_size] = run
+    heap_size = heap_size + 1
+    // Sift up.
+    let mut i = heap_size - 1
+    while i > 0 {
+      let parent = (i - 1) / 2
+      if heap_val[i] < heap_val[parent] {
+        let tv = heap_val[i]
+        heap_val[i] = heap_val[parent]
+        heap_val[parent] = tv
+        let tr = heap_run[i]
+        heap_run[i] = heap_run[parent]
+        heap_run[parent] = tr
+        i = parent
+      } else {
+        break
       }
     }
-    result[pos] = best_val
-    ptrs[best_run] = ptrs[best_run] + 1
+  }
+  // Helper: pop the minimum (val, run) from the heap.
+  let pop = fn() -> (Int, Int) {
+    let min_val = heap_val[0]
+    let min_run = heap_run[0]
+    heap_size = heap_size - 1
+    if heap_size > 0 {
+      heap_val[0] = heap_val[heap_size]
+      heap_run[0] = heap_run[heap_size]
+      // Sift down.
+      let mut i = 0
+      while true {
+        let left = 2 * i + 1
+        let right = 2 * i + 2
+        let mut smallest = i
+        if left < heap_size && heap_val[left] < heap_val[smallest] {
+          smallest = left
+        }
+        if right < heap_size && heap_val[right] < heap_val[smallest] {
+          smallest = right
+        }
+        if smallest == i {
+          break
+        }
+        let tv = heap_val[i]
+        heap_val[i] = heap_val[smallest]
+        heap_val[smallest] = tv
+        let tr = heap_run[i]
+        heap_run[i] = heap_run[smallest]
+        heap_run[smallest] = tr
+        i = smallest
+      }
+    }
+    (min_val, min_run)
+  }
+  // Initialize: push the first element of each non-empty run.
+  for r = 0; r < k; r = r + 1 {
+    if ptrs[r] < runs[start + r].length() {
+      push(runs[start + r][ptrs[r]], r)
+      ptrs[r] = ptrs[r] + 1
+    }
+  }
+  // Extract minimum repeatedly and refill from the same run.
+  for pos = 0; pos < total; pos = pos + 1 {
+    let (val, run) = pop()
+    result[pos] = val
+    // Refill from the same run if it still has elements.
+    if ptrs[run] < runs[start + run].length() {
+      push(runs[start + run][ptrs[run]], run)
+      ptrs[run] = ptrs[run] + 1
+    }
   }
   result
 }

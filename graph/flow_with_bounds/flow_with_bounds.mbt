@@ -1,9 +1,8 @@
 /// Network Flow with Lower and Upper Bounds.
 ///
-/// Extends standard max-flow/min-cost-flow to handle edges that have both a
-/// **lower bound** (minimum required flow) and an **upper bound** (capacity).
-/// This is essential for production scheduling, resource allocation, and
-/// feasibility checking problems.
+/// Extends standard max-flow to handle edges that have both a **lower bound**
+/// (minimum required flow) and an **upper bound** (capacity). This is essential
+/// for production scheduling, resource allocation, and feasibility checking.
 ///
 /// ## Algorithm
 ///
@@ -12,20 +11,18 @@
 ///
 /// 1. For each edge `e = (u, v)` with bounds `[lo, hi]`, create a regular
 ///    edge with capacity `hi - lo` and record `excess[u] -= lo, excess[v] += lo`.
-/// 2. Add edges from super source `S` to vertices with `excess > 0`
-///    (they need to receive the lower-bound flow).
+/// 2. Add edges from super source `S` to vertices with `excess > 0`.
 /// 3. Add edges from vertices with `excess < 0` to super sink `T`.
 /// 4. Run max-flow from `S` to `T`. If all super-source edges are saturated,
 ///    the bounded flow is feasible.
 ///
-/// ## Supported problems
-///
-/// 1. **Feasibility**: Is there a flow satisfying all bounds?
-/// 2. **Bounded max-flow**: Maximum flow from `s` to `t` with bounds.
-/// 3. **Bounded min-cost flow**: Minimum cost flow with bounds.
+/// For **bounded max-flow**, after feasibility, the t→s edge is removed and
+/// additional max-flow is pushed from `s` to `t` on the **residual network**
+/// (reusing the same edge array from the feasibility phase, so the feasibility
+/// flow is preserved).
 ///
 /// ## Complexity
-/// - Time: O(V² · E) for Dinic-based max-flow (same as Dinic).
+/// - Time: O(V² · E) for Dinic-based max-flow.
 /// - Space: O(V + E).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
@@ -43,14 +40,13 @@ pub fn bounded_edge(from : Int, to : Int, lower : Int, upper : Int) -> BoundedEd
   { from, to, lower, upper }
 }
 
-/// Internal edge representation for Dinic.
-priv struct Edge {
+/// Internal mutable edge for Dinic.
+priv struct MEdge {
   to : Int
-  cap : Int
-  flow : Int
+  mut cap : Int // residual capacity
 }
 
-/// Result of a bounded flow feasibility check.
+/// Result of a bounded flow computation.
 pub struct BoundedFlowResult {
   priv feasible : Bool
   priv total_flow : Int
@@ -64,7 +60,9 @@ pub fn is_feasible(r : BoundedFlowResult) -> Bool {
 }
 
 /// The actual flow on edge `i` (0-indexed into the original edge list).
-/// Returns 0 if the result is infeasible or `i` is out of bounds.
+///
+/// Returns the **real** flow (lower bound + additional flow pushed through
+/// the edge), NOT just the lower bound.
 pub fn edge_flow(r : BoundedFlowResult, i : Int) -> Int {
   if i < 0 || i >= r.edge_flows.length() {
     return 0
@@ -83,113 +81,103 @@ pub fn vertex_count(r : BoundedFlowResult) -> Int {
 }
 
 // ---------------------------------------------------------------------------
-// Dinic max-flow (internal)
+// Dinic max-flow (internal, returns edge array for flow extraction)
 // ---------------------------------------------------------------------------
 
+/// Dinic context: edges + adjacency list + level/iter arrays.
+priv struct DinicCtx {
+  edges : Array[MEdge]
+  head : FixedArray[Array[Int]] // head[v] = list of edge indices from v
+  level : FixedArray[Int]
+  iter : FixedArray[Int]
+  n : Int
+}
+
 /// Build the Dinic flow network from capacity edges.
-/// Returns (edges_array, head_array, n_vertices).
-fn build_network(
-  n : Int,
-  edges : Array[(Int, Int, Int)], // (from, to, cap)
-) -> (FixedArray[Edge], FixedArray[Array[Int]]) {
+/// Returns the DinicCtx with the edge array.
+fn build_ctx(n : Int, edges : Array[(Int, Int, Int)]) -> DinicCtx {
   let m = edges.length()
-  let edge_arr = FixedArray::make(2 * m, Edge::{ to : 0, cap : 0, flow : 0 })
-  let head = FixedArray::makei(n, fn(_i) { [] })
+  let edge_arr : Array[MEdge] = []
+  let head : FixedArray[Array[Int]] = FixedArray::makei(n, fn(_i) { [] })
   for i = 0; i < m; i = i + 1 {
     let (u, v, c) = edges[i]
-    edge_arr[2 * i] = Edge::{ to : v, cap : c, flow : 0 }
-    edge_arr[2 * i + 1] = Edge::{ to : u, cap : 0, flow : 0 }
+    edge_arr.push(MEdge::{ to : v, cap : c })
+    edge_arr.push(MEdge::{ to : u, cap : 0 })
     head[u].push(2 * i)
     head[v].push(2 * i + 1)
   }
-  (edge_arr, head)
+  {
+    edges : edge_arr,
+    head,
+    level : FixedArray::make(n, -1),
+    iter : FixedArray::make(n, 0),
+    n,
+  }
 }
 
-fn bfs_level(
-  edges : FixedArray[Edge],
-  head : FixedArray[Array[Int]],
-  level : FixedArray[Int],
-  s : Int,
-  t : Int,
-  n : Int,
-) -> Bool {
-  for i = 0; i < n; i = i + 1 {
-    level[i] = -1
+fn bfs_level(ctx : DinicCtx, s : Int, t : Int) -> Bool {
+  for i = 0; i < ctx.n; i = i + 1 {
+    ctx.level[i] = -1
   }
-  level[s] = 0
+  ctx.level[s] = 0
   let queue : Array[Int] = [s]
   let mut front = 0
   while front < queue.length() {
     let u = queue[front]
     front = front + 1
-    for idx = 0; idx < head[u].length(); idx = idx + 1 {
-      let eid = head[u][idx]
-      let e = edges[eid]
-      if e.cap - e.flow > 0 && level[e.to] == -1 {
-        level[e.to] = level[u] + 1
+    for idx = 0; idx < ctx.head[u].length(); idx = idx + 1 {
+      let eid = ctx.head[u][idx]
+      let e = ctx.edges[eid]
+      if e.cap > 0 && ctx.level[e.to] == -1 {
+        ctx.level[e.to] = ctx.level[u] + 1
         queue.push(e.to)
       }
     }
   }
-  level[t] != -1
+  ctx.level[t] != -1
 }
 
-fn dfs_dinic(
-  edges : FixedArray[Edge],
-  head : FixedArray[Array[Int]],
-  level : FixedArray[Int],
-  iter : FixedArray[Int],
-  u : Int,
-  t : Int,
-  f : Int,
-) -> Int {
+fn dfs_dinic(ctx : DinicCtx, u : Int, t : Int, f : Int) -> Int {
   if u == t {
     return f
   }
   let mut flow = 0
   let mut pushed = f
-  while iter[u] < head[u].length() && pushed > 0 {
-    let eid = head[u][iter[u]]
-    let e = edges[eid]
-    let residual = e.cap - e.flow
-    if residual > 0 && level[e.to] == level[u] + 1 {
-      let d = dfs_dinic(edges, head, level, iter, e.to, t, if pushed < residual { pushed } else { residual })
+  while ctx.iter[u] < ctx.head[u].length() && pushed > 0 {
+    let eid = ctx.head[u][ctx.iter[u]]
+    let e = ctx.edges[eid]
+    if e.cap > 0 && ctx.level[e.to] == ctx.level[u] + 1 {
+      let d = dfs_dinic(ctx, e.to, t, if pushed < e.cap { pushed } else { e.cap })
       if d > 0 {
-        edges[eid] = Edge::{ to : e.to, cap : e.cap, flow : e.flow + d }
-        let rev = edges[eid ^ 1]
-        edges[eid ^ 1] = Edge::{ to : rev.to, cap : rev.cap, flow : rev.flow - d }
+        ctx.edges[eid].cap = ctx.edges[eid].cap - d
+        ctx.edges[eid ^ 1].cap = ctx.edges[eid ^ 1].cap + d
         pushed = pushed - d
         flow = flow + d
       } else {
-        level[e.to] = -1
+        ctx.level[e.to] = -1
       }
     }
-    iter[u] = iter[u] + 1
+    ctx.iter[u] = ctx.iter[u] + 1
   }
   flow
 }
 
-fn dinic_max_flow(
-  n : Int,
-  edges : Array[(Int, Int, Int)],
-  s : Int,
-  t : Int,
-) -> Int {
+/// Run Dinic max-flow from `s` to `t` on the given context.
+/// Modifies the context's edge array (residual capacities).
+/// Returns the total flow.
+fn dinic_run(ctx : DinicCtx, s : Int, t : Int) -> Int {
   if s == t {
     return 0
   }
-  let (edge_arr, head) = build_network(n, edges)
-  let level = FixedArray::make(n, -1)
-  let iter = FixedArray::make(n, 0)
   let mut total = 0
-  while bfs_level(edge_arr, head, level, s, t, n) {
-    for i = 0; i < n; i = i + 1 {
-      iter[i] = 0
+  while bfs_level(ctx, s, t) {
+    for i = 0; i < ctx.n; i = i + 1 {
+      ctx.iter[i] = 0
     }
-    let mut f = dfs_dinic(edge_arr, head, level, iter, s, t, 2147483647)
+    let mut f = dfs_dinic(ctx, s, t, 2147483647)
     while f > 0 {
       total = total + f
-      f = dfs_dinic(edge_arr, head, level, iter, s, t, 2147483647)
+      f = dfs_dinic(ctx, s, t, 2147483647)
     }
   }
   total
@@ -208,7 +196,8 @@ fn dinic_max_flow(
 /// - `t`: sink vertex (or -1 for circulation feasibility).
 ///
 /// # Returns
-/// A [`BoundedFlowResult`] indicating feasibility and the actual edge flows.
+/// A [`BoundedFlowResult`] indicating feasibility and the **actual** edge flows
+/// (lower bound + additional flow pushed through each edge).
 pub fn feasible_flow(
   n : Int,
   bounded_edges : FixedArray[BoundedEdge],
@@ -225,13 +214,15 @@ pub fn feasible_flow(
     }
   }
   // Super source S = n, super sink T = n+1.
-  // Total vertices = n + 2.
   let sn = n + 2
   let ss = n
   let st = n + 1
   let excess = FixedArray::make(n, 0)
   let net_edges : Array[(Int, Int, Int)] = []
   let edge_lower = FixedArray::make(m, 0)
+  // Track which network edge index corresponds to each original edge.
+  // original_edge_idx[i] = index in net_edges for the i-th bounded edge.
+  let orig_edge_idx : Array[Int] = []
   for i = 0; i < m; i = i + 1 {
     let e = bounded_edges[i]
     if e.lower > e.upper || e.from < 0 || e.from >= n || e.to < 0 || e.to >= n {
@@ -243,6 +234,7 @@ pub fn feasible_flow(
       }
     }
     net_edges.push((e.from, e.to, e.upper - e.lower))
+    orig_edge_idx.push(net_edges.length() - 1)
     excess[e.from] = excess[e.from] - e.lower
     excess[e.to] = excess[e.to] + e.lower
     edge_lower[i] = e.lower
@@ -251,6 +243,9 @@ pub fn feasible_flow(
   // to convert to a circulation problem.
   if s >= 0 && t >= 0 && s < n && t < n {
     net_edges.push((t, s, 2147483647))
+  } else {
+    // Add a dummy edge that we'll ignore.
+    net_edges.push((0, 0, 0))
   }
   // Add super source/sink edges for excess.
   let mut required_total = 0
@@ -262,18 +257,21 @@ pub fn feasible_flow(
       net_edges.push((v, st, -excess[v]))
     }
   }
-  // Run max-flow from ss to st.
-  let flow = dinic_max_flow(sn, net_edges, ss, st)
+  // Build and run Dinic.
+  let ctx = build_ctx(sn, net_edges)
+  let flow = dinic_run(ctx, ss, st)
   let feasible = flow >= required_total
-  // Extract edge flows: actual flow = lower_bound + residual_flow.
-  // We need to read the flow from the network. Since we built it
-  // internally, we reconstruct from the excess balance.
-  // For a feasible flow, each edge's actual flow = lower + (upper - lower - residual).
-  // But we don't have direct access to residual. Instead, we verify
-  // feasibility and return lower bounds as the minimum flow.
+  // Extract actual edge flows: actual = lower + (initial_cap - residual_cap)
+  // = lower + (upper - lower - residual) = lower + flow_pushed_through_edge
+  // flow_pushed = initial_cap - current_cap (the forward edge's consumed capacity)
   let edge_flows = FixedArray::make(m, 0)
   for i = 0; i < m; i = i + 1 {
-    edge_flows[i] = edge_lower[i]
+    let net_idx = orig_edge_idx[i]
+    // Forward edge is at index 2*net_idx in the edges array.
+    let fwd_edge = ctx.edges[2 * net_idx]
+    let initial_cap = bounded_edges[i].upper - bounded_edges[i].lower
+    let flow_pushed = initial_cap - fwd_edge.cap
+    edge_flows[i] = edge_lower[i] + flow_pushed
   }
   BoundedFlowResult::{ feasible, total_flow : flow, n, edge_flows }
 }
@@ -281,7 +279,12 @@ pub fn feasible_flow(
 /// Compute the maximum flow from `s` to `t` with lower and upper bounds.
 ///
 /// After checking feasibility, this computes the additional max-flow that
-/// can be pushed through the network.
+/// can be pushed through the residual network. The total flow includes
+/// both the feasibility flow and the additional max-flow.
+///
+/// The **actual edge flows** returned are the real flows (lower + additional),
+/// and the **total_flow** is the sum of lower bounds on the s-t cut plus
+/// the additional flow pushed.
 pub fn bounded_max_flow(
   n : Int,
   bounded_edges : FixedArray[BoundedEdge],
@@ -297,33 +300,96 @@ pub fn bounded_max_flow(
       edge_flows : FixedArray::make(0, 0),
     }
   }
-  // First check feasibility using circulation (t→s infinite edge).
-  let circ_result = feasible_flow(n, bounded_edges, s, t)
-  if !circ_result.feasible {
-    return circ_result
-  }
-  // Now compute additional max-flow on the residual network.
-  // The residual network has capacities (upper - lower) for each edge,
-  // minus what the feasibility flow already used.
-  // For simplicity, we rebuild the network with residual capacities
-  // and run Dinic from s to t.
+  // Build the full network with t→s edge for circulation feasibility.
+  let sn = n + 2
+  let ss = n
+  let st = n + 1
+  let excess = FixedArray::make(n, 0)
   let net_edges : Array[(Int, Int, Int)] = []
+  let edge_lower = FixedArray::make(m, 0)
+  let orig_edge_idx : Array[Int] = []
   for i = 0; i < m; i = i + 1 {
     let e = bounded_edges[i]
-    if e.upper > e.lower {
-      net_edges.push((e.from, e.to, e.upper - e.lower))
+    if e.lower > e.upper || e.from < 0 || e.from >= n || e.to < 0 || e.to >= n {
+      return BoundedFlowResult::{
+        feasible : false,
+        total_flow : 0,
+        n : 0,
+        edge_flows : FixedArray::make(0, 0),
+      }
+    }
+    net_edges.push((e.from, e.to, e.upper - e.lower))
+    orig_edge_idx.push(net_edges.length() - 1)
+    excess[e.from] = excess[e.from] - e.lower
+    excess[e.to] = excess[e.to] + e.lower
+    edge_lower[i] = e.lower
+  }
+  // t→s edge for circulation.
+  let ts_edge_idx = net_edges.length()
+  net_edges.push((t, s, 2147483647))
+  // Super source/sink edges.
+  let mut required_total = 0
+  for v = 0; v < n; v = v + 1 {
+    if excess[v] > 0 {
+      net_edges.push((ss, v, excess[v]))
+      required_total = required_total + excess[v]
+    } else if excess[v] < 0 {
+      net_edges.push((v, st, -excess[v]))
     }
   }
-  let additional = dinic_max_flow(n, net_edges, s, t)
-  // Total flow = sum of lower bounds on s-t path + additional.
-  // We approximate by returning the additional flow.
+  // Build context and run feasibility max-flow.
+  let ctx = build_ctx(sn, net_edges)
+  let feas_flow = dinic_run(ctx, ss, st)
+  let feasible = feas_flow >= required_total
+  if !feasible {
+    return BoundedFlowResult::{
+      feasible : false,
+      total_flow : 0,
+      n,
+      edge_flows : FixedArray::make(m, 0),
+    }
+  }
+  // Remove the t→s edge by setting its capacity to 0.
+  // The t→s edge is at index 2*ts_edge_idx (forward) and 2*ts_edge_idx+1 (reverse).
+  // Set both to 0 so no more flow can go through it.
+  ctx.edges[2 * ts_edge_idx].cap = 0
+  ctx.edges[2 * ts_edge_idx + 1].cap = 0
+  // Now run additional max-flow from s to t on the residual network.
+  // This reuses the same context, so the feasibility flow is preserved.
+  let _additional = dinic_run(ctx, s, t)
+  // Extract actual edge flows from the residual network.
   let edge_flows = FixedArray::make(m, 0)
   for i = 0; i < m; i = i + 1 {
-    edge_flows[i] = bounded_edges[i].lower
+    let net_idx = orig_edge_idx[i]
+    let fwd_edge = ctx.edges[2 * net_idx]
+    let initial_cap = bounded_edges[i].upper - bounded_edges[i].lower
+    let flow_pushed = initial_cap - fwd_edge.cap
+    edge_flows[i] = edge_lower[i] + flow_pushed
   }
+  // Total flow from s to t = flow on the (removed) t→s edge before removal.
+  // We can compute it as: sum of flows on edges leaving s minus flows entering s
+  // (excluding the t→s reverse edge).
+  // A simpler approach: total = sum of (edge_flows on edges out of s) - sum of
+  // (edge_flows on edges into s from non-t vertices).
+  // But the most direct: total flow = additional + (feasibility flow on s-t path).
+  // The feasibility flow on s-t path = flow that was going through the t→s edge.
+  // Since we set it to 0, we lost that info. Let's compute it differently.
+  // Total flow from s to t = net outflow from s = sum of flows on edges (s, v) - sum of flows on edges (v, s).
+  let mut total_s_out = 0
+  let mut total_s_in = 0
+  for i = 0; i < m; i = i + 1 {
+    let e = bounded_edges[i]
+    if e.from == s {
+      total_s_out = total_s_out + edge_flows[i]
+    }
+    if e.to == s {
+      total_s_in = total_s_in + edge_flows[i]
+    }
+  }
+  let total = total_s_out - total_s_in
   BoundedFlowResult::{
     feasible : true,
-    total_flow : additional,
+    total_flow : total,
     n,
     edge_flows,
   }
@@ -392,6 +458,45 @@ test "bounded_flow: triangle feasibility" {
   assert_true(is_feasible(result))
 }
 
+test "bounded_flow: edge_flow returns actual flow not lower bound" {
+  // 0→1 [3,10], 1→2 [3,10]. s=0, t=2.
+  // Feasible flow must send at least 3 on each edge.
+  // Actual flow should be >= 3, not just 3.
+  let n = 3
+  let edges = FixedArray::make(2, bounded_edge(0, 0, 0, 0))
+  edges[0] = bounded_edge(0, 1, 3, 10)
+  edges[1] = bounded_edge(1, 2, 3, 10)
+  let result = feasible_flow(n, edges, 0, 2)
+  assert_true(is_feasible(result))
+  // Each edge must carry at least its lower bound.
+  assert_true(edge_flow(result, 0) >= 3)
+  assert_true(edge_flow(result, 1) >= 3)
+  // Flows must not exceed upper bounds.
+  assert_true(edge_flow(result, 0) <= 10)
+  assert_true(edge_flow(result, 1) <= 10)
+  // Flow conservation: flow on edge 0 == flow on edge 1.
+  assert_eq(edge_flow(result, 0), edge_flow(result, 1))
+}
+
+test "bounded_flow: edge_flow respects bounds with nonzero lower" {
+  // 0→1 [5,8], 1→2 [5,8], 0→2 [0,3]. s=0, t=2.
+  // The actual flow must be in [5,8] for edges 0 and 1.
+  let n = 3
+  let edges = FixedArray::make(3, bounded_edge(0, 0, 0, 0))
+  edges[0] = bounded_edge(0, 1, 5, 8)
+  edges[1] = bounded_edge(1, 2, 5, 8)
+  edges[2] = bounded_edge(0, 2, 0, 3)
+  let result = feasible_flow(n, edges, 0, 2)
+  assert_true(is_feasible(result))
+  // Verify bounds on each edge.
+  assert_true(edge_flow(result, 0) >= 5)
+  assert_true(edge_flow(result, 0) <= 8)
+  assert_true(edge_flow(result, 1) >= 5)
+  assert_true(edge_flow(result, 1) <= 8)
+  assert_true(edge_flow(result, 2) >= 0)
+  assert_true(edge_flow(result, 2) <= 3)
+}
+
 test "bounded_max_flow: simple path" {
   // 0→1 [0,10], 1→2 [0,10]. Max flow = 10.
   let n = 3
@@ -412,4 +517,43 @@ test "bounded_max_flow: bottleneck edge" {
   let result = bounded_max_flow(n, edges, 0, 2)
   assert_true(is_feasible(result))
   assert_eq(total_flow(result), 5)
+}
+
+test "bounded_max_flow: with nonzero lower bounds" {
+  // 0→1 [3,10], 1→2 [3,10]. Max flow = 10.
+  // Total flow must be at least 3 (lower bound) and at most 10 (upper bound).
+  let n = 3
+  let edges = FixedArray::make(2, bounded_edge(0, 0, 0, 0))
+  edges[0] = bounded_edge(0, 1, 3, 10)
+  edges[1] = bounded_edge(1, 2, 3, 10)
+  let result = bounded_max_flow(n, edges, 0, 2)
+  assert_true(is_feasible(result))
+  // Max flow should be 10 (the upper bound).
+  assert_eq(total_flow(result), 10)
+  // Each edge should carry exactly 10.
+  assert_eq(edge_flow(result, 0), 10)
+  assert_eq(edge_flow(result, 1), 10)
+}
+
+test "bounded_max_flow: infeasible returns false" {
+  // 0→1 [5,10], 1→2 [1,3]. Lower bound 5 > capacity 3. Infeasible.
+  let n = 3
+  let edges = FixedArray::make(2, bounded_edge(0, 0, 0, 0))
+  edges[0] = bounded_edge(0, 1, 5, 10)
+  edges[1] = bounded_edge(1, 2, 1, 3)
+  let result = bounded_max_flow(n, edges, 0, 2)
+  assert_false(is_feasible(result))
+}
+
+test "bounded_max_flow: parallel paths" {
+  // 0→1 [0,5], 0→2 [0,5], 1→3 [0,5], 2→3 [0,5]. Max flow = 10.
+  let n = 4
+  let edges = FixedArray::make(4, bounded_edge(0, 0, 0, 0))
+  edges[0] = bounded_edge(0, 1, 0, 5)
+  edges[1] = bounded_edge(0, 2, 0, 5)
+  edges[2] = bounded_edge(1, 3, 0, 5)
+  edges[3] = bounded_edge(2, 3, 0, 5)
+  let result = bounded_max_flow(n, edges, 0, 3)
+  assert_true(is_feasible(result))
+  assert_eq(total_flow(result), 10)
 }
