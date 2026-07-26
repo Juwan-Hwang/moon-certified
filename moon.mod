@@ -22,3 +22,7 @@ options(
   documentation: "https://github.com/Juwan-Hwang/moon-certified/blob/main/README.md",
   author: "Juwan Hwang",
 )
+
+import {
+  "moonbitlang/async@0.20.3",
+}

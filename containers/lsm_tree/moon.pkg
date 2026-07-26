@@ -1,3 +1,11 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+}
+
 options(
   "proof-enabled": false,
+  targets: {
+    "lsm_tree_disk.mbt": [ "native", "wasm" ],
+  },
 )
