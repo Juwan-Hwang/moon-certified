@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.11.0** — 157 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2184 tests 全部通过，`moon prove` 9/9 包验证通过 (0 失败)。
+**v0.11.0** — 210 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2510 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 201 个包依赖测试验证。
 
 ### v0.11.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -228,7 +228,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (1599 tests)
+# 运行测试 (2510 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -503,9 +503,66 @@ moon-certified/
 │   ├── closest_pair/       🔒 最近点对 (分治 O(n log n), 9 tests)
 │   └── segment_ops/       🔒 线段相交+点在多边形内 (精确整数叉积, 33 tests)
 ├── game_theory/
-│   └── nim_sg/               🔒 Nim 博弈 (Sprague-Grundy 定理, 13 tests)
+│   ├── nim_sg/               🔒 Nim 博弈 (Sprague-Grundy 定理, 13 tests)
+│   ├── alpha_beta/           🔒 Alpha-Beta 剪枝 / Negamax (Tic-Tac-Toe 验证, 7 tests)
+│   ├── mcts/                 🔒 Monte Carlo Tree Search (UCT, 7 tests)
+│   ├── gale_shapley/         🔒 Gale-Shapley 稳定匹配 (10 tests)
+│   └── shapley_value/        🔒 Shapley 值 (精确+Monte Carlo, 5 tests)
 ├── random/
-│   └── reservoir_sampling/   🔒 水库采样 (O(n) 在线采样, 8 tests)
+│   ├── reservoir_sampling/   🔒 水库采样 (O(n) 在线采样, 8 tests)
+│   ├── weighted_sampling/    🔒 Alias Method + 加权水库采样 (SplitMix64, 8 tests)
+│   ├── fisher_yates/         🔒 Fisher-Yates 洗牌 (Partial Shuffle, 7 tests)
+│   ├── mersenne_twister/     🔒 Mersenne Twister MT19937 (32/64-bit, 8 tests)
+│   ├── pcg/                  🔒 PCG 随机数生成器 (32/64-bit, 6 tests)
+│   ├── xoshiro/              🔒 Xoshiro256**/512** PRNG (8 tests)
+│   ├── gaussian_sampling/    🔒 Box-Muller 高斯采样 (6 tests)
+│   ├── zobrist_hash/         🔒 Zobrist 哈希 (棋盘状态哈希, 5 tests)
+│   └── mcmc/                 🔒 Metropolis-Hastings MCMC (5 tests)
+├── sorting/
+│   ├── timsort/              🔒 TimSort (run 检测+归并栈, 稳定, 12 tests)
+│   ├── introsort/            🔒 Introsort (快排+堆排+插入排, 10 tests)
+│   ├── pdq_sort/             🔒 Pattern-Defeating Quicksort (10 tests)
+│   └── bucket_sort/          🔒 桶排序 (10 tests)
+├── containers/
+│   ├── treiber_stack/        🔒 Treiber 无锁栈 (CAS 模拟, 8 tests)
+│   ├── mpmc_queue/           🔒 MPMC 无锁队列 (8 tests)
+│   ├── concurrent_hash_map/  🔒 Concurrent HashMap (分段锁模拟, 9 tests)
+│   ├── work_stealing/        🔒 Work-Stealing 队列 (8 tests)
+│   └── monotonic/            🔒 单调栈/单调队列 (21 tests)
+├── trees/
+│   ├── rope/                 🔒 Rope (平衡树字符串, O(log n), 12 tests)
+│   ├── interval_tree/        🔒 区间树 (重叠查询, 10 tests)
+│   ├── range_tree/           🔒 范围树 (2D 正交范围查询, 8 tests)
+│   ├── r_tree/               🔒 R-Tree (空间索引, 10 tests)
+│   └── fibonacci_heap/       🔒 Fibonacci 堆 (O(1) decrease-key, 12 tests)
+├── graph/
+│   ├── chu_liu/              🔒 Chu-Liu 最小树形图 (Edmonds, 8 tests)
+│   ├── k_shortest_paths/     🔒 K 最短路 (Yen 算法, 8 tests)
+│   ├── network_simplex/      🔒 最小费用流 (SSP+SPFA, 9 tests)
+│   └── tree_isomorphism/     🔒 树同构 (AHU 算法, 7 tests)
+├── string/
+│   ├── dawg/                 🔒 DAWG (压缩字典, 10 tests)
+│   ├── sa_is/                🔒 SA-IS 后缀数组 (O(n), 8 tests)
+│   ├── bwt/                  🔒 Burrows-Wheeler 变换 (7 tests)
+│   └── suffix_balanced_tree/ 🔒 后缀平衡树 (归并排序, 8 tests)
+├── geometry/
+│   ├── minkowski_sum/        🔒 Minkowski 和 (凸多边形, 8 tests)
+│   ├── segment_intersection/🔒 通用线段求交 (Bentley-Ottmann, 10 tests)
+│   ├── point_in_polygon/     🔒 点在多边形内 (射线法, 8 tests)
+│   ├── polygon_ops/          🔒 多边形操作 (面积/重心/裁剪, 10 tests)
+│   └── bentley_ottmann/      🔒 扫描线线段求交 (8 tests)
+├── dp/
+│   ├── aliens_trick/         🔒 Aliens' Trick (拉格朗日松弛, 8 tests)
+│   ├── knapsack_opt/         🔒 背包优化 (多重/二维/单调队列, 10 tests)
+│   ├── matrix_chain/        🔒 矩阵链乘 DP (8 tests)
+│   ├── monotone_queue_dp/   🔒 单调队列优化 DP (8 tests)
+│   └── smawk/               🔒 SMAWK 算法 (完全单调矩阵行最小, 10 tests)
+├── math/
+│   ├── fwht/                🔒 快速 Walsh-Hadamard 变换 (7 tests)
+│   ├── numerical_integration/🔒 数值积分 (梯形/Simpson/自适应/Romberg, 9 tests)
+│   ├── ode_solver/          🔒 ODE 求解器 (Euler/RK4/RK45, 8 tests)
+│   ├── interpolation/       🔒 插值 (Lagrange/Newton, 7 tests)
+│   └── least_squares/       🔒 最小二乘法 (线性/多项式, 8 tests)
 ├── .github/workflows/
 │   └── ci.yml                ✅ GitHub Actions CI (check + test + prove)
 ├── CHANGELOG.md              📋 Semantic Versioning changelog
@@ -631,7 +688,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **1599** | **5 完整, 4 部分, 104 tested** | **17 generic** |
+| **Total** | **2510** | **5 完整, 4 部分, 201 tested** | **17 generic** |
+
+> 注：上表仅列出部分代表性包。完整 210 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 

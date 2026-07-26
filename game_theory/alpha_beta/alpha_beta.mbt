@@ -228,6 +228,8 @@ impl Game for TicTacToe with fn current_player(self) {
   self.player
 }
 
+extend TicTacToe with Game::{ make_move, is_terminal, evaluate }
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.11.0] - 2026-07-25
+## [0.11.0] - 2026-07-26
 
-### Added — 44 new algorithm packages + production infrastructure
+### Added — 97 new algorithm packages + production infrastructure
 
 #### Containers
 - `concurrent` — Concurrent data structures: generic RingBuffer, BoundedQueue (try_push/try_pop), SnapshotMap (copy-on-write snapshot with O(1) snapshot).
@@ -93,6 +93,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Game Theory
 - `nim_sg` — Nim game and Sprague-Grundy theorem.
+- `alpha_beta` — Alpha-Beta pruning / Negamax search with Game trait (Tic-Tac-Toe verified).
+- `mcts` — Monte Carlo Tree Search with UCT selection and RAVE-like heuristics.
+- `gale_shapley` — Gale-Shapley stable matching algorithm.
+- `shapley_value` — Shapley value: exact (bitmask) + Monte Carlo approximation.
+
+#### Random
+- `reservoir_sampling` — Reservoir sampling (Algorithm R).
+- `weighted_sampling` — Weighted random sampling (alias method + A-Res with SplitMix64 PRNG).
+- `fisher_yates` — Fisher-Yates shuffle (full + partial shuffle).
+- `mersenne_twister` — MT19937 (32-bit and 64-bit variants).
+- `pcg` — Permuted Congruential Generator (32/64-bit).
+- `xoshiro` — Xoshiro256**/512** PRNG.
+- `gaussian_sampling` — Box-Muller transform for Gaussian distribution.
+- `zobrist_hash` — Zobrist hashing for board state hashing.
+- `mcmc` — Metropolis-Hastings MCMC sampler.
+
+#### Sorting
+- `external_sort` — External merge sort for datasets larger than memory.
+- `timsort` — TimSort (run detection + binary insertion + merge stack, stable).
+- `introsort` — Introsort (quicksort + heapsort + insertion sort, O(n log n) worst case).
+- `pdq_sort` — Pattern-Defeating Quicksort.
+- `bucket_sort` — Bucket sort for uniformly distributed data.
+
+#### Containers
+- `treiber_stack` — Treiber lock-free stack (CAS simulation).
+- `mpmc_queue` — Multi-Producer Multi-Consumer queue.
+- `concurrent_hash_map` — Concurrent HashMap (segmented lock simulation).
+- `work_stealing` — Work-Stealing queue (deque-based).
+
+#### Trees
+- `rope` — Rope (balanced tree for efficient string manipulation, O(log n)).
+- `interval_tree` — Interval tree for overlap queries.
+- `range_tree` — 2D range tree for orthogonal range queries.
+- `r_tree` — R-Tree for spatial indexing.
+- `fibonacci_heap` — Fibonacci heap with O(1) decrease-key.
+
+#### Graph
+- `chu_liu` — Chu-Liu/Edmonds minimum spanning arborescence.
+- `k_shortest_paths` — K-shortest paths (Yen's algorithm).
+- `network_simplex` — Minimum cost flow (SSP with SPFA, Int64 safe).
+- `tree_isomorphism` — Tree isomorphism (AHU algorithm).
+
+#### String
+- `dawg` — Directed Acyclic Word Graph (compact dictionary).
+- `sa_is` — SA-IS suffix array construction (O(n)).
+- `bwt` — Burrows-Wheeler Transform.
+- `suffix_balanced_tree` — Suffix balanced tree (iterative merge sort).
+
+#### Geometry
+- `minkowski_sum` — Minkowski sum of convex polygons.
+- `segment_intersection` — General line segment intersection (Bentley-Ottmann).
+- `point_in_polygon` — Point-in-polygon test (ray casting).
+- `polygon_ops` — Polygon operations (area, centroid, Sutherland-Hodgman clipping).
+- `bentley_ottmann` — Sweep-line segment intersection reporting.
+
+#### DP
+- `aliens_trick` — Aliens' Trick (Lagrangian relaxation DP).
+- `knapsack_opt` — Knapsack optimizations (multiple, 2D, monotone queue).
+- `matrix_chain` — Matrix chain multiplication DP.
+- `monotone_queue_dp` — Monotone queue DP optimization.
+- `smawk` — SMAWK algorithm (row minima of totally monotone matrix, O(n+m)).
+
+#### Math
+- `fwht` — Fast Walsh-Hadamard Transform (XOR convolution).
+- `numerical_integration` — Numerical integration (trapezoidal, Simpson, adaptive, Romberg).
+- `ode_solver` — ODE solvers (Euler, midpoint, RK4, adaptive RK45).
+- `interpolation` — Polynomial interpolation (Lagrange, Newton).
+- `least_squares` — Least squares regression (linear, polynomial).
 
 #### Test Infrastructure
 - `benchmarks/` — Performance benchmark suite with wall-clock timing and complexity verification.
@@ -101,12 +169,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test/test_utils/` — Shared test utilities (eliminates str_cmp duplication across 14 files).
 - `docs/API_STABILITY.md` — API stability and deprecation policy.
 
-### Fixed — 3 P0/P1 bugs + 12 production-grade improvements
+### Fixed — 8 P0/P1 bugs + 15 production-grade improvements
 
-#### Bug fixes (P0/P1)
-- `euler_path`: Fixed `total_edges` counting out-of-bounds vertices, causing path-length validation to incorrectly reject valid Euler paths (P0).
-- `boyer_moore`: Fixed `build_bad_char` using hardcoded 256-element array (ASCII only) — now uses `Map[Int, Int]` supporting all Unicode code points including CJK (P0).
-- `convex_hull`: Fixed using `cross()` (Int32) instead of `cross64()` (Int64) — coordinate differences >46340 caused overflow. Now consistent with `andrew_hull` (P1).
+#### Critical bug fixes (P0)
+- `flow_with_bounds`: Fixed `edge_flow()` returning lower bound instead of actual flow; `bounded_max_flow` now correctly subtracts feasibility flow from capacity (P0).
+- `bplus_tree`: Implemented `delete` with merge-on-underflow — documentation previously claimed delete support but no implementation existed (P0, documentation造假).
+- `external_sort`: Replaced O(n×k) brute-force scan with min-heap k-way merge (O(n log k)) — implementation now matches documented complexity (P0, complexity造假).
+- `lsm_tree`: Fixed `total_entries` counting (delete not decrementing, resurrected keys not incrementing, compact not updating); implemented Bloom Filter (previously documented but missing); replaced O(N log N) global sort with k-way merge compaction (P0).
+
+#### Bug fixes (P1)
+- `euler_path`: Fixed `total_edges` counting out-of-bounds vertices, causing path-length validation to incorrectly reject valid Euler paths (P1).
+- `boyer_moore`: Fixed `build_bad_char` using hardcoded 256-element array (ASCII only) — now uses `Map[Int, Int]` supporting all Unicode code points including CJK (P1).
+- `convex_hull`: Fixed using `cross()` (Int32) instead of `cross64()` (Int64) — coordinate differences >46340 caused overflow (P1).
+- `floyd_warshall`: Migrated distance accumulation from Int32 to Int64 to prevent overflow on long paths (P1).
+- `min_cost_flow`: Changed edge capacity from Int32 to Int64 for consistency with Dinic (P1).
+
+#### Error handling unification
+- ~30 public functions: Replaced `abort()` with `Option` return types for invalid inputs (ntt, union_find, w_tinylfu, int64_utils, ternary_search, etc.).
+- `red_black_tree`/`treap`/`avl`: Added recursive depth protection (guard_depth) consistent across all balanced tree implementations.
+- `w_tinylfu`: Fixed hash function from identity `int_hash(k)=k` to proper integer hash to prevent clustering.
+- `newton_method.nth_root`: Optimized from O(n) power loop to O(log n) fast exponentiation.
+- `weighted_sampling`: Replaced hardcoded `seed=42` with SplitMix64 PRNG + caller-supplied seed parameter.
+- `suffix_balanced_tree`: Replaced O(n²) insertion sort with O(n log n) iterative merge sort.
+- `fenwick`: Added `FenwickRange` for range-add/point-query variant.
 
 #### Production-grade improvements
 - `avl`: Added recursion depth limit (stack protection) + generic support.
@@ -133,7 +218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI: Added macOS to the test matrix (was ubuntu-only).
 
 ### Changed
-- Updated README: 113 → 157 packages, 1599 → 2184 tests.
+- Updated README: 113 → 210 packages, 1599 → 2510 tests.
+- API_STABILITY.md updated to v0.11.0 with full package categorization.
 - CI matrix: ubuntu-22.04 → ubuntu-22.04 + ubuntu-latest + macos-latest.
 
 ## [0.10.0] - 2026-07-25

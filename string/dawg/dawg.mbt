@@ -19,7 +19,6 @@
 
 /// A DAWG state.
 priv struct DAWGState {
-  id : Int
   mut is_final : Bool
   transitions : Map[Int, DAWGState]
 }
@@ -27,20 +26,17 @@ priv struct DAWGState {
 /// A DAWG (directed acyclic word graph).
 pub struct DAWG {
   priv root : DAWGState
-  priv mut next_id : Int
   priv mut word_count : Int
 }
 
 /// Create a new empty DAWG.
 pub fn new() -> DAWG {
-  let root = { id: 0, is_final: false, transitions: Map([]) }
-  { root, next_id: 1, word_count: 0 }
+  let root = { is_final: false, transitions: Map([]) }
+  { root, word_count: 0 }
 }
 
-fn new_state(dawg : DAWG) -> DAWGState {
-  let s = { id: dawg.next_id, is_final: false, transitions: Map([]) }
-  dawg.next_id = dawg.next_id + 1
-  s
+fn new_state() -> DAWGState {
+  { is_final: false, transitions: Map([]) }
 }
 
 /// Add a word to the DAWG.
@@ -49,7 +45,7 @@ pub fn add(dawg : DAWG, word : String) -> Unit {
   for i = 0; i < word.length(); i = i + 1 {
     let c = word[i].to_int()
     if !current.transitions.contains(c) {
-      let s = new_state(dawg)
+      let s = new_state()
       current.transitions[c] = s
     }
     current = current.transitions[c]

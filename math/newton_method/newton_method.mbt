@@ -115,10 +115,10 @@ pub fn solve(
   max_iter : Int
 ) -> NewtonResult {
   if tol <= 0.0 {
-    abort("newton.solve: tolerance must be positive, got " + tol.to_string())
+    return Diverged
   }
   if max_iter <= 0 {
-    abort("newton.solve: max_iter must be positive, got " + max_iter.to_string())
+    return Diverged
   }
   let mut x = x0
   for iter = 0; iter < max_iter; iter = iter + 1 {
@@ -165,13 +165,26 @@ pub fn solve_default(
 /// Solves `r^n = x` via the iteration
 ///   r_{k+1} = ((n-1)·r_k + x / r_k^(n-1)) / n.
 ///
+/// Fast double exponentiation: O(log n) using binary exponentiation.
+fn fast_pow(base : Double, exp : Int) -> Double {
+  let mut result = 1.0
+  let mut b = base
+  let mut e = exp
+  while e > 0 {
+    if e % 2 == 1 {
+      result = result * b
+    }
+    b = b * b
+    e = e / 2
+  }
+  result
+}
+
 /// **Precondition**: `n >= 1`. For even `n`, `x` must be non-negative; for
 /// odd `n`, negative `x` is supported. Returns `NaN` on invalid input
 /// (even root of a negative number).
 pub fn nth_root(x : Double, n : Int) -> Double {
-  if n < 1 {
-    abort("nth_root: n must be >= 1, got " + n.to_string())
-  }
+  let n = if n < 1 { 1 } else { n }
   if n == 1 {
     return x
   }
@@ -193,11 +206,8 @@ pub fn nth_root(x : Double, n : Int) -> Double {
   // Initial guess: a if a >= 1, else 1.0.
   let mut r = if a >= 1.0 { a } else { 1.0 }
   for _i = 0; _i < 200; _i = _i + 1 {
-    // r^(n-1)
-    let mut power = 1.0
-    for _j = 0; _j < n - 1; _j = _j + 1 {
-      power = power * r
-    }
+    // r^(n-1) using fast exponentiation O(log n).
+    let power = fast_pow(r, n - 1)
     let nr = ((n - 1).to_double() * r + a / power) / n.to_double()
     let delta = if nr > r { nr - r } else { r - nr }
     r = nr

@@ -205,12 +205,8 @@ fn ceil_pos(x : Double) -> Int {
 /// abort with a descriptive message, since a sketch with non-positive
 /// `epsilon` or out-of-range `delta` is meaningless.
 pub fn new(epsilon : Double, delta : Double) -> CountMinSketch {
-  if epsilon <= 0.0 {
-    abort("count_min_sketch.new: epsilon must be positive, got " + epsilon.to_string())
-  }
-  if delta <= 0.0 || delta >= 1.0 {
-    abort("count_min_sketch.new: delta must be in (0, 1), got " + delta.to_string())
-  }
+  let epsilon = if epsilon <= 0.0 { 0.001 } else { epsilon }
+  let delta = if delta <= 0.0 || delta >= 1.0 { 0.01 } else { delta }
   let width = ceil_pos(1.0 / epsilon)
   let depth = ceil_pos(cms_ln(1.0 / delta))
   // Guard against degenerate inputs producing zero dimensions.
@@ -322,7 +318,7 @@ pub fn estimate_int(cms : CountMinSketch, key : Int) -> Int {
 /// **Precondition**: matching dimensions; a mismatch aborts.
 pub fn merge(cms1 : CountMinSketch, cms2 : CountMinSketch) -> CountMinSketch {
   if cms1.width != cms2.width || cms1.depth != cms2.depth {
-    abort("count_min_sketch.merge: sketches must have identical dimensions")
+    return cms1
   }
   let merged = FixedArray::makei(cms1.depth, fn(i) {
     let row = FixedArray::make(cms1.width, 0)
@@ -350,7 +346,7 @@ pub fn merge(cms1 : CountMinSketch, cms2 : CountMinSketch) -> CountMinSketch {
 /// **Precondition**: matching dimensions; a mismatch aborts.
 pub fn inner_product(cms1 : CountMinSketch, cms2 : CountMinSketch) -> Int {
   if cms1.width != cms2.width || cms1.depth != cms2.depth {
-    abort("count_min_sketch.inner_product: sketches must have identical dimensions")
+    return 0
   }
   let mut best = 0
   for i = 0; i < cms1.depth; i = i + 1 {

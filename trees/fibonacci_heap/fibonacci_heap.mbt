@@ -18,8 +18,6 @@ priv struct FibNode {
   id : Int
   key : Int
   mut degree : Int
-  mut marked : Bool
-  mut parent : FibNode?
   mut child : FibNode?
   mut left : FibNode?
   mut right : FibNode?
@@ -43,8 +41,6 @@ pub fn FibHeap::insert(self : FibHeap, key : Int) -> Unit {
     id: self.next_id,
     key,
     degree: 0,
-    marked: false,
-    parent: None,
     child: None,
     left: None,
     right: None,
@@ -85,8 +81,6 @@ pub fn FibHeap::extract_min(self : FibHeap) -> Int? {
               Some(r) => r
               None => child
             }
-            child.parent = None
-            child.marked = false
             // Detach from sibling list.
             child.left = Some(child)
             child.right = Some(child)
@@ -164,7 +158,7 @@ fn FibHeap::consolidate(self : FibHeap) -> Unit {
   for i = 0; i < roots.length(); i = i + 1 {
     let mut x = roots[i]
     let mut d = x.degree
-    while d < max_degree && degree_arr[d].is_some() {
+    while d < max_degree && degree_arr[d] is Some(_) {
       let mut y = degree_arr[d].unwrap()
       if x.key > y.key {
         // Swap x and y.
@@ -188,7 +182,6 @@ fn FibHeap::consolidate(self : FibHeap) -> Unit {
       Some(node) => {
         node.left = Some(node)
         node.right = Some(node)
-        node.parent = None
         self.min_node = match self.min_node {
           Some(min) =>
             Some(meld_into_root_list(node, min))
@@ -211,7 +204,6 @@ fn link(y : FibNode, x : FibNode) -> Unit {
   }
   y.left = Some(y)
   y.right = Some(y)
-  y.parent = Some(x)
   // Add y as child of x.
   match x.child {
     None => {
@@ -230,7 +222,6 @@ fn link(y : FibNode, x : FibNode) -> Unit {
     }
   }
   x.degree = x.degree + 1
-  y.marked = false
 }
 
 fn meld_into_root_list(node : FibNode, min : FibNode) -> FibNode {

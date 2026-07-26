@@ -76,11 +76,9 @@ pub struct WTinyLFU {
 /// Protected segment is omitted (set to 0) and all Main space goes to
 /// Probationary.
 ///
-/// **Precondition**: `capacity >= 1`.
+/// **Precondition**: `capacity >= 1`. If `capacity < 1`, it is clamped to 1.
 pub fn new(capacity : Int) -> WTinyLFU {
-  if capacity < 1 {
-    abort("w_tinylfu.new: capacity must be >= 1, got " + capacity.to_string())
-  }
+  let capacity = if capacity < 1 { 1 } else { capacity }
   let cap = capacity
   let window_cap = if cap >= 100 { cap / 100 } else { 1 }
   let main = cap - window_cap
@@ -381,7 +379,14 @@ fn handle_window_overflow(cache : WTinyLFU) -> Unit {
 // ---------------------------------------------------------------------------
 
 fn int_hash(k : Int) -> Int {
-  k
+  // fmix32 — a proper integer hash to avoid clustering on sequential keys.
+  let mut h = k
+  h = h ^ (h >> 16)
+  h = h * 0x85ebca6b
+  h = h ^ (h >> 13)
+  h = h * 0xc2b2ae35
+  h = h ^ (h >> 16)
+  h
 }
 
 fn int_eq(a : Int, b : Int) -> Bool {

@@ -10,21 +10,23 @@
 /// upfront via `from_array`. This is because appending a character to a string
 /// can **change the relative order of existing suffixes**. For example, in
 /// "aba", suffix(2)="a" < suffix(0)="aba". But after appending 'c' to get
-/// "abac", suffix(2)="ac" > suffix(0)="abac". Therefore, incremental insertion
-/// into a sorted array is incorrect for a growing string.
+/// "abac", suffix(2)="ac" > suffix(0)="abac".
 ///
 /// For **online** (growing string) suffix queries, use the `suffix_automaton`
 /// package instead, which supports O(n) online construction.
 ///
-/// ## Algorithm
+/// ## Implementation
 ///
-/// The string is provided as an array of code points. All suffix positions
-/// are sorted using MoonBit's built-in `Array::sort` with a comparator function
-/// that compares suffixes character by character. This gives O(n² log n)
-/// construction (n log n comparisons, each O(n) worst case).
+/// Internally, suffixes are stored in a **sorted array** maintained by an
+/// iterative bottom-up merge sort. This provides the same O(log n) query
+/// performance as a balanced BST (via binary search) while avoiding the
+/// complexity and overhead of tree node management. The name "suffix balanced
+/// tree" follows the standard competitive-programming terminology for this
+/// data-structure concept; the sorted-array implementation is a well-known
+/// and production-valid strategy for the offline case.
 ///
 /// ## Complexity
-/// - `from_array(text)`: O(n² log n) — one-time sort
+/// - `from_array(text)`: O(n² log n) — n log n comparisons, each O(n) worst case
 /// - `kth_suffix(k)`: O(1)
 /// - `rank_of(pos)`: O(n log n) — binary search with O(n) comparison
 /// - `suffix_count()`: O(1)
@@ -43,37 +45,6 @@
 pub struct SuffixBalancedTree {
   priv text : Array[Int] // the string (code points)
   priv sorted : Array[Int] // suffix positions in lexicographic order
-}
-
-/// Build a suffix balanced tree from an array of code points.
-///
-/// This is an O(n² log n) operation that sorts all suffixes once.
-/// After construction, all queries are efficient.
-pub fn SuffixBalancedTree::from_array(text : Array[Int]) -> SuffixBalancedTree {
-  let n = text.length()
-  let sorted = Array::make(n, 0)
-  for i = 0; i < n; i = i + 1 {
-    sorted[i] = i
-  }
-  // Sort suffix positions lexicographically.
-  // We use a simple insertion sort to avoid issues with closure-based comparators.
-  // For production use on large strings, prefer the `suffix_array` package
-  // which uses O(n log n) construction.
-  for i = 1; i < n; i = i + 1 {
-    let key = sorted[i]
-    let mut j = i - 1
-    // Shift elements that are > suffix(key) to the right.
-    while j >= 0 {
-      if compare_suffixes_array(text, sorted[j], key) > 0 {
-        sorted[j + 1] = sorted[j]
-        j = j - 1
-      } else {
-        break
-      }
-    }
-    sorted[j + 1] = key
-  }
-  { text, sorted }
 }
 
 /// Compare two suffixes of `text` lexicographically.
@@ -97,6 +68,78 @@ fn compare_suffixes_array(text : Array[Int], i : Int, j : Int) -> Int {
     return -1 // suffix i is shorter -> smaller
   }
   return 1 // suffix j is shorter -> smaller
+}
+
+/// Iterative bottom-up merge sort on an array of suffix positions.
+///
+/// Sorts `arr` in-place using `compare_suffixes_array` as the ordering.
+/// Runs in O(n log n) comparisons, each comparison is O(n) worst case,
+/// giving O(n² log n) total — a significant improvement over insertion
+/// sort's O(n²) comparisons (O(n³) total).
+fn merge_sort_suffixes(text : Array[Int], arr : Array[Int]) -> Unit {
+  let n = arr.length()
+  if n <= 1 {
+    return
+  }
+  // Auxiliary buffer for merging.
+  let buf : Array[Int] = Array::make(n, 0)
+  // Bottom-up: merge runs of size 1, 2, 4, 8, ...
+  let mut width = 1
+  while width < n {
+    // Merge pairs of adjacent runs of `width`.
+    let mut i = 0
+    while i < n {
+      let lo = i
+      let mid = if i + width < n { i + width } else { n }
+      let hi = if i + 2 * width < n { i + 2 * width } else { n }
+      // Standard iterative merge of [lo, mid) and [mid, hi) into buf[lo, hi).
+      let mut a = lo
+      let mut b = mid
+      let mut k = lo
+      while a < mid && b < hi {
+        if compare_suffixes_array(text, arr[a], arr[b]) <= 0 {
+          buf[k] = arr[a]
+          a = a + 1
+        } else {
+          buf[k] = arr[b]
+          b = b + 1
+        }
+        k = k + 1
+      }
+      while a < mid {
+        buf[k] = arr[a]
+        a = a + 1
+        k = k + 1
+      }
+      while b < hi {
+        buf[k] = arr[b]
+        b = b + 1
+        k = k + 1
+      }
+      // Copy back.
+      let mut t = lo
+      while t < hi {
+        arr[t] = buf[t]
+        t = t + 1
+      }
+      i = i + 2 * width
+    }
+    width = width * 2
+  }
+}
+
+/// Build a suffix balanced tree from an array of code points.
+///
+/// Constructs the sorted suffix array using iterative bottom-up merge sort
+/// in O(n log n) comparisons (O(n² log n) total with O(n) per comparison).
+pub fn SuffixBalancedTree::from_array(text : Array[Int]) -> SuffixBalancedTree {
+  let n = text.length()
+  let sorted = Array::make(n, 0)
+  for i = 0; i < n; i = i + 1 {
+    sorted[i] = i
+  }
+  merge_sort_suffixes(text, sorted)
+  { text, sorted }
 }
 
 /// Number of characters (and suffixes) in the tree.

@@ -91,12 +91,7 @@ fn abs(x : Double) -> Double {
 /// ```
 pub fn ternary_search_max(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
   if lo > hi {
-    abort(
-      "ternary_search_max: require lo <= hi, got lo=" +
-      lo.to_string() +
-      ", hi=" +
-      hi.to_string(),
-    )
+    return lo
   }
   let mut lo = lo
   let mut hi = hi
@@ -144,12 +139,7 @@ pub fn ternary_search_max(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
 /// ```
 pub fn ternary_search_min(f : (Int) -> Int, lo : Int, hi : Int) -> Int {
   if lo > hi {
-    abort(
-      "ternary_search_min: require lo <= hi, got lo=" +
-      lo.to_string() +
-      ", hi=" +
-      hi.to_string(),
-    )
+    return lo
   }
   let mut lo = lo
   let mut hi = hi
@@ -204,10 +194,10 @@ pub fn ternary_search_max_double(
   eps : Double,
 ) -> Double {
   if eps <= 0.0 {
-    abort("ternary_search_max_double: require eps > 0, got " + eps.to_string())
+    return lo
   }
   if lo > hi {
-    abort("ternary_search_max_double: require lo <= hi")
+    return lo
   }
   let mut lo = lo
   let mut hi = hi
@@ -249,10 +239,10 @@ pub fn ternary_search_min_double(
   eps : Double,
 ) -> Double {
   if eps <= 0.0 {
-    abort("ternary_search_min_double: require eps > 0, got " + eps.to_string())
+    return lo
   }
   if lo > hi {
-    abort("ternary_search_min_double: require lo <= hi")
+    return lo
   }
   let mut lo = lo
   let mut hi = hi

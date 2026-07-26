@@ -44,26 +44,6 @@ pub fn new() -> IntervalTree {
   { root: None, size: 0 }
 }
 
-fn node_max_hi(n : Node?) -> Int {
-  match n {
-    Some(node) => node.max_hi
-    None => 0
-  }
-}
-
-fn update_max(n : Node) -> Unit {
-  let mut m = n.interval.hi
-  match n.left {
-    Some(l) => if l.max_hi > m { m = l.max_hi }
-    None => ()
-  }
-  match n.right {
-    Some(r) => if r.max_hi > m { m = r.max_hi }
-    None => ()
-  }
-  n.max_hi = m
-}
-
 /// Insert an interval [lo, hi) with associated data.
 pub fn insert(tree : IntervalTree, lo : Int, hi : Int, data : Int) -> Unit {
   if hi <= lo {

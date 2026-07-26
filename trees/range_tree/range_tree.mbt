@@ -23,7 +23,6 @@ pub struct Point2D {
 /// A range tree node.
 priv struct RTNode {
   point : Point2D
-  sorted_by_y : Array[Point2D]
   left : RTNode?
   right : RTNode?
 }
@@ -57,15 +56,8 @@ fn build_node(points : Array[Point2D], lo : Int, hi : Int) -> RTNode? {
     return None
   }
   let mid = lo + (hi - lo) / 2
-  // Collect all points in [lo, hi] sorted by y for the secondary structure.
-  let subtree : Array[Point2D] = []
-  for i = lo; i <= hi; i = i + 1 {
-    subtree.push(points[i])
-  }
-  subtree.sort_by(fn(a, b) { a.y - b.y })
   Some({
     point: points[mid],
-    sorted_by_y: subtree,
     left: build_node(points, lo, mid - 1),
     right: build_node(points, mid + 1, hi),
   })

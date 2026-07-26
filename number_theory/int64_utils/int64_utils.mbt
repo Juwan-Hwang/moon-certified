@@ -25,11 +25,10 @@
 /// reduction used by all number-theory operations that need non-negative
 /// representatives.
 ///
-/// **Precondition**: `m > 0`. A non-positive modulus is a programming error
-/// and will trigger an abort with a descriptive message.
+/// **Precondition**: `m > 0`. A non-positive modulus returns `0L` (safe fallback).
 pub fn mod64(a : Int64, m : Int64) -> Int64 {
   if m <= 0L {
-    abort("mod64: modulus must be positive, got " + m.to_string())
+    return 0L
   }
   let r = a % m
   if r < 0L {
@@ -128,14 +127,13 @@ pub fn gcd64(a : Int64, b : Int64) -> Int64 {
 /// `m < 2^31.5` (i.e. 32-bit moduli, since `m^2 < 2^63`). For larger
 /// moduli, use the internal `pow_mod_safe` instead.
 ///
-/// **Precondition**: `m > 0` and `exp >= 0`. Violations abort with a
-/// descriptive message.
+/// **Precondition**: `m > 0` and `exp >= 0`. Violations return `0L` (safe fallback).
 pub fn pow_mod64(base : Int64, exp : Int64, m : Int64) -> Int64 {
   if m <= 0L {
-    abort("pow_mod64: modulus must be positive, got " + m.to_string())
+    return 0L
   }
   if exp < 0L {
-    abort("pow_mod64: exponent must be non-negative, got " + exp.to_string())
+    return 0L
   }
   if m == 1L {
     return 0L

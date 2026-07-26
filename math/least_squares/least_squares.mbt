@@ -166,7 +166,7 @@ test "linear_fit: perfect line" {
 
 test "linear_fit: noisy data" {
   let points = [(0.0, 1.1), (1.0, 2.9), (2.0, 3.2), (3.0, 4.8)]
-  let (a, b, r2) = linear_fit(points)
+  let (_, _, r2) = linear_fit(points)
   assert_true(r2 > 0.9)
 }
 

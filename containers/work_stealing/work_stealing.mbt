@@ -29,7 +29,6 @@ pub struct WorkStealingDeque[T] {
   priv mut bottom : Int
   priv mut top : Int
   priv mask : Int
-  priv capacity : Int
 }
 
 /// Create a work-stealing deque with the given capacity.
@@ -46,7 +45,6 @@ pub fn[T] ws_deque_new(capacity : Int) -> WorkStealingDeque[T] {
     bottom: 0,
     top: 0,
     mask: cap - 1,
-    capacity: cap,
   }
 }
 

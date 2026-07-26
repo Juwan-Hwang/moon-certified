@@ -38,7 +38,6 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 const MIN_MERGE : Int = 32
-const MIN_GALLOP : Int = 7
 
 /// Compute the minimum run length for an array of size `n`.
 ///
@@ -136,12 +135,6 @@ fn[T] binary_insertion_sort(
     }
     xs[pos] = key
   }
-}
-
-/// A run on the merge stack.
-struct Run {
-  base : Int  // start index in the array
-  len : Int   // length of the run
 }
 
 /// Merge two adjacent runs using a temporary buffer.
