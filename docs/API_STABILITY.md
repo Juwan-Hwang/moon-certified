@@ -3,9 +3,9 @@
 **Project:** moon-certified — Formally verified core algorithms and data structures for MoonBit
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
-**Current released version:** 0.10.0
-**Document version:** 1.0
-**Last updated:** 2026-07-25
+**Current released version:** 0.11.0
+**Document version:** 1.1
+**Last updated:** 2026-07-26
 
 ---
 
@@ -334,6 +334,35 @@ overflow-correct implementation.
     `{2,3,5,7,11,13,17,19,23,29,31,37}` (valid for the full `Int64` range,
     per Sorenson & Webster, 2015).
 
+### v0.11.0 (2026-07-26) — 97 new packages + production-grade fixes (non-breaking)
+
+**Theme.** The largest additive release to date. No existing public API was changed,
+removed, or renamed. Test count rose from 1599 to 2510; package count rose from
+113 to 210.
+
+New packages spanned sorting (TimSort, Introsort, PdqSort, Bucket Sort), game theory
+(Alpha-Beta, MCTS, Gale-Shapley, Shapley Value), random (Mersenne Twister, PCG,
+Xoshiro, Fisher-Yates, Gaussian, Zobrist, MCMC), concurrency (Treiber Stack, MPMC
+Queue, Concurrent HashMap, Work-Stealing), trees (Rope, Interval Tree, Range Tree,
+R-Tree, Fibonacci Heap), graph (Chu-Liu, K-Shortest Paths, Network Simplex, Tree
+Isomorphism), string (DAWG, SA-IS, BWT, Suffix Balanced Tree), geometry (Minkowski
+Sum, Segment Intersection, Point-in-Polygon, Polygon Ops, Bentley-Ottmann), DP
+(Aliens' Trick, Knapsack Opt, Matrix Chain, Monotone Queue DP, SMAWK), and math
+(FWHT, Numerical Integration, ODE Solver, Interpolation, Least Squares).
+
+Critical fixes:
+- `flow_with_bounds`: edge_flow() now reports actual flow, not lower bound.
+- `bplus_tree`: delete with merge-on-underflow implemented.
+- `external_sort`: k-way merge using min-heap (O(n log k)).
+- `lsm_tree`: Bloom Filter implemented, total_entries counting fixed, k-way compaction.
+- Floyd-Warshall and min_cost_flow: migrated to Int64 for overflow safety.
+- RB/Treap/AVL trees: recursive depth protection added.
+- ~30 public functions: abort() replaced with Option/error returns.
+
+**Migration.** Most existing code continues to compile and behave identically.
+Functions that previously called `abort()` now return `Option` types — callers
+should update to handle the `None` case.
+
 ### v0.10.0 (2026-07-25) — 27 new packages (non-breaking)
 
 **Theme.** A large additive release. No existing public API was changed,
@@ -466,10 +495,10 @@ The following are **not** breaking and require at most a minor bump:
 
 ## 6. Package Categorization
 
-The current development tree contains **152 algorithm packages** (excluding the
-`test/` and `benchmarks/` infrastructure packages). Each is assigned to exactly
-one stability tier. The released `v0.10.0` contained 113 packages; the
-additional packages are in development and will appear in the next minor release.
+The current development tree contains **210 algorithm packages** (excluding the
+root module, shared `test_utils`, and `test/`/`benchmarks/` infrastructure
+packages). Each is assigned to exactly one stability tier. The released
+`v0.11.0` contained 210 packages.
 
 ### Verified tier (9 packages)
 
@@ -555,7 +584,7 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At the released `v0.10.0` the suite comprises **1599 tests**; the development
+At the released `v0.11.0` the suite comprises **2510 tests**; the development
 branch adds further fuzz and stress coverage. The guarantees below apply to every
 package, with tier-specific additions.
 
@@ -654,7 +683,7 @@ A green CI is a prerequisite for any release.
 | 0.8.0 | 2026-07-24 | — | — | — | 8 new packages (euler_sieve, sparse_table, lca, dinic, closest_pair, segment_ops, combinatorics, matrix). |
 | 0.9.0 | 2026-07-24 | 86 | 1321 | — | 12 new packages; `int64_utils` shared module; encapsulation hardening; overflow fixes. |
 | 0.10.0 | 2026-07-25 | 113 | 1599 | 9/9 | 27 new packages (additive, non-breaking). |
-| Unreleased | 2026-07-25 | 152 | 1599+ | 9/9 | 10 Experimental packages + fuzz suite + additional stable packages. |
+| 0.11.0 | 2026-07-26 | 210 | 2510 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.

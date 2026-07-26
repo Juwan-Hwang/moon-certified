@@ -121,16 +121,14 @@ pub fn bellman_ford(
 ///   `dist[i * n + j]` being `Some(d)` for the shortest distance from `i`
 ///   to `j`, or `None` if `j` is unreachable from `i`.
 ///
-/// A sentinel `INF = 5×10⁸` is used internally for "no path yet". It is chosen
-/// so that `INF + INF = 10⁹` stays well within 32-bit `Int` range
-/// (max ≈ 2.147×10⁹), preventing overflow during relaxation. The diagonal
+/// A sentinel `INF = 5×10¹⁷` is used internally for "no path yet" using
+/// 64-bit integers to prevent overflow on long paths. The diagonal
 /// is initialised to `0` (the cost of the empty walk); a negative self-loop
 /// is seeded onto the diagonal so that, after relaxation, any negative value
 /// on the diagonal signals a negative cycle.
 ///
-/// **Overflow limit**: edge weights must satisfy `|w| < INF / n` to
-/// guarantee no overflow over a path of `n` edges. For typical graphs this
-/// is not a concern.
+/// **Overflow safety**: internal computation uses `Int64`, so paths up to
+/// ~9.2×10¹⁸ are safe from overflow regardless of graph size.
 pub fn floyd_warshall(
   graph : FixedArray[Int],
   n : Int,
@@ -138,26 +136,23 @@ pub fn floyd_warshall(
   if n <= 0 || graph.length() < n * n {
     return None
   }
-  // Sentinel for "no path discovered yet". Chosen so that INF + INF = 10⁹
-  // stays well within Int32 range (max ≈ 2.147×10⁹), preventing overflow
-  // during relaxation. Edge weights must satisfy |w| < INF/n to guarantee
-  // no overflow over a path of n edges.
-  let inf_sentinel = 500_000_000
+  // Sentinel for "no path discovered yet" — Int64 to prevent overflow.
+  let inf_sentinel : Int64 = 500_000_000_000_000_000L
   let dist = FixedArray::make(n * n, inf_sentinel)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
       if i == j {
-        dist[i * n + j] = 0
+        dist[i * n + j] = 0L
         // A negative self-loop is itself a negative cycle; seed it so the
         // diagonal check below fires. Positive self-loops are dominated by 0.
         let w = graph[i * n + i]
         if w != 0 && w < 0 {
-          dist[i * n + j] = w
+          dist[i * n + j] = w.to_int64()
         }
       } else {
         let w = graph[i * n + j]
         if w != 0 {
-          dist[i * n + j] = w
+          dist[i * n + j] = w.to_int64()
         }
       }
     }
@@ -182,7 +177,7 @@ pub fn floyd_warshall(
   // Any negative value on the diagonal means a vertex can reach itself with
   // negative total cost: a negative cycle.
   for i = 0; i < n; i = i + 1 {
-    if dist[i * n + i] < 0 {
+    if dist[i * n + i] < 0L {
       return Some(NegativeCycle)
     }
   }
@@ -192,7 +187,7 @@ pub fn floyd_warshall(
     for j = 0; j < n; j = j + 1 {
       let d = dist[i * n + j]
       if d != inf_sentinel {
-        result[i * n + j] = Some(d)
+        result[i * n + j] = Some(d.to_int())
       }
     }
   }

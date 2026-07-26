@@ -86,6 +86,60 @@ pub fn range_query(ft : Fenwick, l : Int, r : Int) -> Int {
 }
 
 // ---------------------------------------------------------------------------
+// Range-add / point-query Fenwick variant
+// ---------------------------------------------------------------------------
+
+/// A Fenwick tree configured for range-add and point-query.
+/// Internally stores the difference array; point_query returns the actual value.
+pub struct FenwickRange {
+  priv diff : FixedArray[Int]
+  priv n : Int
+}
+
+/// Create an empty range-add Fenwick of size `n`.
+pub fn build_range(n : Int) -> FenwickRange {
+  let n = if n < 0 { 0 } else { n }
+  { diff: FixedArray::make(n + 1, 0), n }
+}
+
+/// Add `val` to all positions in `[l, r]` (1-indexed, inclusive).
+pub fn range_add(ft : FenwickRange, l : Int, r : Int, val : Int) -> Unit {
+  if l > r || l > ft.n {
+    return
+  }
+  let cl = if l < 1 { 1 } else { l }
+  // diff[cl] += val
+  let mut i = cl
+  while i <= ft.n {
+    ft.diff[i] = ft.diff[i] + val
+    i = i + (i & (-i))
+  }
+  // diff[r+1] -= val
+  let r1 = r + 1
+  if r1 <= ft.n {
+    let mut j = r1
+    while j <= ft.n {
+      ft.diff[j] = ft.diff[j] - val
+      j = j + (j & (-j))
+    }
+  }
+}
+
+/// Query the value at position `idx` (1-indexed).
+pub fn point_query(ft : FenwickRange, idx : Int) -> Int {
+  if idx < 1 || idx > ft.n {
+    return 0
+  }
+  let mut sum = 0
+  let mut i = idx
+  while i > 0 {
+    sum = sum + ft.diff[i]
+    i = i - (i & (-i))
+  }
+  sum
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

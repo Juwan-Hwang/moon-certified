@@ -192,28 +192,18 @@ pub fn rk45_adaptive(
       y = y5
       // Increase step size.
       if error > 0 {
-        let factor = 0.9 * (tol / error).pow(0.2)
+        let factor = 0.9 * @math.pow(tol / error, 0.2)
         h = h * (if factor > 5.0 { 5.0 } else { factor })
       } else {
         h = h * 2.0
       }
     } else {
       // Decrease step size.
-      let factor = 0.9 * (tol / error).pow(0.2)
+      let factor = 0.9 * @math.pow(tol / error, 0.2)
       h = h * (if factor < 0.1 { 0.1 } else { factor })
     }
   }
   y
-}
-
-/// Helper: double power for fractional exponent.
-fn Double::pow(self : Double, e : Double) -> Double {
-  @math.exp(e * @math.ln(self))
-}
-
-/// Helper: double abs.
-fn Double::abs(self : Double) -> Double {
-  if self < 0.0 { -self } else { self }
 }
 
 // ---------------------------------------------------------------------------

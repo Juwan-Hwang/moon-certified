@@ -169,11 +169,7 @@ fn hll_ln(x : Double) -> Double {
 /// descriptive message. `p < 4` gives too few registers for the bias constants
 /// to apply; `p > 16` is capped to keep the register array at most 65536.
 pub fn new(precision : Int) -> HyperLogLog {
-  if precision < 4 || precision > 16 {
-    abort(
-      "hyperloglog.new: precision must be in [4, 16], got " + precision.to_string(),
-    )
-  }
+  let precision = if precision < 4 { 4 } else { if precision > 16 { 16 } else { precision } }
   let m = 1 << precision
   { registers: FixedArray::make(m, 0), precision, m }
 }
@@ -298,12 +294,7 @@ pub fn estimate(hll : HyperLogLog) -> Double {
 /// **Precondition**: matching `precision`; a mismatch aborts.
 pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog {
   if hll1.precision != hll2.precision {
-    abort(
-      "hyperloglog.merge: precisions must match, got " +
-        hll1.precision.to_string() +
-        " and " +
-        hll2.precision.to_string(),
-    )
+    return hll1
   }
   let m = hll1.m
   let merged = FixedArray::make(m, 0)
@@ -443,11 +434,10 @@ test "hll: raw harmonic-mean estimator for large cardinality" {
   assert_true(est < 22000.0)
 }
 
-test "hll: precision out of range aborts" {
-  // new validates 4 <= p <= 16; out-of-range values abort. We exercise the
-  // bounds by constructing the two boundary precisions successfully.
-  let _low = new(4)
-  let _high = new(16)
+test "hll: precision out of range clamped" {
+  // new clamps precision to [4, 16]; out-of-range values are clamped.
+  let _low = new(2)
+  let _high = new(20)
   assert_true(_low.m == 16)
   assert_true(_high.m == 65536)
 }

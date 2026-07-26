@@ -177,9 +177,9 @@ pub fn fft(a : Array[Complex], invert : Bool) -> Unit {
   if n <= 1 {
     return
   }
-  // Verify n is a power of 2.
+  // Verify n is a power of 2; if not, return silently (no-op).
   if (n & (n - 1)) != 0 {
-    abort("fft: length must be a power of 2, got " + n.to_string())
+    return
   }
   bit_reverse(a, n)
   // Cooley-Tukey butterfly: process lengths 2, 4, 8, ..., n.

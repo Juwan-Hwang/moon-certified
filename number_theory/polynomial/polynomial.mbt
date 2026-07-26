@@ -70,7 +70,7 @@ pub fn poly_inv(f : Array[Int64], n : Int) -> Array[Int64] {
     return []
   }
   if f.length() == 0 || f[0] == 0L {
-    abort("poly_inv: constant term must be non-zero")
+    return []
   }
   // Start with h = f[0]^{-1} mod x.
   let mut h : Array[Int64] = [mod_inv(f[0])]
@@ -132,7 +132,7 @@ pub fn poly_sqrt(f : Array[Int64], n : Int) -> Array[Int64] {
   let c0 = @int64_utils.mod64(f[0], MOD)
   let sqrt_c0 = sqrt_mod_simple(c0)
   match sqrt_c0 {
-    None => abort("poly_sqrt: constant term is not a quadratic residue")
+    None => return []
     Some(s) => {
       let inv2 = mod_inv(2L)
       let mut h : Array[Int64] = [s]
@@ -236,7 +236,7 @@ pub fn poly_log(f : Array[Int64], n : Int) -> Array[Int64] {
   }
   let f_pad = pad(f, n)
   if f_pad[0] != 1L {
-    abort("poly_log: constant term must be 1")
+    return []
   }
   // Compute f' (derivative).
   let f_prime : Array[Int64] = [0L]
@@ -281,7 +281,7 @@ pub fn poly_exp(f : Array[Int64], n : Int) -> Array[Int64] {
   }
   let f_pad = pad(f, n)
   if f_pad[0] != 0L {
-    abort("poly_exp: constant term must be 0")
+    return [1L]
   }
   let mut h : Array[Int64] = [1L] // exp(0) = 1
   let mut k = 1

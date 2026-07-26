@@ -259,6 +259,8 @@ impl GameState for MCTTTT with fn current_player(self) {
   self.player
 }
 
+extend MCTTTT with GameState::{ is_terminal, get_moves, make_move, get_result }
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

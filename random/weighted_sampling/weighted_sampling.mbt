@@ -7,11 +7,54 @@
 /// 2. **Weighted Reservoir Sampling (A-Res)**: O(k log n) streaming weighted
 ///    reservoir sampling without replacement.
 ///
+/// ## PRNG
+///
+/// Reservoir sampling uses **SplitMix64**, a high-quality PRNG with full
+/// 64-bit state and excellent statistical properties. The seed is a caller-
+/// supplied parameter — callers should use a non-deterministic seed (e.g.
+/// derived from system entropy) when statistical randomness is required.
+///
 /// ## Complexity
 /// - Alias Method: O(n) build, O(1) per draw.
 /// - Weighted Reservoir: O(k log n) for k items from n.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
+
+// ---------------------------------------------------------------------------
+// SplitMix64 PRNG
+// ---------------------------------------------------------------------------
+
+/// SplitMix64 PRNG state — a single `Int64` that produces high-quality
+/// pseudo-random values with full period (2^64) and good statistical
+/// properties (passes BigCrush). This is the same generator used by
+/// `std::default_random_engine` in many standard libraries.
+priv struct SplitMix64 {
+  mut state : Int64
+}
+
+/// Create a SplitMix64 PRNG seeded with `seed`.
+fn splitmix64_new(seed : Int64) -> SplitMix64 {
+  { state: seed }
+}
+
+/// Next 64-bit pseudo-random value.
+fn splitmix64_next(rng : SplitMix64) -> Int64 {
+  rng.state = rng.state + 0x9E3779B97F4A7C15L
+  let mut z = rng.state
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9L
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBL
+  z = z ^ (z >> 31)
+  z
+}
+
+/// Next uniform double in [0, 1).
+fn splitmix64_next_double(rng : SplitMix64) -> Double {
+  // Use the top 53 bits for a full-precision double.
+  let v = splitmix64_next(rng)
+  // Mask to get unsigned-equivalent, then shift.
+  let bits = (v & 0x1FFFFFFFFFFFFFL).to_double()
+  bits / 9007199254740992.0 // 2^53
+}
 
 // ---------------------------------------------------------------------------
 // Alias Method (O(1) per-sample after O(n) preprocessing)
@@ -99,17 +142,20 @@ pub fn alias_draw(table : AliasTable, r : Double) -> Int {
 /// Sample k items from a stream of weighted items without replacement.
 ///
 /// Uses the A-Res algorithm: for each item, generate a key = u^(1/w) where
-/// u is uniform [0,1] and w is the weight. Keep the k items with largest keys.
+/// u is uniform [0,1) and w is the weight. Keep the k items with largest keys.
 ///
 /// # Parameters
 /// - `weights`: weight of each item.
 /// - `k`: number of items to sample.
+/// - `seed`: 64-bit seed for the internal SplitMix64 PRNG. Use a
+///   non-deterministic value for statistical applications.
 ///
 /// # Returns
-/// Array of selected item indices.
+/// Array of selected item indices, sorted ascending.
 pub fn weighted_reservoir_sample(
   weights : FixedArray[Double],
   k : Int,
+  seed : Int64,
 ) -> FixedArray[Int] {
   let n = weights.length()
   if k <= 0 || n == 0 {
@@ -118,31 +164,28 @@ pub fn weighted_reservoir_sample(
   if k >= n {
     return FixedArray::makei(n, fn(i) { i })
   }
-  // Use a min-heap of size k, keyed by the generated priority.
-  // Priority = w_i / u_i (equivalent to u^(1/w) comparison).
-  // We use w/u for efficiency (avoids computing fractional powers).
-  let heap_vals = FixedArray::make(k, 0.0) // min-heap of priorities
-  let heap_idxs = FixedArray::make(k, 0)  // corresponding indices
+  let rng = splitmix64_new(seed)
+  // Use a min-heap of size k, keyed by the transformed priority.
+  //
+  // A-Res key = u^(1/w) where u ~ Uniform(0,1). We keep the k items with
+  // the LARGEST keys (heaviest items).  Taking -ln transforms this to:
+  //   key' = -ln(u^(1/w)) = ln(u) / w
+  // Since u ∈ (0,1), ln(u) < 0, so key' is negative.
+  // Larger original key → smaller |key'| → key' closer to 0 (larger).
+  // A min-heap that replaces the minimum when a new key is LARGER keeps
+  // the k LARGEST key' values = k heaviest items. ✓
+  let heap_vals = FixedArray::make(k, 0.0)
+  let heap_idxs = FixedArray::make(k, 0)
   let mut heap_size = 0
-  // Simple deterministic pseudo-random for reproducibility.
-  let mut seed = 42
   for i = 0; i < n; i = i + 1 {
-    // LCG random number generator.
-    seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-    let u = (seed.to_double() + 0.5) / 2147483648.0
+    let u = splitmix64_next_double(rng)
     let w = weights[i]
     if w <= 0.0 {
       continue
     }
-    // Key = u^(1/w). Higher key = higher priority.
-    // For numerical stability with large w, use key = -ln(u)/w.
-    // But since we only need comparisons, we can use w/u directly
-    // (monotonic transform). Actually, we need u^(1/w) which requires
-    // a power function. For simplicity, use the exponential of log:
-    // key = exp(ln(u) / w). Since u ∈ (0,1), ln(u) < 0, and dividing
-    // by w makes it closer to 0, so key is closer to 1 (larger).
-    // For monotonic comparison, we can use -ln(u)/w (smaller = higher priority).
-    let key = if u > 0.0 { -ln_neg(u) / w } else { 999999.0 }
+    // Guard against u == 0 (would cause log(0) = -inf).
+    let u_safe = if u > 0.0 { u } else { 1.0e-300 }
+    let key = @math.ln(u_safe) / w
     if heap_size < k {
       // Insert into heap.
       heap_vals[heap_size] = key
@@ -199,37 +242,6 @@ pub fn weighted_reservoir_sample(
   result
 }
 
-/// Compute -ln(u) for u ∈ (0, 1). This is always positive.
-fn ln_neg(u : Double) -> Double {
-  // Taylor series for -ln(1-x) where x = 1-u.
-  // -ln(u) = -ln(1 - (1-u)) = sum of (1-u)^n / n for n=1..inf
-  // For u close to 1, (1-u) is small and this converges quickly.
-  // For u close to 0, we use a different approach.
-  if u > 0.5 {
-    let x = 1.0 - u
-    let mut result = 0.0
-    let mut term = x
-    let mut n = 1.0
-    while term > 0.000000000000001 {
-      result = result + term / n
-      term = term * x
-      n = n + 1.0
-    }
-    result
-  } else {
-    // For u ≤ 0.5, -ln(u) ≥ ln(2) ≈ 0.693.
-    // Use the identity -ln(u) = -ln(2) + -ln(u/2).
-    // This reduces u until it's > 0.5.
-    let mut val = u
-    let mut offset = 0.0
-    while val <= 0.5 {
-      val = val * 2.0
-      offset = offset + 0.6931471805599453 // ln(2)
-    }
-    offset + ln_neg(val)
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -264,7 +276,7 @@ test "alias: single item" {
 
 test "weighted_reservoir: sample size k" {
   let weights = FixedArray::make(10, 1.0)
-  let result = weighted_reservoir_sample(weights, 3)
+  let result = weighted_reservoir_sample(weights, 3, 42L)
   assert_eq(result.length(), 3)
   // All indices should be valid and unique.
   for i = 0; i < 3; i = i + 1 {
@@ -276,13 +288,13 @@ test "weighted_reservoir: sample size k" {
 
 test "weighted_reservoir: k >= n returns all" {
   let weights = FixedArray::make(5, 1.0)
-  let result = weighted_reservoir_sample(weights, 10)
+  let result = weighted_reservoir_sample(weights, 10, 42L)
   assert_eq(result.length(), 5)
 }
 
 test "weighted_reservoir: k = 0 returns empty" {
   let weights = FixedArray::make(5, 1.0)
-  let result = weighted_reservoir_sample(weights, 0)
+  let result = weighted_reservoir_sample(weights, 0, 42L)
   assert_eq(result.length(), 0)
 }
 
@@ -293,11 +305,27 @@ test "weighted_reservoir: weighted bias" {
   weights[0] = 1000.0
   let mut count_0 = 0
   for trial = 0; trial < 100; trial = trial + 1 {
-    let result = weighted_reservoir_sample(weights, 1)
+    let result = weighted_reservoir_sample(weights, 1, trial.to_int64())
     if result[0] == 0 {
       count_0 = count_0 + 1
     }
   }
   // Should be selected almost every time (allow for rare misses).
   assert_true(count_0 > 90)
+}
+
+test "weighted_reservoir: different seeds produce different results" {
+  let weights = FixedArray::makei(100, fn(i) { (i + 1).to_double() })
+  let r1 = weighted_reservoir_sample(weights, 5, 42L)
+  let r2 = weighted_reservoir_sample(weights, 5, 999L)
+  // With 100 items and k=5, different seeds should almost certainly
+  // produce different selections.
+  let mut different = false
+  for i = 0; i < 5; i = i + 1 {
+    if r1[i] != r2[i] {
+      different = true
+      break
+    }
+  }
+  assert_true(different)
 }

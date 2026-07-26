@@ -52,7 +52,7 @@
 /// edge `i^1` (reverse), so toggling the lowest bit gives the partner.
 priv struct Edge {
   to : Int
-  mut cap : Int // residual capacity on this edge
+  mut cap : Int64 // residual capacity on this edge (Int64 to prevent overflow)
   cost : Int // per-unit cost
   next : Int // index of next edge from the same `from` vertex, -1 = none
 }
@@ -78,11 +78,11 @@ fn build_graph(n : Int, edge_list : Array[(Int, Int, Int, Int)]) -> MCMFGraph {
       continue
     }
     // Forward edge
-    g.edges.push({ to: v, cap, cost, next: g.head[u] })
+    g.edges.push({ to: v, cap: cap.to_int64(), cost, next: g.head[u] })
     g.head[u] = g.edge_count
     g.edge_count = g.edge_count + 1
     // Reverse edge (capacity 0, cost negated)
-    g.edges.push({ to: u, cap: 0, cost: -cost, next: g.head[v] })
+    g.edges.push({ to: u, cap: 0L, cost: -cost, next: g.head[v] })
     g.head[v] = g.edge_count
     g.edge_count = g.edge_count + 1
   }
@@ -222,7 +222,7 @@ fn spfa_init(
     let mut e_idx = g.head[u]
     while e_idx != -1 {
       let e = g.edges[e_idx]
-      if e.cap > 0 && dist[u] + e.cost.to_int64() < dist[e.to] {
+      if e.cap > 0L && dist[u] + e.cost.to_int64() < dist[e.to] {
         dist[e.to] = dist[u] + e.cost.to_int64()
         prev_edge[e.to] = e_idx
         if !in_queue[e.to] {
@@ -283,7 +283,7 @@ fn dijkstra(
         let mut e_idx = g.head[u]
         while e_idx != -1 {
           let e = g.edges[e_idx]
-          if e.cap > 0 {
+          if e.cap > 0L {
             // Reduced cost: c'(u,v) = cost + h[u] - h[v]
             let rc = e.cost.to_int64() + h[u] - h[e.to]
             let nd = dist[u] + rc
@@ -385,7 +385,7 @@ pub fn min_cost_max_flow(
       break // No augmenting path
     }
     // Find bottleneck along the augmenting path.
-    let mut bottleneck = 2147483647
+    let mut bottleneck = 9223372036854775807L
     let mut v = sink
     while v != src {
       let e_idx = prev_edge[v]
@@ -403,10 +403,10 @@ pub fn min_cost_max_flow(
       g.edges[e_idx ^ 1].cap = g.edges[e_idx ^ 1].cap + bottleneck
       // Int64 accumulation: bottleneck * cost cannot overflow for
       // 32-bit inputs (max product ~ 2^31 * 2^31 = 2^62 < 2^63).
-      total_cost = total_cost + bottleneck.to_int64() * g.edges[e_idx].cost.to_int64()
+      total_cost = total_cost + bottleneck * g.edges[e_idx].cost.to_int64()
       v = g.edges[e_idx ^ 1].to
     }
-    total_flow = total_flow + bottleneck.to_int64()
+    total_flow = total_flow + bottleneck
   }
   Some((total_flow, total_cost))
 }

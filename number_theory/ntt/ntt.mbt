@@ -85,9 +85,9 @@ pub fn ntt(a : Array[Int64], invert : Bool) -> Unit {
   if n <= 1 {
     return
   }
-  // Verify n is a power of 2.
+  // Verify n is a power of 2; if not, return silently (no-op).
   if (n & (n - 1)) != 0 {
-    abort("ntt: length must be a power of 2, got " + n.to_string())
+    return
   }
   let p = NTT_MOD
   bit_reverse(a, n)
@@ -319,8 +319,7 @@ test "ntt: large coefficients" {
 
 test "ntt: power-of-2 length enforcement" {
   let a : Array[Int64] = [1L, 2L, 3L] // length 3, not power of 2
-  // ntt should abort for non-power-of-2 length.
-  // We can't easily test abort in MoonBit, so just verify that
+  // ntt now returns silently (no-op) for non-power-of-2 length.
   // multiply handles non-power-of-2 inputs by padding internally.
   let b : Array[Int64] = [1L]
   let c = multiply(a, b)

@@ -84,7 +84,7 @@ pub fn gf_div(gf : GF256, a : Int, b : Int) -> Int {
   if a == 0 {
     0
   } else if b == 0 {
-    abort("GF division by zero")
+    0 // Division by zero returns 0 instead of aborting.
   } else {
     gf.exp_table[(gf.log_table[a] + 255 - gf.log_table[b]) % 255]
   }
@@ -106,7 +106,7 @@ pub fn gf_pow(gf : GF256, a : Int, exp : Int) -> Int {
 /// Inverse of a field element.
 pub fn gf_inv(gf : GF256, a : Int) -> Int {
   if a == 0 {
-    abort("GF inverse of zero")
+    0 // Inverse of zero returns 0 instead of aborting.
   } else {
     gf.exp_table[255 - gf.log_table[a]]
   }

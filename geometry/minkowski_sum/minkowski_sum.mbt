@@ -32,63 +32,6 @@ priv struct Point {
 
 /// Compute the cross product of vectors OA and OB.
 /// Positive = left turn (CCW), negative = right turn (CW), zero = colinear.
-fn cross(o : Point, a : Point, b : Point) -> Int {
-  (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x)
-}
-
-/// Compare two points by polar angle from a reference.
-fn polar_cmp(o : Point, a : Point, b : Point) -> Int {
-  let c = cross(o, a, b)
-  if c > 0 {
-    return -1
-  }
-  if c < 0 {
-    return 1
-  }
-  // Colinear: nearer first.
-  let da = (a.x - o.x) * (a.x - o.x) + (a.y - o.y) * (a.y - o.y)
-  let db = (b.x - o.x) * (b.x - o.x) + (b.y - o.y) * (b.y - o.y)
-  da - db
-}
-
-/// Compute the convex hull of a set of points (Andrew's monotone chain).
-fn convex_hull(points : Array[Point]) -> Array[Point] {
-  let n = points.length()
-  if n <= 1 {
-    let copy : Array[Point] = []
-    for i = 0; i < n; i = i + 1 {
-      copy.push(points[i])
-    }
-    return copy
-  }
-  // Sort by x, then y.
-  points.sort_by(fn(a, b) {
-    if a.x != b.x {
-      a.x - b.x
-    } else {
-      a.y - b.y
-    }
-  })
-  // Build lower hull.
-  let hull : Array[Point] = []
-  for i = 0; i < n; i = i + 1 {
-    while hull.length() >= 2 && cross(hull[hull.length() - 2], hull[hull.length() - 1], points[i]) <= 0 {
-      hull.remove(hull.length() - 1) |> ignore
-    }
-    hull.push(points[i])
-  }
-  // Build upper hull.
-  let lower_len = hull.length() + 1
-  for i = n - 2; i >= 0; i = i - 1 {
-    while hull.length() >= lower_len && cross(hull[hull.length() - 2], hull[hull.length() - 1], points[i]) <= 0 {
-      hull.remove(hull.length() - 1) |> ignore
-    }
-    hull.push(points[i])
-  }
-  hull.remove(hull.length() - 1) |> ignore
-  hull
-}
-
 /// Ensure a convex polygon is CCW (counter-clockwise).
 fn ensure_ccw(poly : Array[Point]) -> Array[Point] {
   let n = poly.length()
