@@ -68,6 +68,7 @@ jobs:
         run: moon prove
 
       - name: Publish to mooncakes.io
+        continue-on-error: true
         env:
           MOON_CREDENTIALS: ${{ secrets.MOON_CREDENTIALS }}
         run: moon publish
