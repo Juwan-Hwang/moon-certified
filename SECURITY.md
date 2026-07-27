@@ -4,9 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
+| 0.12.x  | Yes       |
 | 0.11.x  | Yes       |
-| 0.10.x  | No        |
-| < 0.10  | No        |
+| < 0.11  | No        |
 
 ## Reporting a Vulnerability
 
@@ -46,3 +46,27 @@ Concurrent data structures (Treiber Stack, MPMC Queue, Concurrent HashMap,
 Work-Stealing Queue) are algorithmic reference implementations. MoonBit's
 current runtime is single-threaded — these structures cannot be used for
 true multi-threaded concurrency until MoonBit adds multi-threading support.
+
+### Cryptographic Modules
+
+The `crypto/` packages (AES, ChaCha20, SHA-256, SHA-512, SHA-3, Poly1305,
+HMAC, HKDF, PBKDF2, Base64) implement standard algorithms per their
+respective FIPS/RFC specifications. Test vectors from NIST and IETF RFCs
+are used to verify correctness.
+
+**These modules have not been audited by a third-party security firm.**
+They are suitable for educational purposes, prototyping, and non-critical
+applications. For production security-critical systems, use established
+audited libraries (OpenSSL, ring, BoringSSL).
+
+### Static Analysis & Supply Chain
+
+- **Dependency Review**: Pull requests are automatically scanned for known
+  vulnerabilities via GitHub's dependency review action.
+- **Nightly Builds**: Tests run 3× per OS (Ubuntu, macOS, Windows) every
+  night to detect flaky tests and regressions.
+- **Release Checksums**: Each GitHub Release includes a SHA-256 checksum
+  file for the source tarball.
+- **SAST Limitation**: CodeQL does not support MoonBit. Static analysis
+  is limited to `moon check --deny-warn` (type safety with zero warnings)
+  and the formal verification pipeline (`moon prove` with Z3 + Why3).
