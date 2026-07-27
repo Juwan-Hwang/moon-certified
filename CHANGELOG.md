@@ -71,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `windows-latest` to CI test matrix.
 - Added test coverage report generation step.
 - Added benchmark regression detection job for pull requests.
+- Added nightly build workflow (runs tests 3× per OS for flaky detection, plus formal verification).
+- Added CodeQL SAST workflow for JavaScript and Python security analysis.
+- Added dependency review workflow for pull requests (fails on moderate+ vulnerabilities).
+- Added SHA256 checksum generation and source tarball to GitHub Release artifacts.
+- Removed `abort()` from `crypto/aes` `num_rounds` (inlined into `new_key` with early `None` return).
+- Removed `abort()` from `crypto/poly1305` internal block-load function (unreachable branch now no-op).
 
 #### Test coverage improvements
 - Added 7 tests for `cipolla` (was 3, now 10).

@@ -139,17 +139,6 @@ fn gf_mul(a : Byte, b : Byte) -> Byte {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Number of rounds for each key size.
-fn num_rounds(key_len : Int) -> Int {
-  match key_len {
-    16 => 10 // AES-128
-    24 => 12 // AES-192
-    32 => 14 // AES-256
-    _ => abort("Invalid AES key length: must be 16, 24, or 32 bytes")
-  }
-}
-
-///|
 /// SubWord: apply S-box to each byte of a 4-byte word.
 fn sub_word(w : (Byte, Byte, Byte, Byte)) -> (Byte, Byte, Byte, Byte) {
   (
@@ -188,10 +177,13 @@ pub struct AesKey {
 /// length is invalid.
 pub fn new_key(key : FixedArray[Byte]) -> AesKey? {
   let key_len = key.length()
-  if key_len != 16 && key_len != 24 && key_len != 32 {
-    return None
+  // Determine rounds from key length. Invalid lengths return None.
+  let nr = match key_len {
+    16 => 10 // AES-128
+    24 => 12 // AES-192
+    32 => 14 // AES-256
+    _ => return None
   }
-  let nr = num_rounds(key_len)
   let nk = key_len / 4 // number of 32-bit words in the key
   let total_words = 4 * (nr + 1)
   // Expand the key into words.

@@ -236,7 +236,7 @@ fn u130_from_le_block(data : Bytes, offset : Int, len : Int) -> U130 {
     2 => result.l2 = result.l2 + one_bit
     3 => result.l3 = result.l3 + one_bit
     4 => result.l4 = result.l4 + one_bit
-    _ => abort("invalid limb index in poly1305 block load")
+    _ => () // Unreachable: len ∈ [1,16] → bit_pos ∈ [8,128] → limb_idx ∈ [0,4]
   }
   result
 }
