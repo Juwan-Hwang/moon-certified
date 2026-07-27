@@ -47,20 +47,28 @@ pub trait GameState {
 /// MCTS search engine.
 pub struct MCTS {
   priv nodes : Array[MCTSNode]
-  priv mut rng_state : Int
+  priv mut rng_state : Int64
 }
 
 ///|
 /// Create a new MCTS engine.
 pub fn new(seed : Int) -> MCTS {
-  { nodes: [], rng_state: seed & 0x7FFFFFFF }
+  // Use SplitMix64 to initialize — higher quality than LCG.
+  { nodes: [], rng_state: Int64::from_int(seed) }
 }
 
 ///|
-/// Internal LCG for random playouts.
+/// SplitMix64 PRNG — high-quality, fast, suitable for MCTS simulations.
+/// Produces uniformly distributed values with good statistical properties.
+/// Reference: Sebastiano Vigna, "Further scramblings of Marsaglia's xorshift generators"
 fn MCTS::rng(self : MCTS) -> Int {
-  self.rng_state = (self.rng_state * 1103515245 + 12345) & 0x7FFFFFFF
-  self.rng_state
+  self.rng_state = self.rng_state + 0x9E3779B97F4A7C15L
+  let mut z = self.rng_state
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9L
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBL
+  z = z ^ (z >> 31)
+  // Map to non-negative Int (truncate to 31 bits for portability).
+  (z & 0x7FFFFFFFL).to_int()
 }
 
 ///|

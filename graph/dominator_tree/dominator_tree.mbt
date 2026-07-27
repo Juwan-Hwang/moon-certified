@@ -94,19 +94,34 @@ pub fn dominates(tree : DominatorTree, d : Int, v : Int) -> Bool {
 
 ///|
 /// Path compression: relabel along the path from v to ancestor root.
+/// Iterative implementation to prevent stack overflow on deep paths.
 fn compress(
   ancestor : FixedArray[Int],
   label : FixedArray[Int],
   sdom : FixedArray[Int],
   v : Int,
 ) -> Unit {
-  let a = ancestor[v]
-  if a != -1 && ancestor[a] != -1 {
-    compress(ancestor, label, sdom, a)
-    if sdom[label[a]] < sdom[label[v]] {
-      label[v] = label[a]
+  // Collect the path from v up to the root of the ancestor forest.
+  let path : Array[Int] = []
+  let mut cur = v
+  while cur != -1 && ancestor[cur] != -1 {
+    path.push(cur)
+    cur = ancestor[cur]
+  }
+  // Process from the top (deepest ancestor) down, propagating minimum sdom.
+  for i = path.length() - 1; i >= 0; i = i - 1 {
+    let node = path[i]
+    let a = ancestor[node]
+    if a != -1 && sdom[label[a]] < sdom[label[node]] {
+      label[node] = label[a]
     }
-    ancestor[v] = ancestor[a]
+  }
+  // Link v's ancestor to the root.
+  if path.length() > 0 {
+    let root = ancestor[path[path.length() - 1]]
+    for i = 0; i < path.length(); i = i + 1 {
+      ancestor[path[i]] = root
+    }
   }
 }
 
@@ -191,8 +206,14 @@ pub fn build_dominator_tree(
       }
     }
   }
-  // LT arrays
+  // LT arrays — initialize sdom[v] = dfs_num[v] for all discovered vertices.
+  // This is critical: compress/eval access sdom of vertices that may not
+  // have been processed yet in the reverse-DFS loop, so they must have
+  // valid (non -1) sdom values from the start.
   let sdom = FixedArray::make(n, -1)
+  for idx = 0; idx < counter; idx = idx + 1 {
+    sdom[vertex[idx]] = idx // idx == dfs_num[vertex[idx]]
+  }
   let idom_arr = FixedArray::make(n, -1)
   let ancestor = FixedArray::make(n, -1)
   let label = FixedArray::makei(n, fn(i) { i })
@@ -205,8 +226,7 @@ pub fn build_dominator_tree(
       i = i - 1
       continue
     }
-    // Compute sdom[w]
-    sdom[w] = dfs_num[w]
+    // sdom[w] already initialized to dfs_num[w]; now try to reduce it.
     for k = 0; k < radj[w].length(); k = k + 1 {
       let v = radj[w][k]
       if dfs_num[v] == -1 {

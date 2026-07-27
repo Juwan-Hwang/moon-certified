@@ -1,5 +1,5 @@
 ///|
-fn stable_matching(
+pub fn stable_matching(
   n : Int,
   men_prefs : Array[Array[Int]],
   women_prefs : Array[Array[Int]],

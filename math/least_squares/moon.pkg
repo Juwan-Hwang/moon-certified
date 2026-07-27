@@ -1,7 +1,3 @@
 import {
   "moonbitlang/core/math",
 }
-
-options(
-  root: "src",
-)

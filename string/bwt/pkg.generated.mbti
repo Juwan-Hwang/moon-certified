@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/bwt"
+
+// Values
+pub fn bwt_decode(String) -> String
+
+pub fn bwt_encode(String) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

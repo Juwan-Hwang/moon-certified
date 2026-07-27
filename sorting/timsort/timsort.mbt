@@ -40,6 +40,11 @@
 const MIN_MERGE : Int = 32
 
 ///|
+/// Galloping threshold: after this many consecutive wins from one side,
+/// the merge switches to galloping (binary search) mode.
+const GALLOP_THRESHOLD : Int = 7
+
+///|
 /// Compute the minimum run length for an array of size `n`.
 ///
 /// If n < MIN_MERGE, returns n (no merging needed).
@@ -151,6 +156,11 @@ fn[T] binary_insertion_sort(
 /// Merge two adjacent runs using a temporary buffer.
 /// run1 = xs[base1..base1+len1), run2 = xs[base1+len1..base1+len1+len2)
 /// Both runs must be sorted. Result overwrites xs[base1..base1+len1+len2).
+///
+/// Implements **galloping mode**: when one side consistently wins (7+
+/// consecutive wins), the merge switches to binary search to find the
+/// next insertion point, dramatically reducing comparisons for
+/// partially-ordered data.
 fn[T] merge_runs(
   xs : FixedArray[T],
   base1 : Int,
@@ -159,31 +169,50 @@ fn[T] merge_runs(
   len2 : Int,
   cmp : (T, T) -> Int,
 ) -> Unit {
-  // Copy the shorter run to a temp buffer.
   if len1 <= len2 {
-    // Copy run1 to buffer, merge from buffer into array.
+    // Copy run1 to buffer, merge from buffer into array (left to right).
     let buf = FixedArray::make(len1, xs[base1])
     for i = 0; i < len1; i = i + 1 {
       buf[i] = xs[base1 + i]
     }
-    let mut p1 = 0 // pointer into buf
-    let mut p2 = base2 // pointer into array (run2)
-    let mut out = base1 // output pointer
-    let mut win1 = 0 // consecutive wins from run1
-    let mut win2 = 0 // consecutive wins from run2
-    while p1 < len1 && p2 < base2 + len2 {
+    let mut p1 = 0
+    let mut p2 = base2
+    let mut out = base1
+    let mut win1 = 0
+    let mut win2 = 0
+    let end2 = base2 + len2
+    while p1 < len1 && p2 < end2 {
       if cmp(buf[p1], xs[p2]) <= 0 {
         xs[out] = buf[p1]
         p1 = p1 + 1
+        out = out + 1
         win1 = win1 + 1
         win2 = 0
+        if win1 >= GALLOP_THRESHOLD {
+          let gc = gallop_right(buf, p1, len1, xs[p2], cmp)
+          for g = 0; g < gc; g = g + 1 {
+            xs[out] = buf[p1]
+            p1 = p1 + 1
+            out = out + 1
+          }
+          win1 = 0
+        }
       } else {
         xs[out] = xs[p2]
         p2 = p2 + 1
+        out = out + 1
         win2 = win2 + 1
         win1 = 0
+        if win2 >= GALLOP_THRESHOLD {
+          let gc = gallop_left(xs, p2, end2, buf[p1], cmp)
+          for g = 0; g < gc; g = g + 1 {
+            xs[out] = xs[p2]
+            p2 = p2 + 1
+            out = out + 1
+          }
+          win2 = 0
+        }
       }
-      out = out + 1
     }
     // Copy remaining from buf.
     while p1 < len1 {
@@ -198,18 +227,43 @@ fn[T] merge_runs(
     for i = 0; i < len2; i = i + 1 {
       buf[i] = xs[base2 + i]
     }
-    let mut p1 = base1 + len1 - 1 // pointer into array (run1, from right)
-    let mut p2 = len2 - 1 // pointer into buf (from right)
+    let mut p1 = base1 + len1 - 1
+    let mut p2 = len2 - 1
     let mut out = base1 + len1 + len2 - 1
+    let mut win1 = 0
+    let mut win2 = 0
     while p1 >= base1 && p2 >= 0 {
       if cmp(xs[p1], buf[p2]) > 0 {
         xs[out] = xs[p1]
         p1 = p1 - 1
+        out = out - 1
+        win1 = win1 + 1
+        win2 = 0
+        if win1 >= GALLOP_THRESHOLD {
+          let gc = gallop_left_from_right(xs, base1, p1 + 1, buf[p2], cmp)
+          for g = 0; g < gc; g = g + 1 {
+            xs[out] = xs[p1]
+            p1 = p1 - 1
+            out = out - 1
+          }
+          win1 = 0
+        }
       } else {
         xs[out] = buf[p2]
         p2 = p2 - 1
+        out = out - 1
+        win2 = win2 + 1
+        win1 = 0
+        if win2 >= GALLOP_THRESHOLD {
+          let gc = gallop_right_from_right(buf, 0, p2 + 1, xs[p1], cmp)
+          for g = 0; g < gc; g = g + 1 {
+            xs[out] = buf[p2]
+            p2 = p2 - 1
+            out = out - 1
+          }
+          win2 = 0
+        }
       }
-      out = out - 1
     }
     // Copy remaining from buf.
     while p2 >= 0 {
@@ -219,6 +273,178 @@ fn[T] merge_runs(
     }
     // Remaining run1 is already in place.
   }
+}
+
+///|
+/// Gallop right: find the number of elements in buf[lo..hi) that are
+/// <= key (i.e., can be copied before we hit an element > key).
+///
+/// Uses CPython Timsort-style exponential search (probing at offsets
+/// 1, 3, 7, 15, …) followed by binary search in the identified bracket,
+/// giving O(log n) comparisons instead of O(n).
+fn[T] gallop_right(
+  buf : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  key : T,
+  cmp : (T, T) -> Int,
+) -> Int {
+  if lo >= hi {
+    return 0
+  }
+  // Exponential search: check positions lo+1, lo+3, lo+7, lo+15, …
+  let mut last_offset = 0
+  let mut offset = 1
+  while lo + offset < hi && cmp(buf[lo + offset], key) <= 0 {
+    last_offset = offset
+    offset = offset * 2 + 1
+  }
+  // Clamp offset to the valid range.
+  if lo + offset > hi {
+    offset = hi - lo
+  }
+  // Binary search for the first position > key in [lo + last_offset, lo + offset].
+  // Since the array is sorted, all elements in [lo, lo + last_offset] are <= key.
+  let mut l = lo + last_offset
+  let mut r = lo + offset
+  while l < r {
+    let mid = l + (r - l) / 2
+    if cmp(buf[mid], key) <= 0 {
+      l = mid + 1
+    } else {
+      r = mid
+    }
+  }
+  l - lo
+}
+
+///|
+/// Gallop left: find the number of elements in xs[lo..hi) that are
+/// < key (i.e., can be copied before we hit an element >= key).
+///
+/// Uses CPython Timsort-style exponential search followed by binary search.
+fn[T] gallop_left(
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  key : T,
+  cmp : (T, T) -> Int,
+) -> Int {
+  if lo >= hi {
+    return 0
+  }
+  // Exponential search: check positions lo+1, lo+3, lo+7, lo+15, …
+  let mut last_offset = 0
+  let mut offset = 1
+  while lo + offset < hi && cmp(xs[lo + offset], key) < 0 {
+    last_offset = offset
+    offset = offset * 2 + 1
+  }
+  // Clamp offset to the valid range.
+  if lo + offset > hi {
+    offset = hi - lo
+  }
+  // Binary search for the first position >= key.
+  let mut l = lo + last_offset
+  let mut r = lo + offset
+  while l < r {
+    let mid = l + (r - l) / 2
+    if cmp(xs[mid], key) < 0 {
+      l = mid + 1
+    } else {
+      r = mid
+    }
+  }
+  l - lo
+}
+
+///|
+/// Gallop from right: count elements in xs[lo..hi) that are > key
+/// (searching from the right end, for reverse merge).
+///
+/// Uses exponential search from the right end (probing at hi-2, hi-4,
+/// hi-8, …) followed by binary search, giving O(log n).
+fn[T] gallop_left_from_right(
+  xs : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  key : T,
+  cmp : (T, T) -> Int,
+) -> Int {
+  if lo >= hi {
+    return 0
+  }
+  // Check the rightmost element first.
+  if cmp(xs[hi - 1], key) <= 0 {
+    return 0
+  }
+  // Exponential search from the right: check hi-2, hi-4, hi-8, …
+  let mut last_offset = 0
+  let mut offset = 1
+  while hi - 1 - offset >= lo && cmp(xs[hi - 1 - offset], key) > 0 {
+    last_offset = offset
+    offset = offset * 2 + 1
+  }
+  // Clamp offset to the valid range.
+  if hi - 1 - offset < lo {
+    offset = hi - lo
+  }
+  // Binary search for the leftmost position > key.
+  let mut l = if hi - 1 - offset >= lo { hi - 1 - offset } else { lo }
+  let mut r = hi - 1 - last_offset
+  while l < r {
+    let mid = l + (r - l) / 2
+    if cmp(xs[mid], key) > 0 {
+      r = mid
+    } else {
+      l = mid + 1
+    }
+  }
+  hi - l
+}
+
+///|
+/// Gallop from right: count elements in buf[lo..hi) that are >= key
+/// (searching from the right end, for reverse merge).
+///
+/// Uses exponential search from the right end followed by binary search.
+fn[T] gallop_right_from_right(
+  buf : FixedArray[T],
+  lo : Int,
+  hi : Int,
+  key : T,
+  cmp : (T, T) -> Int,
+) -> Int {
+  if lo >= hi {
+    return 0
+  }
+  // Check the rightmost element first.
+  if cmp(buf[hi - 1], key) < 0 {
+    return 0
+  }
+  // Exponential search from the right: check hi-2, hi-4, hi-8, …
+  let mut last_offset = 0
+  let mut offset = 1
+  while hi - 1 - offset >= lo && cmp(buf[hi - 1 - offset], key) >= 0 {
+    last_offset = offset
+    offset = offset * 2 + 1
+  }
+  // Clamp offset to the valid range.
+  if hi - 1 - offset < lo {
+    offset = hi - lo
+  }
+  // Binary search for the leftmost position >= key.
+  let mut l = if hi - 1 - offset >= lo { hi - 1 - offset } else { lo }
+  let mut r = hi - 1 - last_offset
+  while l < r {
+    let mid = l + (r - l) / 2
+    if cmp(buf[mid], key) >= 0 {
+      r = mid
+    } else {
+      l = mid + 1
+    }
+  }
+  hi - l
 }
 
 ///|
@@ -479,4 +705,73 @@ test "timsort: string sort" {
   assert_eq(arr[0], "apple")
   assert_eq(arr[1], "banana")
   assert_eq(arr[2], "cherry")
+}
+
+///|
+test "timsort: galloping mode (partially ordered)" {
+  // Create two interleaved sorted runs to trigger galloping.
+  // Run A: 0, 10, 20, 30, ... (length 50)
+  // Run B: 1, 11, 21, 31, ... (length 50)
+  // Interleaved: 0, 1, 10, 11, 20, 21, ...
+  // When merged, run A elements are always < run B elements at same index,
+  // causing consecutive wins that trigger galloping.
+  let n = 100
+  let arr = FixedArray::make(n, 0)
+  for i = 0; i < 50; i = i + 1 {
+    arr[i * 2] = i * 10
+    arr[i * 2 + 1] = i * 10 + 1
+  }
+  sort_int(arr)
+  for i = 0; i < n - 1; i = i + 1 {
+    assert_true(arr[i] <= arr[i + 1])
+  }
+  // Verify all elements present.
+  for i = 0; i < 50; i = i + 1 {
+    assert_eq(arr[i * 2], i * 10)
+    assert_eq(arr[i * 2 + 1], i * 10 + 1)
+  }
+}
+
+///|
+test "timsort: galloping with one-side dominance" {
+  // Run A: 1, 2, 3, ..., 50
+  // Run B: 100, 101, 102, ..., 149
+  // All of run A < all of run B → extreme galloping during merge.
+  let n = 100
+  let arr = FixedArray::make(n, 0)
+  for i = 0; i < 50; i = i + 1 {
+    arr[i] = i + 1
+  }
+  for i = 0; i < 50; i = i + 1 {
+    arr[50 + i] = 100 + i
+  }
+  sort_int(arr)
+  for i = 0; i < n - 1; i = i + 1 {
+    assert_true(arr[i] <= arr[i + 1])
+  }
+  for i = 0; i < 50; i = i + 1 {
+    assert_eq(arr[i], i + 1)
+  }
+  for i = 0; i < 50; i = i + 1 {
+    assert_eq(arr[50 + i], 100 + i)
+  }
+}
+
+///|
+test "timsort: galloping reverse merge" {
+  // Data that triggers reverse merge galloping (len1 > len2 case).
+  // First run is much longer, causing merge_hi (right-to-left) path.
+  let n = 200
+  let arr = FixedArray::make(n, 0)
+  // Create a pattern with a long sorted run followed by short sorted runs.
+  for i = 0; i < 150; i = i + 1 {
+    arr[i] = i
+  }
+  for i = 0; i < 50; i = i + 1 {
+    arr[150 + i] = 1000 + i
+  }
+  sort_int(arr)
+  for i = 0; i < n - 1; i = i + 1 {
+    assert_true(arr[i] <= arr[i + 1])
+  }
 }

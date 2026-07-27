@@ -138,13 +138,16 @@ pub fn query_min(cht : CHTMin, x : Int64) -> Int64 {
 ///|
 /// Binary-search variant: query the minimum at an arbitrary `x` (not requiring
 /// monotonic query order). O(log n) per query.
-pub fn query_min_bs(cht : CHTMin, x : Int64) -> Int64 {
+///
+/// Returns `None` if no lines have been added. Callers should handle this
+/// case explicitly rather than relying on a sentinel value.
+pub fn query_min_bs(cht : CHTMin, x : Int64) -> Int64? {
   let n = cht.lines.length()
   if n == 0 {
-    return 0L // undefined; return a safe default
+    return None
   }
   if n == 1 {
-    return eval(cht.lines[0], x)
+    return Some(eval(cht.lines[0], x))
   }
   let mut lo = 0
   let mut hi = n - 1
@@ -158,7 +161,7 @@ pub fn query_min_bs(cht : CHTMin, x : Int64) -> Int64 {
       hi = mid
     }
   }
-  eval(cht.lines[lo], x)
+  Some(eval(cht.lines[lo], x))
 }
 
 // ---------------------------------------------------------------------------
@@ -248,15 +251,15 @@ test "cht: binary search query (non-monotonic)" {
   insert_min(cht, line(1L, 10L))
   // Hull: lines 1 and 3 (middle removed).
   // query_min_bs can handle out-of-order queries.
-  assert_eq(query_min_bs(cht, 0L), 0L)
-  assert_eq(query_min_bs(cht, 10L), 20L)
-  assert_eq(query_min_bs(cht, 3L), 9L)
+  assert_eq(query_min_bs(cht, 0L), Some(0L))
+  assert_eq(query_min_bs(cht, 10L), Some(20L))
+  assert_eq(query_min_bs(cht, 3L), Some(9L))
 }
 
 ///|
-test "cht: empty hull returns zero" {
+test "cht: empty hull returns None" {
   let cht = new_min()
-  assert_eq(query_min_bs(cht, 5L), 0L)
+  assert_eq(query_min_bs(cht, 5L), None)
 }
 
 ///|
@@ -268,7 +271,7 @@ test "cht: overflow safety" {
   insert_min(cht, line(1000000000L, 1000000000L))
   // At x = 10^9: line1 = 2*10^9 * 10^9 = 2*10^18 (fits in Int64)
   //              line2 = 10^9 * 10^9 + 10^9 ≈ 10^18 (fits in Int64)
-  let result = query_min_bs(cht, 1000000000L)
+  let result = query_min_bs(cht, 1000000000L).unwrap()
   assert_true(result > 0L)
 }
 
@@ -283,7 +286,7 @@ test "cht: many lines stress" {
   // Query at several points and verify it equals the brute-force minimum.
   for x_val = 0; x_val <= 100; x_val = x_val + 10 {
     let x = x_val.to_int64()
-    let cht_result = query_min_bs(cht, x)
+    let cht_result = query_min_bs(cht, x).unwrap()
     let mut brute = 999999999999L
     for i = 0; i < 100; i = i + 1 {
       let val = i.to_int64() * x + (i - 50).to_int64()

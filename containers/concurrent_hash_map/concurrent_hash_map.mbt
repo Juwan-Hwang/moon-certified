@@ -24,20 +24,11 @@ pub fn[K, V] concurrent_hash_map_new(
   hash_fn : (K) -> Int,
   eq_fn : (K, K) -> Bool,
 ) -> ConcurrentHashMap[K, V] {
-  let cap = if capacity < 8 { 8 } else { next_pow2(capacity) }
+  let cap = if capacity < 8 { 8 } else { @hash_utils.next_pow2(capacity) }
   let slots = FixedArray::makei(cap, fn(_) {
     Slot::{ key: None, value: None, state: 0 }
   })
   { slots, size: 0, used: 0, capacity: cap, hash_fn, eq_fn }
-}
-
-///|
-fn next_pow2(n : Int) -> Int {
-  let mut p = 1
-  while p < n {
-    p = p * 2
-  }
-  p
 }
 
 ///|
@@ -82,24 +73,29 @@ pub fn[K, V] ConcurrentHashMap::put(
   key : K,
   value : V,
 ) -> Unit {
-  let (idx, found) = self.find_slot(key)
-  if idx < 0 {
-    self.resize()
-    self.put(key, value)
-    return
-  }
-  let slot = self.slots[idx]
-  if !found {
-    if slot.state != 1 {
-      self.used = self.used + 1
+  // Loop instead of recursion: if the table is full after resize, try again.
+  let mut done = false
+  while !done {
+    let (idx, found) = self.find_slot(key)
+    if idx < 0 {
+      self.resize()
+      // Continue the loop — after resize, find_slot should succeed.
+      continue
     }
-    slot.key = Some(key)
-    slot.state = 1
-    self.size = self.size + 1
-  }
-  slot.value = Some(value)
-  if self.used * 4 > self.capacity * 3 {
-    self.resize()
+    let slot = self.slots[idx]
+    if !found {
+      if slot.state != 1 {
+        self.used = self.used + 1
+      }
+      slot.key = Some(key)
+      slot.state = 1
+      self.size = self.size + 1
+    }
+    slot.value = Some(value)
+    if self.used * 4 > self.capacity * 3 {
+      self.resize()
+    }
+    done = true
   }
 }
 
@@ -155,13 +151,32 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   self.capacity = new_cap
   self.size = 0
   self.used = 0
+  // Re-insert directly (not via put, to avoid recursive resize).
   for i = 0; i < old_cap; i = i + 1 {
     let slot = old_slots[i]
     if slot.state == 1 {
       match slot.key {
         Some(k) =>
           match slot.value {
-            Some(v) => self.put(k, v)
+            Some(v) => {
+              // Direct insertion — capacity is always sufficient after doubling.
+              let h = (self.hash_fn)(k)
+              let mask = new_cap - 1
+              let mut idx = h & mask
+              if idx < 0 {
+                idx = idx + new_cap
+              }
+              // Linear probe for an empty slot.
+              while self.slots[idx].state == 1 {
+                idx = (idx + 1) & mask
+              }
+              let new_slot = self.slots[idx]
+              new_slot.key = Some(k)
+              new_slot.value = Some(v)
+              new_slot.state = 1
+              self.size = self.size + 1
+              self.used = self.used + 1
+            }
             None => ()
           }
         None => ()
@@ -170,22 +185,15 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   }
 }
 
-///|
-fn str_hash(s : String) -> Int {
-  let mut h = 0
-  for i = 0; i < s.length(); i = i + 1 {
-    h = h * 31 + s[i].to_int()
-  }
-  h
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 ///|
 test "concurrent_hash_map: basic put and get" {
-  let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
+  let m = concurrent_hash_map_new(8, @hash_utils.poly31_hash, fn(a, b) {
+    a == b
+  })
   m.put("a", 1)
   m.put("b", 2)
   m.put("c", 3)
@@ -198,7 +206,9 @@ test "concurrent_hash_map: basic put and get" {
 
 ///|
 test "concurrent_hash_map: update existing key" {
-  let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
+  let m = concurrent_hash_map_new(8, @hash_utils.poly31_hash, fn(a, b) {
+    a == b
+  })
   m.put("x", 10)
   m.put("x", 20)
   assert_eq(m.get("x"), Some(20))
@@ -207,7 +217,9 @@ test "concurrent_hash_map: update existing key" {
 
 ///|
 test "concurrent_hash_map: delete" {
-  let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
+  let m = concurrent_hash_map_new(8, @hash_utils.poly31_hash, fn(a, b) {
+    a == b
+  })
   m.put("a", 1)
   m.put("b", 2)
   assert_true(m.remove("a"))
@@ -219,7 +231,9 @@ test "concurrent_hash_map: delete" {
 
 ///|
 test "concurrent_hash_map: resize" {
-  let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
+  let m = concurrent_hash_map_new(8, @hash_utils.poly31_hash, fn(a, b) {
+    a == b
+  })
   for i = 0; i < 100; i = i + 1 {
     m.put(i.to_string(), i * 2)
   }
@@ -231,7 +245,9 @@ test "concurrent_hash_map: resize" {
 
 ///|
 test "concurrent_hash_map: delete and reinsert" {
-  let m = concurrent_hash_map_new(8, str_hash, fn(a, b) { a == b })
+  let m = concurrent_hash_map_new(8, @hash_utils.poly31_hash, fn(a, b) {
+    a == b
+  })
   m.put("a", 1)
   ignore(m.remove("a"))
   m.put("a", 2)
@@ -261,7 +277,7 @@ test "concurrent_hash_map: many operations" {
 test "concurrent_hash_map: empty" {
   let m : ConcurrentHashMap[String, Int] = concurrent_hash_map_new(
     8,
-    str_hash,
+    @hash_utils.poly31_hash,
     fn(a, b) { a == b },
   )
   assert_true(m.is_empty())

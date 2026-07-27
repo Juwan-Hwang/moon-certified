@@ -20,7 +20,10 @@
 
 ///|
 /// A game state interface for alpha-beta search.
-pub trait Game {
+///
+/// Marked `pub(open)` so that downstream users can implement it for their
+/// own game states.
+pub(open) trait Game {
   fn is_terminal(Self) -> Bool
   fn evaluate(Self) -> Int
   fn generate_moves(Self) -> Array[Int]

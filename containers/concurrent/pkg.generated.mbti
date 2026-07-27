@@ -6,6 +6,30 @@ package "moon-certified/containers/concurrent"
 // Errors
 
 // Types and methods
+pub struct AsyncMap[K, V] {
+  // private fields
+}
+pub async fn[K : Hash + Eq, V] AsyncMap::contains(Self[K, V], K) -> Bool
+pub async fn[K : Hash + Eq, V] AsyncMap::get(Self[K, V], K) -> V?
+pub fn[K, V] AsyncMap::is_empty(Self[K, V]) -> Bool
+pub fn[K : Hash + Eq, V] AsyncMap::new() -> Self[K, V]
+pub async fn[K : Hash + Eq, V] AsyncMap::put(Self[K, V], K, V) -> Unit
+pub async fn[K : Hash + Eq, V] AsyncMap::remove(Self[K, V], K) -> Bool
+pub fn[K, V] AsyncMap::size(Self[K, V]) -> Int
+
+pub struct AsyncQueue[T] {
+  // private fields
+}
+pub fn[T] AsyncQueue::capacity(Self[T]) -> Int
+pub fn[T] AsyncQueue::is_empty(Self[T]) -> Bool
+pub fn[T] AsyncQueue::is_full(Self[T]) -> Bool
+pub fn[T] AsyncQueue::new(Int) -> Self[T]
+pub async fn[T] AsyncQueue::pop(Self[T]) -> T?
+pub async fn[T] AsyncQueue::push(Self[T], T) -> Bool
+pub fn[T] AsyncQueue::size(Self[T]) -> Int
+pub fn[T] AsyncQueue::try_pop(Self[T]) -> T?
+pub fn[T] AsyncQueue::try_push(Self[T], T) -> Bool
+
 pub struct BoundedQueue[T] {
   // private fields
 }

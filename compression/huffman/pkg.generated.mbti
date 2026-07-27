@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/compression/huffman"
+
+// Values
+pub fn build_tree(String) -> HuffmanTree
+
+pub fn decode(HuffmanTree, Array[Bool]) -> String
+
+pub fn decode_byte(HuffmanTree, Array[Bool]) -> Bytes
+
+pub fn encode(HuffmanTree, String) -> Array[Bool]
+
+pub fn encode_byte(HuffmanTree, Bytes) -> Array[Bool]
+
+// Errors
+
+// Types and methods
+type HNode
+
+pub struct HuffmanTree {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

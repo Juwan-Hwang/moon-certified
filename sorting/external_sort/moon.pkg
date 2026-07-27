@@ -1,11 +1,3 @@
-import {
-  "moonbitlang/async",
-  "moonbitlang/async/fs",
-}
-
 options(
   "proof-enabled": false,
-  targets: {
-    "external_sort_disk.mbt": [ "native", "wasm" ],
-  },
 )

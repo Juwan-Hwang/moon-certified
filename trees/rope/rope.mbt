@@ -30,12 +30,13 @@ pub struct Rope {
 ///|
 /// Create a rope from a string.
 pub fn rope_leaf(s : String) -> Rope {
+  let chars = s.to_array()
   {
     is_leaf: true,
     val: s,
     left: None,
     right: None,
-    len: s.length(),
+    len: chars.length(),
     cached_depth: 1,
   }
 }
@@ -49,13 +50,22 @@ pub fn rope_concat(a : Rope, b : Rope) -> Rope {
     left: Some(a),
     right: Some(b),
     len: a.len + b.len,
-    cached_depth: max_depth(a) + 1,
+    cached_depth: max2(max_depth(a), max_depth(b)) + 1,
   }
 }
 
 ///|
 fn max_depth(r : Rope) -> Int {
   r.cached_depth
+}
+
+///|
+fn max2(a : Int, b : Int) -> Int {
+  if a > b {
+    a
+  } else {
+    b
+  }
 }
 
 ///|
@@ -71,7 +81,11 @@ pub fn rope_index(r : Rope, i : Int) -> Char? {
     return None
   }
   if r.is_leaf {
-    return Some(r.val.unsafe_get(i).to_int().to_char().unwrap())
+    let chars = r.val.to_array()
+    if i < chars.length() {
+      return Some(chars[i])
+    }
+    return None
   }
   match r.left {
     Some(l) =>

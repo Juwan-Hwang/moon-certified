@@ -375,9 +375,13 @@ fn[T] bal_left_rotate(
           false,
         )
       Empty =>
-        // Unreachable: is_red(rr) returned true, which requires rr to be a
-        // Red Node. Safe fallback: treat as no deficit resolution.
-        (mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color), false)
+        // Truly unreachable: is_red(rr) returned true, which requires rr to be
+        // a Red Node. If this is reached, the RB tree invariant has been
+        // corrupted by a bug in the caller. Aborting is safer than returning
+        // a structurally invalid tree that would propagate corruption.
+        abort(
+          "bal_left_rotate: unreachable — is_red(rr) returned true but rr is Empty (tree invariant corrupted)",
+        )
     }
   } else if is_red(rl) {
     // Right-left double rotation: rlv becomes new root (parent_color).
@@ -393,15 +397,19 @@ fn[T] bal_left_rotate(
           false,
         )
       Empty =>
-        // Unreachable: is_red(rl) returned true, which requires rl to be a
-        // Red Node. Safe fallback: treat as no deficit resolution.
-        (mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color), false)
+        // Truly unreachable: is_red(rl) returned true, which requires rl to be
+        // a Red Node. If this is reached, the RB tree invariant has been
+        // corrupted by a bug in the caller. Aborting is safer than returning
+        // a structurally invalid tree that would propagate corruption.
+        abort(
+          "bal_left_rotate: unreachable — is_red(rl) returned true but rl is Empty (tree invariant corrupted)",
+        )
     }
   } else {
-    (
-      // Shouldn't reach: at least one nephew must be Red.
-      mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color),
-      false,
+    // Should not reach: bal_left is only called when at least one nephew is Red.
+    // If reached, the RB tree invariant has been corrupted.
+    abort(
+      "bal_left_rotate: unreachable — no Red nephew found (tree invariant corrupted)",
     )
   }
 }
@@ -465,9 +473,13 @@ fn[T] bal_right_rotate(
           false,
         )
       Empty =>
-        // Unreachable: is_red(ll) returned true, which requires ll to be a
-        // Red Node. Safe fallback: treat as no deficit resolution.
-        (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
+        // Truly unreachable: is_red(ll) returned true, which requires ll to be
+        // a Red Node. If this is reached, the RB tree invariant has been
+        // corrupted by a bug in the caller. Aborting is safer than returning
+        // a structurally invalid tree that would propagate corruption.
+        abort(
+          "bal_right_rotate: unreachable — is_red(ll) returned true but ll is Empty (tree invariant corrupted)",
+        )
     }
   } else if is_red(lr) {
     // Left-right double rotation: lrv becomes new root.
@@ -483,12 +495,19 @@ fn[T] bal_right_rotate(
           false,
         )
       Empty =>
-        // Unreachable: is_red(lr) returned true, which requires lr to be a
-        // Red Node. Safe fallback: treat as no deficit resolution.
-        (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
+        // Truly unreachable: is_red(lr) returned true, which requires lr to be
+        // a Red Node. If this is reached, the RB tree invariant has been
+        // corrupted by a bug in the caller. Aborting is safer than returning
+        // a structurally invalid tree that would propagate corruption.
+        abort(
+          "bal_right_rotate: unreachable — is_red(lr) returned true but lr is Empty (tree invariant corrupted)",
+        )
     }
   } else {
-    (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
+    // Should not reach: bal_right is only called when at least one nephew is Red.
+    abort(
+      "bal_right_rotate: unreachable — no Red nephew found (tree invariant corrupted)",
+    )
   }
 }
 

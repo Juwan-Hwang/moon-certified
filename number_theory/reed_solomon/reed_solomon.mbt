@@ -87,14 +87,15 @@ pub fn gf_mul(gf : GF256, a : Int, b : Int) -> Int {
 
 ///|
 /// Divide two field elements.
-pub fn gf_div(gf : GF256, a : Int, b : Int) -> Int {
-  if a == 0 {
-    0
-  } else if b == 0 {
-    0 // Division by zero returns 0 instead of aborting.
-  } else {
-    gf.exp_table[(gf.log_table[a] + 255 - gf.log_table[b]) % 255]
+/// Returns `None` if `b` is zero (division by zero is undefined in GF(256)).
+pub fn gf_div(gf : GF256, a : Int, b : Int) -> Int? {
+  if b == 0 {
+    return None
   }
+  if a == 0 {
+    return Some(0)
+  }
+  Some(gf.exp_table[(gf.log_table[a] + 255 - gf.log_table[b]) % 255])
 }
 
 ///|
@@ -113,12 +114,12 @@ pub fn gf_pow(gf : GF256, a : Int, exp : Int) -> Int {
 
 ///|
 /// Inverse of a field element.
-pub fn gf_inv(gf : GF256, a : Int) -> Int {
+/// Returns `None` if `a` is zero (zero has no multiplicative inverse in GF(256)).
+pub fn gf_inv(gf : GF256, a : Int) -> Int? {
   if a == 0 {
-    0 // Inverse of zero returns 0 instead of aborting.
-  } else {
-    gf.exp_table[255 - gf.log_table[a]]
+    return None
   }
+  Some(gf.exp_table[255 - gf.log_table[a]])
 }
 
 // ---------------------------------------------------------------------------
@@ -157,7 +158,10 @@ fn poly_div(
   }
   let quot = FixedArray::make(la - lb + 1, 0)
   let rem = FixedArray::makei(la, fn(i) { dividend[i] })
-  let inv_lead = gf_inv(gf, divisor[lb - 1])
+  let inv_lead = match gf_inv(gf, divisor[lb - 1]) {
+    Some(v) => v
+    None => return (FixedArray::make(0, 0), dividend) // divisor lead is zero
+  }
   for i = la - lb; i >= 0; i = i - 1 {
     let coeff = gf_mul(gf, rem[i + lb - 1], inv_lead)
     quot[i] = coeff
@@ -353,7 +357,11 @@ pub fn rs_decode(
     // evaluates to e_j · ∏_{l≠j}(1 - X_l·x) at x = X_j⁻¹, while Λ'(X_j⁻¹)
     // = X_j · ∏_{l≠j}(1 - X_l/X_j). The X_j cancels in the denominator.
     let x_j = gf.exp_table[pos % 255]
-    let magnitude = gf_div(gf, gf_mul(gf, x_j, omega_val), lambda_prime_val)
+    let magnitude = match
+      gf_div(gf, gf_mul(gf, x_j, omega_val), lambda_prime_val) {
+      Some(m) => m
+      None => return None // Should not happen if lambda_prime_val != 0
+    }
     corrected[pos] = corrected[pos] ^ magnitude
   }
   // Verify correction by checking syndromes.
@@ -397,7 +405,10 @@ fn berlekamp_massey(gf : GF256, syndromes : FixedArray[Int]) -> FixedArray[Int] 
     } else if 2 * l <= n_step {
       // Copy current Λ to old_loc before updating.
       let temp = FixedArray::makei(nsym + 1, fn(i) { err_loc[i] })
-      let coeff = gf_div(gf, delta, b)
+      let coeff = match gf_div(gf, delta, b) {
+        Some(c) => c
+        None => 0 // b != 0 is guaranteed (set from non-zero delta)
+      }
       // Λ(x) = Λ(x) - (Δ/b) · x^m · B(x)
       for i = 0; i <= nsym - m; i = i + 1 {
         err_loc[i + m] = err_loc[i + m] ^ gf_mul(gf, coeff, old_loc[i])
@@ -409,7 +420,10 @@ fn berlekamp_massey(gf : GF256, syndromes : FixedArray[Int]) -> FixedArray[Int] 
       b = delta
       m = 1
     } else {
-      let coeff = gf_div(gf, delta, b)
+      let coeff = match gf_div(gf, delta, b) {
+        Some(c) => c
+        None => 0 // b != 0 is guaranteed (set from non-zero delta)
+      }
       for i = 0; i <= nsym - m; i = i + 1 {
         err_loc[i + m] = err_loc[i + m] ^ gf_mul(gf, coeff, old_loc[i])
       }
@@ -439,7 +453,10 @@ test "gf256: basic operations" {
   let p = gf_mul(gf, 2, 3)
   assert_true(p > 0 && p < 256)
   // Verify: 2 * inverse(2) = 1
-  assert_eq(gf_mul(gf, 2, gf_inv(gf, 2)), 1)
+  match gf_inv(gf, 2) {
+    Some(inv) => assert_eq(gf_mul(gf, 2, inv), 1)
+    None => assert_true(false) // Should not happen for non-zero input
+  }
 }
 
 ///|

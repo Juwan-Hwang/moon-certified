@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/random/mersenne_twister"
+
+// Values
+pub fn new(UInt) -> MT19937
+
+pub fn next(MT19937) -> UInt
+
+pub fn next_double(MT19937) -> Double
+
+pub fn next_int(MT19937, Int) -> Int
+
+// Errors
+
+// Types and methods
+pub struct MT19937 {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

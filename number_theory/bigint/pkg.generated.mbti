@@ -1,0 +1,69 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/number_theory/bigint"
+
+// Values
+pub fn abs(BigInt) -> BigInt
+
+pub fn add(BigInt, BigInt) -> BigInt
+
+pub fn bit_and(BigInt, BigInt) -> BigInt
+
+pub fn bit_or(BigInt, BigInt) -> BigInt
+
+pub fn bit_xor(BigInt, BigInt) -> BigInt
+
+pub fn compare(BigInt, BigInt) -> Int
+
+pub fn div(BigInt, BigInt) -> BigInt?
+
+pub fn divmod(BigInt, BigInt) -> (BigInt, BigInt)?
+
+pub fn equal(BigInt, BigInt) -> Bool
+
+pub fn from_int64_value(Int64) -> BigInt
+
+pub fn from_int_value(Int) -> BigInt
+
+pub fn from_string(String) -> BigInt?
+
+pub fn gcd(BigInt, BigInt) -> BigInt
+
+pub fn greater_than(BigInt, BigInt) -> Bool
+
+pub fn is_odd(BigInt) -> Bool
+
+pub fn less_than(BigInt, BigInt) -> Bool
+
+pub fn mod_pow(BigInt, BigInt, BigInt) -> BigInt?
+
+pub fn mul(BigInt, BigInt) -> BigInt
+
+pub fn negate(BigInt) -> BigInt
+
+pub fn one() -> BigInt
+
+pub fn rem(BigInt, BigInt) -> BigInt?
+
+pub fn shl(BigInt, Int) -> BigInt
+
+pub fn shr(BigInt, Int) -> BigInt
+
+pub fn sub(BigInt, BigInt) -> BigInt
+
+pub fn to_hex(BigInt) -> String
+
+pub fn to_string(BigInt) -> String
+
+pub fn zero() -> BigInt
+
+// Errors
+
+// Types and methods
+pub struct BigInt {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

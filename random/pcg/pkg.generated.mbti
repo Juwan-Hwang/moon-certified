@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/random/pcg"
+
+// Values
+pub fn new(UInt64, UInt64) -> PCG32
+
+pub fn new_default(UInt64) -> PCG32
+
+pub fn next(PCG32) -> UInt
+
+pub fn next_double(PCG32) -> Double
+
+pub fn next_int(PCG32, Int) -> Int
+
+// Errors
+
+// Types and methods
+pub struct PCG32 {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

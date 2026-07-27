@@ -10,6 +10,11 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 ///|
+/// Maximum number of buckets — prevents excessive memory allocation on
+/// very large arrays.
+const MAX_BUCKETS : Int = 1000
+
+///|
 /// Sort an array of doubles into evenly spaced buckets.
 ///
 /// `min_val` and `max_val` define the value range. Elements outside
@@ -23,7 +28,7 @@ pub fn bucket_sort(
   if n <= 1 {
     return arr.copy()
   }
-  let bucket_count = if n > 1000 { 1000 } else { n }
+  let bucket_count = if n > MAX_BUCKETS { MAX_BUCKETS } else { n }
   let buckets : Array[Array[Double]] = FixedArray::makei(bucket_count, fn(_) {
       []
     })

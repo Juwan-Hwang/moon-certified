@@ -42,7 +42,11 @@
 ///
 /// ## Limitations
 ///
-/// - Self-loops (`u == v`) and non-positive capacities are silently ignored.
+/// - Self-loops (`u == v`) and non-positive capacities are **rejected** (skipped)
+///   during graph construction. This is intentional: self-loops have no effect
+///   on max flow and their presence usually indicates a modeling error.
+///   Callers should validate their input edge list before passing it to
+///   `dinic_max_flow`.
 
 ///|
 /// Sentinel representing "infinite capacity" for the bottleneck search.
@@ -74,7 +78,9 @@ priv struct DinicGraph {
 ///
 /// For each valid edge `(u, v, cap)`, adds a forward edge (capacity `cap`)
 /// and a reverse edge (capacity 0). Invalid edges (out-of-bounds vertices,
-/// self-loops, non-positive capacity) are silently skipped.
+/// self-loops `u == v`, non-positive capacity `cap <= 0`) are **rejected**
+/// (skipped) — callers should pre-validate their input if these conditions
+/// indicate a modeling error.
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> DinicGraph {
   let g : DinicGraph = { n, head: Array::make(n, -1), edges: [], edge_count: 0 }
   for k = 0; k < edge_list.length(); k = k + 1 {

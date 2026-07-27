@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/bentley_ottmann"
+
+// Values
+pub fn find_intersections(Array[(Double, Double, Double, Double)]) -> Array[(Double, Double)]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

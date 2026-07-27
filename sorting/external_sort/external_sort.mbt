@@ -10,11 +10,8 @@
 /// without actual disk I/O. It operates on `FixedArray` and uses an
 /// internal "run list" to simulate disk-based sorted runs.
 ///
-/// For real disk-backed external sort, see the companion module
-/// `external_sort_disk.mbt` which provides `external_sort_disk`, an async
-/// function that persists sorted runs to temporary files between merge
-/// passes using `@async/fs`, enabling sorting of datasets larger than
-/// available memory.
+/// For disk-backed external sort, users can implement file-based run
+/// management using the algorithm structure shown here.
 ///
 /// ## Complexity
 /// - Time: O(n log n) — each merge pass is O(n log k), with ⌈log_k(runs)⌉ passes.
@@ -34,10 +31,18 @@ pub struct ExternalSortConfig {
 }
 
 ///|
+/// Default buffer size for in-memory runs (elements per run).
+const DEFAULT_BUFFER_SIZE : Int = 1024
+
+///|
+/// Default merge arity (number of runs merged simultaneously).
+const DEFAULT_MERGE_ARITY : Int = 4
+
+///|
 /// Create a configuration with the given buffer size and merge arity.
 pub fn config(buffer_size : Int, merge_arity : Int) -> ExternalSortConfig {
-  let bs = if buffer_size > 0 { buffer_size } else { 1024 }
-  let ma = if merge_arity > 1 { merge_arity } else { 4 }
+  let bs = if buffer_size > 0 { buffer_size } else { DEFAULT_BUFFER_SIZE }
+  let ma = if merge_arity > 1 { merge_arity } else { DEFAULT_MERGE_ARITY }
   ExternalSortConfig::{ buffer_size: bs, merge_arity: ma }
 }
 

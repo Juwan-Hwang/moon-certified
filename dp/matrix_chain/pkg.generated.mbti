@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/dp/matrix_chain"
+
+// Values
+pub fn matrix_chain_order(Array[Int]) -> Int
+
+pub fn matrix_chain_parenthesization(Array[Int]) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

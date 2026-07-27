@@ -1,19 +1,23 @@
 /// Line Segment Intersection.
 ///
 /// Tests whether two line segments intersect and computes their
-/// intersection point. Also provides batch intersection counting
-/// via a sweep-line algorithm (Bentley-Ottmann).
+/// intersection point. Also provides batch intersection finding
+/// using a brute-force O(n²) approach.
 ///
 /// ## Algorithms
 ///
 /// - **Pairwise intersection**: uses orientation tests (cross product)
-///   to determine if segments straddle each other.
-/// - **Intersection point**: solves the parametric line equations.
-/// - **All-pairs intersection**: O(n²) brute force for small n.
+///   to determine if segments straddle each other. O(1) per pair.
+/// - **Intersection point**: solves the parametric line equations via
+///   Cramer's rule.
+/// - **All-pairs intersection**: O(n²) brute-force — each pair is tested.
+///   For large-scale segment intersection, use the dedicated
+///   `bentley_ottmann` package which implements the O((n+k) log n)
+///   sweep-line algorithm.
 ///
 /// ## Complexity
 /// - Pairwise: O(1).
-/// - All-pairs: O(n² × k) where k = number of intersections.
+/// - All-pairs: O(n²) — suitable for small n or when k ≈ n².
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 

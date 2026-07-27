@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/polygon_ops"
+
+// Values
+pub fn ear_clipping_triangulate(Array[(Int, Int)]) -> Array[(Int, Int, Int)]
+
+pub fn point_in_polygon(Int, Int, Array[(Int, Int)]) -> Bool
+
+pub fn polygon_area(Array[(Int, Int)]) -> Double
+
+pub fn sutherland_hodgman(Array[(Int, Int)], Array[(Int, Int)]) -> Array[(Int, Int)]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/tree_isomorphism"
+
+// Values
+pub fn are_trees_isomorphic(Int, Array[(Int, Int)], Array[(Int, Int)]) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

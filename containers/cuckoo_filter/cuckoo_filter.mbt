@@ -168,17 +168,6 @@ fn make_fingerprint(key : String) -> Int {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Smallest power of two `>= n` (and `>= 1`). Powers of two make the XOR
-/// alternate-index an exact involution under bit-masked modulo.
-fn next_pow2(n : Int) -> Int {
-  let mut p = 1
-  while p < n {
-    p = p * 2
-  }
-  p
-}
-
-///|
 /// Primary bucket index of `key`: the masked index hash. Because `capacity`
 /// is a power of two, `& (capacity - 1)` is a non-negative modulo that also
 /// clears the sign bit of a negative hash.
@@ -270,7 +259,7 @@ fn remove_from_bucket(cf : CuckooFilter, i : Int, f : Int) -> Bool {
 /// standard cuckoo-filter construction. `bucket_size = 4` is a typical choice.
 /// Non-positive arguments are clamped to safe defaults.
 pub fn new(capacity : Int, bucket_size : Int) -> CuckooFilter {
-  let cap = next_pow2(if capacity > 0 { capacity } else { 1 })
+  let cap = @hash_utils.next_pow2(if capacity > 0 { capacity } else { 1 })
   let bs = if bucket_size > 0 { bucket_size } else { 4 }
   // `makei` allocates each bucket's inner array independently, so the buckets
   // never alias one shared array (which `make(cap, inner)` would do).

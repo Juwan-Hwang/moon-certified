@@ -16,7 +16,9 @@
 ///
 /// ## Complexity
 ///
-/// - Time: O(n log n) for the Delaunay triangulation + O(n) for dual construction.
+/// - Time: O(n²) for the Delaunay triangulation (brute-force incremental)
+///   + O(n) for dual construction. For O(n log n) Delaunay, a divide-and-conquer
+///   or sweep-line implementation is needed.
 /// - Space: O(n) for the Voronoi diagram.
 ///
 /// ## Limitations

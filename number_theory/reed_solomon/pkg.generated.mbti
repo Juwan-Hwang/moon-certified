@@ -6,9 +6,9 @@ pub fn gf256_new() -> GF256
 
 pub fn gf_add(GF256, Int, Int) -> Int
 
-pub fn gf_div(GF256, Int, Int) -> Int
+pub fn gf_div(GF256, Int, Int) -> Int?
 
-pub fn gf_inv(GF256, Int) -> Int
+pub fn gf_inv(GF256, Int) -> Int?
 
 pub fn gf_mul(GF256, Int, Int) -> Int
 

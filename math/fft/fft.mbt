@@ -178,7 +178,11 @@ fn bit_reverse(a : Array[Complex], n : Int) -> Unit {
 /// original coefficients from the evaluations, using the conjugate roots and
 /// dividing every entry by `n`.
 ///
-/// The array length `n` must be a power of 2; otherwise the function aborts.
+/// The array length `n` must be a power of 2; if not, the function aborts
+/// with a descriptive error message. This fail-fast behaviour prevents the
+/// silent-wrong-result class of production bugs. Callers that need to handle
+/// arbitrary lengths should use [`fft_checked`] or pad with
+/// `next_power_of_two()` before calling.
 /// Lengths 0 and 1 are no-ops. The transform runs in `O(n log n)` time and
 /// `O(1)` extra space (beyond the input array), and operates fully in place.
 ///
@@ -189,9 +193,14 @@ pub fn fft(a : Array[Complex], invert : Bool) -> Unit {
   if n <= 1 {
     return
   }
-  // Verify n is a power of 2; if not, return silently (no-op).
+  // Fail-fast: non-power-of-2 lengths would produce silently wrong results.
+  // Abort with a descriptive message so callers can diagnose the issue.
   if (n & (n - 1)) != 0 {
-    return
+    abort(
+      "fft: array length must be a power of 2, got " +
+      n.to_string() +
+      ". Use multiply() for arbitrary-length convolution, or pad with next_power_of_two().",
+    )
   }
   bit_reverse(a, n)
   // Cooley-Tukey butterfly: process lengths 2, 4, 8, ..., n.

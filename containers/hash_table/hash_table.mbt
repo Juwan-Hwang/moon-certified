@@ -318,17 +318,7 @@ pub fn hashtable_new(
 /// Convenience constructor with a default polynomial string hash and
 /// structural string equality.
 pub fn hashtable_new_default(capacity : Int) -> StringHashTable {
-  hashtable_new(
-    capacity,
-    fn(s) {
-      let mut h = 0
-      for i = 0; i < s.length(); i = i + 1 {
-        h = h * 31 + s[i].to_int()
-      }
-      h
-    },
-    fn(a, b) { a == b },
-  )
+  hashtable_new(capacity, @hash_utils.poly31_hash, fn(a, b) { a == b })
 }
 
 ///|

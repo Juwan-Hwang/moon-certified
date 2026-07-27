@@ -11,9 +11,12 @@
 /// is self-indexing: you can search for patterns using only the BWT and
 /// a small auxiliary structure (C table and Occ array).
 ///
+/// The suffix array is constructed in O(n) using **SA-IS** (Nong, Zhang,
+/// Chan 2009), imported from the `@sa_is` package.
+///
 /// ## Complexity
 ///
-/// - Build: O(n² log n) for suffix array + O(n) for BWT.
+/// - Build: O(n) via SA-IS suffix array + O(n) for BWT and Occ.
 /// - Search: O(m) per pattern of length m.
 /// - Space: O(n * |Σ|) for the Occ array.
 ///
@@ -105,41 +108,18 @@ pub fn build(text : String) -> FMIndex {
 
 ///|
 /// Build suffix array with implicit sentinel at position n.
+/// Uses SA-IS for O(n) construction.
 fn build_suffix_array_with_sentinel(text : String, n : Int) -> FixedArray[Int] {
-  let sa = FixedArray::make(n + 1, 0)
-  for i = 0; i <= n; i = i + 1 {
-    sa[i] = i
+  // Build integer array: text chars + 1 (so sentinel 0 is smallest).
+  let s : Array[Int] = []
+  for i = 0; i < n; i = i + 1 {
+    s.push(text[i].to_int() + 1)
   }
-  // Sort suffixes. The sentinel (position n) is always the smallest.
-  sa.sort_by(fn(a, b) {
-    if a == b {
-      return 0
-    }
-    let mut i = 0
-    while true {
-      let ca = if a + i < n {
-        text[a + i].to_int()
-      } else if a + i == n {
-        -1
-      } else {
-        999999
-      }
-      let cb = if b + i < n {
-        text[b + i].to_int()
-      } else if b + i == n {
-        -1
-      } else {
-        999999
-      }
-      if ca == cb {
-        i = i + 1
-      } else {
-        return ca - cb
-      }
-    }
-    0
-  })
-  sa
+  s.push(0) // sentinel
+  // SA-IS returns the full suffix array including the sentinel position.
+  let full_sa = @sa_is.sa_is(s)
+  // Convert to FixedArray.
+  FixedArray::makei(full_sa.length(), fn(i) { full_sa[i] })
 }
 
 ///|
