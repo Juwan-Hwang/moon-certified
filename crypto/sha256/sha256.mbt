@@ -229,6 +229,11 @@ fn compress(
 ///   U+0800   .. U+FFFF   -> 3 bytes (1110xxxx 10xxxxxx 10xxxxxx)
 ///   U+10000  .. U+10FFFF -> 4 bytes (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
 fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
+  // Validate code point range per RFC 3629: U+0000..U+10FFFF.
+  // Code points above U+10FFFF are invalid; skip them silently.
+  if cp > 0x10FFFFU {
+    return
+  }
   if cp < 0x80U {
     emit(cp.to_byte())
   } else if cp < 0x800U {

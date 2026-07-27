@@ -75,9 +75,9 @@ pub fn external_sort(arr : FixedArray[Int], cfg : ExternalSortConfig) -> Unit {
     for i = 0; i < run_len; i = i + 1 {
       run[i] = arr[start + i]
     }
-    // Sort the run in memory (insertion sort for small runs, or use
-    // the built-in sort).
-    run.sort_by(fn(a, b) { a - b })
+    // Sort the run in memory. Use safe comparison to avoid Int32 overflow
+    // when a - b overflows (e.g. Int::MIN and Int::MAX).
+    run.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
     runs.push(run)
     start = end
   }

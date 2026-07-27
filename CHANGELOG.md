@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Geometry
 - `convex_hull_3d` — 3D convex hull via randomized incremental construction.
-- `voronoi` — Voronoi diagram via Fortune's sweep line algorithm.
+- `voronoi` — Voronoi diagram via Delaunay triangulation dual (O(n²) brute-force incremental).
 - `delaunay` — Delaunay triangulation via incremental insertion.
 - `half_plane_intersection` — Half-plane intersection (S&I + deque).
 - `dynamic_hull` — Dynamic convex hull (online insertion, O(log²n) per point).

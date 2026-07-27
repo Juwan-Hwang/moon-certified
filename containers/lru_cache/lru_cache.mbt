@@ -49,12 +49,15 @@ pub struct LRUCache[K, V] {
 ///
 /// `hash_fn` maps keys to integers for hash table indexing.
 /// `eq_fn` checks key equality.
-/// A capacity of 0 means no entries can be stored.
+/// A capacity of 0 means no entries can be stored; `put` becomes a no-op
+/// and `get` always returns `None`.
 pub fn[K, V] new(
   capacity : Int,
   hash_fn : (K) -> Int,
   eq_fn : (K, K) -> Bool,
 ) -> LRUCache[K, V] {
+  // For capacity 0, use a minimal hash table (no real space waste) and
+  // keep capacity at 0 so put() is a no-op.
   let cap = if capacity > 0 { capacity } else { 1 }
   {
     nodes: [],
@@ -62,7 +65,11 @@ pub fn[K, V] new(
     head: -1,
     tail: -1,
     count: 0,
-    capacity,
+    capacity: if capacity > 0 {
+      capacity
+    } else {
+      0
+    },
     hash_fn,
     eq_fn,
   }
