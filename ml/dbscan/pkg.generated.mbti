@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/dbscan"
+
+// Values
+pub fn dbscan(Array[DBSCANPoint], Double, Int) -> Array[Array[Int]]
+
+// Errors
+
+// Types and methods
+pub struct DBSCANPoint {
+  id : Int
+  coords : Array[Double]
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/hkdf"
+
+// Values
+pub fn expand(Bytes, Bytes, Int) -> Bytes?
+
+pub fn extract(Bytes, Bytes) -> Bytes
+
+pub fn hkdf(Bytes, Bytes, Bytes, Int) -> Bytes?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

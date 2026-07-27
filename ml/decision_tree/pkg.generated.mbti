@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/decision_tree"
+
+// Values
+pub fn fit(DecisionTree, Array[Array[Double]], Array[Int]) -> Unit
+
+pub fn new(Int, Int) -> DecisionTree
+
+pub fn predict(DecisionTree, Array[Double]) -> Int
+
+// Errors
+
+// Types and methods
+pub struct DecisionTree {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

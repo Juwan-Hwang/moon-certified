@@ -304,7 +304,11 @@ fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
     let codes = FixedArray::make(256, empty)
     match only.node {
       Leaf(b) => codes[b] = [false]
-      _ => abort("unreachable: single entry should be a Leaf")
+      _ =>
+        // Internal node as the only entry should not happen because we
+        // only push Leaf nodes into the initial heap. Return an empty
+        // code table as a safe fallback.
+        return { root: None, codes: FixedArray::make(256, []) }
     }
     return { root: Some(only.node), codes }
   }
@@ -437,7 +441,11 @@ fn decode_bytes(tree : HuffmanTree, bits : Array[Bool]) -> Bytes {
           for i = 0; i < bits.length(); i = i + 1 {
             node = match node {
               Internal(left, right) => if bits[i] { right } else { left }
-              Leaf(_) => abort("unreachable: leaf reached mid-walk")
+              Leaf(b) => {
+                // Leaf reached mid-walk: emit the byte and restart from root.
+                result.push(b.to_byte())
+                root
+              }
             }
             match node {
               Leaf(b) => {

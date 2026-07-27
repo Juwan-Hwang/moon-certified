@@ -96,9 +96,16 @@ fn random_level(h : HNSW) -> Int {
   // Double precision. 2^53 = 9007199254740992.
   let bits = (next_rand(h) >> 11).reinterpret_as_int64().to_double()
   let r = bits / 9007199254740992.0
+  // Guard against r == 0.0 (would cause ln(0) = -inf).
+  let r = if r < 1.0e-300 { 1.0e-300 } else { r }
   let level = -(@math.ln(r) * h.ml).to_int()
+  // Cap at max_layer + 1 to prevent unbounded memory allocation.
+  // The original HNSW paper allows at most one level above the current max.
+  let cap = h.max_layer + 1
   if level < 0 {
     0
+  } else if level > cap {
+    cap
   } else {
     level
   }
@@ -106,8 +113,13 @@ fn random_level(h : HNSW) -> Int {
 
 ///|
 /// Squared Euclidean distance between two vectors.
+/// Returns +infinity if dimensions differ, ensuring the mismatched vector
+/// is never selected as a nearest neighbor.
 fn dist2(a : Array[Double], b : Array[Double]) -> Double {
-  let n = if a.length() < b.length() { a.length() } else { b.length() }
+  if a.length() != b.length() {
+    return @double.infinity
+  }
+  let n = a.length()
   let mut s = 0.0
   for i = 0; i < n; i = i + 1 {
     let d = a[i] - b[i]

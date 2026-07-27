@@ -8,7 +8,7 @@ pub fn add_int(HyperLogLog, Int) -> Unit
 
 pub fn estimate(HyperLogLog) -> Double
 
-pub fn merge(HyperLogLog, HyperLogLog) -> HyperLogLog
+pub fn merge(HyperLogLog, HyperLogLog) -> HyperLogLog?
 
 pub fn new(Int) -> HyperLogLog
 

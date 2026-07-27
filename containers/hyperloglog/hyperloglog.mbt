@@ -259,10 +259,12 @@ pub fn estimate(hll : HyperLogLog) -> Double {
 /// registers — the state that observing the union of both streams would have
 /// produced. The inputs are left unchanged.
 ///
-/// **Precondition**: matching `precision`; a mismatch aborts.
-pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog {
+/// Returns `None` if the precisions differ, indicating the sketches cannot
+/// be merged. The caller should ensure both sketches were created with the
+/// same `precision` parameter.
+pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog? {
   if hll1.precision != hll2.precision {
-    return hll1
+    return None
   }
   let m = hll1.m
   let merged = FixedArray::make(m, 0)
@@ -271,7 +273,7 @@ pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog {
     let b = hll2.registers[j]
     merged[j] = if a > b { a } else { b }
   }
-  { registers: merged, precision: hll1.precision, m }
+  Some({ registers: merged, precision: hll1.precision, m })
 }
 
 // ---------------------------------------------------------------------------
@@ -349,7 +351,10 @@ test "hll: merge two sketches" {
     add(hll2, "b_" + i.to_string())
   }
   let merged = merge(hll1, hll2)
-  let est = estimate(merged)
+  let est = match merged {
+    Some(m) => estimate(m)
+    None => 0.0
+  }
   // 1000 distinct total (disjoint halves); within 10%.
   assert_true(est > 900.0)
   assert_true(est < 1100.0)

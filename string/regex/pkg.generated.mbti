@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/string/regex"
+
+// Values
+pub fn compile(String) -> Regex?
+
+pub fn find(Regex, String) -> (Int, Int)?
+
+pub fn is_match(Regex, String) -> Bool
+
+// Errors
+
+// Types and methods
+pub struct Regex {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

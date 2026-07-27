@@ -285,6 +285,15 @@ pub struct ChaCha20Rng {
 const MAX_OUTPUT : UInt64 = 0x100000000UL * 64UL
 
 ///|
+/// Maximum rejection-sampling attempts before giving up.
+///
+/// The probability of rejection per attempt is at most 1/2 (when the bound
+/// is just above a power of 2). The probability of needing more than 256
+/// attempts is at most 2^-256 — effectively zero. 256 is chosen as a generous
+/// safety margin well beyond any conceivable need.
+const MAX_REJECTION_ATTEMPTS : Int = 256
+
+///|
 /// Create a ChaCha20 CSPRNG from a 32-byte key and 12-byte nonce.
 ///
 /// Returns `None` if the key is not exactly 32 bytes or the nonce is not
@@ -380,7 +389,7 @@ pub fn next_int_in_range(
   let bound = exclusive_upper_bound.reinterpret_as_uint()
   let threshold = MAX_COUNTER / bound * bound
   let mut attempts = 0
-  while attempts < 1000 {
+  while attempts < MAX_REJECTION_ATTEMPTS {
     match next_uint32(rng) {
       None => return None
       Some(r) =>
