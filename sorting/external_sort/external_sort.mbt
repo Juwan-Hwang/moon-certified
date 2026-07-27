@@ -131,85 +131,33 @@ fn k_way_merge(
   if total == 0 {
     return result
   }
-  // Min-heap of (value, run_index). We use two parallel arrays for the heap
-  // because MoonBit doesn't have tuple-based heaps in the standard library.
-  // Heap capacity = k (at most one entry per run at any time).
-  let heap_cap = k
-  let heap_val = FixedArray::make(heap_cap, 0)
-  let heap_run = FixedArray::make(heap_cap, 0)
-  let mut heap_size = 0
+  // Min-heap of (value, run_index), using the generic binary_heap package.
+  // Use explicit comparison to avoid Int overflow on subtraction.
+  let heap = @binary_heap.HeapG::new(fn(a : (Int, Int), b : (Int, Int)) {
+    if a.0 < b.0 {
+      -1
+    } else if a.0 > b.0 {
+      1
+    } else {
+      0
+    }
+  })
   // Pointers into each run (next unmerged index).
   let ptrs = FixedArray::make(k, 0)
-  // Helper: push (val, run) onto the heap.
-  let push = fn(val : Int, run : Int) -> Unit {
-    heap_val[heap_size] = val
-    heap_run[heap_size] = run
-    heap_size = heap_size + 1
-    // Sift up.
-    let mut i = heap_size - 1
-    while i > 0 {
-      let parent = (i - 1) / 2
-      if heap_val[i] < heap_val[parent] {
-        let tv = heap_val[i]
-        heap_val[i] = heap_val[parent]
-        heap_val[parent] = tv
-        let tr = heap_run[i]
-        heap_run[i] = heap_run[parent]
-        heap_run[parent] = tr
-        i = parent
-      } else {
-        break
-      }
-    }
-  }
-  // Helper: pop the minimum (val, run) from the heap.
-  let pop = fn() -> (Int, Int) {
-    let min_val = heap_val[0]
-    let min_run = heap_run[0]
-    heap_size = heap_size - 1
-    if heap_size > 0 {
-      heap_val[0] = heap_val[heap_size]
-      heap_run[0] = heap_run[heap_size]
-      // Sift down.
-      let mut i = 0
-      while true {
-        let left = 2 * i + 1
-        let right = 2 * i + 2
-        let mut smallest = i
-        if left < heap_size && heap_val[left] < heap_val[smallest] {
-          smallest = left
-        }
-        if right < heap_size && heap_val[right] < heap_val[smallest] {
-          smallest = right
-        }
-        if smallest == i {
-          break
-        }
-        let tv = heap_val[i]
-        heap_val[i] = heap_val[smallest]
-        heap_val[smallest] = tv
-        let tr = heap_run[i]
-        heap_run[i] = heap_run[smallest]
-        heap_run[smallest] = tr
-        i = smallest
-      }
-    }
-    (min_val, min_run)
-  }
   // Initialize: push the first element of each non-empty run.
   for r = 0; r < k; r = r + 1 {
     if ptrs[r] < runs[start + r].length() {
-      push(runs[start + r][ptrs[r]], r)
+      heap.push((runs[start + r][ptrs[r]], r))
       ptrs[r] = ptrs[r] + 1
     }
   }
   // Extract minimum repeatedly and refill from the same run.
   for pos = 0; pos < total; pos = pos + 1 {
-    let (val, run) = pop()
+    let (val, run) = heap.pop().unwrap()
     result[pos] = val
     // Refill from the same run if it still has elements.
     if ptrs[run] < runs[start + run].length() {
-      push(runs[start + run][ptrs[run]], run)
+      heap.push((runs[start + run][ptrs[run]], run))
       ptrs[run] = ptrs[run] + 1
     }
   }

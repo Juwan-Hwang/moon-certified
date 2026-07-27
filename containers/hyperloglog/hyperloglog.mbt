@@ -120,8 +120,8 @@ fn hll_ln(x : Double) -> Double {
 /// `precision` (a.k.a. `p`) controls the memory/accuracy trade-off: memory is
 /// `2^p` registers and the relative standard error is `~1.04 / sqrt(2^p)`.
 ///
-/// **Precondition**: `4 <= precision <= 16`. Violations abort with a
-/// descriptive message. `p < 4` gives too few registers for the bias constants
+/// **Precondition**: `4 <= precision <= 16`. Violations are clamped to the
+/// nearest valid bound. `p < 4` gives too few registers for the bias constants
 /// to apply; `p > 16` is capped to keep the register array at most 65536.
 pub fn new(precision : Int) -> HyperLogLog {
   let precision = if precision < 4 {

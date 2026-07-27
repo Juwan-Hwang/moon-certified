@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/base64"
+
+// Values
+pub fn decode(String) -> FixedArray[Byte]?
+
+pub fn decode_any(String) -> FixedArray[Byte]?
+
+pub fn decode_url_safe(String) -> FixedArray[Byte]?
+
+pub fn encode(FixedArray[Byte]) -> String
+
+pub fn encode_unpadded(FixedArray[Byte]) -> String
+
+pub fn encode_url_safe(FixedArray[Byte]) -> String
+
+pub fn encode_url_safe_unpadded(FixedArray[Byte]) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

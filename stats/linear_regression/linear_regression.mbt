@@ -195,38 +195,9 @@ pub fn predict_polynomial(coeffs : Array[Double], x : Double) -> Double {
 }
 
 ///|
-/// Compute the mean (average) of a data array.
-pub fn mean(data : Array[Double]) -> Double {
-  if data.length() == 0 {
-    return 0.0
-  }
-  let mut sum = 0.0
-  for i = 0; i < data.length(); i = i + 1 {
-    sum = sum + data[i]
-  }
-  sum / data.length().to_double()
-}
-
-///|
-/// Compute the variance of a data array (population variance).
-pub fn variance(data : Array[Double]) -> Double {
-  if data.length() == 0 {
-    return 0.0
-  }
-  let m = mean(data)
-  let mut sum_sq = 0.0
-  for i = 0; i < data.length(); i = i + 1 {
-    let diff = data[i] - m
-    sum_sq = sum_sq + diff * diff
-  }
-  sum_sq / data.length().to_double()
-}
-
-///|
-/// Compute the standard deviation of a data array.
-pub fn std_dev(data : Array[Double]) -> Double {
-  variance(data).sqrt()
-}
+// Note: mean, variance, and std_dev are not re-defined here.
+// Use the @descriptive package for these basic descriptive statistics,
+// avoiding code duplication between stats sub-packages.
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -324,21 +295,25 @@ test "linear_regression: polynomial predict" {
 }
 
 ///|
-test "linear_regression: mean" {
-  assert_true((mean([1.0, 2.0, 3.0, 4.0, 5.0]) - 3.0).abs() < 1.0e-10)
-  assert_true((mean([10.0, 20.0]) - 15.0).abs() < 1.0e-10)
+test "linear_regression: mean (via @descriptive)" {
+  assert_true(
+    (@descriptive.mean([1.0, 2.0, 3.0, 4.0, 5.0]) - 3.0).abs() < 1.0e-10,
+  )
+  assert_true((@descriptive.mean([10.0, 20.0]) - 15.0).abs() < 1.0e-10)
 }
 
 ///|
-test "linear_regression: variance" {
+test "linear_regression: variance (via @descriptive)" {
   // Variance of [1, 2, 3, 4, 5] = 2.0
-  assert_true((variance([1.0, 2.0, 3.0, 4.0, 5.0]) - 2.0).abs() < 1.0e-10)
+  assert_true(
+    (@descriptive.variance([1.0, 2.0, 3.0, 4.0, 5.0]) - 2.0).abs() < 1.0e-10,
+  )
 }
 
 ///|
-test "linear_regression: std_dev" {
+test "linear_regression: std_dev (via @descriptive)" {
   let data = [1.0, 2.0, 3.0, 4.0, 5.0]
-  let sd = std_dev(data)
+  let sd = @descriptive.stddev(data)
   // sqrt(2.0) ≈ 1.41421
   assert_true((sd - 2.0.sqrt()).abs() < 1.0e-10)
 }

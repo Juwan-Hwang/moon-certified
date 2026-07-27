@@ -1,5 +1,6 @@
 import {
   "moon-certified/test/test_utils",
+  "moon-certified/utils",
 }
 
 options(

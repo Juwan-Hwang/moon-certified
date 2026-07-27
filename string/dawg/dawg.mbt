@@ -171,7 +171,7 @@ fn minimize_suffix(dawg : DAWG, down_to : Int) -> Unit {
 pub fn add(dawg : DAWG, word : String) -> Unit {
   if dawg.incremental &&
     dawg.word_count > 0 &&
-    str_cmp(word, dawg.last_word) < 0 {
+    @utils.str_cmp(word, dawg.last_word) < 0 {
     // Out of order: switch to batch mode.
     dawg.incremental = false
     // Minimize any remaining unchecked states.
@@ -392,25 +392,6 @@ fn count_transitions(state : DAWGState, visited : Array[Int]) -> Int {
   count
 }
 
-///|
-/// Lexicographic string comparator.
-fn str_cmp(a : String, b : String) -> Int {
-  let la = a.length()
-  let lb = b.length()
-  let min = if la < lb { la } else { lb }
-  for k = 0; k < min; k = k + 1 {
-    let ca = a[k].to_int()
-    let cb = b[k].to_int()
-    if ca < cb {
-      return -1
-    }
-    if ca > cb {
-      return 1
-    }
-  }
-  la - lb
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -472,7 +453,7 @@ test "dawg: many words with suffix sharing" {
     "app", "apple", "application", "apply", "banana", "band", "bandana",
   ]
   let sorted = words.copy()
-  sorted.sort_by(fn(a, b) { str_cmp(a, b) })
+  sorted.sort_by(fn(a, b) { @utils.str_cmp(a, b) })
   for i = 0; i < sorted.length(); i = i + 1 {
     add(d, sorted[i])
   }
@@ -518,7 +499,7 @@ test "dawg: large dictionary" {
     "cde", "cdef", "cdefg",
   ]
   let sorted = words.copy()
-  sorted.sort_by(fn(a, b) { str_cmp(a, b) })
+  sorted.sort_by(fn(a, b) { @utils.str_cmp(a, b) })
   for i = 0; i < sorted.length(); i = i + 1 {
     add(d, sorted[i])
   }

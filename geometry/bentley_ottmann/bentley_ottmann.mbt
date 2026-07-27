@@ -389,8 +389,8 @@ fn Status::neighbours(
 
 // ---------------------------------------------------------------------------
 // A small, fast, deterministic 64-bit pseudo-random generator for treap
-// priorities (SplitMix64). Quality is far higher than a naive LCG and ample
-// for randomised balancing; not for cryptographic use.
+// priorities (SplitMix64 via @utils.splitmix64_next). Quality is far higher
+// than a naive LCG and ample for randomised balancing; not for crypto use.
 // ---------------------------------------------------------------------------
 
 ///|
@@ -400,13 +400,8 @@ priv struct RNG64 {
 
 ///|
 fn RNG64::next(self : RNG64) -> Int64 {
-  self.state = self.state + 0x9E3779B97F4A7C15L
-  let mut z = self.state
-  z = (z ^ (z.reinterpret_as_uint64() >> 30).reinterpret_as_int64()) *
-    0xBF58476D1CE4E5B9L
-  z = (z ^ (z.reinterpret_as_uint64() >> 27).reinterpret_as_int64()) *
-    0x94D049BB133111EBL
-  z = z ^ (z.reinterpret_as_uint64() >> 31).reinterpret_as_int64()
+  let (new_state, z) = @utils.splitmix64_next(self.state)
+  self.state = new_state
   z
 }
 

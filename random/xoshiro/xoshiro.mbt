@@ -33,32 +33,19 @@ pub struct Xoshiro256 {
 }
 
 ///|
-/// Golden ratio (2^64 / φ) constant used by SplitMix64.
-let golden : UInt64 = 0x9E3779B97F4A7C15UL
-
-///|
-/// SplitMix64 — used for seeding (avoids catastrophic seeding).
-fn splitmix64(x : UInt64) -> UInt64 {
-  let mut z = x + golden
-  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL
-  z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL
-  z ^ (z >> 31)
-}
 
 ///|
 /// Create a new xoshiro256** generator seeded with `seed`.
 ///
-/// Uses SplitMix64 to expand the 64-bit seed into four 64-bit state words,
-/// avoiding catastrophic seeding with all-zero or sparse states.
+/// Uses SplitMix64 (via @utils.SplitMix64) to expand the 64-bit seed into
+/// four 64-bit state words, avoiding catastrophic seeding with all-zero
+/// or sparse states.
 pub fn new(seed : UInt64) -> Xoshiro256 {
-  let mut sm = seed
-  let w0 = splitmix64(sm)
-  sm = sm + golden
-  let w1 = splitmix64(sm)
-  sm = sm + golden
-  let w2 = splitmix64(sm)
-  sm = sm + golden
-  let w3 = splitmix64(sm)
+  let rng = @utils.SplitMix64::new(seed)
+  let w0 = rng.next_u64()
+  let w1 = rng.next_u64()
+  let w2 = rng.next_u64()
+  let w3 = rng.next_u64()
   { s0: w0, s1: w1, s2: w2, s3: w3 }
 }
 

@@ -63,7 +63,7 @@ pub struct RingBuffer[T] {
 /// The actual capacity is rounded up to the next power of two for
 /// O(1) modular indexing (`index & mask` instead of `index % capacity`).
 pub fn[T] RingBuffer::new(min_capacity : Int) -> RingBuffer[T] {
-  let cap = next_power_of_two(if min_capacity < 1 { 1 } else { min_capacity })
+  let cap = @utils.next_pow2(if min_capacity < 1 { 1 } else { min_capacity })
   {
     buf: Array::make(cap, None),
     head: 0,
@@ -412,23 +412,6 @@ fn[K : Hash, V] resize(map : SnapshotMap[K, V]) -> Unit {
   }
   map.buckets = new_buckets
   map.bucket_count = new_bc
-}
-
-// ---------------------------------------------------------------------------
-// Utility
-// ---------------------------------------------------------------------------
-
-///|
-/// Compute the next power of two ≥ n. Returns 1 for n ≤ 1.
-fn next_power_of_two(n : Int) -> Int {
-  if n <= 1 {
-    return 1
-  }
-  let mut p = 1
-  while p < n {
-    p = p << 1
-  }
-  p
 }
 
 // ---------------------------------------------------------------------------

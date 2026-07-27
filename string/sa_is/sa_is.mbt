@@ -266,3 +266,53 @@ test "sa_is: edge cases" {
     assert_eq(build_suffix_array(texts[i]), brute_force_sa(texts[i]))
   }
 }
+
+///|
+test "sa_is: all same character" {
+  assert_eq(build_suffix_array("zzzzzz"), brute_force_sa("zzzzzz"))
+}
+
+///|
+test "sa_is: sorted string" {
+  assert_eq(build_suffix_array("abcdefg"), brute_force_sa("abcdefg"))
+}
+
+///|
+test "sa_is: reverse sorted string" {
+  assert_eq(build_suffix_array("zyxwvut"), brute_force_sa("zyxwvut"))
+}
+
+///|
+test "sa_is: long random-like string" {
+  let s = "abracadabradefghijklmnopqrstuvwxyz"
+  assert_eq(build_suffix_array(s), brute_force_sa(s))
+}
+
+///|
+test "sa_is: string with repeated pattern" {
+  let s = "abcabcabcabcabc"
+  assert_eq(build_suffix_array(s), brute_force_sa(s))
+}
+
+///|
+test "sa_is: binary alphabet" {
+  // Binary alphabet exercises the induced-sorting classification well.
+  let s = "01001010100101001010"
+  assert_eq(build_suffix_array(s), brute_force_sa(s))
+}
+
+///|
+test "sa_is: verify suffix array correctness" {
+  // For "banana", the suffix array should be [6, 5, 3, 1, 0, 4, 2]
+  // (indices of suffixes sorted lexicographically, with sentinel at end).
+  let sa = build_suffix_array("banana")
+  // The SA should contain all indices exactly once.
+  let n = "banana".length()
+  assert_eq(sa.length(), n)
+  let seen = FixedArray::make(n, false)
+  for i = 0; i < n; i = i + 1 {
+    assert_true(sa[i] >= 0 && sa[i] < n)
+    assert_false(seen[sa[i]])
+    seen[sa[i]] = true
+  }
+}

@@ -68,13 +68,6 @@ fn max_depth(n : Int) -> Int {
 }
 
 ///|
-fn[T] swap(arr : Array[T], a : Int, b : Int) -> Unit {
-  let tmp = arr[a]
-  arr[a] = arr[b]
-  arr[b] = tmp
-}
-
-///|
 /// Sort arr[lo..hi] using pdqsort with pattern-defeating heuristics.
 fn[T] pdq_sort_range(
   arr : Array[T],
@@ -115,12 +108,12 @@ fn[T] pdq_sort_range(
     let mid = lo + (hi - lo) / 2
     // Sort lo, mid, hi to find median.
     if cmp(arr[lo], arr[mid]) > 0 {
-      swap(arr, lo, mid)
+      @utils.swap_array(arr, lo, mid)
     }
     if cmp(arr[mid], arr[hi]) > 0 {
-      swap(arr, mid, hi)
+      @utils.swap_array(arr, mid, hi)
       if cmp(arr[lo], arr[mid]) > 0 {
-        swap(arr, lo, mid)
+        @utils.swap_array(arr, lo, mid)
       }
     }
     // For large partitions, use ninther (median of three medians).
@@ -141,11 +134,11 @@ fn[T] pdq_sort_range(
     while k <= gt {
       let c = cmp(arr[k], pivot)
       if c < 0 {
-        swap(arr, lt, k)
+        @utils.swap_array(arr, lt, k)
         lt = lt + 1
         k = k + 1
       } else if c > 0 {
-        swap(arr, k, gt)
+        @utils.swap_array(arr, k, gt)
         gt = gt - 1
       } else {
         k = k + 1
@@ -201,12 +194,12 @@ fn[T] sort3(
   cmp : (T, T) -> Int,
 ) -> Unit {
   if cmp(arr[a], arr[b]) > 0 {
-    swap(arr, a, b)
+    @utils.swap_array(arr, a, b)
   }
   if cmp(arr[b], arr[c]) > 0 {
-    swap(arr, b, c)
+    @utils.swap_array(arr, b, c)
     if cmp(arr[a], arr[b]) > 0 {
-      swap(arr, a, b)
+      @utils.swap_array(arr, a, b)
     }
   }
 }
@@ -249,7 +242,7 @@ fn[T] reverse_range(arr : Array[T], lo : Int, hi : Int) -> Unit {
   let mut i = lo
   let mut j = hi
   while i < j {
-    swap(arr, i, j)
+    @utils.swap_array(arr, i, j)
     i = i + 1
     j = j - 1
   }
@@ -257,21 +250,17 @@ fn[T] reverse_range(arr : Array[T], lo : Int, hi : Int) -> Unit {
 
 ///|
 /// Fisher-Yates shuffle of arr[lo..hi] to break adversarial patterns.
-/// Uses a SplitMix64 PRNG for higher quality shuffling than a naive LCG.
+/// Uses a SplitMix64 PRNG (via @utils.splitmix64_next) for higher quality
+/// shuffling than a naive LCG.
 fn[T] shuffle_range(arr : Array[T], lo : Int, hi : Int) -> Unit {
   let mut state = 0xDEADBEEFCAFEBABEL
   for i = hi; i > lo; i = i - 1 {
-    state = state + 0x9E3779B97F4A7C15L
-    let mut z = state
-    z = (z ^ (z.reinterpret_as_uint64() >> 30).reinterpret_as_int64()) *
-      0xBF58476D1CE4E5B9L
-    z = (z ^ (z.reinterpret_as_uint64() >> 27).reinterpret_as_int64()) *
-      0x94D049BB133111EBL
-    z = z ^ (z.reinterpret_as_uint64() >> 31).reinterpret_as_int64()
+    let (new_state, z) = @utils.splitmix64_next(state)
+    state = new_state
     let range = (i - lo + 1).to_int64()
     let abs_z = if z < 0L { -z } else { z }
     let j = lo + (abs_z % range).to_int()
-    swap(arr, i, j)
+    @utils.swap_array(arr, i, j)
   }
 }
 
@@ -310,7 +299,7 @@ fn[T] heap_sort_range(
   // Extract elements.
   let mut end = n - 1
   while end > 0 {
-    swap(arr, lo, lo + end)
+    @utils.swap_array(arr, lo, lo + end)
     sift_down(arr, lo, 0, end, cmp)
     end = end - 1
   }
@@ -338,7 +327,7 @@ fn[T] sift_down(
     if largest == idx {
       break
     }
-    swap(arr, offset + idx, offset + largest)
+    @utils.swap_array(arr, offset + idx, offset + largest)
     idx = largest
   }
 }

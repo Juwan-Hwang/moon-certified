@@ -58,15 +58,12 @@ pub fn new(seed : Int) -> MCTS {
 }
 
 ///|
-/// SplitMix64 PRNG — high-quality, fast, suitable for MCTS simulations.
-/// Produces uniformly distributed values with good statistical properties.
-/// Reference: Sebastiano Vigna, "Further scramblings of Marsaglia's xorshift generators"
+/// SplitMix64 PRNG — delegates to @utils.splitmix64_next to avoid code
+/// duplication. Produces uniformly distributed values with good statistical
+/// properties.
 fn MCTS::rng(self : MCTS) -> Int {
-  self.rng_state = self.rng_state + 0x9E3779B97F4A7C15L
-  let mut z = self.rng_state
-  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9L
-  z = (z ^ (z >> 27)) * 0x94D049BB133111EBL
-  z = z ^ (z >> 31)
+  let (new_state, z) = @utils.splitmix64_next(self.rng_state)
+  self.rng_state = new_state
   // Map to non-negative Int (truncate to 31 bits for portability).
   (z & 0x7FFFFFFFL).to_int()
 }

@@ -6,15 +6,9 @@ pub fn fit_linear(Array[Double], Array[Double]) -> LinearFit?
 
 pub fn fit_polynomial(Array[Double], Array[Double], Int) -> Array[Double]?
 
-pub fn mean(Array[Double]) -> Double
-
 pub fn predict(LinearFit, Double) -> Double
 
 pub fn predict_polynomial(Array[Double], Double) -> Double
-
-pub fn std_dev(Array[Double]) -> Double
-
-pub fn variance(Array[Double]) -> Double
 
 // Errors
 

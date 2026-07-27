@@ -20,6 +20,12 @@
 const BTREE_DEFAULT_DEGREE : Int = 2
 
 ///|
+/// Defensive ceiling on recursion depth. A B-Tree of minimum degree `t` has
+/// height ≤ log_t(n), so for t=2 and n=2⁶⁴ the depth is at most 64. A limit
+/// of 200 provides generous headroom while catching invariant violations.
+let btree_max_depth : Int = 200
+
+///|
 /// A B-Tree node.
 ///
 /// `keys` is a sorted array of keys. `children` is an array of child nodes
@@ -170,7 +176,13 @@ fn[T] insert_non_full(
   node : BTreeNode[T],
   key : T,
   cmp : (T, T) -> Int,
+  depth : Int,
 ) -> Unit {
+  if depth > btree_max_depth {
+    abort(
+      "btree: recursion depth exceeds safe limit; B-Tree invariant broken or tree too large",
+    )
+  }
   let n = node.keys.length()
   if node.leaf {
     // Find the correct sorted position and insert.
@@ -195,7 +207,7 @@ fn[T] insert_non_full(
         i = i + 1
       }
     }
-    insert_non_full(node.children[i], key, cmp)
+    insert_non_full(node.children[i], key, cmp, depth + 1)
     node.count = node.count + 1
   }
 }
@@ -217,10 +229,10 @@ pub fn[T] insert(
     let new_root = btree_create(false, root.degree)
     new_root.children.push(root)
     split_child(new_root, 0, cmp)
-    insert_non_full(new_root, key, cmp)
+    insert_non_full(new_root, key, cmp, 0)
     new_root
   } else {
-    insert_non_full(root, key, cmp)
+    insert_non_full(root, key, cmp, 0)
     root
   }
 }
@@ -253,6 +265,10 @@ pub fn[T] size(root : BTreeNode[T]) -> Int {
 
 ///|
 /// Visit every key in sorted order, calling `f` on each.
+/// Recursion depth is bounded by the B-Tree height O(log_t n),
+/// which is at most ~64 for t=2 and n=2⁶⁴ — well within safe limits.
+/// The `btree_max_depth` guard on insert/delete ensures the height
+/// cannot grow unbounded.
 pub fn[T] inorder(root : BTreeNode[T], f : (T) -> Unit) -> Unit {
   let n = root.keys.length()
   for i = 0; i < n; i = i + 1 {
@@ -390,6 +406,7 @@ fn[T] _delete_internal(
   node : BTreeNode[T],
   idx : Int,
   cmp : (T, T) -> Int,
+  depth : Int,
 ) -> Unit {
   let t = node.degree
   let key = node.keys[idx]
@@ -397,22 +414,32 @@ fn[T] _delete_internal(
   if node.children[idx].keys.length() >= t {
     let pred = get_pred(node, idx)
     node.keys[idx] = pred
-    _delete(node.children[idx], pred, cmp)
+    _delete(node.children[idx], pred, cmp, depth + 1)
     // Case 2b: right child has >= t keys — replace with successor.
   } else if node.children[idx + 1].keys.length() >= t {
     let succ = get_succ(node, idx)
     node.keys[idx] = succ
-    _delete(node.children[idx + 1], succ, cmp)
+    _delete(node.children[idx + 1], succ, cmp, depth + 1)
     // Case 2c: both children are minimal — merge, then delete from merged.
   } else {
     _merge(node, idx)
-    _delete(node.children[idx], key, cmp)
+    _delete(node.children[idx], key, cmp, depth + 1)
   }
 }
 
 ///|
 /// Delete `key` from the subtree rooted at `node` (mutated in place).
-fn[T] _delete(node : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Unit {
+fn[T] _delete(
+  node : BTreeNode[T],
+  key : T,
+  cmp : (T, T) -> Int,
+  depth : Int,
+) -> Unit {
+  if depth > btree_max_depth {
+    abort(
+      "btree: recursion depth exceeds safe limit during delete; B-Tree invariant broken or tree too large",
+    )
+  }
   let t = node.degree
   let n = node.keys.length()
   // Find the first key >= key.
@@ -428,7 +455,7 @@ fn[T] _delete(node : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Unit {
       node.count = node.count - 1
     } else {
       // Case 2: key in an internal node.
-      _delete_internal(node, idx, cmp)
+      _delete_internal(node, idx, cmp, depth + 1)
     }
   } else {
     // Case 3: key not in this node.
@@ -450,7 +477,7 @@ fn[T] _delete(node : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Unit {
     if node.children.length() < n_children && ci >= node.children.length() {
       ci = ci - 1
     }
-    _delete(node.children[ci], key, cmp)
+    _delete(node.children[ci], key, cmp, depth + 1)
   }
   update_count(node)
 }
@@ -463,7 +490,7 @@ pub fn[T] delete(
   key : T,
   cmp : (T, T) -> Int,
 ) -> BTreeNode[T] {
-  _delete(root, key, cmp)
+  _delete(root, key, cmp, 0)
   // If the root has been emptied but still has a child, promote it.
   if root.keys.length() == 0 && !root.leaf {
     root.children[0]

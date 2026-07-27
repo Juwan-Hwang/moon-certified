@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.11.0** — 215 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2515 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 206 个包依赖测试验证。
+**v0.11.0** — 252 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2927 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 243 个包依赖测试验证。
 
 ### v0.11.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -228,7 +228,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (2515 tests)
+# 运行测试 (2927 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -562,11 +562,33 @@ moon-certified/
 │   ├── numerical_integration/🔒 数值积分 (梯形/Simpson/自适应/Romberg, 9 tests)
 │   ├── ode_solver/          🔒 ODE 求解器 (Euler/RK4/RK45, 8 tests)
 │   ├── interpolation/       🔒 插值 (Lagrange/Newton, 7 tests)
-│   └── least_squares/       🔒 最小二乘法 (线性/多项式, 8 tests)
+│   ├── least_squares/       🔒 最小二乘法 (线性/多项式, 8 tests)
+│   └── special_functions/   🔒 特殊函数 (Gamma/Erf/Bessel, 10 tests)
+├── crypto/
+│   ├── sha256/              🔒 SHA-256 哈希 (10 tests)
+│   ├── sha512/              🔒 SHA-512 哈希 (8 tests)
+│   ├── hmac/                🔒 HMAC 消息认证 (7 tests)
+│   ├── chacha20/            🔒 ChaCha20 流密码 (8 tests)
+│   ├── hkdf/                🔒 HKDF 密钥派生 (7 tests)
+│   ├── pbkdf2/              🔒 PBKDF2 密码派生 (6 tests)
+│   └── poly1305/            🔒 Poly1305 MAC (7 tests)
+├── compression/
+│   ├── huffman/             🔒 Huffman 编码 (8 tests)
+│   ├── lz4/                 🔒 LZ4 压缩 (7 tests)
+│   ├── lz77/                🔒 LZ77 压缩 (7 tests)
+│   └── lzw/                 🔒 LZW 压缩 (7 tests)
+├── ml/
+│   ├── kmeans/              🔒 K-Means++ 聚类 (8 tests)
+│   ├── logistic_regression/ 🔒 逻辑回归 (8 tests)
+│   └── decision_tree/       🔒 决策树 CART (8 tests)
+├── stats/
+│   ├── descriptive/         🔒 描述统计 (9 tests)
+│   ├── linear_regression/   🔒 线性回归 (8 tests)
+│   └── hypothesis_testing/  🔒 假设检验 (8 tests)
 ├── .github/workflows/
 │   └── ci.yml                ✅ GitHub Actions CI (check + test + prove)
 ├── CHANGELOG.md              📋 Semantic Versioning changelog
-├── moon.mod.json
+├── moon.mod
 ├── LICENSE
 └── README.md
 ```
@@ -688,9 +710,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **2515** | **5 完整, 4 部分, 206 tested** | **17 generic** |
+| **Total** | **2927** | **5 完整, 4 部分, 243 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 215 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 252 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 

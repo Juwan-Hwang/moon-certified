@@ -28,6 +28,8 @@
 struct WTNode {
   bitvector : FixedArray[Bool] // bit[i] = true if character goes right
   prefix_sum : FixedArray[Int] // prefix_sum[i] = count of true in [0..i)
+  select0 : FixedArray[Int] // select0[k] = position of k-th 0 (0-indexed)
+  select1 : FixedArray[Int] // select1[k] = position of k-th 1 (0-indexed)
   mut left_child : Int // index of left child, -1 if leaf
   mut right_child : Int // index of right child, -1 if leaf
   lo_alpha : Int // min alphabet index in this node's range
@@ -100,6 +102,8 @@ fn build_node(
     nodes.push({
       bitvector: FixedArray::make(0, false),
       prefix_sum: FixedArray::make(1, 0),
+      select0: FixedArray::make(0, 0),
+      select1: FixedArray::make(0, 0),
       left_child: -1,
       right_child: -1,
       lo_alpha,
@@ -116,8 +120,31 @@ fn build_node(
   }
   // Build prefix sum: ps[i] = number of 1s in [0, i).
   let ps = FixedArray::make(len + 1, 0)
+  let mut zero_count = 0
+  let mut one_count = 0
   for i = 0; i < len; i = i + 1 {
     ps[i + 1] = ps[i] + (if bv[i] { 1 } else { 0 })
+    if bv[i] {
+      one_count = one_count + 1
+    } else {
+      zero_count = zero_count + 1
+    }
+  }
+  // Precompute select0 and select1 arrays for O(1) select at each level.
+  // select0[k] = position of the k-th 0 (0-indexed).
+  // select1[k] = position of the k-th 1 (0-indexed).
+  let sel0 = FixedArray::make(zero_count, 0)
+  let sel1 = FixedArray::make(one_count, 0)
+  let mut z = 0
+  let mut o = 0
+  for i = 0; i < len; i = i + 1 {
+    if bv[i] {
+      sel1[o] = i
+      o = o + 1
+    } else {
+      sel0[z] = i
+      z = z + 1
+    }
   }
   // Partition indices: left (≤ mid), right (> mid).
   let left_indices = FixedArray::make(len, 0)
@@ -136,6 +163,8 @@ fn build_node(
   nodes.push({
     bitvector: bv,
     prefix_sum: ps,
+    select0: sel0,
+    select1: sel1,
     left_child: -1, // will be set after children are built
     right_child: -1,
     lo_alpha,
@@ -231,29 +260,49 @@ pub fn rank(tree : WaveletTree, c : Int, i : Int) -> Int {
 ///|
 /// Find the position of the k-th (0-indexed) occurrence of character `c`.
 /// Returns the 0-indexed position, or `None` if there aren't k+1 occurrences.
+///
+/// Uses a recursive top-down traversal that composes select0/select1
+/// lookups on the way back up, achieving O(log σ) time complexity.
 pub fn select(tree : WaveletTree, c : Int, k : Int) -> Int? {
   if k < 0 || tree.nodes.length() == 0 {
     return None
   }
+  let alpha_idx = match tree.char_index.get(c) {
+    Some(idx) => idx
+    None => return None
+  }
+  // Check that there are at least k+1 occurrences.
   let total = rank(tree, c, tree.n)
   if k >= total {
     return None
   }
-  // Binary search for the position where rank(c, pos+1) = k+1.
-  let mut lo = 0
-  let mut hi = tree.n
-  while lo < hi {
-    let mid = (lo + hi) / 2
-    if rank(tree, c, mid + 1) >= k + 1 {
-      hi = mid
-    } else {
-      lo = mid + 1
-    }
+  Some(select_helper(tree, 0, alpha_idx, k))
+}
+
+///|
+/// Recursive helper: returns the position of the k-th occurrence of the
+/// character with alphabet index `alpha_idx` in the subtree rooted at
+/// `node_idx`, expressed as a position in that node's subsequence.
+fn select_helper(
+  tree : WaveletTree,
+  node_idx : Int,
+  alpha_idx : Int,
+  k : Int,
+) -> Int {
+  let node = tree.nodes[node_idx]
+  if node.left_child == -1 {
+    // Leaf: the k-th occurrence is at position k in this node's subsequence.
+    return k
   }
-  if lo < tree.n && rank(tree, c, lo + 1) == k + 1 {
-    Some(lo)
+  let mid = (node.lo_alpha + node.hi_alpha) / 2
+  if alpha_idx <= mid {
+    // Character goes left: recurse into left child, then map back via select0.
+    let child_pos = select_helper(tree, node.left_child, alpha_idx, k)
+    node.select0[child_pos]
   } else {
-    None
+    // Character goes right: recurse into right child, then map back via select1.
+    let child_pos = select_helper(tree, node.right_child, alpha_idx, k)
+    node.select1[child_pos]
   }
 }
 

@@ -53,7 +53,22 @@ pub struct HNSW {
 ///
 /// - `m`: maximum connections per node (typical: 16).
 /// - `ef_construction`: search width during construction (typical: 200).
+///
+/// **Note**: All indices created with `new()` share the same PRNG seed (12345),
+/// so the same insertion sequence produces identical structures. For
+/// independent indices, use [`new_with_seed`].
 pub fn new(m : Int, ef_construction : Int) -> HNSW {
+  new_with_seed(m, ef_construction, 12345UL)
+}
+
+///|
+/// Create a new HNSW index with a user-specified PRNG seed. Different seeds
+/// produce different random layer assignments, yielding structurally distinct
+/// indices even for the same insertion order.
+///
+/// This is the recommended constructor for production code where multiple
+/// independent indices are needed.
+pub fn new_with_seed(m : Int, ef_construction : Int, seed : UInt64) -> HNSW {
   let mm = if m < 2 { 2 } else { m }
   {
     nodes: [],
@@ -68,7 +83,11 @@ pub fn new(m : Int, ef_construction : Int) -> HNSW {
     },
     ml: 1.0 / @math.ln(mm.to_double()),
     data: [],
-    rng_state: 12345UL, // fixed seed for reproducibility
+    rng_state: if seed == 0UL {
+      0xDEADBEEFCAFEBABEUL
+    } else {
+      seed
+    },
   }
 }
 
@@ -193,6 +212,10 @@ pub fn insert(h : HNSW, id : Int, vec : Array[Double]) -> Unit {
 ///|
 /// Search a single layer for the nearest neighbors, returning a list of
 /// node indices sorted by distance (closest first).
+///
+/// Uses a min-heap for candidates and a max-heap for results, achieving
+/// O(ef * log(ef)) per layer instead of O(ef²) with linear scan.
+/// Visited nodes are tracked in a hash map for O(1) membership checks.
 fn search_layer(
   h : HNSW,
   query : Array[Double],
@@ -200,63 +223,14 @@ fn search_layer(
   ef : Int,
   layer : Int,
 ) -> Array[(Double, Int)] {
-  let visited : Array[Int] = [entry]
-  let candidates : Array[(Double, Int)] = [(dist2(query, h.data[entry]), entry)]
-  let results : Array[(Double, Int)] = [(dist2(query, h.data[entry]), entry)]
-  while candidates.length() > 0 {
-    // Find the closest unexplored candidate.
-    let mut min_idx = 0
-    for i = 1; i < candidates.length(); i = i + 1 {
-      if candidates[i].0 < candidates[min_idx].0 {
-        min_idx = i
-      }
-    }
-    let (c_dist, c) = candidates[min_idx]
-    candidates.remove(min_idx) |> ignore
-    // Find the furthest in results.
-    let mut furthest_idx = 0
-    for i = 1; i < results.length(); i = i + 1 {
-      if results[i].0 > results[furthest_idx].0 {
-        furthest_idx = i
-      }
-    }
-    let furthest_dist = results[furthest_idx].0
-    if c_dist > furthest_dist {
-      break
-    }
-    // Explore neighbors.
-    let neighbors = h.nodes[c].neighbors[layer]
-    for i = 0; i < neighbors.length(); i = i + 1 {
-      let n = neighbors[i]
-      let mut already = false
-      for v = 0; v < visited.length(); v = v + 1 {
-        if visited[v] == n {
-          already = true
-          break
-        }
-      }
-      if !already {
-        visited.push(n)
-        let d = dist2(query, h.data[n])
-        if results.length() < ef || d < furthest_dist {
-          candidates.push((d, n))
-          results.push((d, n))
-          if results.length() > ef {
-            // Remove the furthest.
-            let mut fi = 0
-            for i = 1; i < results.length(); i = i + 1 {
-              if results[i].0 > results[fi].0 {
-                fi = i
-              }
-            }
-            results.remove(fi) |> ignore
-          }
-        }
-      }
-    }
-  }
-  // Sort results by distance (closest first).
-  results.sort_by(fn(a, b) {
+  let visited : Map[Int, Unit] = Map([])
+  visited[entry] = ()
+  let entry_dist = dist2(query, h.data[entry])
+  // Min-heap for candidates (closest first).
+  let candidates = @binary_heap.HeapG::new(fn(
+    a : (Double, Int),
+    b : (Double, Int),
+  ) {
     if a.0 < b.0 {
       -1
     } else if a.0 > b.0 {
@@ -265,7 +239,76 @@ fn search_layer(
       0
     }
   })
-  results
+  // Max-heap for results (furthest first, so we can peek/pop the worst).
+  let results = @binary_heap.HeapG::new(fn(
+    a : (Double, Int),
+    b : (Double, Int),
+  ) {
+    if a.0 > b.0 {
+      -1
+    } else if a.0 < b.0 {
+      1
+    } else {
+      0
+    }
+  })
+  candidates.push((entry_dist, entry))
+  results.push((entry_dist, entry))
+  while candidates.len() > 0 {
+    // Pop the closest candidate from the min-heap.
+    let (c_dist, c) = match candidates.pop() {
+      Some(v) => v
+      None => break
+    }
+    // Peek the furthest result from the max-heap.
+    let furthest_dist = match results.peek() {
+      Some(v) => v.0
+      None => break
+    }
+    if c_dist > furthest_dist {
+      break
+    }
+    // Explore neighbors.
+    let neighbors = h.nodes[c].neighbors[layer]
+    for i = 0; i < neighbors.length(); i = i + 1 {
+      let n = neighbors[i]
+      if visited.contains(n) {
+        continue
+      }
+      visited[n] = ()
+      let d = dist2(query, h.data[n])
+      let curr_furthest = match results.peek() {
+        Some(v) => v.0
+        None => d // Should not happen, but handle gracefully.
+      }
+      if results.len() < ef || d < curr_furthest {
+        candidates.push((d, n))
+        results.push((d, n))
+        if results.len() > ef {
+          // Remove the furthest result.
+          ignore(results.pop())
+        }
+      }
+    }
+  }
+  // Extract all results and sort by distance (closest first).
+  let arr : Array[(Double, Int)] = []
+  while results.len() > 0 {
+    match results.pop() {
+      Some(v) => arr.push(v)
+      None => break
+    }
+  }
+  arr.sort_by(fn(a, b) {
+    if a.0 < b.0 {
+      -1
+    } else if a.0 > b.0 {
+      1
+    } else {
+      0
+    }
+  })
+  arr
 }
 
 ///|

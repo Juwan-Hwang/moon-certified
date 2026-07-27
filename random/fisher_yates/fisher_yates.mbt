@@ -101,14 +101,6 @@ pub fn make_lcg(seed : Int) -> () -> Int {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Swap two elements of a generic array in place.
-fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
-  let tmp = xs[i]
-  xs[i] = xs[j]
-  xs[j] = tmp
-}
-
-///|
 /// Shuffle a `FixedArray[T]` in place using the Fisher-Yates (Knuth)
 /// algorithm.
 ///
@@ -129,7 +121,7 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
   while i > 0 {
     // Use the high bits of the RNG output to avoid LCG low-bit weakness.
     let j = (rng() >> 16) % (i + 1)
-    swap(xs, i, j)
+    @utils.swap_fixed(xs, i, j)
     i = i - 1
   }
 }
@@ -139,10 +131,18 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
 ///
 /// Equivalent to `fisher_yates_shuffle(xs, make_lcg(default_seed))`. The fixed
 /// seed makes a single call fully deterministic and reproducible; for an
-/// independently seeded shuffle call `fisher_yates_shuffle` directly with a
-/// `make_lcg(seed)` closure.
+/// independently seeded shuffle call `shuffle_int_with_seed` or
+/// `fisher_yates_shuffle` directly with a `make_lcg(seed)` closure.
 pub fn shuffle_int(xs : FixedArray[Int]) -> Unit {
   fisher_yates_shuffle(xs, make_lcg(default_seed))
+}
+
+///|
+/// Shuffle an `Int` array using a user-specified seed. Different seeds
+/// produce different permutations. This is the recommended API for production
+/// code where reproducibility with a unique seed is required.
+pub fn shuffle_int_with_seed(xs : FixedArray[Int], seed : Int) -> Unit {
+  fisher_yates_shuffle(xs, make_lcg(seed))
 }
 
 // ---------------------------------------------------------------------------

@@ -122,6 +122,7 @@ pub fn[K, V] ConcurrentHashMap::remove(
   }
   let slot = self.slots[idx]
   slot.state = 2
+  slot.key = None
   slot.value = None
   self.size = self.size - 1
   true

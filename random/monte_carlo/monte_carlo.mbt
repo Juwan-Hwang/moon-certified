@@ -55,11 +55,8 @@ pub fn XorShift64::new(seed : Int64) -> XorShift64 {
 /// Uses the top 53 bits (mantissa width of f64) to produce a value with
 /// full double precision. The result is uniform over [0, 1) with period 2^64.
 pub fn XorShift64::uniform(self : XorShift64) -> Double {
-  let mut x = self.state
-  x = x ^ (x << 13)
-  x = x ^ (x >> 7)
-  x = x ^ (x << 17)
-  self.state = x
+  self.state = @utils.xorshift64_next(self.state)
+  let x = self.state
   // Use absolute value and take top 53 bits.
   let abs_x = if x < 0L { -x } else { x }
   (abs_x & 0x001FFFFFFFFFFFFFL).to_double() / 9007199254740992.0
@@ -81,11 +78,8 @@ pub fn XorShift64::rand_int64(self : XorShift64, n : Int64) -> Int64 {
   if n <= 0L {
     return 0L
   }
-  let mut x = self.state
-  x = x ^ (x << 13)
-  x = x ^ (x >> 7)
-  x = x ^ (x << 17)
-  self.state = x
+  self.state = @utils.xorshift64_next(self.state)
+  let x = self.state
   let abs_x = if x < 0L { -x } else { x }
   abs_x % n
 }

@@ -12,7 +12,7 @@ jobs:
   publish:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache MoonBit installation
         uses: actions/cache@v4
@@ -28,6 +28,9 @@ jobs:
 
       - name: MoonBit version
         run: moon version
+
+      - name: Fetch dependency registry
+        run: moon update
 
       - name: Type check (0 warnings required)
         run: moon check --deny-warn

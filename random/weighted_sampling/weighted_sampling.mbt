@@ -21,7 +21,7 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 // ---------------------------------------------------------------------------
-// SplitMix64 PRNG
+// SplitMix64 PRNG — delegates to @utils to avoid code duplication
 // ---------------------------------------------------------------------------
 
 ///|
@@ -40,24 +40,11 @@ fn splitmix64_new(seed : Int64) -> SplitMix64 {
 }
 
 ///|
-/// Next 64-bit pseudo-random value.
-fn splitmix64_next(rng : SplitMix64) -> Int64 {
-  rng.state = rng.state + 0x9E3779B97F4A7C15L
-  let mut z = rng.state
-  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9L
-  z = (z ^ (z >> 27)) * 0x94D049BB133111EBL
-  z = z ^ (z >> 31)
-  z
-}
-
-///|
 /// Next uniform double in [0, 1).
 fn splitmix64_next_double(rng : SplitMix64) -> Double {
-  // Use the top 53 bits for a full-precision double.
-  let v = splitmix64_next(rng)
-  // Mask to get unsigned-equivalent, then shift.
-  let bits = (v & 0x1FFFFFFFFFFFFFL).to_double()
-  bits / 9007199254740992.0 // 2^53
+  let (new_state, d) = @utils.splitmix64_next_double(rng.state)
+  rng.state = new_state
+  d
 }
 
 // ---------------------------------------------------------------------------

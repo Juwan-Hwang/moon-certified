@@ -18,6 +18,8 @@ pub fn complex(Double, Double) -> Complex
 
 pub fn fft(Array[Complex], Bool) -> Unit
 
+pub fn fft_checked(Array[Complex], Bool) -> Bool
+
 pub fn im(Complex) -> Double
 
 pub fn multiply(Array[Double], Array[Double]) -> Array[Double]
