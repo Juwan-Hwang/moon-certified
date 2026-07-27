@@ -72,9 +72,20 @@ jobs:
           MOON_CREDENTIALS: ${{ secrets.MOON_CREDENTIALS }}
         run: moon publish
 
+      - name: Generate source tarball and checksums
+        run: |
+          cd ..
+          tar czf moon-certified-${{ github.ref_name }}.tar.gz moon-certified/
+          sha256sum moon-certified-${{ github.ref_name }}.tar.gz > checksums-sha256.txt
+          cat checksums-sha256.txt
+          mv moon-certified-${{ github.ref_name }}.tar.gz checksums-sha256.txt moon-certified/
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            checksums-sha256.txt
+            moon-certified-${{ github.ref_name }}.tar.gz
