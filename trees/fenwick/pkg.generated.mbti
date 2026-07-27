@@ -6,9 +6,15 @@ pub fn build(FixedArray[Int]) -> Fenwick
 
 pub fn build64(FixedArray[Int64]) -> Fenwick64
 
+pub fn build_range(Int) -> FenwickRange
+
+pub fn point_query(FenwickRange, Int) -> Int
+
 pub fn query(Fenwick, Int) -> Int
 
 pub fn query64(Fenwick64, Int) -> Int64?
+
+pub fn range_add(FenwickRange, Int, Int, Int) -> Unit
 
 pub fn range_query(Fenwick, Int, Int) -> Int
 
@@ -26,6 +32,10 @@ pub struct Fenwick {
 }
 
 pub struct Fenwick64 {
+  // private fields
+}
+
+pub struct FenwickRange {
   // private fields
 }
 

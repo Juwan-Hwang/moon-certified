@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/r_tree"
+
+// Values
+pub fn rtree_new(Int) -> RTree
+
+// Errors
+
+// Types and methods
+pub struct Entry {
+  rect : Rect
+  value : Int
+}
+
+pub struct RTree {
+  // private fields
+}
+pub fn RTree::insert(Self, Rect, Int) -> Unit
+pub fn RTree::query(Self, Rect) -> Array[Entry]
+pub fn RTree::query_point(Self, Double, Double) -> Array[Entry]
+
+pub struct Rect {
+  min_x : Double
+  min_y : Double
+  max_x : Double
+  max_y : Double
+}
+
+// Type aliases
+
+// Traits
+

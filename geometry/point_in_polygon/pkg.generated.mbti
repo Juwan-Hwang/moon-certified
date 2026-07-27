@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/point_in_polygon"
+
+// Values
+pub fn point_in_polygon(Int, Int, Array[(Int, Int)]) -> Bool
+
+pub fn point_on_polygon_boundary(Int, Int, Array[(Int, Int)]) -> Bool
+
+pub fn polygon_area(Array[(Int, Int)]) -> Double
+
+pub fn polygon_centroid(Array[(Int, Int)]) -> (Double, Double)
+
+pub fn polygon_signed_area(Array[(Int, Int)]) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

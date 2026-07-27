@@ -50,6 +50,11 @@ jobs:
       - name: Type check (0 warnings required)
         run: moon check --deny-warn
 
+      - name: Verify interface files are up-to-date
+        run: |
+          moon info
+          git diff --exit-code -- '*.mbti' || (echo "::error::Interface files are out of date. Run 'moon info' and commit the changes." && exit 1)
+
       - name: Run tests
         run: moon test
 

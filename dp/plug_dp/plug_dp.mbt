@@ -169,7 +169,7 @@ priv struct StateMap {
 ///|
 /// Create a StateMap with the given initial capacity (rounded up to power of 2).
 fn StateMap::new(initial_cap : Int) -> StateMap {
-  let cap = next_pow2(initial_cap.max(16))
+  let cap = @hash_utils.next_pow2(initial_cap.max(16))
   let keys = Array::make(cap, -1)
   let vals = Array::make(cap, 0L)
   { keys, vals, size: 0, capacity: cap, mask: cap - 1 }
@@ -244,7 +244,7 @@ fn StateMap::add(self : StateMap, key : Int, delta : Int64) -> Unit {
 ///|
 /// Resize the internal table to `new_cap`.
 fn StateMap::resize(self : StateMap, new_cap : Int) -> Unit {
-  let cap = next_pow2(new_cap)
+  let cap = @hash_utils.next_pow2(new_cap)
   let old_keys = self.keys
   let old_vals = self.vals
   let old_cap = self.capacity
@@ -277,16 +277,6 @@ fn StateMap::for_each(self : StateMap, f : (Int, Int64) -> Unit) -> Unit {
       f(self.keys[i], self.vals[i])
     }
   }
-}
-
-///|
-/// Compute the next power of 2 ≥ n.
-fn next_pow2(n : Int) -> Int {
-  let mut p = 1
-  while p < n {
-    p = p << 1
-  }
-  p
 }
 
 // ---------------------------------------------------------------------------

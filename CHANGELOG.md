@@ -119,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Containers
 - `treiber_stack` — Treiber lock-free stack (CAS simulation).
 - `mpmc_queue` — Multi-Producer Multi-Consumer queue.
-- `concurrent_hash_map` — Concurrent HashMap (segmented lock simulation).
+- `concurrent_hash_map` — HashMap reference implementation (single-threaded; no real concurrency — see SECURITY.md).
 - `work_stealing` — Work-Stealing queue (deque-based).
 
 #### Trees

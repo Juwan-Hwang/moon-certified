@@ -26,11 +26,10 @@
 /// demonstrates the full LSM architecture, making it suitable for testing
 /// and as a reference implementation.
 ///
-/// For disk-backed persistence, see the companion module `lsm_tree_disk.mbt`
-/// which provides async functions (`flush_to_disk`, `persist_to_disk`,
-/// `restore_from_disk`, `checkpoint_to_disk`) using `@async/fs` for real
-/// file I/O. The disk variant enables the LSM-Tree to survive process
-/// restarts and handle datasets larger than available memory.
+/// For disk-backed persistence, users can implement serialization
+/// using the public API (`put`, `get`, `delete`, `flush`, `compact`).
+/// The in-memory architecture demonstrates the full LSM pattern,
+/// making it suitable for testing and as a reference implementation.
 ///
 /// ## Complexity
 /// - Write: O(1) amortized (append to MemTable, periodically flush).
@@ -40,6 +39,14 @@
 /// - Range scan: O(log N + K) per level.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
+
+///|
+/// Default MemTable capacity (entries) when none is specified.
+const DEFAULT_MEMTABLE_CAPACITY : Int = 1024
+
+///|
+/// Number of Level 0 SSTables that triggers automatic compaction.
+const COMPACTION_THRESHOLD : Int = 4
 
 // ---------------------------------------------------------------------------
 // Bloom Filter (per-SSTable)
@@ -177,7 +184,11 @@ fn str_cmp(a : String, b : String) -> Int {
 /// When the MemTable reaches `memtable_capacity` entries, it is flushed
 /// to an SSTable.
 pub fn new(memtable_capacity : Int) -> LSMTree {
-  let cap = if memtable_capacity > 0 { memtable_capacity } else { 1024 }
+  let cap = if memtable_capacity > 0 {
+    memtable_capacity
+  } else {
+    DEFAULT_MEMTABLE_CAPACITY
+  }
   {
     memtable: Map([]),
     memtable_size: 0,
@@ -299,7 +310,7 @@ pub fn flush(tree : LSMTree) -> Unit {
   tree.memtable = Map([])
   tree.memtable_size = 0
   // Trigger compaction if too many Level 0 tables.
-  if tree.sstables.length() >= 4 {
+  if tree.sstables.length() >= COMPACTION_THRESHOLD {
     compact(tree)
   }
 }
@@ -610,41 +621,94 @@ pub fn range_scan(
   start : String,
   end : String,
 ) -> Array[(String, String)] {
-  // Collect all entries from all levels.
-  let all : Map[String, Entry] = Map([])
-  // Level 1 first (oldest), then Level 0 (newer), then MemTable (newest).
-  for i = 0; i < tree.level1.length(); i = i + 1 {
-    let table = tree.level1[i]
-    for j = 0; j < table.entries.length(); j = j + 1 {
-      let e = table.entries[j]
-      if str_cmp(e.key, start) >= 0 && str_cmp(e.key, end) < 0 {
-        all[e.key] = e
-      }
-    }
-  }
-  for i = 0; i < tree.sstables.length(); i = i + 1 {
-    let table = tree.sstables[i]
-    for j = 0; j < table.entries.length(); j = j + 1 {
-      let e = table.entries[j]
-      if str_cmp(e.key, start) >= 0 && str_cmp(e.key, end) < 0 {
-        all[e.key] = e
-      }
-    }
-  }
+  // K-way merge approach: SSTables and MemTable entries are already sorted.
+  // We collect entries from all sources, merging them in key order,
+  // with newer sources overriding older ones (same key → newer wins).
+  //
+  // Sources in order from newest to oldest:
+  //   1. MemTable (newest)
+  //   2. Level 0 SSTables (reverse order — most recently flushed is newest)
+  //   3. Level 1 SSTables (oldest)
+  //
+  // For each key in [start, end), only the entry from the newest source wins.
+
+  // Collect all matching entries from all sources, tagged with source priority.
+  // Lower priority = newer (wins).
+  let all_entries : Array[(String, String, Bool, Int)] = []
+  // Priority 0 = MemTable (newest).
   for k, e in tree.memtable {
     if str_cmp(k, start) >= 0 && str_cmp(k, end) < 0 {
-      all[k] = e
+      all_entries.push((k, e.value, e.deleted, 0))
     }
   }
-  // Collect and sort.
+  // Priority 1+i = Level 0 SSTables (most recent first).
+  for i = tree.sstables.length() - 1; i >= 0; i = i - 1 {
+    let table = tree.sstables[i]
+    // Binary search for the start position.
+    let lo = binary_search_entries(table.entries, start)
+    for j = lo; j < table.entries.length(); j = j + 1 {
+      let e = table.entries[j]
+      if str_cmp(e.key, end) >= 0 {
+        break // Entries are sorted; no more matches.
+      }
+      all_entries.push((e.key, e.value, e.deleted, tree.sstables.length() - i))
+    }
+  }
+  // Priority 100+i = Level 1 SSTables (oldest).
+  let base_prio = 100
+  for i = 0; i < tree.level1.length(); i = i + 1 {
+    let table = tree.level1[i]
+    let lo = binary_search_entries(table.entries, start)
+    for j = lo; j < table.entries.length(); j = j + 1 {
+      let e = table.entries[j]
+      if str_cmp(e.key, end) >= 0 {
+        break
+      }
+      all_entries.push((e.key, e.value, e.deleted, base_prio + i))
+    }
+  }
+  // Sort by (key, priority) — for equal keys, lower priority (newer) comes first.
+  all_entries.sort_by(fn(a, b) {
+    let c = str_cmp(a.0, b.0)
+    if c != 0 {
+      return c
+    }
+    a.3 - b.3
+  })
+  // Deduplicate: for each key, only the first (newest) entry is kept.
+  // Skip if it's a tombstone.
   let result : Array[(String, String)] = []
-  for k, e in all {
-    if !e.deleted {
-      result.push((k, e.value))
+  let mut i = 0
+  while i < all_entries.length() {
+    let (key, value, deleted, _) = all_entries[i]
+    // Skip all other entries with the same key.
+    let mut j = i + 1
+    while j < all_entries.length() && str_cmp(all_entries[j].0, key) == 0 {
+      j = j + 1
+    }
+    if !deleted {
+      result.push((key, value))
+    }
+    i = j
+  }
+  result
+}
+
+///|
+/// Binary search for the first entry with key >= target.
+/// Returns entries.length() if all keys are < target.
+fn binary_search_entries(entries : Array[Entry], target : String) -> Int {
+  let mut lo = 0
+  let mut hi = entries.length()
+  while lo < hi {
+    let mid = lo + (hi - lo) / 2
+    if str_cmp(entries[mid].key, target) < 0 {
+      lo = mid + 1
+    } else {
+      hi = mid
     }
   }
-  result.sort_by(fn(a, b) { str_cmp(a.0, b.0) })
-  result
+  lo
 }
 
 // ---------------------------------------------------------------------------

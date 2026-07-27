@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/special_functions"
+
+// Values
+pub fn bessel_j0(Double) -> Double
+
+pub fn beta(Double, Double) -> Double
+
+pub fn erf(Double) -> Double
+
+pub fn erfc(Double) -> Double
+
+pub fn gamma(Double) -> Double
+
+pub fn lgamma(Double) -> Double
+
+pub fn normal_cdf(Double) -> Double
+
+pub fn normal_pdf(Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

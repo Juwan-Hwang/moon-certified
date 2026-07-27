@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/kmeans"
+
+// Values
+pub fn kmeans(Array[(Double, Double)], Int, Int) -> KMeansResult
+
+// Errors
+
+// Types and methods
+pub struct KMeansResult {
+  centroids : Array[(Double, Double)]
+  assignments : Array[Int]
+}
+
+// Type aliases
+
+// Traits
+

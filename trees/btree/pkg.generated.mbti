@@ -2,22 +2,24 @@
 package "moon-certified/trees/btree"
 
 // Values
-pub fn delete(BTreeNode, Int) -> BTreeNode
+pub fn[T] delete(BTreeNode[T], T, (T, T) -> Int) -> BTreeNode[T]
 
-pub fn inorder(BTreeNode, (Int) -> Unit) -> Unit
+pub fn[T] inorder(BTreeNode[T], (T) -> Unit) -> Unit
 
-pub fn insert(BTreeNode, Int) -> BTreeNode
+pub fn[T] insert(BTreeNode[T], T, (T, T) -> Int) -> BTreeNode[T]
 
-pub fn new() -> BTreeNode
+pub fn[T] new() -> BTreeNode[T]
 
-pub fn search(BTreeNode, Int) -> Bool
+pub fn[T] new_with_degree(Int) -> BTreeNode[T]
 
-pub fn size(BTreeNode) -> Int
+pub fn[T] search(BTreeNode[T], T, (T, T) -> Int) -> Bool
+
+pub fn[T] size(BTreeNode[T]) -> Int
 
 // Errors
 
 // Types and methods
-pub struct BTreeNode {
+pub struct BTreeNode[T] {
   // private fields
 }
 

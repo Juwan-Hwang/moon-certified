@@ -18,6 +18,12 @@ pub struct KEdge {
 }
 
 ///|
+/// Construct a [`KEdge`] with the given destination and weight.
+pub fn k_edge(to : Int, weight : Int) -> KEdge {
+  { to, weight }
+}
+
+///|
 /// Find the K shortest paths from `source` to `target`.
 /// Returns a list of (total_cost, path) pairs, sorted by cost.
 pub fn k_shortest_paths(

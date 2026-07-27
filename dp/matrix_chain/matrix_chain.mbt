@@ -1,4 +1,8 @@
 ///|
+/// Large sentinel value representing infinity for DP initialisation.
+const INF : Int = 999999999
+
+///|
 fn compute_dp(
   dims : Array[Int],
   n : Int,
@@ -12,7 +16,7 @@ fn compute_dp(
   for chain_len in 2..<=n {
     for i in 0..<(n - chain_len + 1) {
       let j = i + chain_len - 1
-      m[i][j] = 999999999
+      m[i][j] = INF
       for k in i..<j {
         let cost = m[i][k] + m[k + 1][j] + dims[i] * dims[k + 1] * dims[j + 1]
         if cost < m[i][j] {
@@ -26,7 +30,7 @@ fn compute_dp(
 }
 
 ///|
-fn matrix_chain_order(dims : Array[Int]) -> Int {
+pub fn matrix_chain_order(dims : Array[Int]) -> Int {
   let n = dims.length() - 1
   if n <= 1 {
     return 0
@@ -36,7 +40,7 @@ fn matrix_chain_order(dims : Array[Int]) -> Int {
 }
 
 ///|
-fn matrix_chain_parenthesization(dims : Array[Int]) -> String {
+pub fn matrix_chain_parenthesization(dims : Array[Int]) -> String {
   let n = dims.length() - 1
   if n <= 0 {
     return ""

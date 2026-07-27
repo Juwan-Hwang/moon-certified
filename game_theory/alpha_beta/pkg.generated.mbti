@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/game_theory/alpha_beta"
+
+// Values
+pub fn[T : Game] alpha_beta(T, Int, Int, Int) -> Int
+
+pub fn[T : Game] best_move(T, Int) -> Int
+
+pub fn[T : Game] negamax(T, Int) -> Int
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+pub(open) trait Game {
+  fn is_terminal(Self) -> Bool
+  fn evaluate(Self) -> Int
+  fn generate_moves(Self) -> Array[Int]
+  fn make_move(Self, Int) -> Self
+  fn current_player(Self) -> Int
+}
+

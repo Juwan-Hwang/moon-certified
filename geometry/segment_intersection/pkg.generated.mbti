@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/segment_intersection"
+
+// Values
+pub fn count_intersections(Array[(Int, Int, Int, Int)]) -> Int
+
+pub fn find_all_intersections(Array[(Int, Int, Int, Int)]) -> Array[(Int, Int)]
+
+pub fn segment_intersection(Int, Int, Int, Int, Int, Int, Int, Int) -> (Int, Int)?
+
+pub fn segments_intersect(Int, Int, Int, Int, Int, Int, Int, Int) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

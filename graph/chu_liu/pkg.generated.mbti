@@ -1,0 +1,14 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/chu_liu"
+
+// Values
+pub fn min_arborescence(Int, Array[(Int, Int, Int)], Int) -> Int?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

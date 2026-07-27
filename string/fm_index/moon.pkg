@@ -1,3 +1,7 @@
+import {
+  "moon-certified/string/sa_is",
+}
+
 options(
   "proof-enabled": false,
 )

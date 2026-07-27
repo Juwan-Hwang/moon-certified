@@ -14,7 +14,7 @@ If you discover a security vulnerability in moon-certified, please report it
 responsibly:
 
 1. **Do not open a public GitHub issue** for security vulnerabilities.
-2. Email the maintainer at: juwan.hwang@example.com
+2. Email the maintainer at: juwan.hwang@proton.me
 3. Include a description of the vulnerability, a minimal reproduction, and
    the potential impact.
 4. You will receive a response within 48 hours.

@@ -26,10 +26,10 @@
 ///|
 /// A bounded work-stealing deque (Chase-Lev).
 pub struct WorkStealingDeque[T] {
-  priv buffer : FixedArray[T?]
+  priv mut buffer : FixedArray[T?]
   priv mut bottom : Int
   priv mut top : Int
-  priv mask : Int
+  priv mut mask : Int
 }
 
 ///|
@@ -46,11 +46,37 @@ pub fn[T] ws_deque_new(capacity : Int) -> WorkStealingDeque[T] {
 }
 
 ///|
-/// Push an item onto the bottom (owner's end). O(1).
+/// Push an item onto the bottom (owner's end). O(1) amortized.
+///
+/// If the buffer is full, grows it to double capacity.
 pub fn[T] ws_deque_push(q : WorkStealingDeque[T], item : T) -> Unit {
-  let b = q.bottom
+  let mut b = q.bottom
+  let t = q.top
+  // Check if buffer is full (bottom - top == capacity).
+  if b - t >= q.buffer.length() {
+    ws_deque_grow(q)
+    b = q.bottom // re-read after growth relocated elements
+  }
   q.buffer[b & q.mask] = Some(item)
   q.bottom = b + 1
+}
+
+///|
+/// Grow the internal buffer to double capacity.
+fn[T] ws_deque_grow(q : WorkStealingDeque[T]) -> Unit {
+  let old_cap = q.buffer.length()
+  let new_cap = old_cap * 2
+  let new_buf = FixedArray::make(new_cap, None)
+  // Copy existing elements in order from top to bottom.
+  let t = q.top
+  let size = q.bottom - t
+  for i = 0; i < size; i = i + 1 {
+    new_buf[i] = q.buffer[(t + i) & q.mask]
+  }
+  q.buffer = new_buf
+  q.mask = new_cap - 1
+  q.top = 0
+  q.bottom = size
 }
 
 ///|
@@ -188,4 +214,39 @@ test "ws_deque: generic" {
   ws_deque_push(q, "b")
   assert_eq(ws_deque_pop(q), Some("b"))
   assert_eq(ws_deque_steal(q), Some("a"))
+}
+
+///|
+test "ws_deque: grow on overflow" {
+  let q : WorkStealingDeque[Int] = ws_deque_new(4)
+  // Push more items than initial capacity — should grow, not lose data.
+  for i = 0; i < 20; i = i + 1 {
+    ws_deque_push(q, i)
+  }
+  assert_eq(ws_deque_size(q), 20)
+  // Pop should return in LIFO order.
+  for i = 19; i >= 0; i = i - 1 {
+    assert_eq(ws_deque_pop(q), Some(i))
+  }
+  assert_true(ws_deque_is_empty(q))
+}
+
+///|
+test "ws_deque: grow with steal + pop mix" {
+  let q : WorkStealingDeque[Int] = ws_deque_new(4)
+  ws_deque_push(q, 1)
+  ws_deque_push(q, 2)
+  ws_deque_push(q, 3)
+  ws_deque_push(q, 4)
+  // Steal one, then push more to trigger growth.
+  assert_eq(ws_deque_steal(q), Some(1))
+  ws_deque_push(q, 5)
+  ws_deque_push(q, 6)
+  assert_eq(ws_deque_size(q), 5)
+  // Verify all items present.
+  assert_eq(ws_deque_steal(q), Some(2))
+  assert_eq(ws_deque_pop(q), Some(6))
+  assert_eq(ws_deque_pop(q), Some(5))
+  assert_eq(ws_deque_pop(q), Some(4))
+  assert_eq(ws_deque_pop(q), Some(3))
 }

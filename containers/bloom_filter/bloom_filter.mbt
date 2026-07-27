@@ -170,18 +170,8 @@ pub fn[T] contains(bf : BloomFilter[T], data : T) -> Bool {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Polynomial rolling hash for `String`, used by the unit tests below.
-fn str_hash(s : String) -> Int {
-  let mut h = 0
-  for i = 0; i < s.length(); i = i + 1 {
-    h = h * 31 + s[i].to_int()
-  }
-  h
-}
-
-///|
 test "bloom: basic add and contains" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   add(bf, "hello")
   add(bf, "world")
   assert_true(contains(bf, "hello"))
@@ -190,7 +180,7 @@ test "bloom: basic add and contains" {
 
 ///|
 test "bloom: no false negatives" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   let words = [
     "apple", "banana", "cherry", "date", "elderberry", "fig", "grape", "honeydew",
     "kiwi", "lemon",
@@ -205,21 +195,21 @@ test "bloom: no false negatives" {
 
 ///|
 test "bloom: empty filter" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   assert_false(contains(bf, "anything"))
   assert_false(contains(bf, ""))
 }
 
 ///|
 test "bloom: single element" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   add(bf, "test")
   assert_true(contains(bf, "test"))
 }
 
 ///|
 test "bloom: multiple elements" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   for i = 0; i < 50; i = i + 1 {
     add(bf, "item_" + i.to_string())
   }
@@ -230,7 +220,7 @@ test "bloom: multiple elements" {
 
 ///|
 test "bloom: large number of elements" {
-  let bf = new(1000, 0.01, str_hash)
+  let bf = new(1000, 0.01, @hash_utils.poly31_hash)
   for i = 0; i < 500; i = i + 1 {
     add(bf, "key_" + i.to_string())
   }
@@ -242,7 +232,7 @@ test "bloom: large number of elements" {
 
 ///|
 test "bloom: false positive rate" {
-  let bf = new(100, 0.01, str_hash)
+  let bf = new(100, 0.01, @hash_utils.poly31_hash)
   // Add 100 items
   for i = 0; i < 100; i = i + 1 {
     add(bf, "item_" + i.to_string())
@@ -262,8 +252,8 @@ test "bloom: false positive rate" {
 ///|
 test "bloom: different false positive rates" {
   // A higher FPR filter should permit more false positives than a lower one.
-  let bf_low = new(100, 0.001, str_hash) // 0.1% target
-  let bf_high = new(100, 0.1, str_hash) // 10% target
+  let bf_low = new(100, 0.001, @hash_utils.poly31_hash) // 0.1% target
+  let bf_high = new(100, 0.1, @hash_utils.poly31_hash) // 10% target
   for i = 0; i < 100; i = i + 1 {
     add(bf_low, "elem_" + i.to_string())
     add(bf_high, "elem_" + i.to_string())
@@ -285,7 +275,7 @@ test "bloom: different false positive rates" {
 ///|
 test "bloom: bf_ln guard for non-positive input" {
   // These should not infinite-loop; they return 0.0
-  let bf = new(10, 0.01, str_hash) // uses bf_ln internally, should not hang
+  let bf = new(10, 0.01, @hash_utils.poly31_hash) // uses bf_ln internally, should not hang
   assert_true(contains(bf, "test") == false)
 }
 

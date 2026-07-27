@@ -1,0 +1,36 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/consistent_hash"
+
+// Values
+pub fn add_node(ConsistentHash, String) -> Unit
+
+pub fn get_node(ConsistentHash, String) -> String?
+
+pub fn get_nodes(ConsistentHash) -> Array[String]
+
+pub fn new() -> ConsistentHash
+
+pub fn new_with_vnodes(Int) -> ConsistentHash
+
+pub fn node_count(ConsistentHash) -> Int
+
+pub fn remove_node(ConsistentHash, String) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct ConsistentHash {
+  mut ring : Array[RingNode]
+  nodes : Map[String, Unit]
+  num_vnodes : Int
+}
+
+pub struct RingNode {
+  hash : Int
+  node_name : String
+}
+
+// Type aliases
+
+// Traits
+

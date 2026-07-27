@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/geometry/min_enclosing_circle"
+
+// Values
+pub fn min_enclosing_circle(Array[(Double, Double)]) -> Circle
+
+// Errors
+
+// Types and methods
+pub struct Circle {
+  cx : Double
+  cy : Double
+  r : Double
+}
+
+// Type aliases
+
+// Traits
+

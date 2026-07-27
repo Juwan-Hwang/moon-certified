@@ -2,6 +2,8 @@
 package "moon-certified/trees/bplus_tree"
 
 // Values
+pub fn delete(BPTree, Int) -> Bool
+
 pub fn insert(BPTree, Int, Int) -> Unit
 
 pub fn new() -> BPTree

@@ -6,7 +6,7 @@ pub fn alias_draw(AliasTable, Double) -> Int
 
 pub fn build_alias(FixedArray[Double]) -> AliasTable
 
-pub fn weighted_reservoir_sample(FixedArray[Double], Int) -> FixedArray[Int]
+pub fn weighted_reservoir_sample(FixedArray[Double], Int, Int64) -> FixedArray[Int]
 
 // Errors
 

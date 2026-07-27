@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/treiber_stack"
+
+// Values
+pub fn[T] treiber_stack_capacity(TreiberStack[T]) -> Int
+
+pub fn[T] treiber_stack_cas_count(TreiberStack[T]) -> Int
+
+pub fn[T] treiber_stack_is_empty(TreiberStack[T]) -> Bool
+
+pub fn[T] treiber_stack_is_full(TreiberStack[T]) -> Bool
+
+pub fn[T] treiber_stack_new(Int) -> TreiberStack[T]
+
+pub fn[T] treiber_stack_pop(TreiberStack[T]) -> T?
+
+pub fn[T] treiber_stack_push(TreiberStack[T], T) -> Bool
+
+pub fn[T] treiber_stack_size(TreiberStack[T]) -> Int
+
+// Errors
+
+// Types and methods
+pub struct TreiberStack[T] {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

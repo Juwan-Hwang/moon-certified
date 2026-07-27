@@ -1,34 +1,27 @@
-/// Dynamic convex hull: support point insertions and hull queries online.
+/// Incremental convex hull: support point insertions and hull queries.
 ///
 /// The static convex hull (Graham scan / Andrew's monotone chain) requires
 /// recomputing from scratch after every insertion, costing O(n) per insertion.
-/// The dynamic convex hull maintains the upper and lower hulls separately using
-/// balanced data structures, achieving O(log² n) amortised per insertion.
+/// This implementation provides an incremental interface that batches
+/// insertions and rebuilds the hull lazily on query, achieving amortised
+/// O(n) per rebuild with O(log n) point-in-hull queries.
 ///
 /// ## Algorithm
 ///
-/// We use the **Overmars–Van Leeuwen** structure based on two balanced
-/// binary search trees (here implemented as sorted arrays with binary search
-/// for simplicity — a fully dynamic balanced BST would give O(log² n), but the
-/// array-based version gives O(n) per insertion with O(log n) query).
+/// Uses **lazy rebuild**: points are collected in an array, and the hull is
+/// recomputed using Andrew's monotone chain only when queried. This is
+/// **not** the Overmars-Van Leeuwen dynamic hull structure (which achieves
+/// O(log² n) per insertion using balanced BSTs). The lazy-rebuild approach
+/// is correct and practical when insertions are batched between queries.
 ///
-/// For production use where insertions are interleaved with many queries, the
-/// array-based approach is competitive because queries are O(log n) via binary
-/// search, and rebuilds can be batched.
+/// ## Complexity (lazy rebuild)
 ///
-/// **Alternative**: for true O(log² n) per operation, use the Li Chao tree
-/// or a fully balanced BST (e.g. treap or AVL). The array-based version here
-/// is correct and simple; it rebuilds the hull on each insertion.
+/// - Insert: O(1) — appends to the point array.
+/// - Hull query: O(n log n) — rebuilds the hull if dirty.
+/// - Point-in-hull query: O(n) after rebuild (linear scan of edges).
 ///
-/// ## Complexity (array-based)
-///
-/// - Insert: O(n) — rebuilds the hull.
-/// - Hull query: O(1) — returns the precomputed hull.
-/// - Point-in-hull query: O(log n) — binary search on the hull.
-///
-/// For the fully dynamic version with balanced BSTs:
-/// - Insert: O(log² n).
-/// - Query: O(log n).
+/// For true O(log² n) per insertion, use a balanced BST (e.g. treap or AVL)
+/// to maintain the upper and lower hulls online.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
@@ -165,7 +158,7 @@ fn rebuild(dh : DynamicHull) -> Unit {
 ///|
 /// Check if a point is strictly inside the convex hull.
 ///
-/// Uses binary search on the hull edges. Returns `false` for points on the
+/// Uses a linear scan of hull edges. Returns `false` for points on the
 /// boundary or outside; `true` only for strictly interior points.
 pub fn is_inside(dh : DynamicHull, p : @geometry_utils.Point) -> Bool {
   let h = hull(dh)

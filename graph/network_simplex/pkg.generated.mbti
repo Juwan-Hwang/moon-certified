@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/network_simplex"
+
+// Values
+pub fn min_cost_flow(Int, FixedArray[Int], FixedArray[Int], FixedArray[Int], FixedArray[Int], FixedArray[Int]) -> MCFResult?
+
+// Errors
+
+// Types and methods
+pub struct MCFResult {
+  total_cost : Int64
+  flows : FixedArray[Int64]
+}
+
+// Type aliases
+
+// Traits
+

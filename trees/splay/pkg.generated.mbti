@@ -2,24 +2,24 @@
 package "moon-certified/trees/splay"
 
 // Values
-pub fn delete(SplayNode, Int) -> SplayNode
+pub fn[T] delete(SplayNode[T], T, (T, T) -> Int) -> SplayNode[T]
 
-pub fn empty() -> SplayNode
+pub fn[T] empty() -> SplayNode[T]
 
-pub fn inorder(SplayNode) -> FixedArray[Int]
+pub fn[T] inorder(SplayNode[T]) -> FixedArray[T]
 
-pub fn insert(SplayNode, Int) -> SplayNode
+pub fn[T] insert(SplayNode[T], T, (T, T) -> Int) -> SplayNode[T]
 
-pub fn search(SplayNode, Int) -> (SplayNode, Bool)
+pub fn[T] search(SplayNode[T], T, (T, T) -> Int) -> (SplayNode[T], Bool)
 
-pub fn size(SplayNode) -> Int
+pub fn[T] size(SplayNode[T]) -> Int
 
 // Errors
 
 // Types and methods
-pub enum SplayNode {
+pub enum SplayNode[T] {
   Empty
-  Node(SplayNode, Int, SplayNode, Int)
+  Node(SplayNode[T], T, SplayNode[T], Int)
 }
 
 // Type aliases

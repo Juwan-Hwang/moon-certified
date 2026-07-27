@@ -12,7 +12,7 @@ pub fn new_min() -> CHTMin
 
 pub fn query_min(CHTMin, Int64) -> Int64
 
-pub fn query_min_bs(CHTMin, Int64) -> Int64
+pub fn query_min_bs(CHTMin, Int64) -> Int64?
 
 // Errors
 

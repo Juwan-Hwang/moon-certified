@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/ode_solver"
+
+// Values
+pub fn euler_method((Double, Double) -> Double, Double, Double, Double, Int) -> Double
+
+pub fn midpoint_method((Double, Double) -> Double, Double, Double, Double, Int) -> Double
+
+pub fn rk4((Double, Double) -> Double, Double, Double, Double, Int) -> Double
+
+pub fn rk45_adaptive((Double, Double) -> Double, Double, Double, Double, Double) -> Double
+
+pub fn rk4_trajectory((Double, Double) -> Double, Double, Double, Double, Int) -> Array[(Double, Double)]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

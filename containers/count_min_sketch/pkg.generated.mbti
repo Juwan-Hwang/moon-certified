@@ -8,11 +8,11 @@ pub fn add_int(CountMinSketch, Int) -> Unit
 
 pub fn depth(CountMinSketch) -> Int
 
-pub fn estimate(CountMinSketch, String) -> Int
+pub fn estimate(CountMinSketch, String) -> Int64
 
-pub fn estimate_int(CountMinSketch, Int) -> Int
+pub fn estimate_int(CountMinSketch, Int) -> Int64
 
-pub fn inner_product(CountMinSketch, CountMinSketch) -> Int
+pub fn inner_product(CountMinSketch, CountMinSketch) -> Int64
 
 pub fn merge(CountMinSketch, CountMinSketch) -> CountMinSketch
 

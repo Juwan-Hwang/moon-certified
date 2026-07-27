@@ -39,7 +39,10 @@ pub fn bwt_encode(s : String) -> String {
   let buf = StringBuilder()
   for idx = 0; idx < m; idx = idx + 1 {
     let pos = (sa[idx] - 1 + m) % m
-    buf.write_char(aug[pos].to_int().unsafe_to_char())
+    let code = aug[pos].to_int()
+    if code >= 0 && code <= 0x10FFFF {
+      buf.write_char(code.unsafe_to_char())
+    }
   }
   buf.to_string()
 }
@@ -72,8 +75,11 @@ pub fn bwt_decode(bwt : String) -> String {
   let chars : Array[Char] = Array::make(n, ' ')
   let mut i = 0
   for k = 0; k < n; k = k + 1 {
-    chars[k] = bwt[i].to_int().unsafe_to_char()
-    i = c_table[bwt[i].to_int()] + rank[i]
+    let code = bwt[i].to_int()
+    if code >= 0 && code <= 0x10FFFF {
+      chars[k] = code.unsafe_to_char()
+    }
+    i = c_table[code] + rank[i]
   }
   // Output chars[n-2] down to chars[0], skipping chars[n-1] (the '$').
   let buf = StringBuilder()

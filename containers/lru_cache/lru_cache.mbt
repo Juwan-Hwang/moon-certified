@@ -308,13 +308,7 @@ test "lru: stress test 100 operations" {
 
 ///|
 test "lru: string keys with custom hash" {
-  let str_hash = fn(s : String) -> Int {
-    let mut h = 0
-    for i = 0; i < s.length(); i = i + 1 {
-      h = h * 31 + s[i].to_int()
-    }
-    h
-  }
+  let str_hash = @hash_utils.poly31_hash
   let str_eq = fn(a : String, b : String) -> Bool { a == b }
   let cache : LRUCache[String, Int] = new(3, str_hash, str_eq)
   put(cache, "apple", 1)

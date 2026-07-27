@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/random/gaussian_sampling"
+
+// Values
+pub fn box_muller(() -> Double) -> (Double, Double)
+
+pub fn gaussian_sample(Double, Double, () -> Double) -> Double
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

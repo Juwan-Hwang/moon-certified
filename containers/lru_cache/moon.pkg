@@ -1,5 +1,6 @@
 import {
   "moon-certified/containers/hash_table",
+  "moon-certified/containers/hash_utils",
 }
 
 options(

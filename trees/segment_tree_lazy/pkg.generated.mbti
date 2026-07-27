@@ -4,6 +4,8 @@ package "moon-certified/trees/segment_tree_lazy"
 // Values
 pub fn build(FixedArray[Int]) -> LazySegTree
 
+pub fn current_value(LazySegTree, Int) -> Int64
+
 pub fn point_get(LazySegTree, Int) -> Int64
 
 pub fn point_set(LazySegTree, Int, Int64) -> Unit

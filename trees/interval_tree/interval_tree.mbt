@@ -4,17 +4,21 @@
 /// - "Which intervals overlap with [q_lo, q_hi)?"
 /// - "Which intervals contain point q?"
 ///
-/// Uses an augmented red-black tree where each node stores the maximum
+/// Uses an augmented **unbalanced** BST where each node stores the maximum
 /// `hi` value in its subtree. This allows pruning branches that cannot
 /// contain an overlapping interval.
 ///
+/// **Note**: This is a plain BST, not a self-balancing tree (red-black or AVL).
+/// Insertion order affects tree shape: sorted input produces a degenerate
+/// O(n) chain. For guaranteed O(log n) worst-case, wrap with a balanced
+/// BST (e.g. `@red_black_tree` or `@treap`).
+///
 /// ## Complexity
-/// | Operation   | Time    |
-/// |-------------|---------|
-/// | insert      | O(log n)|
-/// | delete      | O(log n)|
-/// | query point | O(log n)|
-/// | query range | O(k + log n)| k = results
+/// | Operation   | Average | Worst     |
+/// |-------------|---------|-----------|
+/// | insert      | O(log n)| O(n)      |
+/// | query point | O(log n)| O(n)      |
+/// | query range | O(k + log n) | O(k + n) | k = results
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 

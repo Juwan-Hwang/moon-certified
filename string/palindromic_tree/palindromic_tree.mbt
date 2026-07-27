@@ -235,7 +235,11 @@ pub fn all_palindromes(tree : PalindromicTree) -> Array[String] {
     // Reconstruct the palindrome from the stored byte array.
     let buf = StringBuilder::new()
     for j = 0; j < len; j = j + 1 {
-      buf.write_char(tree.s[pos + j].unsafe_to_char())
+      let byte_val = tree.s[pos + j]
+      // Safe conversion: validate byte range before casting.
+      if byte_val >= 0 && byte_val <= 0x10FFFF {
+        buf.write_char(byte_val.unsafe_to_char())
+      }
     }
     result.push(buf.to_string())
   }
