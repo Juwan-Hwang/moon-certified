@@ -184,3 +184,16 @@ test "mcmc: single sample edge case" {
   let samples = metropolis_hastings(target, 0.0, 1, 1.0, rng)
   assert_eq(samples.length(), 1)
 }
+
+///|
+test "mcmc: uniform target — samples within bounds" {
+  // Target: uniform on [0, 10]. MCMC should produce samples in [0, 10].
+  let rng = make_rng(314L)
+  let target = fn(x : Double) { if x >= 0.0 && x <= 10.0 { 1.0 } else { 0.0 } }
+  let samples = metropolis_hastings(target, 5.0, 10000, 2.0, rng)
+  // After burn-in, all samples should be within [0, 10].
+  for i = 1000; i < samples.length(); i = i + 1 {
+    assert_true(samples[i] >= 0.0)
+    assert_true(samples[i] <= 10.0)
+  }
+}

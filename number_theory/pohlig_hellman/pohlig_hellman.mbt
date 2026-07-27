@@ -186,3 +186,11 @@ test "pohlig_hellman: g=0 edge case" {
   // 0^x = 0 mod p for x > 0, but 0 is not in <g> if g=0.
   assert_true(pohlig_hellman(0, 5, 7) is None)
 }
+
+///|
+test "pohlig_hellman: smooth order p=41" {
+  // p=41, p-1=40=2^3*5 (smooth). 6 is a primitive root mod 41.
+  // 6^5 mod 41 = 7776 mod 41 = 7776 - 189*41 = 7776 - 7749 = 27.
+  let result = pohlig_hellman(6, 27, 41)
+  assert_eq(result, Some(5))
+}

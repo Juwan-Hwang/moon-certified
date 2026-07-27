@@ -175,3 +175,18 @@ test "cipolla: p=13 comprehensive" {
     }
   }
 }
+
+///|
+test "cipolla: p=17 all residues" {
+  // Quadratic residues mod 17: 0,1,2,4,8,9,13,15,16
+  let qr = [0, 1, 2, 4, 8, 9, 13, 15, 16]
+  for n in 0..<17 {
+    let r = cipolla(n, 17)
+    let is_qr = qr.contains(n)
+    assert_true((r is Some(_)) == is_qr)
+    match r {
+      Some(x) => assert_eq(x * x % 17, n)
+      None => ()
+    }
+  }
+}

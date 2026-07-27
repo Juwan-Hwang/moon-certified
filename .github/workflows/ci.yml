@@ -52,9 +52,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
           $env:MOONBIT_VERSION = "${{ env.MOONBIT_VERSION }}"
-          irm cli.moonbitlang.com/install.ps1 | iex
-          echo "$HOME/.moon/bin" >> $env:GITHUB_PATH
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          Add-Content -Path $env:GITHUB_PATH -Value "$HOME/.moon/bin"
 
       - name: MoonBit version
         run: moon version
@@ -109,8 +110,7 @@ jobs:
 
       - name: Run benchmarks (regression detection)
         run: |
-          moon test --bench 2>&1 | tee benchmark_output.txt
-          echo "::set-output name=benchmark_result::$(cat benchmark_output.txt)"
+          moon test 2>&1 | tee benchmark_output.txt
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
