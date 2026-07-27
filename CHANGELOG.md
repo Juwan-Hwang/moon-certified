@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sorting/external_sort` — Comparator uses safe comparison instead of `a - b` to avoid Int32 overflow; now uses `@binary_heap` package instead of reimplementing heap.
 - `graph/dinic` — Invalid edges (self-loops, non-positive capacity) are now documented as rejected with caller guidance.
 - `compression/huffman` — Removed all `abort()` calls from production code paths.
+- `crypto/aes` — `encrypt_block`/`decrypt_block` now return `FixedArray[Byte]?` instead of aborting on invalid block size; internal callers use `encrypt_block_raw`/`decrypt_block_raw` for zero-overhead unchecked path.
 
 #### Code deduplication
 - `swap` function centralized in `@utils` (was duplicated in pdq_sort, heap_sort, quick_sort, introsort, binary_heap, fisher_yates, quickselect).

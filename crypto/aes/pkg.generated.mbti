@@ -2,7 +2,7 @@
 package "moon-certified/crypto/aes"
 
 // Values
-pub fn decrypt_block(AesKey, FixedArray[Byte]) -> FixedArray[Byte]
+pub fn decrypt_block(AesKey, FixedArray[Byte]) -> FixedArray[Byte]?
 
 pub fn decrypt_cbc(AesKey, FixedArray[Byte], FixedArray[Byte]) -> FixedArray[Byte]?
 
@@ -10,7 +10,7 @@ pub fn decrypt_ctr(AesKey, FixedArray[Byte], FixedArray[Byte]) -> FixedArray[Byt
 
 pub fn decrypt_gcm(AesKey, FixedArray[Byte], FixedArray[Byte], FixedArray[Byte], FixedArray[Byte]) -> FixedArray[Byte]?
 
-pub fn encrypt_block(AesKey, FixedArray[Byte]) -> FixedArray[Byte]
+pub fn encrypt_block(AesKey, FixedArray[Byte]) -> FixedArray[Byte]?
 
 pub fn encrypt_cbc(AesKey, FixedArray[Byte], FixedArray[Byte]) -> FixedArray[Byte]?
 

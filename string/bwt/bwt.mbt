@@ -142,3 +142,14 @@ test "bwt: unicode string" {
   let s = "abc"
   assert_eq(bwt_decode(bwt_encode(s)), s)
 }
+
+///|
+test "bwt: long repetitive string" {
+  // Long string with repeated patterns — stress test for suffix sort.
+  let buf = StringBuilder()
+  for _i = 0; _i < 50; _i = _i + 1 {
+    buf.write_string("ab")
+  }
+  let s = buf.to_string()
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}

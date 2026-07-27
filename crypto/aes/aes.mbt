@@ -358,14 +358,12 @@ fn inv_mix_columns(state : FixedArray[Byte]) -> Unit {
 }
 
 ///|
-/// Encrypt a single 16-byte block. Returns a new 16-byte array.
-pub fn encrypt_block(
+/// Internal: encrypt a 16-byte block without validation. Caller must ensure
+/// `plaintext` is exactly 16 bytes.
+fn encrypt_block_raw(
   key : AesKey,
   plaintext : FixedArray[Byte],
 ) -> FixedArray[Byte] {
-  if plaintext.length() != 16 {
-    abort("AES block must be exactly 16 bytes")
-  }
   let state = FixedArray::copy(plaintext)
   add_round_key(state, key.round_keys[0])
   for round = 1; round < key.nr; round = round + 1 {
@@ -381,14 +379,25 @@ pub fn encrypt_block(
 }
 
 ///|
-/// Decrypt a single 16-byte block. Returns a new 16-byte array.
-pub fn decrypt_block(
+/// Encrypt a single 16-byte block. Returns `None` if the plaintext is not
+/// exactly 16 bytes.
+pub fn encrypt_block(
+  key : AesKey,
+  plaintext : FixedArray[Byte],
+) -> FixedArray[Byte]? {
+  if plaintext.length() != 16 {
+    return None
+  }
+  Some(encrypt_block_raw(key, plaintext))
+}
+
+///|
+/// Internal: decrypt a 16-byte block without validation. Caller must ensure
+/// `ciphertext` is exactly 16 bytes.
+fn decrypt_block_raw(
   key : AesKey,
   ciphertext : FixedArray[Byte],
 ) -> FixedArray[Byte] {
-  if ciphertext.length() != 16 {
-    abort("AES block must be exactly 16 bytes")
-  }
   let state = FixedArray::copy(ciphertext)
   add_round_key(state, key.round_keys[key.nr])
   for round = key.nr - 1; round >= 1; round = round - 1 {
@@ -401,6 +410,19 @@ pub fn decrypt_block(
   inv_sub_bytes(state)
   add_round_key(state, key.round_keys[0])
   state
+}
+
+///|
+/// Decrypt a single 16-byte block. Returns `None` if the ciphertext is not
+/// exactly 16 bytes.
+pub fn decrypt_block(
+  key : AesKey,
+  ciphertext : FixedArray[Byte],
+) -> FixedArray[Byte]? {
+  if ciphertext.length() != 16 {
+    return None
+  }
+  Some(decrypt_block_raw(key, ciphertext))
 }
 
 // ---------------------------------------------------------------------------
@@ -466,7 +488,7 @@ pub fn encrypt_cbc(
     for i = 0; i < 16; i = i + 1 {
       block[i] = padded[b * 16 + i] ^ prev[i]
     }
-    let enc = encrypt_block(key, block)
+    let enc = encrypt_block_raw(key, block)
     for i = 0; i < 16; i = i + 1 {
       ciphertext[b * 16 + i] = enc[i]
     }
@@ -496,7 +518,7 @@ pub fn decrypt_cbc(
     for i = 0; i < 16; i = i + 1 {
       block[i] = ciphertext[b * 16 + i]
     }
-    let dec = decrypt_block(key, block)
+    let dec = decrypt_block_raw(key, block)
     for i = 0; i < 16; i = i + 1 {
       plaintext[b * 16 + i] = dec[i] ^ prev[i]
     }
@@ -537,7 +559,7 @@ pub fn encrypt_ctr(
   let counter = FixedArray::copy(nonce)
   let mut offset = 0
   while offset < n {
-    let keystream = encrypt_block(key, counter)
+    let keystream = encrypt_block_raw(key, counter)
     let block_len = if n - offset < 16 { n - offset } else { 16 }
     for i = 0; i < block_len; i = i + 1 {
       result[offset + i] = data[offset + i] ^ keystream[i]
@@ -678,9 +700,9 @@ pub fn encrypt_gcm(
   if iv.length() != 12 {
     return None
   }
-  // H = encrypt_block(key, 0^128)
+  // H = encrypt_block_raw(key, 0^128)
   let zero = FixedArray::make(16, b'\x00')
-  let h = encrypt_block(key, zero)
+  let h = encrypt_block_raw(key, zero)
   // J0 = IV || 0^31 || 1
   let j0 = FixedArray::make(16, b'\x00')
   for i = 0; i < 12; i = i + 1 {
@@ -705,7 +727,7 @@ pub fn encrypt_gcm(
   let mut offset = 0
   let ctr = FixedArray::copy(counter)
   while offset < n {
-    let keystream = encrypt_block(key, ctr)
+    let keystream = encrypt_block_raw(key, ctr)
     let block_len = if n - offset < 16 { n - offset } else { 16 }
     for i = 0; i < block_len; i = i + 1 {
       ciphertext[offset + i] = plaintext[offset + i] ^ keystream[i]
@@ -725,8 +747,8 @@ pub fn encrypt_gcm(
   }
   // Compute GHASH over AAD and ciphertext.
   let ghash_result = ghash(h, aad, ciphertext)
-  // Tag = encrypt_block(key, J0) XOR GHASH.
-  let s = encrypt_block(key, j0)
+  // Tag = encrypt_block_raw(key, J0) XOR GHASH.
+  let s = encrypt_block_raw(key, j0)
   let tag = FixedArray::make(16, b'\x00')
   for i = 0; i < 16; i = i + 1 {
     tag[i] = s[i] ^ ghash_result[i]
@@ -747,9 +769,9 @@ pub fn decrypt_gcm(
   if iv.length() != 12 {
     return None
   }
-  // H = encrypt_block(key, 0^128)
+  // H = encrypt_block_raw(key, 0^128)
   let zero = FixedArray::make(16, b'\x00')
-  let h = encrypt_block(key, zero)
+  let h = encrypt_block_raw(key, zero)
   // J0 = IV || 0^31 || 1
   let j0 = FixedArray::make(16, b'\x00')
   for i = 0; i < 12; i = i + 1 {
@@ -758,8 +780,8 @@ pub fn decrypt_gcm(
   j0[15] = b'\x01'
   // Compute GHASH over AAD and ciphertext.
   let ghash_result = ghash(h, aad, ciphertext)
-  // Tag = encrypt_block(key, J0) XOR GHASH.
-  let s = encrypt_block(key, j0)
+  // Tag = encrypt_block_raw(key, J0) XOR GHASH.
+  let s = encrypt_block_raw(key, j0)
   let tag = FixedArray::make(16, b'\x00')
   for i = 0; i < 16; i = i + 1 {
     tag[i] = s[i] ^ ghash_result[i]
@@ -792,7 +814,7 @@ pub fn decrypt_gcm(
   let mut offset = 0
   let ctr = FixedArray::copy(counter)
   while offset < n {
-    let keystream = encrypt_block(key, ctr)
+    let keystream = encrypt_block_raw(key, ctr)
     let block_len = if n - offset < 16 { n - offset } else { 16 }
     for i = 0; i < block_len; i = i + 1 {
       plaintext[offset + i] = ciphertext[offset + i] ^ keystream[i]
@@ -835,12 +857,18 @@ test "aes: FIPS 197 Appendix B — AES-128 ECB" {
   ])
   let k = new_key(key)
   assert_true(k is Some(_))
-  let ct = encrypt_block(k.unwrap(), pt)
+  let ct = match encrypt_block(k.unwrap(), pt) {
+    Some(c) => c
+    None => abort("encrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
   }
   // Decrypt back.
-  let dec = decrypt_block(k.unwrap(), ct)
+  let dec = match decrypt_block(k.unwrap(), ct) {
+    Some(d) => d
+    None => abort("decrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])
   }
@@ -865,11 +893,17 @@ test "aes: NIST SP 800-38A — AES-192 ECB" {
     b'\x12', b'\xa2', b'\x14', b'\x57', b'\x1f', b'\xa5', b'\xcc',
   ])
   let k = new_key(key)
-  let ct = encrypt_block(k.unwrap(), pt)
+  let ct = match encrypt_block(k.unwrap(), pt) {
+    Some(c) => c
+    None => abort("encrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
   }
-  let dec = decrypt_block(k.unwrap(), ct)
+  let dec = match decrypt_block(k.unwrap(), ct) {
+    Some(d) => d
+    None => abort("decrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])
   }
@@ -895,11 +929,17 @@ test "aes: FIPS 197 Appendix C.3 — AES-256 ECB" {
     b'\x4b', b'\x5a', b'\x7e', b'\x3d', b'\xb1', b'\x81', b'\xf8',
   ])
   let k = new_key(key)
-  let ct = encrypt_block(k.unwrap(), pt)
+  let ct = match encrypt_block(k.unwrap(), pt) {
+    Some(c) => c
+    None => abort("encrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
   }
-  let dec = decrypt_block(k.unwrap(), ct)
+  let dec = match decrypt_block(k.unwrap(), ct) {
+    Some(d) => d
+    None => abort("decrypt failed")
+  }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])
   }
