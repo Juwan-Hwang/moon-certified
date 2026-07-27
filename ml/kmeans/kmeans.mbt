@@ -306,23 +306,38 @@ fn assignments_equal(a : Array[Int], b : Array[Int]) -> Bool {
 /// fixed point of one more assignment step.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
+///
+/// **Note**: All calls use the same default PRNG seed, so the same input
+/// always produces the same result. For independent runs with different
+/// initializations, use [`kmeans_with_seed`].
 pub fn kmeans(
   points : Array[(Double, Double)],
   k : Int,
   max_iters : Int,
 ) -> KMeansResult {
+  kmeans_with_seed(points, k, max_iters, km_default_seed)
+}
+
+///|
+/// K-means clustering with a user-specified PRNG seed. Different seeds
+/// produce different k-means++ initializations, which may yield different
+/// local optima. This is the recommended API for production code where
+/// multiple independent runs are needed to find the best clustering.
+pub fn kmeans_with_seed(
+  points : Array[(Double, Double)],
+  k : Int,
+  max_iters : Int,
+  seed : Int,
+) -> KMeansResult {
   let n = points.length()
-  // Edge case: no data.
   if n == 0 {
     return { centroids: [], assignments: [] }
   }
-  // Effective cluster count clamped to [1, n].
   let k_eff = if k < 1 { 1 } else if k > n { n } else { k }
-  let rng = Rng::new(km_default_seed)
+  let rng = Rng::new(seed)
   let centroids = kmeans_pp_init(points, k_eff, rng)
   let mut cur_centroids = centroids
   let mut cur_assignments = assign_all(points, cur_centroids)
-  // Lloyd refinement: stop on a stable assignment or after max_iters rounds.
   let mut changed = true
   let mut iters = 0
   while changed && iters < max_iters {

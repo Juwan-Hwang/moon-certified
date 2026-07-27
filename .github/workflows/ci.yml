@@ -13,12 +13,15 @@ jobs:
   format-check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install MoonBit (pinned version)
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Fetch dependency registry
+        run: moon update
 
       - name: Check formatting
         run: moon fmt --check
@@ -27,10 +30,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, ubuntu-latest, macos-latest]
+        os: [ubuntu-22.04, ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache MoonBit installation
         uses: actions/cache@v4
@@ -39,13 +42,25 @@ jobs:
             ~/.moon
           key: moonbit-${{ env.MOONBIT_VERSION }}-${{ runner.os }}
 
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (Unix)
+        if: runner.os != 'Windows'
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
+      - name: Install MoonBit (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:MOONBIT_VERSION = "${{ env.MOONBIT_VERSION }}"
+          irm cli.moonbitlang.com/install.ps1 | iex
+          echo "$HOME/.moon/bin" >> $env:GITHUB_PATH
+
       - name: MoonBit version
         run: moon version
+
+      - name: Fetch dependency registry
+        run: moon update
 
       - name: Type check (0 warnings required)
         run: moon check --deny-warn
@@ -58,10 +73,21 @@ jobs:
       - name: Run tests
         run: moon test
 
-  prove:
+      - name: Generate test coverage report
+        if: runner.os == 'Linux'
+        run: |
+          moon test --cover 2>/dev/null || true
+          if [ -f .coverage/*.json ]; then
+            echo "Coverage data generated."
+          else
+            echo "::warning::Coverage data not available in this MoonBit version."
+          fi
+
+  benchmark:
     runs-on: ubuntu-22.04
+    if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Cache MoonBit installation
         uses: actions/cache@v4
@@ -74,6 +100,43 @@ jobs:
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Fetch dependency registry
+        run: moon update
+
+      - name: Type check
+        run: moon check --deny-warn
+
+      - name: Run benchmarks (regression detection)
+        run: |
+          moon test --bench 2>&1 | tee benchmark_output.txt
+          echo "::set-output name=benchmark_result::$(cat benchmark_output.txt)"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark_output.txt
+
+  prove:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache MoonBit installation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.moon
+          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
+
+      - name: Install MoonBit (pinned version)
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Fetch dependency registry
+        run: moon update
 
       - name: Install Z3
         run: |

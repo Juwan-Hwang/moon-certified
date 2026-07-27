@@ -286,14 +286,6 @@ fn[T] HeapG::sift_down(self : HeapG[T], idx : Int) -> Unit {
 }
 
 ///|
-/// Swap two elements in an array.
-fn swap(xs : FixedArray[Int], i : Int, j : Int) -> Unit {
-  let tmp = xs[i]
-  xs[i] = xs[j]
-  xs[j] = tmp
-}
-
-///|
 /// Sift down with a custom comparison function.
 /// `should_swap(a, b)` returns true if a should be above b in the heap.
 /// This unifies min-heap (a < b) and max-heap (a > b) into one function.
@@ -320,7 +312,7 @@ fn sift_down_cmp(
     if target == i {
       break
     }
-    swap(xs, i, target)
+    @utils.swap_fixed(xs, i, target)
     i = target
   }
 }
@@ -340,7 +332,7 @@ fn sift_up_cmp(
   while i > 0 {
     let parent = (i - 1) / 2
     if should_swap(xs[i], xs[parent]) {
-      swap(xs, i, parent)
+      @utils.swap_fixed(xs, i, parent)
       i = parent
     } else {
       break
@@ -409,7 +401,7 @@ pub fn heap_sort(xs : FixedArray[Int]) -> Unit {
   // Extract max to end, shrink heap
   let mut end = n - 1
   while end > 0 {
-    swap(xs, 0, end)
+    @utils.swap_fixed(xs, 0, end)
     sift_down_cmp(xs, end, 0, fn(a, b) { a > b })
     end = end - 1
   }

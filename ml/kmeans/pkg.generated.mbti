@@ -4,6 +4,8 @@ package "moon-certified/ml/kmeans"
 // Values
 pub fn kmeans(Array[(Double, Double)], Int, Int) -> KMeansResult
 
+pub fn kmeans_with_seed(Array[(Double, Double)], Int, Int, Int) -> KMeansResult
+
 // Errors
 
 // Types and methods

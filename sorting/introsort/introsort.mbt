@@ -43,15 +43,7 @@ fn ilog2(n : Int) -> Int {
 }
 
 ///|
-/// Swap two elements.
-fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
-  let tmp = xs[i]
-  xs[i] = xs[j]
-  xs[j] = tmp
-}
-
-///|
-/// Median-of-three: sort xs[lo], xs[mid], xs[hi] and return mid.
+/// Select the median of xs[lo], xs[mid], xs[hi] and place it at xs[hi]
 fn[T] median3(
   xs : FixedArray[T],
   lo : Int,
@@ -60,13 +52,13 @@ fn[T] median3(
 ) -> Int {
   let mid = lo + (hi - lo) / 2
   if cmp(xs[lo], xs[mid]) > 0 {
-    swap(xs, lo, mid)
+    @utils.swap_fixed(xs, lo, mid)
   }
   if cmp(xs[lo], xs[hi]) > 0 {
-    swap(xs, lo, hi)
+    @utils.swap_fixed(xs, lo, hi)
   }
   if cmp(xs[mid], xs[hi]) > 0 {
-    swap(xs, mid, hi)
+    @utils.swap_fixed(xs, mid, hi)
   }
   mid
 }
@@ -91,7 +83,7 @@ fn[T] introsort_impl(
   // Partition using median-of-three pivot.
   let pivot_idx = median3(xs, lo, hi, cmp)
   // Move pivot to hi-1.
-  swap(xs, pivot_idx, hi - 1)
+  @utils.swap_fixed(xs, pivot_idx, hi - 1)
   let pivot = xs[hi - 1]
   let mut i = lo
   let mut j = hi - 1
@@ -107,10 +99,10 @@ fn[T] introsort_impl(
     if i >= j {
       break
     }
-    swap(xs, i, j)
+    @utils.swap_fixed(xs, i, j)
   }
   // Restore pivot.
-  swap(xs, i, hi - 1)
+  @utils.swap_fixed(xs, i, hi - 1)
   // Recurse.
   introsort_impl(xs, lo, i - 1, depth - 1, cmp)
   introsort_impl(xs, i + 1, hi, depth - 1, cmp)
@@ -158,7 +150,7 @@ fn[T] sift_down(
     if largest == r {
       break
     }
-    swap(xs, r, largest)
+    @utils.swap_fixed(xs, r, largest)
     r = largest
   }
 }
@@ -179,7 +171,7 @@ fn[T] heapsort(
   }
   let mut end = hi
   while end > lo {
-    swap(xs, lo, end)
+    @utils.swap_fixed(xs, lo, end)
     sift_down(xs, lo, end - 1, lo, cmp)
     end = end - 1
   }

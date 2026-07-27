@@ -6,6 +6,8 @@ pub fn[T] delete(Treap[T], T, (T, T) -> Int) -> Treap[T]
 
 pub fn[T] empty() -> Treap[T]
 
+pub fn[T] empty_with_seed(Int) -> Treap[T]
+
 pub fn[T] height(Treap[T]) -> Int
 
 pub fn[T] inorder(Treap[T]) -> FixedArray[T]

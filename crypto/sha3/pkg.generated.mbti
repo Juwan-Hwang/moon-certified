@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/sha3"
+
+// Values
+pub fn sha3_224(Bytes) -> Bytes
+
+pub fn sha3_256(Bytes) -> Bytes
+
+pub fn sha3_384(Bytes) -> Bytes
+
+pub fn sha3_512(Bytes) -> Bytes
+
+pub fn shake128(Bytes, Int) -> Bytes
+
+pub fn shake256(Bytes, Int) -> Bytes
+
+// Errors
+
+// Types and methods
+pub struct KeccakSponge {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/math",
   "moonbitlang/core/double",
+  "moon-certified/containers/binary_heap",
 }
 
 options(

@@ -178,11 +178,11 @@ fn bit_reverse(a : Array[Complex], n : Int) -> Unit {
 /// original coefficients from the evaluations, using the conjugate roots and
 /// dividing every entry by `n`.
 ///
-/// The array length `n` must be a power of 2; if not, the function aborts
-/// with a descriptive error message. This fail-fast behaviour prevents the
-/// silent-wrong-result class of production bugs. Callers that need to handle
-/// arbitrary lengths should use [`fft_checked`] or pad with
-/// `next_power_of_two()` before calling.
+/// The array length `n` must be a power of 2. If it is not, the function
+/// returns without modifying the array — callers requiring error reporting
+/// should use [`fft_checked`], which returns `false` on invalid input.
+/// For arbitrary-length convolution, [`multiply`] handles padding
+/// automatically.
 /// Lengths 0 and 1 are no-ops. The transform runs in `O(n log n)` time and
 /// `O(1)` extra space (beyond the input array), and operates fully in place.
 ///
@@ -193,21 +193,45 @@ pub fn fft(a : Array[Complex], invert : Bool) -> Unit {
   if n <= 1 {
     return
   }
-  // Fail-fast: non-power-of-2 lengths would produce silently wrong results.
-  // Abort with a descriptive message so callers can diagnose the issue.
+  // Non-power-of-2 lengths would produce silently wrong results.
+  // Return without modifying the array; use fft_checked() for error reporting.
   if (n & (n - 1)) != 0 {
-    abort(
-      "fft: array length must be a power of 2, got " +
-      n.to_string() +
-      ". Use multiply() for arbitrary-length convolution, or pad with next_power_of_two().",
-    )
+    return
+  }
+  fft_core(a, invert, n)
+}
+
+///|
+/// Safe variant of [`fft`] that returns `false` instead of aborting when the
+/// array length is not a power of two. On success, the transform is performed
+/// in place and `true` is returned. On failure, the array is left unmodified
+/// and `false` is returned.
+///
+/// This is the preferred API for production code that cannot guarantee
+/// power-of-two lengths at the call site. Callers that can prove the length
+/// invariant (or are willing to crash on violation) may use [`fft`] directly
+/// for a marginally faster path with no branch overhead.
+pub fn fft_checked(a : Array[Complex], invert : Bool) -> Bool {
+  let n = a.length()
+  if n <= 1 {
+    return true
+  }
+  if (n & (n - 1)) != 0 {
+    return false
+  }
+  fft_core(a, invert, n)
+  true
+}
+
+///|
+/// Internal core: assumes `n` is a positive power of two and `n == a.length()`.
+fn fft_core(a : Array[Complex], invert : Bool, n : Int) -> Unit {
+  if n <= 1 {
+    return
   }
   bit_reverse(a, n)
-  // Cooley-Tukey butterfly: process lengths 2, 4, 8, ..., n.
   let mut len = 2
   while len <= n {
-    // Primitive len-th root of unity. Forward uses exp(+2*pi*i/len);
-    // inverse uses the conjugate exp(-2*pi*i/len).
     let sign : Double = if invert { -1.0 } else { 1.0 }
     let ang = 2.0 * @math.PI * sign / len.to_double()
     let wlen = complex(@math.cos(ang), @math.sin(ang))
@@ -229,7 +253,6 @@ pub fn fft(a : Array[Complex], invert : Bool) -> Unit {
     len = len * 2
   }
   if invert {
-    // Divide by n to complete the inverse transform.
     let inv_n = 1.0 / n.to_double()
     for i = 0; i < n; i = i + 1 {
       a[i] = { real: a[i].real * inv_n, imag: a[i].imag * inv_n }
@@ -550,5 +573,34 @@ test "fft: cross-check with brute force" {
   assert_eq(c.length(), a.length() + b.length() - 1)
   for i = 0; i < expected.length(); i = i + 1 {
     assert_approx(c[i], expected[i])
+  }
+}
+
+///|
+test "fft: fft_checked rejects non-power-of-2" {
+  let a : Array[Complex] = [
+    complex(1.0, 0.0),
+    complex(2.0, 0.0),
+    complex(3.0, 0.0),
+  ]
+  // Length 3 is not a power of 2 — should return false, array unmodified.
+  assert_false(fft_checked(a, false))
+  assert_approx(re(a[0]), 1.0)
+  assert_approx(re(a[1]), 2.0)
+  assert_approx(re(a[2]), 3.0)
+}
+
+///|
+test "fft: fft_checked accepts power-of-2" {
+  let a : Array[Complex] = []
+  for i = 0; i < 8; i = i + 1 {
+    a.push(complex((i + 1).to_double(), 0.0))
+  }
+  let original = a.copy()
+  assert_true(fft_checked(a, false))
+  // After forward + inverse, should recover original.
+  assert_true(fft_checked(a, true))
+  for i = 0; i < 8; i = i + 1 {
+    assert_approx(re(a[i]), re(original[i]))
   }
 }

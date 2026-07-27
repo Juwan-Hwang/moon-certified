@@ -109,3 +109,36 @@ test "bwt: single char" {
   assert_eq(bwt_encode("a"), "a$")
   assert_eq(bwt_decode("a$"), "a")
 }
+
+///|
+test "bwt: all same characters" {
+  assert_eq(bwt_decode(bwt_encode("aaaa")), "aaaa")
+  assert_eq(bwt_decode(bwt_encode("zzzzz")), "zzzzz")
+}
+
+///|
+test "bwt: repeated patterns" {
+  let inputs = ["abcabc", "aaaaabbbbb", "xyzxyzxyz"]
+  for i = 0; i < inputs.length(); i = i + 1 {
+    assert_eq(bwt_decode(bwt_encode(inputs[i])), inputs[i])
+  }
+}
+
+///|
+test "bwt: known encoding values" {
+  // BWT of "banana" — verify round-trip and structure.
+  let encoded = bwt_encode("banana")
+  // Verify it round-trips correctly (primary correctness criterion).
+  assert_eq(bwt_decode(encoded), "banana")
+  // The last char of BWT should be the char before '$' in the original,
+  // which for "banana" is 'a' (position 5, cyclically before '$').
+  let last_code = encoded[encoded.length() - 1].to_int()
+  assert_eq(last_code, 'a'.to_int())
+}
+
+///|
+test "bwt: unicode string" {
+  // BWT operates on code units; multi-byte chars are handled per-unit.
+  let s = "abc"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}

@@ -116,7 +116,7 @@ fn is_finite(x : Double) -> Bool {
 ///
 /// Returns a [`NewtonResult`] describing the outcome.
 ///
-/// **Precondition**: `tol > 0` and `max_iter > 0`. Violations abort.
+/// **Precondition**: `tol > 0` and `max_iter > 0`. Violations return [`Diverged`].
 pub fn solve(
   f : (Double) -> Double,
   df : (Double) -> Double,

@@ -49,85 +49,19 @@ const DEFAULT_MEMTABLE_CAPACITY : Int = 1024
 const COMPACTION_THRESHOLD : Int = 4
 
 // ---------------------------------------------------------------------------
-// Bloom Filter (per-SSTable)
+// Bloom Filter (per-SSTable) — delegates to the bloom_filter package
 // ---------------------------------------------------------------------------
 
 ///|
-/// A Bloom filter for fast set-membership queries on SSTable keys.
-///
-/// Uses k independent hash functions derived from double-hashing:
-/// `h_i(key) = (h1 + i * h2) % bits`.
-/// False positive rate ≈ (1 - e^(-kn/m))^k.
-priv struct BloomFilter {
-  bits : FixedArray[Bool]
-  num_hashes : Int
-}
-
-///|
-/// Create a Bloom filter sized for `expected_keys` with a target
-/// false-positive rate of ~1%.
-fn bloom_new(expected_keys : Int) -> BloomFilter {
-  // Optimal: m = -n * ln(p) / (ln(2))^2, k = m/n * ln(2)
-  // For p=0.01: m ≈ 9.58 * n, k ≈ 7
-  let n = if expected_keys < 1 { 1 } else { expected_keys }
-  let m_raw = 10 * n // generous to keep FP rate low
-  // Round up to power of 2 for fast modular.
-  let mut m = 1
-  while m < m_raw {
-    m = m * 2
-  }
-  let k = 7
-  { bits: FixedArray::make(m, false), num_hashes: k }
-}
-
-///|
-/// Simple hash using FNV-1a variant that fits in Int64.
-/// Uses 32-bit offset basis to avoid overflow.
-fn hash1(s : String) -> Int {
+/// Simple hash using FNV-1a variant that fits in Int.
+/// Used as the hash function for the generic bloom_filter package.
+fn lsm_hash(s : String) -> Int {
   let mut h = 2166136261U
   for i = 0; i < s.length(); i = i + 1 {
     h = h ^ s[i].to_uint()
     h = h * 16777619U
   }
   (h & 0x7FFFFFFFU).reinterpret_as_int()
-}
-
-///|
-/// Secondary hash for double-hashing.
-fn hash2(s : String) -> Int {
-  let mut h = 5381U
-  for i = 0; i < s.length(); i = i + 1 {
-    h = h * 33U + s[i].to_uint()
-  }
-  (h & 0x7FFFFFFFU).reinterpret_as_int()
-}
-
-///|
-/// Insert a key into the Bloom filter.
-fn bloom_insert(bf : BloomFilter, key : String) -> Unit {
-  let h1 = hash1(key)
-  let h2 = hash2(key) | 1 // ensure h2 is odd (avoids cycles)
-  let mask = bf.bits.length() - 1
-  for i = 0; i < bf.num_hashes; i = i + 1 {
-    let idx = (h1 + i * h2) & mask
-    bf.bits[idx] = true
-  }
-}
-
-///|
-/// Check if a key *might* be in the set (false positives possible,
-/// false negatives impossible).
-fn bloom_might_contain(bf : BloomFilter, key : String) -> Bool {
-  let h1 = hash1(key)
-  let h2 = hash2(key) | 1
-  let mask = bf.bits.length() - 1
-  for i = 0; i < bf.num_hashes; i = i + 1 {
-    let idx = (h1 + i * h2) & mask
-    if !bf.bits[idx] {
-      return false
-    }
-  }
-  true
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +80,7 @@ struct Entry {
 /// An immutable sorted table (simulates an SSTable) with Bloom filter.
 struct SSTable {
   entries : Array[Entry] // sorted by key
-  bloom : BloomFilter
+  bloom : @bloom_filter.BloomFilter[String]
 }
 
 ///|
@@ -158,25 +92,6 @@ pub struct LSMTree {
   priv mut sstables : Array[SSTable] // Level 0 tables (may overlap)
   priv mut level1 : Array[SSTable] // Level 1+ (non-overlapping, merged)
   priv mut total_entries : Int
-}
-
-///|
-/// Lexicographic string comparator.
-fn str_cmp(a : String, b : String) -> Int {
-  let la = a.length()
-  let lb = b.length()
-  let min = if la < lb { la } else { lb }
-  for k = 0; k < min; k = k + 1 {
-    let ca = a[k].to_int()
-    let cb = b[k].to_int()
-    if ca < cb {
-      return -1
-    }
-    if ca > cb {
-      return 1
-    }
-  }
-  la - lb
 }
 
 ///|
@@ -299,11 +214,11 @@ pub fn flush(tree : LSMTree) -> Unit {
   for _k, v in tree.memtable {
     entries.push(v)
   }
-  entries.sort_by(fn(a, b) { str_cmp(a.key, b.key) })
+  entries.sort_by(fn(a, b) { @utils.str_cmp(a.key, b.key) })
   // Build Bloom filter for this SSTable.
-  let bloom = bloom_new(entries.length())
+  let bloom = @bloom_filter.new(entries.length(), 0.01, lsm_hash)
   for i = 0; i < entries.length(); i = i + 1 {
-    bloom_insert(bloom, entries[i].key)
+    @bloom_filter.add(bloom, entries[i].key)
   }
   tree.sstables.push({ entries, bloom })
   // Reset MemTable.
@@ -354,9 +269,9 @@ pub fn compact(tree : LSMTree) -> Unit {
   tree.total_entries = live_count
   // Replace Level 0 and Level 1.
   tree.sstables = []
-  let bloom = bloom_new(merged.length())
+  let bloom = @bloom_filter.new(merged.length(), 0.01, lsm_hash)
   for i = 0; i < merged.length(); i = i + 1 {
-    bloom_insert(bloom, merged[i].key)
+    @bloom_filter.add(bloom, merged[i].key)
   }
   tree.level1 = [{ entries: merged, bloom }]
 }
@@ -438,7 +353,7 @@ fn sift_up(
     let parent = (idx - 1) / 2
     let child_key = tables[heap_tbl[idx]].entries[heap_pos[idx]].key
     let parent_key = tables[heap_tbl[parent]].entries[heap_pos[parent]].key
-    let c = str_cmp(child_key, parent_key)
+    let c = @utils.str_cmp(child_key, parent_key)
     // Child should go up if key is smaller, or equal key but newer table (lower index).
     if c < 0 || (c == 0 && heap_tbl[idx] < heap_tbl[parent]) {
       let tt = heap_tbl[idx]
@@ -472,7 +387,7 @@ fn sift_down(
     if left < size {
       let left_key = tables[heap_tbl[left]].entries[heap_pos[left]].key
       let cur_key = tables[heap_tbl[smallest]].entries[heap_pos[smallest]].key
-      let c = str_cmp(left_key, cur_key)
+      let c = @utils.str_cmp(left_key, cur_key)
       if c < 0 || (c == 0 && heap_tbl[left] < heap_tbl[smallest]) {
         smallest = left
       }
@@ -480,7 +395,7 @@ fn sift_down(
     if right < size {
       let right_key = tables[heap_tbl[right]].entries[heap_pos[right]].key
       let cur_key = tables[heap_tbl[smallest]].entries[heap_pos[smallest]].key
-      let c = str_cmp(right_key, cur_key)
+      let c = @utils.str_cmp(right_key, cur_key)
       if c < 0 || (c == 0 && heap_tbl[right] < heap_tbl[smallest]) {
         smallest = right
       }
@@ -523,7 +438,7 @@ pub fn get(tree : LSMTree, key : String) -> String? {
   while i >= 0 {
     let table = tree.sstables[i]
     // Bloom filter check: skip if definitely not present.
-    if bloom_might_contain(table.bloom, key) {
+    if @bloom_filter.contains(table.bloom, key) {
       match binary_search_table(table, key) {
         Some(entry) => {
           if entry.deleted {
@@ -539,7 +454,7 @@ pub fn get(tree : LSMTree, key : String) -> String? {
   // 3. Check Level 1.
   for i = 0; i < tree.level1.length(); i = i + 1 {
     let table = tree.level1[i]
-    if bloom_might_contain(table.bloom, key) {
+    if @bloom_filter.contains(table.bloom, key) {
       match binary_search_table(table, key) {
         Some(entry) => {
           if entry.deleted {
@@ -562,7 +477,7 @@ fn sstable_contains(tree : LSMTree, key : String) -> Bool {
   let mut i = tree.sstables.length() - 1
   while i >= 0 {
     let table = tree.sstables[i]
-    if bloom_might_contain(table.bloom, key) {
+    if @bloom_filter.contains(table.bloom, key) {
       match binary_search_table(table, key) {
         Some(entry) => return !entry.deleted
         None => ()
@@ -573,7 +488,7 @@ fn sstable_contains(tree : LSMTree, key : String) -> Bool {
   // Check Level 1.
   for i = 0; i < tree.level1.length(); i = i + 1 {
     let table = tree.level1[i]
-    if bloom_might_contain(table.bloom, key) {
+    if @bloom_filter.contains(table.bloom, key) {
       match binary_search_table(table, key) {
         Some(entry) => return !entry.deleted
         None => ()
@@ -597,7 +512,7 @@ fn binary_search_table(table : SSTable, key : String) -> Entry? {
   let mut hi = entries.length() - 1
   while lo <= hi {
     let mid = lo + (hi - lo) / 2
-    let c = str_cmp(entries[mid].key, key)
+    let c = @utils.str_cmp(entries[mid].key, key)
     if c == 0 {
       return Some(entries[mid])
     } else if c < 0 {
@@ -637,7 +552,7 @@ pub fn range_scan(
   let all_entries : Array[(String, String, Bool, Int)] = []
   // Priority 0 = MemTable (newest).
   for k, e in tree.memtable {
-    if str_cmp(k, start) >= 0 && str_cmp(k, end) < 0 {
+    if @utils.str_cmp(k, start) >= 0 && @utils.str_cmp(k, end) < 0 {
       all_entries.push((k, e.value, e.deleted, 0))
     }
   }
@@ -648,20 +563,22 @@ pub fn range_scan(
     let lo = binary_search_entries(table.entries, start)
     for j = lo; j < table.entries.length(); j = j + 1 {
       let e = table.entries[j]
-      if str_cmp(e.key, end) >= 0 {
+      if @utils.str_cmp(e.key, end) >= 0 {
         break // Entries are sorted; no more matches.
       }
       all_entries.push((e.key, e.value, e.deleted, tree.sstables.length() - i))
     }
   }
-  // Priority 100+i = Level 1 SSTables (oldest).
-  let base_prio = 100
+  // Priority = tree.sstables.length() + 1 + i = Level 1 SSTables (oldest).
+  // This ensures L1 priority never overlaps with L0 priority, regardless of
+  // how many L0 tables exist.
+  let base_prio = tree.sstables.length() + 1
   for i = 0; i < tree.level1.length(); i = i + 1 {
     let table = tree.level1[i]
     let lo = binary_search_entries(table.entries, start)
     for j = lo; j < table.entries.length(); j = j + 1 {
       let e = table.entries[j]
-      if str_cmp(e.key, end) >= 0 {
+      if @utils.str_cmp(e.key, end) >= 0 {
         break
       }
       all_entries.push((e.key, e.value, e.deleted, base_prio + i))
@@ -669,7 +586,7 @@ pub fn range_scan(
   }
   // Sort by (key, priority) — for equal keys, lower priority (newer) comes first.
   all_entries.sort_by(fn(a, b) {
-    let c = str_cmp(a.0, b.0)
+    let c = @utils.str_cmp(a.0, b.0)
     if c != 0 {
       return c
     }
@@ -683,7 +600,7 @@ pub fn range_scan(
     let (key, value, deleted, _) = all_entries[i]
     // Skip all other entries with the same key.
     let mut j = i + 1
-    while j < all_entries.length() && str_cmp(all_entries[j].0, key) == 0 {
+    while j < all_entries.length() && @utils.str_cmp(all_entries[j].0, key) == 0 {
       j = j + 1
     }
     if !deleted {
@@ -702,7 +619,7 @@ fn binary_search_entries(entries : Array[Entry], target : String) -> Int {
   let mut hi = entries.length()
   while lo < hi {
     let mid = lo + (hi - lo) / 2
-    if str_cmp(entries[mid].key, target) < 0 {
+    if @utils.str_cmp(entries[mid].key, target) < 0 {
       lo = mid + 1
     } else {
       hi = mid

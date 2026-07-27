@@ -150,3 +150,39 @@ test "pohlig_hellman: no solution" {
   // 2 generates {1,2,4} mod 7; 3 is not in the subgroup.
   assert_true(pohlig_hellman(2, 3, 7) is None)
 }
+
+///|
+test "pohlig_hellman: h=1 returns 0" {
+  // g^0 = 1 for any g.
+  assert_eq(pohlig_hellman(5, 1, 97), Some(0))
+}
+
+///|
+test "pohlig_hellman: p=1 edge case" {
+  assert_eq(pohlig_hellman(0, 0, 1), Some(0))
+}
+
+///|
+test "pohlig_hellman: larger prime p=97" {
+  // 5 is a primitive root mod 97. Verify 5^10 mod 97.
+  let mut val = 1
+  for _ in 0..<10 {
+    val = val * 5 % 97
+  }
+  let result = pohlig_hellman(5, val, 97)
+  assert_eq(result, Some(10))
+}
+
+///|
+test "pohlig_hellman: smooth order p=31" {
+  // p=31, p-1=30=2*3*5 (smooth). 3 is a primitive root mod 31.
+  // 3^7 mod 31 = 2187 mod 31 = 2187 - 70*31 = 2187 - 2170 = 17.
+  let result = pohlig_hellman(3, 17, 31)
+  assert_eq(result, Some(7))
+}
+
+///|
+test "pohlig_hellman: g=0 edge case" {
+  // 0^x = 0 mod p for x > 0, but 0 is not in <g> if g=0.
+  assert_true(pohlig_hellman(0, 5, 7) is None)
+}

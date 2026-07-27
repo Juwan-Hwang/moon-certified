@@ -1,8 +1,8 @@
 name = "moon-certified"
 
-version = "0.11.0"
+version = "0.12.0"
 
-description = "Formally verified core algorithms and data structures for MoonBit"
+description = "Core algorithms and data structures for MoonBit — partially formally verified"
 
 repository = "https://github.com/Juwan-Hwang/moon-certified"
 
@@ -14,7 +14,7 @@ keywords = [
   "moon-prove",
   "algorithms",
   "data-structures",
-  "verified",
+  "partially-verified",
 ]
 
 import {

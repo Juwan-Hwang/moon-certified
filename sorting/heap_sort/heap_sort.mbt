@@ -29,14 +29,6 @@
 /// zero if a == b, positive if a > b.
 
 ///|
-/// Swap two elements in a generic array.
-fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
-  let tmp = xs[i]
-  xs[i] = xs[j]
-  xs[j] = tmp
-}
-
-///|
 /// Sift-down for a max-heap over xs[0..size).
 ///
 /// Moves the element at `idx` down the tree until the max-heap property
@@ -65,7 +57,7 @@ fn[T] sift_down(
     if largest == i {
       break
     }
-    swap(xs, i, largest)
+    @utils.swap_fixed(xs, i, largest)
     i = largest
   }
 }
@@ -96,7 +88,7 @@ pub fn[T] heap_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   // active region and restore the heap property on the shrinking prefix.
   let mut end = n - 1
   while end > 0 {
-    swap(xs, 0, end)
+    @utils.swap_fixed(xs, 0, end)
     sift_down(xs, end, 0, cmp)
     end = end - 1
   }

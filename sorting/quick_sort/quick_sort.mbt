@@ -11,15 +11,7 @@
 /// zero if a == b, positive if a > b.
 
 ///|
-/// Swap two elements in an array.
-fn[T] swap(xs : FixedArray[T], i : Int, j : Int) -> Unit {
-  let tmp = xs[i]
-  xs[i] = xs[j]
-  xs[j] = tmp
-}
-
-///|
-/// Select the median of xs[lo], xs[mid], xs[hi] and place it at xs[hi]
+/// Median-of-three pivot selection: sorts xs[lo], xs[mid], xs[hi] and place it at xs[hi]
 /// as the pivot for Lomuto partition.
 fn[T] median_of_three(
   xs : FixedArray[T],
@@ -30,16 +22,16 @@ fn[T] median_of_three(
   let mid = lo + (hi - lo) / 2
   // Sort lo, mid, hi so that xs[lo] <= xs[mid] <= xs[hi]
   if cmp(xs[mid], xs[lo]) < 0 {
-    swap(xs, lo, mid)
+    @utils.swap_fixed(xs, lo, mid)
   }
   if cmp(xs[hi], xs[lo]) < 0 {
-    swap(xs, lo, hi)
+    @utils.swap_fixed(xs, lo, hi)
   }
   if cmp(xs[hi], xs[mid]) < 0 {
-    swap(xs, mid, hi)
+    @utils.swap_fixed(xs, mid, hi)
   }
   // Now xs[mid] is the median; move it to xs[hi] as the pivot
-  swap(xs, mid, hi)
+  @utils.swap_fixed(xs, mid, hi)
 }
 
 ///|
@@ -58,14 +50,14 @@ fn[T] partition(
   for j = lo; j < hi; {
     if cmp(xs[j], pivot) <= 0 {
       i = i + 1
-      swap(xs, i, j)
+      @utils.swap_fixed(xs, i, j)
     }
     continue j + 1
   } nobreak {
     ()
   }
   // Place pivot at position i+1
-  swap(xs, i + 1, hi)
+  @utils.swap_fixed(xs, i + 1, hi)
   i + 1
 }
 

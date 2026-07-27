@@ -1,3 +1,7 @@
+import {
+  "moon-certified/containers/binary_heap",
+}
+
 options(
   "proof-enabled": false,
 )

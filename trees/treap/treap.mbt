@@ -91,8 +91,24 @@ pub struct Treap[T] {
 /// Public constructor for an empty treap. Each call yields a fresh `Treap`
 /// with the LCG seeded to a fixed value, so the priority sequence is
 /// deterministic yet local to the returned instance.
+///
+/// **Note**: All treaps created with `empty()` share the same seed and thus
+/// produce the same priority sequence. For use cases where independent
+/// treaps need different structures (e.g. adversarial testing, parallel
+/// construction), use [`empty_with_seed`] with a unique seed per instance.
 pub fn[T] empty() -> Treap[T] {
   { root: Empty, rng: rng_seed }
+}
+
+///|
+/// Create an empty treap with a user-specified PRNG seed. Different seeds
+/// produce different priority sequences, yielding structurally distinct
+/// treaps even for the same insertion order.
+///
+/// This is the recommended constructor for production code where multiple
+/// independent treaps are needed.
+pub fn[T] empty_with_seed(seed : Int) -> Treap[T] {
+  { root: Empty, rng: seed & 0x7FFFFFFF }
 }
 
 // ---------------------------------------------------------------------------

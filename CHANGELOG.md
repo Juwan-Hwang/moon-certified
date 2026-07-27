@@ -5,6 +5,79 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-07-28
+
+### Production-grade audit fixes and new packages
+
+#### Complexity & documentation fixes
+- `wavelet_tree` — Fixed `select` complexity from O(log n × log σ) to O(log σ) via top-down traversal with precomputed select0/select1 maps.
+- `CHANGELOG` — Corrected voronoi description from "Fortune's sweep line" to "Delaunay triangulation dual (O(n²) brute-force incremental)" to match implementation.
+- `math/fft` — Non-power-of-2 input now returns silently instead of aborting; added `fft_checked` for explicit error reporting.
+- `math/newton_method` — Documentation aligned with implementation (returns `Diverged` instead of aborting).
+- `containers/hyperloglog` — `merge()` now returns `None` on precision mismatch instead of silently producing wrong results.
+
+#### Bug fixes
+- `containers/lru_cache` — `new(0)` no longer allocates storage; `put` is a no-op, `get` always returns `None`.
+- `containers/concurrent_hash_map` — `remove()` now clears both key and value to prevent memory retention.
+- `crypto/chacha20` — Rejection sampling limit changed from hardcoded 1000 to `MAX_REJECTION_ATTEMPTS = 256` with documented probability analysis.
+- `crypto/sha256` — `utf8_encode` now validates code points against U+10FFFF per RFC 3629.
+- `sorting/external_sort` — Comparator uses safe comparison instead of `a - b` to avoid Int32 overflow; now uses `@binary_heap` package instead of reimplementing heap.
+- `graph/dinic` — Invalid edges (self-loops, non-positive capacity) are now documented as rejected with caller guidance.
+- `compression/huffman` — Removed all `abort()` calls from production code paths.
+
+#### Code deduplication
+- `swap` function centralized in `@utils` (was duplicated in pdq_sort, heap_sort, quick_sort, introsort, binary_heap, fisher_yates, quickselect).
+- `SplitMix64`/`XorShift64` centralized in `@utils/prng` (was duplicated across game_theory, sorting, geometry, random packages).
+- `containers/lsm_tree` — Now uses `@bloom_filter` package instead of internal reimplementation.
+- `containers/concurrent` — Uses `@utils.next_pow2` instead of local `next_power_of_two`.
+- `stats/linear_regression` — Removed duplicate `mean`/`variance`/`std_dev`; now delegates to `@descriptive` package.
+- `search/hnsw` — `search_layer` optimized from O(ef²) to O(ef log ef) using min-heap/max-heap and hash-set visited tracking.
+
+#### Recursion safety
+- `trees/btree` — Added `btree_max_depth` guard (200) on insert/delete/del_min.
+- `trees/red_black_tree` — Added `rb_max_depth` guard (200) on insert/delete/del_min.
+
+#### New crypto packages (7 added)
+- `crypto/aes` — AES-128/192/256 block cipher (FIPS 197).
+- `crypto/sha512` — SHA-512 hash (FIPS 180-4).
+- `crypto/sha3` — SHA-3 / Keccak-f[1600] hash family (FIPS 202).
+- `crypto/poly1305` — Poly1305 MAC (RFC 8439).
+- `crypto/hkdf` — HKDF key derivation (RFC 5869).
+- `crypto/pbkdf2` — PBKDF2 key derivation (RFC 8018).
+- `crypto/base64` — Base64 encode/decode (RFC 4648).
+
+#### New ML packages (5 added)
+- `ml/knn` — k-Nearest Neighbors classifier.
+- `ml/dbscan` — DBSCAN density-based clustering.
+- `ml/pca` — Principal Component Analysis.
+- `ml/logistic_regression` — Logistic regression with gradient descent.
+- `ml/decision_tree` — Decision tree classifier (CART-style).
+
+#### New stats packages (3 added)
+- `stats/correlation` — Pearson and Spearman correlation coefficients.
+- `stats/distributions` — Normal, exponential, and uniform distributions.
+- `stats/hypothesis_testing` — One-sample and two-sample t-tests, chi-square test.
+
+#### New compression packages (2 added)
+- `compression/deflate` — DEFLATE compression (RFC 1951) combining LZ77 + Huffman.
+- `compression/lzw` — LZW compression (used in GIF, TIFF).
+
+#### New utility packages (2 added)
+- `string/regex` — Regular expression engine (Thompson NFA construction).
+- `utils/itertools` — Iterator combinators (chain, zip, enumerate, take, drop, etc.).
+
+#### CI improvements
+- Added `windows-latest` to CI test matrix.
+- Added test coverage report generation step.
+- Added benchmark regression detection job for pull requests.
+
+#### Test coverage improvements
+- Added 7 tests for `cipolla` (was 3, now 10).
+- Added 6 tests for `pohlig_hellman` (was 3, now 9).
+- Added 5 tests for `mcmc` (was 2, now 7).
+- Added 5 tests for `bwt` (was 3, now 8).
+- Added 7 tests for `sa_is` (was 3, now 10).
+
 ## [0.11.0] - 2026-07-26
 
 ### Added — 97 new algorithm packages + production infrastructure

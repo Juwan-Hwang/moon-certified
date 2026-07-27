@@ -28,7 +28,7 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 // ---------------------------------------------------------------------------
-// SplitMix64 PRNG (for Monte Carlo approximation)
+// SplitMix64 PRNG (for Monte Carlo approximation) — delegates to @utils
 // ---------------------------------------------------------------------------
 
 priv struct SMRng {
@@ -37,11 +37,8 @@ priv struct SMRng {
 
 ///|
 fn sm_next(rng : SMRng) -> Int64 {
-  rng.state = rng.state + 0x9E3779B97F4A7C15L
-  let mut z = rng.state
-  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9L
-  z = (z ^ (z >> 27)) * 0x94D049BB133111EBL
-  z = z ^ (z >> 31)
+  let (new_state, z) = @utils.splitmix64_next(rng.state)
+  rng.state = new_state
   z
 }
 

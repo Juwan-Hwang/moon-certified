@@ -72,24 +72,24 @@ fn partition(arr : Array[Int], lo : Int, hi : Int) -> Int {
   // Median-of-three pivot.
   let mid = lo + (hi - lo) / 2
   if arr[lo] > arr[mid] {
-    swap(arr, lo, mid)
+    @utils.swap_array(arr, lo, mid)
   }
   if arr[mid] > arr[hi] {
-    swap(arr, mid, hi)
+    @utils.swap_array(arr, mid, hi)
     if arr[lo] > arr[mid] {
-      swap(arr, lo, mid)
+      @utils.swap_array(arr, lo, mid)
     }
   }
-  swap(arr, mid, hi)
+  @utils.swap_array(arr, mid, hi)
   let pivot = arr[hi]
   let mut i = lo
   for j = lo; j < hi; j = j + 1 {
     if arr[j] <= pivot {
-      swap(arr, i, j)
+      @utils.swap_array(arr, i, j)
       i = i + 1
     }
   }
-  swap(arr, i, hi)
+  @utils.swap_array(arr, i, hi)
   i
 }
 
@@ -98,7 +98,7 @@ fn partition_around(arr : Array[Int], lo : Int, hi : Int, pivot : Int) -> Int {
   let mut i = lo
   for j = lo; j <= hi; j = j + 1 {
     if arr[j] < pivot {
-      swap(arr, i, j)
+      @utils.swap_array(arr, i, j)
       i = i + 1
     }
   }
@@ -106,7 +106,7 @@ fn partition_around(arr : Array[Int], lo : Int, hi : Int, pivot : Int) -> Int {
   let idx = i
   for j = i; j <= hi; j = j + 1 {
     if arr[j] == pivot {
-      swap(arr, idx, j)
+      @utils.swap_array(arr, idx, j)
       break
     }
   }
@@ -178,13 +178,6 @@ fn median_of_medians(arr : Array[Int], lo : Int, hi : Int) -> Int {
       None => medians[0]
     }
   }
-}
-
-///|
-fn swap(arr : Array[Int], a : Int, b : Int) -> Unit {
-  let tmp = arr[a]
-  arr[a] = arr[b]
-  arr[b] = tmp
 }
 
 // ---------------------------------------------------------------------------

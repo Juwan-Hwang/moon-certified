@@ -8,6 +8,8 @@ pub fn make_lcg(Int) -> () -> Int
 
 pub fn shuffle_int(FixedArray[Int]) -> Unit
 
+pub fn shuffle_int_with_seed(FixedArray[Int], Int) -> Unit
+
 // Errors
 
 // Types and methods

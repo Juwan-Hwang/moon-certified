@@ -44,6 +44,8 @@ pub fn smoke_test() -> Unit {
   ignore(@huffman.build_tree("hello"))
   ignore(@lz4.compress(b"hello"))
   ignore(@lz77.compress(b"hello"))
+  ignore(@lzw.compress(b"hello"))
+  ignore(@deflate.deflate(b"hello"))
 
   // containers
   ignore(@bitset.bitset_new(64))
@@ -67,13 +69,24 @@ pub fn smoke_test() -> Unit {
 
   // crypto
   ignore(
+    @aes.new_key(FixedArray::make(16, b'\x00')).map(fn(k) {
+      @aes.encrypt_block(k, FixedArray::make(16, b'\x00'))
+    }),
+  )
+  ignore(@base64.encode(FixedArray::make(0, b'\x00')))
+  ignore(
     @chacha20.create_cipher(
       b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
       b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
     ),
   )
-  ignore(@hmac.hmac_sha256(b"key", b"message"))
+  ignore(@hkdf.hkdf(b"ikm", b"salt", b"info", 32))
+  ignore(@hmac.hmac_sha256(b"key", b"msg"))
+  ignore(@pbkdf2.pbkdf2_sha256(b"pass", b"salt", 1, 32))
+  ignore(@poly1305.poly1305(b"key", b"msg"))
   ignore(@sha256.sha256(b"hello"))
+  ignore(@sha3.sha3_256(b"hello"))
+  ignore(@sha512.sha512(b"hello"))
 
   // dp
   ignore(@aliens_trick.aliens_trick(3, [1, 2, 3], 2))
@@ -155,6 +168,11 @@ pub fn smoke_test() -> Unit {
 
   // ml
   ignore(@kmeans.kmeans([(0.0, 0.0), (1.0, 1.0)], 2, 10))
+  ignore(@dbscan.dbscan([], 1.0, 1))
+  ignore(@decision_tree.new(3, 2))
+  ignore(@knn.knn_classify([], [1.0], 1))
+  ignore(@logistic_regression.new(0.1, 1))
+  ignore(@pca.pca([], 1))
 
   // number_theory
   ignore(@bigint.from_int_value(42))
@@ -187,6 +205,8 @@ pub fn smoke_test() -> Unit {
   @timsort.sort_int(xs_tim)
 
   // stats
+  ignore(@descriptive.mean([1.0, 2.0, 3.0]))
+  ignore(@hypothesis_testing.confidence_interval_95([1.0, 2.0, 3.0]))
   ignore(@linear_regression.fit_linear([0.0, 1.0], [0.0, 1.0]))
 
   // string
@@ -201,6 +221,12 @@ pub fn smoke_test() -> Unit {
   ignore(@r_tree.rtree_new(16))
   ignore(@range_tree.new())
   ignore(@rope.rope_leaf("hello"))
+
+  // utils
+  ignore(@utils.str_cmp("a", "b"))
+  ignore(@utils.SplitMix64::new(42UL).next_u64())
+  ignore(@utils.XorShift64::new(42UL).next_u64())
+  ignore(@itertools.collect(@itertools.range(0, 5)))
 }
 
 ///|

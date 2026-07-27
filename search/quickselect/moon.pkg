@@ -1,1 +1,7 @@
+import {
+  "moon-certified/utils",
+}
 
+options(
+  "proof-enabled": false,
+)

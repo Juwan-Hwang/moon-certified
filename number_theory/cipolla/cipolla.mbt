@@ -117,3 +117,61 @@ test "cipolla: n=1, p=7" {
 test "cipolla: n=3, p=7 (no solution)" {
   assert_true(cipolla(3, 7) is None)
 }
+
+///|
+test "cipolla: n=0, p=11 (trivial root)" {
+  assert_eq(cipolla(0, 11), Some(0))
+}
+
+///|
+test "cipolla: n=1, p=2 (p=2 special case)" {
+  let r = cipolla(1, 2)
+  assert_eq(r, Some(1))
+}
+
+///|
+test "cipolla: large prime p=1000000007" {
+  // 4 is a perfect square mod any odd prime.
+  let r = cipolla(4, 1000000007)
+  assert_true(r is Some(_))
+  match r {
+    Some(x) => assert_eq(x * x % 1000000007, 4)
+    None => ()
+  }
+}
+
+///|
+test "cipolla: multiple QRs mod 11" {
+  // Quadratic residues mod 11: 1, 3, 4, 5, 9
+  for n in [1, 3, 4, 5, 9] {
+    let r = cipolla(n, 11)
+    assert_true(r is Some(_))
+    match r {
+      Some(x) => assert_eq(x * x % 11, n)
+      None => ()
+    }
+  }
+}
+
+///|
+test "cipolla: non-residues mod 11" {
+  // Quadratic non-residues mod 11: 2, 6, 7, 8, 10
+  for n in [2, 6, 7, 8, 10] {
+    assert_true(cipolla(n, 11) is None)
+  }
+}
+
+///|
+test "cipolla: p=13 comprehensive" {
+  // Check all n in [0, 13) and verify x^2 = n (mod 13) or None.
+  let qr = [0, 1, 3, 4, 9, 10, 12]
+  for n in 0..<13 {
+    let r = cipolla(n, 13)
+    let is_qr = qr.contains(n)
+    assert_true((r is Some(_)) == is_qr)
+    match r {
+      Some(x) => assert_eq(x * x % 13, n)
+      None => ()
+    }
+  }
+}
