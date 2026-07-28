@@ -197,3 +197,58 @@ test "mcmc: uniform target — samples within bounds" {
     assert_true(samples[i] <= 10.0)
   }
 }
+
+///|
+test "mcmc_mean: direct unit test" {
+  assert_true((mcmc_mean([1.0, 2.0, 3.0, 4.0]) - 2.5).abs() < 0.0000000001)
+}
+
+///|
+test "mcmc_std: direct unit test" {
+  // mean=2.0, variance=((0-2)^2*4 + (10-2)^2)/5 = (16+64)/5 = 16, std=4.0
+  assert_true((mcmc_std([0.0, 0.0, 0.0, 0.0, 10.0]) - 4.0).abs() < 0.0000000001)
+}
+
+///|
+test "mcmc_std: constant array returns 0" {
+  assert_true(mcmc_std([7.0, 7.0, 7.0]) == 0.0)
+}
+
+///|
+test "mcmc: zero iterations returns empty array" {
+  let rng = make_rng(1L)
+  let target = fn(_x : Double) { 1.0 }
+  let samples = metropolis_hastings(target, 0.0, 0, 1.0, rng)
+  assert_eq(samples.length(), 0)
+}
+
+///|
+test "mcmc: non-zero mean Gaussian" {
+  // Target: N(5, 1), unnormalised. Mean should converge to 5.
+  let rng = make_rng(77L)
+  let target = fn(x : Double) { @math.exp(-(x - 5.0) * (x - 5.0) / 2.0) }
+  let samples = metropolis_hastings(target, 5.0, 50000, 2.0, rng)
+  let burn_in = 5000
+  let post = Array::make(samples.length() - burn_in, 0.0)
+  for i = 0; i < post.length(); i = i + 1 {
+    post[i] = samples[burn_in + i]
+  }
+  assert_true((mcmc_mean(post) - 5.0).abs() < 0.1)
+}
+
+///|
+test "mcmc: degenerate target (always 0) stays at initial" {
+  // When target is 0 everywhere, every proposal is rejected.
+  let rng = make_rng(13L)
+  let target = fn(_x : Double) { 0.0 }
+  let samples = metropolis_hastings(target, 3.0, 1000, 1.0, rng)
+  for i = 0; i < samples.length(); i = i + 1 {
+    assert_true(samples[i] == 3.0)
+  }
+}
+
+///|
+test "mcmc_mean and mcmc_std: single element" {
+  assert_true(mcmc_mean([42.0]) == 42.0)
+  assert_true(mcmc_std([42.0]) == 0.0)
+}

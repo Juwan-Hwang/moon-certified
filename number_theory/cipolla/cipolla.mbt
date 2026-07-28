@@ -190,3 +190,104 @@ test "cipolla: p=17 all residues" {
     }
   }
 }
+
+///|
+test "cipolla: negative n handled via modular reduction" {
+  // n = -1 mod 5 = 4, which is a QR (2^2 = 4 mod 5).
+  let r = cipolla(-1, 5)
+  assert_true(r is Some(_))
+  match r {
+    Some(x) => assert_eq(x * x % 5, 4)
+    None => ()
+  }
+}
+
+///|
+test "cipolla: n >= p wraps correctly" {
+  // n = 10 mod 7 = 3, which is a QNR mod 7.
+  assert_true(cipolla(10, 7) is None)
+  // n = 8 mod 7 = 1, which is a QR mod 7.
+  let r = cipolla(8, 7)
+  assert_true(r is Some(_))
+  match r {
+    Some(x) => assert_eq(x * x % 7, 1)
+    None => ()
+  }
+}
+
+///|
+test "cipolla: p=3 smallest odd prime" {
+  // QRs mod 3: 0 (0^2), 1 (1^2, 2^2=4 mod 3=1). n=2 is QNR.
+  assert_eq(cipolla(0, 3), Some(0))
+  let r1 = cipolla(1, 3)
+  assert_true(r1 is Some(_))
+  match r1 {
+    Some(x) => assert_eq(x * x % 3, 1)
+    None => ()
+  }
+  assert_true(cipolla(2, 3) is None)
+}
+
+///|
+test "cipolla: p=5 all residues" {
+  // QRs mod 5: 0, 1, 4. QNRs: 2, 3.
+  let qr = [0, 1, 4]
+  for n in 0..<5 {
+    let r = cipolla(n, 5)
+    let is_qr = qr.contains(n)
+    assert_true((r is Some(_)) == is_qr)
+    match r {
+      Some(x) => assert_eq(x * x % 5, n)
+      None => ()
+    }
+  }
+}
+
+///|
+test "cipolla: returned root is in range [0, p)" {
+  let cases = [(2, 7), (1, 11), (4, 13), (9, 17), (4, 1000000007)]
+  for i = 0; i < cases.length(); i = i + 1 {
+    let (n, p) = cases[i]
+    let r = cipolla(n, p)
+    assert_true(r is Some(_))
+    match r {
+      Some(x) => {
+        assert_true(x >= 0)
+        assert_true(x < p)
+        assert_eq(x * x % p, n)
+      }
+      None => ()
+    }
+  }
+}
+
+///|
+test "cipolla: both roots x and p-x are valid" {
+  let cases = [(4, 11), (9, 13), (2, 17), (5, 11)]
+  for i = 0; i < cases.length(); i = i + 1 {
+    let (n, p) = cases[i]
+    let r = cipolla(n, p)
+    assert_true(r is Some(_))
+    match r {
+      Some(x) => {
+        assert_eq(x * x % p, n)
+        let other = p - x
+        assert_eq(other * other % p, n)
+      }
+      None => ()
+    }
+  }
+}
+
+///|
+test "cipolla: Euler's criterion for n = p-1 (=-1 mod p)" {
+  // -1 is a QR mod p iff p = 1 (mod 4).
+  // p=5: 5 = 1 (mod 4), -1 = 4 is QR.
+  assert_true(cipolla(4, 5) is Some(_))
+  // p=7: 7 = 3 (mod 4), -1 = 6 is QNR.
+  assert_true(cipolla(6, 7) is None)
+  // p=13: 13 = 1 (mod 4), -1 = 12 is QR.
+  assert_true(cipolla(12, 13) is Some(_))
+  // p=3: 3 = 3 (mod 4), -1 = 2 is QNR.
+  assert_true(cipolla(2, 3) is None)
+}

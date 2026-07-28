@@ -46,8 +46,8 @@
 // ---------------------------------------------------------------------------
 
 ///|
-/// Default LCG seed. Any fixed non-zero value makes the default `shuffle_int`
-/// deterministic and independent of test execution order.
+/// Default LCG seed. Combined with `@utils.fresh_seed` to give each
+/// shuffler instance a unique starting point.
 let default_seed : Int = 0x1A2B3C4D
 
 ///|
@@ -123,14 +123,13 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
 }
 
 ///|
-/// Convenience: shuffle an `Int` array in place using the default-seeded LCG.
+/// Convenience: shuffle an `Int` array in place using a fresh-seeded LCG.
 ///
-/// Equivalent to `fisher_yates_shuffle(xs, make_lcg(default_seed))`. The fixed
-/// seed makes a single call fully deterministic and reproducible; for an
-/// independently seeded shuffle call `shuffle_int_with_seed` or
-/// `fisher_yates_shuffle` directly with a `make_lcg(seed)` closure.
+/// Each call to `shuffle_int` derives a unique seed via `@utils.fresh_seed`,
+/// so successive calls produce different permutations. For a fixed-seed
+/// shuffle, use `shuffle_int_with_seed` with a known seed.
 pub fn shuffle_int(xs : FixedArray[Int]) -> Unit {
-  fisher_yates_shuffle(xs, make_lcg(default_seed))
+  fisher_yates_shuffle(xs, make_lcg(@utils.fresh_seed(default_seed)))
 }
 
 ///|

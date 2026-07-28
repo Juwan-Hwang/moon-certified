@@ -39,8 +39,9 @@
 /// suite below, including a chi-square uniformity check over 10 000 runs.
 
 ///|
-/// Default LCG seed for `new`. Any fixed non-zero value makes every default
-/// sampler deterministic; `with_seed` overrides it for reproducible variety.
+/// Default LCG seed for `new`. Combined with `@utils.fresh_seed` to give
+/// each sampler instance a unique starting point; `with_seed` overrides
+/// it for reproducible variety.
 let default_seed : Int = 0x1A2B3C4D
 
 ///|
@@ -61,7 +62,7 @@ pub struct ReservoirSampler[T] {
 /// A `capacity <= 0` produces a sampler that tracks the count but never
 /// retains any element (`result` is always empty).
 pub fn[T] new(capacity : Int) -> ReservoirSampler[T] {
-  with_seed(capacity, default_seed)
+  with_seed(capacity, @utils.fresh_seed(default_seed))
 }
 
 ///|

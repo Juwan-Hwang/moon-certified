@@ -79,11 +79,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `abort()` from `crypto/poly1305` internal block-load function (unreachable branch now no-op).
 
 #### Test coverage improvements
-- Added 7 tests for `cipolla` (was 3, now 10).
-- Added 6 tests for `pohlig_hellman` (was 3, now 9).
-- Added 5 tests for `mcmc` (was 2, now 7).
-- Added 5 tests for `bwt` (was 3, now 8).
-- Added 7 tests for `sa_is` (was 3, now 10).
+- Added 7 tests for `cipolla` (was 10, now 17).
+- Added 7 tests for `pohlig_hellman` (was 9, now 16).
+- Added 7 tests for `mcmc` (was 7, now 14).
+- Added 7 tests for `bwt` (was 8, now 15).
+- Added 7 tests for `sa_is` (was 10, now 17).
+
+#### New numerical optimization packages (2 added)
+- `math/lbfgs` — Limited-memory BFGS quasi-Newton optimizer for large-scale problems.
+- `math/autodiff` — Forward-mode automatic differentiation with dual numbers (gradient, Jacobian, directional derivative).
+
+#### New testing framework (1 added)
+- `test/property_test` — QuickCheck-style property-based testing framework with random input generation and shrinking.
+
+#### Per-instance random seeds
+- `utils` — Added `fresh_seed()` function and instance counter; Treap, Reservoir Sampling, Fisher-Yates, KMeans, PCA, and CuckooFilter now use per-instance unique seeds instead of global fixed seed `0x1A2B3C4D`.
 
 ## [0.11.0] - 2026-07-26
 

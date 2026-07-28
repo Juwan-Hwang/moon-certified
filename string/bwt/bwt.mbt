@@ -153,3 +153,49 @@ test "bwt: long repetitive string" {
   let s = buf.to_string()
   assert_eq(bwt_decode(bwt_encode(s)), s)
 }
+
+///|
+test "bwt: sorted string roundtrip" {
+  let s = "abcdef"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}
+
+///|
+test "bwt: reverse sorted string roundtrip" {
+  let s = "zyxwvu"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}
+
+///|
+test "bwt: two-character string roundtrip" {
+  let s = "ab"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}
+
+///|
+test "bwt: numeric string roundtrip" {
+  let s = "123456"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}
+
+///|
+test "bwt: encode output length is input plus one" {
+  // The sentinel '$' is always appended, so encoded length = input length + 1.
+  let inputs = ["", "a", "ab", "banana", "mississippi"]
+  for i = 0; i < inputs.length(); i = i + 1 {
+    let encoded = bwt_encode(inputs[i])
+    assert_eq(encoded.length(), inputs[i].length() + 1)
+  }
+}
+
+///|
+test "bwt: decode empty bwt returns empty string" {
+  assert_eq(bwt_decode(""), "")
+}
+
+///|
+test "bwt: mixed case string roundtrip" {
+  // All chars are above '$' (ASCII 36) so the sentinel assumption holds.
+  let s = "AbCdEfGh"
+  assert_eq(bwt_decode(bwt_encode(s)), s)
+}

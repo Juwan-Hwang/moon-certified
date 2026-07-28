@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.12.0** — 271 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3291 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 262 个包依赖测试验证。
+**v0.12.0** — 273 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3365 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 264 个包依赖测试验证。
 
 ### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -46,6 +46,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
   - **benchmarks/** 目录：性能基准测试，含排序/树/图/数论/字符串/几何的 wall-clock 时间测量与复杂度验证
   - **test/fuzz/** 目录：Fuzz 测试 + 对抗性输入测试（排序最坏情况、图自环/断开/环检测、字符串 Unicode、Carmichael 数、几何共线/重复点、并发结构边界）
   - **test/stress/** 增强：排序压力测试验证置换性质（非仅有序性），LIS 压力测试重构实际子序列验证（非仅平凡边界）
+  - **test/property_test/** QuickCheck 风格属性测试框架（随机输入生成 + 反例缩减）
   - **test/test_utils/** 共享测试工具（消除 14 个文件的 str_cmp 重复）
   - **docs/API_STABILITY.md** API 稳定性策略
 
@@ -228,7 +229,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (3291 tests)
+# 运行测试 (3365 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -627,6 +628,8 @@ moon-certified/
 │   ├── special_functions/   🔒 特殊函数 (Gamma/Erf/Bessel, 10 tests)
 │   ├── conjugate_gradient/  🔒 共轭梯度法 (SPD 线性系统求解, 7 tests)
 │   ├── gmres/               🔒 GMRES (非对称线性系统求解, 6 tests)
+│   ├── lbfgs/               🔒 L-BFGS 拟牛顿优化器 (大规模优化, 9 tests)
+│   ├── autodiff/            🔒 自动微分 (前向模式, 双数, 19 tests)
 │   └── sparse_matrix/       🔒 稀疏矩阵 (CSR 格式, 7 tests)
 ├── crypto/
 │   ├── sha256/              🔒 SHA-256 哈希 (10 tests)

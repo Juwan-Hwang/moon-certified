@@ -401,7 +401,7 @@ pub fn pca(data : Array[Array[Double]], n_components : Int) -> PCAResult {
   } else {
     n_components
   }
-  let rng = Rng::new(pca_default_seed)
+  let rng = Rng::new(@utils.fresh_seed(pca_default_seed))
   let components : Array[Array[Double]] = []
   let explained : Array[Double] = []
   let prev : Array[Array[Double]] = []

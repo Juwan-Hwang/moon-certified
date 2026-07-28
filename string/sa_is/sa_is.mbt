@@ -316,3 +316,47 @@ test "sa_is: verify suffix array correctness" {
     seen[sa[i]] = true
   }
 }
+
+///|
+test "sa_is: raw int array [1,2,1,0]" {
+  // Suffixes: [1,2,1,0] < [2,1,0] ... sorted: [0], [1,0], [1,2,1,0], [2,1,0]
+  assert_eq(sa_is([1, 2, 1, 0]), [3, 2, 0, 1])
+}
+
+///|
+test "sa_is: single sentinel element" {
+  assert_eq(sa_is([0]), [0])
+}
+
+///|
+test "sa_is: two elements [1,0]" {
+  // Suffixes: [1,0] (idx 0), [0] (idx 1). Sorted: [0] < [1,0].
+  assert_eq(sa_is([1, 0]), [1, 0])
+}
+
+///|
+test "sa_is: large alphabet values" {
+  // Values 0, 500, 1000 — tests that SA-IS handles non-ASCII ranges.
+  assert_eq(sa_is([1000, 500, 0]), [2, 1, 0])
+}
+
+///|
+test "sa_is: non-contiguous alphabet values" {
+  // Values 0, 1, 5 — tests handling of gaps in alphabet.
+  // Suffixes: [5,1,5,0](0), [1,5,0](1), [5,0](2), [0](3).
+  // Sorted: [0], [1,5,0], [5,0], [5,1,5,0].
+  assert_eq(sa_is([5, 1, 5, 0]), [3, 1, 2, 0])
+}
+
+///|
+test "sa_is: exact suffix array for banana" {
+  // Suffixes of "banana" sorted: a(5), ana(3), anana(1), banana(0), na(4), nana(2).
+  // SA = [5, 3, 1, 0, 4, 2] (sentinel entry stripped by build_suffix_array).
+  assert_eq(build_suffix_array("banana"), [5, 3, 1, 0, 4, 2])
+}
+
+///|
+test "sa_is: string with punctuation" {
+  let s = "a!b@c#"
+  assert_eq(build_suffix_array(s), brute_force_sa(s))
+}

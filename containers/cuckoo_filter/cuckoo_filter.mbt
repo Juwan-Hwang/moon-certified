@@ -260,7 +260,7 @@ pub fn new(capacity : Int, bucket_size : Int) -> CuckooFilter {
     capacity: cap,
     bucket_size: bs,
     count: 0,
-    rng: CF_RNG_SEED & 0x7FFFFFFF,
+    rng: @utils.fresh_seed(CF_RNG_SEED),
   }
 }
 

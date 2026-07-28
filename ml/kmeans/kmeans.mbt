@@ -231,7 +231,7 @@ pub fn kmeans(
   k : Int,
   max_iters : Int,
 ) -> KMeansResult {
-  kmeans_with_seed(points, k, max_iters, km_default_seed)
+  kmeans_with_seed(points, k, max_iters, @utils.fresh_seed(km_default_seed))
 }
 
 /// K-means with a user-specified PRNG seed for reproducible independent runs.

@@ -194,3 +194,46 @@ test "pohlig_hellman: smooth order p=41" {
   let result = pohlig_hellman(6, 27, 41)
   assert_eq(result, Some(5))
 }
+
+///|
+test "pohlig_hellman: p <= 0 returns None" {
+  assert_true(pohlig_hellman(2, 3, 0) is None)
+  assert_true(pohlig_hellman(2, 3, -5) is None)
+}
+
+///|
+test "pohlig_hellman: g=1 with h != 1 returns None" {
+  // 1^x = 1 for all x, so h=2 has no solution.
+  assert_true(pohlig_hellman(1, 2, 7) is None)
+}
+
+///|
+test "pohlig_hellman: h=0 returns None" {
+  // g^x = 0 (mod p) is impossible for g not divisible by p.
+  assert_true(pohlig_hellman(2, 0, 7) is None)
+}
+
+///|
+test "pohlig_hellman: h=g gives x=1" {
+  // 3^1 = 3 mod 7.
+  assert_eq(pohlig_hellman(3, 3, 7), Some(1))
+}
+
+///|
+test "pohlig_hellman: prime power order p=17" {
+  // p=17, p-1=16=2^4. 3 is a primitive root mod 17.
+  // 3^5 mod 17 = 243 mod 17 = 5.
+  assert_eq(pohlig_hellman(3, 5, 17), Some(5))
+}
+
+///|
+test "pohlig_hellman: g >= p modular reduction" {
+  // g=10 mod 7 = 3. 3^1 = 3 mod 7.
+  assert_eq(pohlig_hellman(10, 3, 7), Some(1))
+}
+
+///|
+test "pohlig_hellman: h >= p modular reduction" {
+  // h=103 mod 97 = 6. 5^8 mod 97 = 6.
+  assert_eq(pohlig_hellman(5, 103, 97), Some(8))
+}

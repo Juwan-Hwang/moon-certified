@@ -89,15 +89,14 @@ pub struct Treap[T] {
 
 ///|
 /// Public constructor for an empty treap. Each call yields a fresh `Treap`
-/// with the LCG seeded to a fixed value, so the priority sequence is
-/// deterministic yet local to the returned instance.
+/// with the LCG seeded via `@utils.fresh_seed`, so distinct treap instances
+/// receive different priority sequences even when created with the same
+/// default parameters. This prevents the "all treaps share the same
+/// structure" pitfall while remaining deterministic within a single run.
 ///
-/// **Note**: All treaps created with `empty()` share the same seed and thus
-/// produce the same priority sequence. For use cases where independent
-/// treaps need different structures (e.g. adversarial testing, parallel
-/// construction), use [`empty_with_seed`] with a unique seed per instance.
+/// For full control over the seed, use [`empty_with_seed`].
 pub fn[T] empty() -> Treap[T] {
-  { root: Empty, rng: rng_seed }
+  { root: Empty, rng: @utils.fresh_seed(rng_seed) }
 }
 
 ///|
