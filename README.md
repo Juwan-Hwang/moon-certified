@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.12.0** — 571 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 6246 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 562 个包依赖测试验证。
+**v0.12.0** — 271 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3291 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 262 个包依赖测试验证。
 
 ### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -228,7 +228,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (6246 tests)
+# 运行测试 (3291 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -391,6 +391,14 @@ moon-certified/
 │   ├── min_element/          ✅ 最小元素 (verified) + generic
 │   ├── interpolation_search/🔒 插值搜索 (Int64 防溢出)
 │   └── exponential_search/   🔒 指数搜索 (galloping search)
+│   ├── fibonacci_search/    🔒 斐波那契搜索 (8 tests)
+│   ├── jump_search/         🔒 跳跃搜索 (8 tests)
+│   ├── ternary_search/      🔒 三分搜索 (单峰函数极值, 7 tests)
+│   ├── quickselect/         🔒 快速选择 (第 k 小, 8 tests)
+│   ├── ball_tree/           🔒 Ball-Tree (度量空间近邻, 8 tests)
+│   ├── vp_tree/             🔒 VP-Tree (vantage point 树, 8 tests)
+│   ├── lsh/                 🔒 LSH 局部敏感哈希 (近似近邻, 7 tests)
+│   └── hnsw/                🔒 HNSW (分层可导航小世界图, 8 tests)
 ├── sorting/
 │   ├── insertion_sort/       🔒 插入排序 (generic, 12 tests)
 │   ├── selection_sort/       🔒 选择排序 (generic, 10 tests)
@@ -400,6 +408,7 @@ moon-certified/
 │   ├── counting_sort/        🔒 计数排序 (OOM 防护, 12 tests)
 │   ├── radix_sort/           🔒 基数排序 LSD (stable, 11 tests)
 │   └── is_sorted/            ✅ 有序性检查 (verified) + generic
+│   ├── external_sort/      🔒 外部排序 (k 路归并, binary_heap 复用, 8 tests)
 ├── containers/
 │   ├── binary_heap/          🔒 二叉堆 (Heap 封装 + HeapG[T] + decrease_key, 17 tests)
 │   ├── hash_table/           🔒 哈希表 K,V 泛型 (StringHashTable 封装, 19 tests)
@@ -412,7 +421,16 @@ moon-certified/
 │   ├── hyperloglog/          🔒 HyperLogLog 基数估计 (10 tests)
 │   ├── union_find/           🔒 并查集 (pub struct, find→Int?, 16 tests)
 │   ├── priority_queue/       🔒 优先队列 (HeapG[T], 动态扩容, decrease_key, 15 tests)
-│   └── monotonic/            🔒 单调栈/单调队列 (next greater/smaller, 滑动窗口, 21 tests)
+│   ├── monotonic/            🔒 单调栈/单调队列 (next greater/smaller, 滑动窗口, 21 tests)
+│   ├── bitset/             🔒 位集 (位运算, 8 tests)
+│   ├── deque/              🔒 双端队列 (环形缓冲区, 8 tests)
+│   ├── consistent_hash/    🔒 一致性哈希 (虚拟节点, 7 tests)
+│   ├── crc/                🔒 CRC 校验 (CRC32, 7 tests)
+│   ├── hash_utils/         🔒 哈希工具 (next_pow2, Fibonacci 哈希, 6 tests)
+│   ├── lsm_tree/           🔒 LSM-Tree (内存 MemTable+SSTable+Bloom, 10 tests)
+│   ├── roaring_bitmap/     🔒 Roaring Bitmap (压缩位图, 8 tests)
+│   ├── count_sketch/       🔒 Count Sketch (频率估计, 7 tests)
+│   └── concurrent/         🔒 并发原语 (RingBuffer/BoundedQueue/SnapshotMap, 9 tests)
 ├── trees/
 │   ├── bst/                  🔒 二叉搜索树 (迭代实现, 无栈溢出风险, 22 tests)
 │   ├── avl/                  🔒 AVL 平衡树 (O(1) size, 17 tests)
@@ -427,7 +445,14 @@ moon-certified/
 │   ├── sparse_table/       🔒 Sparse Table RMQ (泛型, O(1) 幂等查询, 13 tests)
 │   ├── segment_tree_lazy/  🔒 线段树 Lazy Propagation (区间修改+区间查询, 9 tests)
 │   ├── link_cut/           🔒 Link-Cut Tree (Sleator-Tarjan splay, 12 tests)
-│   └── persistent_vector/ 🔒 Persistent Vector (结构共享, O(log n), 9 tests)
+│   ├── persistent_vector/ 🔒 Persistent Vector (结构共享, O(log n), 9 tests)
+│   ├── bplus_tree/        🔒 B+ Tree (叶子链表, 范围查询, 10 tests)
+│   ├── hamt/              🔒 HAMT (Hash Array Mapped Trie, 10 tests)
+│   ├── li_chao_tree/      🔒 李超树 (线段维护一次函数最大值, 8 tests)
+│   ├── persistent_segment_tree/ 🔒 可持久化线段树 (k 大值查询, 8 tests)
+│   ├── segment_tree_beats/ 🔒 Segment Tree Beats (区间最值取 chmax/chmin, 8 tests)
+│   ├── bit_2d/            🔒 二维树状数组 (8 tests)
+│   └── mo_algorithm/      🔒 Mo 算法 (离线区间查询, 8 tests)
 ├── graph/
 │   ├── bfs_dfs/              🔒 BFS/DFS 邻接矩阵版 (Option 返回, 34 tests)
 │   ├── adj_list/             🔒 邻接表稀疏图 (O(V+E) 空间, 23 tests)
@@ -452,7 +477,18 @@ moon-certified/
 │   ├── hungarian/           🔒 匈牙利算法 (二分图最优匹配, O(n³), 10 tests)
 │   ├── hopcroft_karp/       🔒 Hopcroft-Karp 二分匹配 (O(E√V), 9 tests)
 │   ├── stoer_wagner/        🔒 Stoer-Wagner 全局最小割 (O(V³), 10 tests)
-│   └── max_clique/          🔒 Bron-Kerbosch 最大团 (pivot+退化度, 12 tests)
+│   ├── max_clique/          🔒 Bron-Kerbosch 最大团 (pivot+退化度, 12 tests)
+│   ├── edmonds_blossom/    🔒 Edmonds 一般图最大匹配 (BFS 增广, 8 tests)
+│   ├── dominator_tree/     🔒 支配树 (Lengauer-Tarjan, 8 tests)
+│   ├── gomory_hu/          🔒 Gomory-Hu 树 (全对最小割, 8 tests)
+│   ├── hlpp/               🔒 HLPP 最大流 (预流推进, 8 tests)
+│   ├── hld/                🔒 重链剖分 (路径修改/查询, 8 tests)
+│   ├── centroid_decomposition/ 🔒 重心分解 (点分治, 8 tests)
+│   ├── virtual_tree/       🔒 虚树 (关键点压缩, 8 tests)
+│   ├── min_steiner_tree/   🔒 最小 Steiner 树 (DP, 8 tests)
+│   ├── graph_coloring/     🔒 图着色 (DSATUR 启发式, 8 tests)
+│   ├── flow_with_bounds/   🔒 上下界网络流 (8 tests)
+│   └── pagerank/           🔒 PageRank (幂迭代, 7 tests)
 ├── string/
 │   ├── kmp/                  🔒 KMP (17 tests)
 │   ├── rabin_karp/           🔒 Rabin-Karp (25 tests)
@@ -466,7 +502,10 @@ moon-certified/
 │   ├── suffix_tree/         🔒 后缀树 (Ukkonen O(n), 12 tests)
 │   ├── palindromic_tree/    🔒 回文树 Eertree (所有回文子串, 11 tests)
 │   ├── rolling_hash/        🔒 滚动哈希 (双模数防碰撞, 12 tests)
-│   └── lyndon/              🔒 Lyndon 分解 (Duval 算法, 最小表示, 13 tests)
+│   ├── lyndon/              🔒 Lyndon 分解 (Duval 算法, 最小表示, 13 tests)
+│   ├── fm_index/            🔒 FM-Index (计数/定位, 8 tests)
+│   ├── wavelet_tree/        🔒 Wavelet Tree (rank/select, 8 tests)
+│   └── regex/               🔒 正则表达式引擎 (Thompson NFA, 10 tests)
 ├── number_theory/
 │   ├── gcd/                  ⚠️ GCD (partial verified, handles Int::MIN)
 │   ├── fast_power/           ⚠️ 快速幂 (partial verified + checked variant)
@@ -478,6 +517,15 @@ moon-certified/
 │   ├── pollard_rho/        🔒 Pollard-Rho 整数分解 (Miller-Rabin + Brent, 10 tests)
 │   ├── euler_sieve/        🔒 Euler 线性筛 (O(n) + O(log n) 因式分解, 11 tests)
 │   └── ntt/                🔒 数论变换 NTT (O(n log n) 多项式乘法, 11 tests)
+│   ├── bigint/             🔒 大整数运算 (加减乘除, 10 tests)
+│   ├── cipolla/            🔒 Cipolla 平方根 (模素数, 7 tests)
+│   ├── finite_field/       🔒 有限域 GF(p) 运算 (7 tests)
+│   ├── mobius/             🔒 Möbius 反演 (7 tests)
+│   ├── polynomial/         🔒 多项式运算 (NTT 乘法, 8 tests)
+│   ├── primitive_root/     🔒 原根 (7 tests)
+│   ├── quadratic_residue/  🔒 二次剩余 (Tonelli-Shanks, 7 tests)
+│   ├── reed_solomon/       🔒 Reed-Solomon 编解码 (8 tests)
+│   └── pohlig_hellman/     🔒 Pohlig-Hellman 离散对数 (7 tests)
 ├── math/
 │   ├── array_sum/            ⚠️ 数组求和 (partial verified + checked variant)
 │   ├── combinatorics/        🔒 组合数学 (组合数/Catalan/Stirling, Int64 防溢出, 15 tests)
@@ -502,6 +550,12 @@ moon-certified/
 │   ├── rotating_calipers/  🔒 旋转卡壳 (凸包直径+宽度, CCW/CW, 14 tests)
 │   ├── closest_pair/       🔒 最近点对 (分治 O(n log n), 9 tests)
 │   └── segment_ops/       🔒 线段相交+点在多边形内 (精确整数叉积, 33 tests)
+│   ├── delaunay/          🔒 Delaunay 三角剖分 (增量法, 8 tests)
+│   ├── voronoi/           🔒 Voronoi 图 (Delaunay 对偶, 7 tests)
+│   ├── dynamic_hull/      🔒 动态凸包 (在线插入, 8 tests)
+│   ├── min_enclosing_circle/ 🔒 最小包围圆 (随机增量, 7 tests)
+│   ├── minkowski_sum/     🔒 Minkowski 和 (凸多边形, 8 tests) [见下方重复]
+│   └── polygon_boolean/   🔒 多边形布尔运算 (并/交/差, 8 tests)
 ├── game_theory/
 │   ├── nim_sg/               🔒 Nim 博弈 (Sprague-Grundy 定理, 13 tests)
 │   ├── alpha_beta/           🔒 Alpha-Beta 剪枝 / Negamax (Tic-Tac-Toe 验证, 7 tests)
@@ -518,6 +572,7 @@ moon-certified/
 │   ├── gaussian_sampling/    🔒 Box-Muller 高斯采样 (6 tests)
 │   ├── zobrist_hash/         🔒 Zobrist 哈希 (棋盘状态哈希, 5 tests)
 │   └── mcmc/                 🔒 Metropolis-Hastings MCMC (5 tests)
+│   └── monte_carlo/        🔒 Monte Carlo 积分 (7 tests)
 ├── sorting/
 │   ├── timsort/              🔒 TimSort (run 检测+归并栈, 稳定, 12 tests)
 │   ├── introsort/            🔒 Introsort (快排+堆排+插入排, 10 tests)
@@ -557,36 +612,83 @@ moon-certified/
 │   ├── matrix_chain/        🔒 矩阵链乘 DP (8 tests)
 │   ├── monotone_queue_dp/   🔒 单调队列优化 DP (8 tests)
 │   └── smawk/               🔒 SMAWK 算法 (完全单调矩阵行最小, 10 tests)
+│   ├── bitmask_dp/        🔒 状压 DP (TSP/集合覆盖, 10 tests)
+│   ├── convex_hull_trick/  🔒 凸壳技巧 DP (斜率优化, 8 tests)
+│   ├── divide_conquer_dp/  🔒 分治 DP (8 tests)
+│   ├── knuth_opt/          🔒 Knuth 优化 DP (8 tests)
+│   ├── plug_dp/            🔒 插头 DP (轮廓线, 7 tests)
+│   └── sos_dp/             🔒 SOS DP (子集和, 8 tests)
 ├── math/
 │   ├── fwht/                🔒 快速 Walsh-Hadamard 变换 (7 tests)
 │   ├── numerical_integration/🔒 数值积分 (梯形/Simpson/自适应/Romberg, 9 tests)
 │   ├── ode_solver/          🔒 ODE 求解器 (Euler/RK4/RK45, 8 tests)
 │   ├── interpolation/       🔒 插值 (Lagrange/Newton, 7 tests)
 │   ├── least_squares/       🔒 最小二乘法 (线性/多项式, 8 tests)
-│   └── special_functions/   🔒 特殊函数 (Gamma/Erf/Bessel, 10 tests)
+│   ├── special_functions/   🔒 特殊函数 (Gamma/Erf/Bessel, 10 tests)
+│   ├── conjugate_gradient/  🔒 共轭梯度法 (SPD 线性系统求解, 7 tests)
+│   ├── gmres/               🔒 GMRES (非对称线性系统求解, 6 tests)
+│   └── sparse_matrix/       🔒 稀疏矩阵 (CSR 格式, 7 tests)
 ├── crypto/
 │   ├── sha256/              🔒 SHA-256 哈希 (10 tests)
 │   ├── sha512/              🔒 SHA-512 哈希 (8 tests)
+│   ├── sha3/                🔒 SHA-3 (Keccak) 哈希 (8 tests)
+│   ├── blake2/              🔒 BLAKE2 哈希 (8 tests)
+│   ├── blake3/              🔒 BLAKE3 哈希 (8 tests)
 │   ├── hmac/                🔒 HMAC 消息认证 (7 tests)
 │   ├── chacha20/            🔒 ChaCha20 流密码 (8 tests)
+│   ├── chacha20_poly1305/   🔒 ChaCha20-Poly1305 AEAD (7 tests)
+│   ├── poly1305/            🔒 Poly1305 MAC (7 tests)
 │   ├── hkdf/                🔒 HKDF 密钥派生 (7 tests)
 │   ├── pbkdf2/              🔒 PBKDF2 密码派生 (6 tests)
-│   └── poly1305/            🔒 Poly1305 MAC (7 tests)
+│   ├── scrypt/              🔒 scrypt 密码哈希 (6 tests)
+│   ├── bcrypt/              🔒 bcrypt 密码哈希 (6 tests)
+│   ├── argon2/              🔒 Argon2 密码哈希 (6 tests)
+│   ├── aes/                 🔒 AES 对称加密 (8 tests)
+│   ├── rsa/                 🔒 RSA 非对称加密 (7 tests)
+│   ├── csprng/              🔒 CSPRNG 安全随机数 (6 tests)
+│   └── base64/              🔒 Base64 编码 (7 tests)
 ├── compression/
 │   ├── huffman/             🔒 Huffman 编码 (8 tests)
 │   ├── lz4/                 🔒 LZ4 压缩 (7 tests)
 │   ├── lz77/                🔒 LZ77 压缩 (7 tests)
-│   └── lzw/                 🔒 LZW 压缩 (7 tests)
+│   ├── lzw/                 🔒 LZW 压缩 (7 tests)
+│   ├── arithmetic_coding/   🔒 算术编码 (7 tests)
+│   ├── bwt_compress/        🔒 BWT 压缩 (6 tests)
+│   ├── deflate/             🔒 DEFLATE 压缩 (RFC 1951, 8 tests)
+│   ├── gzip/                🔒 gzip 容器 (RFC 1952, 7 tests)
+│   ├── zlib/                🔒 zlib 容器 (RFC 1950, 7 tests)
+│   └── snappy/              🔒 Snappy 压缩 (7 tests)
 ├── ml/
 │   ├── kmeans/              🔒 K-Means++ 聚类 (8 tests)
+│   ├── knn/                 🔒 K-近邻 (KD-Tree 加速, 8 tests)
+│   ├── dbscan/              🔒 DBSCAN 密度聚类 (7 tests)
+│   ├── pca/                 🔒 主成分分析 PCA (8 tests)
+│   ├── svm/                 🔒 支持向量机 SVM (8 tests)
 │   ├── logistic_regression/ 🔒 逻辑回归 (8 tests)
 │   └── decision_tree/       🔒 决策树 CART (8 tests)
 ├── stats/
 │   ├── descriptive/         🔒 描述统计 (9 tests)
 │   ├── linear_regression/   🔒 线性回归 (8 tests)
-│   └── hypothesis_testing/  🔒 假设检验 (8 tests)
+│   ├── hypothesis_testing/  🔒 假设检验 (8 tests)
+│   ├── correlation/         🔒 相关系数 (Pearson/Spearman, 7 tests)
+│   ├── confidence_interval/ 🔒 置信区间 (7 tests)
+│   ├── bootstrap/           🔒 Bootstrap 重采样 (7 tests)
+│   └── distributions/       🔒 概率分布 (Normal/Binomial/Poisson, 8 tests)
+├── serialization/
+│   ├── json/                🔒 JSON 编解码 (7 tests)
+│   └── msgpack/             🔒 MessagePack 编解码 (7 tests)
+├── time/
+│   └── chrono/              🔒 日期时间库 (ISO 8601, Duration, 时区, 15 tests)
+├── utils/
+│   ├── (utils)              🔒 共享工具 (swap/str_cmp/next_pow2/encoding)
+│   ├── prng/                🔒 PRNG (SplitMix64/XorShift64/LCG)
+│   └── itertools/           🔒 itertools (range/repeat/enumerate/window/chunk/fold)
 ├── .github/workflows/
-│   └── ci.yml                ✅ GitHub Actions CI (check + test + prove)
+│   ├── ci.yml                ✅ GitHub Actions CI (check + test + prove, Ubuntu/macOS/Windows)
+│   ├── codeql.yml            ✅ CodeQL 安全分析
+│   ├── dependency-review.yml ✅ 依赖审查
+│   ├── nightly.yml           ✅ 每日构建 (flaky test 检测)
+│   └── release.yml           ✅ 发布流程 (checksums + tag)
 ├── CHANGELOG.md              📋 Semantic Versioning changelog
 ├── moon.mod
 ├── LICENSE
@@ -710,9 +812,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **6246** | **5 完整, 4 部分, 562 tested** | **17 generic** |
+| **Total** | **3291** | **5 完整, 4 部分, 262 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 571 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 271 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 
