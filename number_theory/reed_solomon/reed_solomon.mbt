@@ -492,12 +492,12 @@ test "rs: correct single error" {
   let codeword = rs_encode(gf, data, t)
   // Introduce one error.
   codeword[2] = codeword[2] ^ 0x55
-  match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) =>
-      for i = 0; i < 4; i = i + 1 {
-        assert_eq(decoded[i], data[i])
-      }
-    None => abort("should have corrected the error")
+  let decoded = @test_utils.expect_some(
+    rs_decode(gf, codeword, 4, t),
+    "rs: expected successful decode of single-error codeword",
+  )
+  for i = 0; i < 4; i = i + 1 {
+    assert_eq(decoded[i], data[i])
   }
 }
 
@@ -514,12 +514,12 @@ test "rs: correct two errors" {
   // Introduce two errors.
   codeword[1] = codeword[1] ^ 0x33
   codeword[5] = codeword[5] ^ 0x77
-  match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) =>
-      for i = 0; i < 4; i = i + 1 {
-        assert_eq(decoded[i], data[i])
-      }
-    None => abort("should have corrected 2 errors")
+  let decoded = @test_utils.expect_some(
+    rs_decode(gf, codeword, 4, t),
+    "rs: expected successful decode of two-error codeword",
+  )
+  for i = 0; i < 4; i = i + 1 {
+    assert_eq(decoded[i], data[i])
   }
 }
 
@@ -537,8 +537,6 @@ test "rs: detect too many errors" {
   codeword[0] = codeword[0] ^ 0x11
   codeword[1] = codeword[1] ^ 0x22
   // Should return None (cannot correct).
-  match rs_decode(gf, codeword, 4, t) {
-    Some(_) => abort("should not have corrected beyond capacity")
-    None => assert_true(true)
-  }
+  let result = rs_decode(gf, codeword, 4, t)
+  assert_true(result is None)
 }

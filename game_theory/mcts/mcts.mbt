@@ -69,6 +69,30 @@ fn MCTS::rng(self : MCTS) -> Int {
 }
 
 ///|
+/// Draw a uniformly random integer in `[0, n)` without modulo bias.
+///
+/// Uses rejection sampling: computes the largest multiple of `n` that fits
+/// in the 31-bit output range, then rejects values at or above that
+/// threshold. The rejection probability is at most `n / 2^31`, which is
+/// negligible for any practical move count (< 1000), so the expected number
+/// of draws is essentially 1.
+fn MCTS::rng_below(self : MCTS, n : Int) -> Int {
+  if n <= 1 {
+    return 0
+  }
+  // Rejection sampling in full Int64 space to avoid Int overflow when
+  // n divides 2^31 evenly (e.g. n=2 → threshold=2^31 > Int::max_value).
+  let limit : Int64 = 2147483648L
+  let n64 = n.to_int64()
+  let threshold = limit - (limit % n64)
+  let mut r = self.rng().to_int64()
+  while r >= threshold {
+    r = self.rng().to_int64()
+  }
+  (r % n64).to_int()
+}
+
+///|
 /// UCT selection: pick child maximizing UCB1 value.
 fn MCTS::uct_select(self : MCTS, node_idx : Int) -> Int {
   let parent_visits = self.nodes[node_idx].visits
@@ -138,7 +162,7 @@ fn[T : GameState] MCTS::iterate(
   // Phase 2: Expansion — add one child for an untried move.
   if !state.is_terminal() && self.nodes[node_idx].untried_moves.length() > 0 {
     let moves = self.nodes[node_idx].untried_moves
-    let pick_idx = self.rng() % moves.length()
+    let pick_idx = self.rng_below(moves.length())
     let move_val = moves[pick_idx]
     moves.remove(pick_idx) |> ignore
     state = state.make_move(move_val)
@@ -293,12 +317,33 @@ impl GameState for MCTTTT with fn get_result(self, player) {
 }
 
 ///|
+/// Draw a uniformly random integer in `[0, n)` from a `() -> Int` source,
+/// without modulo bias.
+///
+/// Uses rejection sampling on the upper 31 bits of the rng output.
+fn rng_below(rng : () -> Int, n : Int) -> Int {
+  if n <= 1 {
+    return 0
+  }
+  // Rejection sampling in full Int64 space to avoid Int overflow when
+  // n divides 2^31 evenly (e.g. n=2 → threshold=2^31 > Int::max_value).
+  let limit : Int64 = 2147483648L
+  let n64 = n.to_int64()
+  let threshold = limit - (limit % n64)
+  let mut r = (rng() & 0x7FFFFFFF).to_int64()
+  while r >= threshold {
+    r = (rng() & 0x7FFFFFFF).to_int64()
+  }
+  (r % n64).to_int()
+}
+
+///|
 impl GameState for MCTTTT with fn random_playout(self, rng) {
   let mut state = self.clone()
   let player = state.player
   while !state.is_terminal() {
     let moves = state.get_moves()
-    let idx = (rng() >> 16) % moves.length()
+    let idx = rng_below(rng, moves.length())
     state = state.make_move(moves[idx])
   }
   state.get_result(player)

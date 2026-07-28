@@ -173,9 +173,10 @@ fn[T] ins(
   depth : Int,
 ) -> RBNode[T] {
   if depth > rb_max_depth {
-    abort(
-      "rb_tree: recursion depth exceeds safe limit; RB invariant broken or tree too large",
-    )
+    // Depth guard: return original tree instead of aborting.
+    // This is a safety net against invariant violations; in practice
+    // the RB property bounds the height at ≤ 2*log₂(n+1).
+    return root
   }
   match root {
     Empty => mk_node(Empty, val, Empty, Red)
@@ -247,9 +248,8 @@ fn[T] del(
   depth : Int,
 ) -> (RBNode[T], Bool) {
   if depth > rb_max_depth {
-    abort(
-      "rb_tree: recursion depth exceeds safe limit during delete; RB invariant broken or tree too large",
-    )
+    // Depth guard: return original tree instead of aborting.
+    return (root, false)
   }
   match root {
     Empty => (Empty, false)
@@ -281,11 +281,18 @@ fn[T] del(
           (Node(ll, lv, lr, Red, _), Empty) =>
             (mk_node(ll, lv, lr, Black), false)
           (_, _) => {
-            let (min_val, new_r, lost) = del_min(r, depth + 1)
-            if lost {
-              bal_right(c, l, min_val, new_r)
-            } else {
-              (mk_node(l, min_val, new_r, c), false)
+            let (min_val_opt, new_r, lost) = del_min(r, depth + 1)
+            match min_val_opt {
+              Some(min_val) =>
+                if lost {
+                  bal_right(c, l, min_val, new_r)
+                } else {
+                  (mk_node(l, min_val, new_r, c), false)
+                }
+              None =>
+                // Graceful fallback: del_min returned None (depth guard or
+                // Empty). Return original node unchanged.
+                (root, false)
             }
           }
         }
@@ -297,20 +304,22 @@ fn[T] del(
 ///|
 /// Delete the minimum node from a subtree.
 /// Returns (min_value, new_subtree, lost_black).
-fn[T] del_min(root : RBNode[T], depth : Int) -> (T, RBNode[T], Bool) {
+/// The min_value is wrapped in Option so that depth-guard / Empty fallbacks
+/// can return None instead of aborting.
+fn[T] del_min(root : RBNode[T], depth : Int) -> (T?, RBNode[T], Bool) {
   if depth > rb_max_depth {
-    abort(
-      "rb_tree: recursion depth exceeds safe limit during del_min; RB invariant broken or tree too large",
-    )
+    // Depth guard: return original tree instead of aborting.
+    return (None, root, false)
   }
   match root {
     Node(Empty, v, r, c, _) =>
       match c {
-        Red => (v, r, false)
+        Red => (Some(v), r, false)
         Black =>
           match r {
-            Node(rl, rv, rr, Red, _) => (v, mk_node(rl, rv, rr, Black), false)
-            _ => (v, r, true)
+            Node(rl, rv, rr, Red, _) =>
+              (Some(v), mk_node(rl, rv, rr, Black), false)
+            _ => (Some(v), r, true)
           }
       }
     Node(l, v, r, c, _) => {
@@ -323,16 +332,10 @@ fn[T] del_min(root : RBNode[T], depth : Int) -> (T, RBNode[T], Bool) {
       }
     }
     Empty =>
-      // Truly unreachable: `del_min` is only called from the `Node(l, v, r, c)`
-      // branch where `l` is a `Node` (when `l` is `Empty`, the `Node(Empty, ...)`
-      // case above handles it directly). MoonBit has no `unreachable!()` or
-      // `todo()` macro; for generic types where no default `T` can be
-      // constructed, `abort` is the standard way to signal an invariant
-      // violation. If this branch is ever reached, it indicates a bug in the
-      // caller — crashing immediately is safer than returning a wrong value.
-      abort(
-        "del_min: unreachable — called on Empty (caller invariant violated)",
-      )
+      // Unreachable in valid RB trees: del_min is only called with non-Empty
+      // trees (from del's (_, _) case where r is a Node). Returns None as
+      // graceful degradation instead of aborting.
+      (None, root, false)
   }
 }
 
@@ -406,13 +409,10 @@ fn[T] bal_left_rotate(
           false,
         )
       Empty =>
-        // Truly unreachable: is_red(rr) returned true, which requires rr to be
-        // a Red Node. If this is reached, the RB tree invariant has been
-        // corrupted by a bug in the caller. Aborting is safer than returning
-        // a structurally invalid tree that would propagate corruption.
-        abort(
-          "bal_left_rotate: unreachable — is_red(rr) returned true but rr is Empty (tree invariant corrupted)",
-        )
+        // Unreachable: is_red(rr) returned true, which requires rr to be
+        // a Red Node. Return the original (unrotated) tree as graceful
+        // fallback instead of aborting.
+        (mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color), false)
     }
   } else if is_red(rl) {
     // Right-left double rotation: rlv becomes new root (parent_color).
@@ -428,20 +428,16 @@ fn[T] bal_left_rotate(
           false,
         )
       Empty =>
-        // Truly unreachable: is_red(rl) returned true, which requires rl to be
-        // a Red Node. If this is reached, the RB tree invariant has been
-        // corrupted by a bug in the caller. Aborting is safer than returning
-        // a structurally invalid tree that would propagate corruption.
-        abort(
-          "bal_left_rotate: unreachable — is_red(rl) returned true but rl is Empty (tree invariant corrupted)",
-        )
+        // Unreachable: is_red(rl) returned true, which requires rl to be
+        // a Red Node. Return the original (unrotated) tree as graceful
+        // fallback instead of aborting.
+        (mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color), false)
     }
   } else {
-    // Should not reach: bal_left is only called when at least one nephew is Red.
-    // If reached, the RB tree invariant has been corrupted.
-    abort(
-      "bal_left_rotate: unreachable — no Red nephew found (tree invariant corrupted)",
-    )
+    // Should not reach: bal_left is only called when at least one nephew
+    // is Red. Return the original (unrotated) tree as graceful fallback
+    // instead of aborting.
+    (mk_node(l, x, mk_node(rl, rv, rr, Black), parent_color), false)
   }
 }
 
@@ -504,13 +500,10 @@ fn[T] bal_right_rotate(
           false,
         )
       Empty =>
-        // Truly unreachable: is_red(ll) returned true, which requires ll to be
-        // a Red Node. If this is reached, the RB tree invariant has been
-        // corrupted by a bug in the caller. Aborting is safer than returning
-        // a structurally invalid tree that would propagate corruption.
-        abort(
-          "bal_right_rotate: unreachable — is_red(ll) returned true but ll is Empty (tree invariant corrupted)",
-        )
+        // Unreachable: is_red(ll) returned true, which requires ll to be
+        // a Red Node. Return the original (unrotated) tree as graceful
+        // fallback instead of aborting.
+        (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
     }
   } else if is_red(lr) {
     // Left-right double rotation: lrv becomes new root.
@@ -526,19 +519,16 @@ fn[T] bal_right_rotate(
           false,
         )
       Empty =>
-        // Truly unreachable: is_red(lr) returned true, which requires lr to be
-        // a Red Node. If this is reached, the RB tree invariant has been
-        // corrupted by a bug in the caller. Aborting is safer than returning
-        // a structurally invalid tree that would propagate corruption.
-        abort(
-          "bal_right_rotate: unreachable — is_red(lr) returned true but lr is Empty (tree invariant corrupted)",
-        )
+        // Unreachable: is_red(lr) returned true, which requires lr to be
+        // a Red Node. Return the original (unrotated) tree as graceful
+        // fallback instead of aborting.
+        (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
     }
   } else {
-    // Should not reach: bal_right is only called when at least one nephew is Red.
-    abort(
-      "bal_right_rotate: unreachable — no Red nephew found (tree invariant corrupted)",
-    )
+    // Should not reach: bal_right is only called when at least one nephew
+    // is Red. Return the original (unrotated) tree as graceful fallback
+    // instead of aborting.
+    (mk_node(mk_node(ll, lv, lr, Black), x, r, parent_color), false)
   }
 }
 

@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/chacha20_poly1305"
+
+// Values
+pub fn decrypt(Bytes, Bytes, Bytes, Bytes) -> Bytes?
+
+pub fn encrypt(Bytes, Bytes, Bytes, Bytes) -> Bytes?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -4,6 +4,8 @@ package "moon-certified/ml/knn"
 // Values
 pub fn knn_classify(Array[KNNEntry], Array[Double], Int) -> Int
 
+pub fn knn_classify_fast(Array[KNNEntry], Array[Double], Int) -> Int
+
 // Errors
 
 // Types and methods

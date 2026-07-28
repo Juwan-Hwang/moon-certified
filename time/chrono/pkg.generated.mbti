@@ -1,0 +1,127 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/time/chrono"
+
+// Values
+pub fn add_days(Date, Int) -> Date
+
+pub fn add_duration(DateTime, Duration) -> DateTime
+
+pub fn add_months(Date, Int) -> Date
+
+pub fn add_years(Date, Int) -> Date
+
+pub fn compare_date(Date, Date) -> Int
+
+pub fn compare_datetime(DateTime, DateTime) -> Int
+
+pub fn date(Int, Int, Int) -> Date?
+
+pub fn date_of(DateTime) -> Date
+
+pub fn datetime(Date, Time, Int) -> DateTime?
+
+pub fn datetime_utc(Date, Time) -> DateTime?
+
+pub fn day(Date) -> Int
+
+pub fn day_of_year(Date) -> Int
+
+pub fn days_between(Date, Date) -> Int
+
+pub fn days_in_month(Int, Int) -> Int
+
+pub fn duration_add(Duration, Duration) -> Duration
+
+pub fn duration_as_ms(Duration) -> Int64
+
+pub fn duration_as_ns(Duration) -> Int64
+
+pub fn duration_as_secs(Duration) -> Int64
+
+pub fn duration_between(DateTime, DateTime) -> Duration
+
+pub fn duration_ms(Int64) -> Duration
+
+pub fn duration_ns(Int64) -> Duration
+
+pub fn duration_secs(Int64) -> Duration
+
+pub fn duration_sub(Duration, Duration) -> Duration
+
+pub fn format_date(Date) -> String
+
+pub fn format_datetime(DateTime) -> String
+
+pub fn format_time(Time) -> String
+
+pub fn from_timestamp(Int64, Int) -> DateTime
+
+pub fn from_timestamp_ms(Int64, Int) -> DateTime
+
+pub fn from_unix_secs(Int64) -> DateTime
+
+pub fn hour(Time) -> Int
+
+pub fn is_leap_year(Int) -> Bool
+
+pub fn minute(Time) -> Int
+
+pub fn month(Date) -> Int
+
+pub fn nanosecond(Time) -> Int
+
+pub fn offset(DateTime) -> Int
+
+pub fn parse_date(String) -> Date?
+
+pub fn parse_datetime(String) -> DateTime?
+
+pub fn parse_time(String) -> Time?
+
+pub fn second(Time) -> Int
+
+pub fn sub_days(Date, Int) -> Date
+
+pub fn sub_duration(DateTime, Duration) -> DateTime
+
+pub fn time(Int, Int, Int, Int) -> Time?
+
+pub fn time_of(DateTime) -> Time
+
+pub fn time_s(Int, Int, Int) -> Time?
+
+pub fn timestamp(DateTime) -> Int64
+
+pub fn timestamp_ms(DateTime) -> Int64
+
+pub fn timestamp_ns(DateTime) -> Int64
+
+pub fn weekday(Date) -> Int
+
+pub fn weekday_of(DateTime) -> Int
+
+pub fn year(Date) -> Int
+
+// Errors
+
+// Types and methods
+pub struct Date {
+  // private fields
+}
+
+pub struct DateTime {
+  // private fields
+}
+
+pub struct Duration {
+  // private fields
+}
+
+pub struct Time {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

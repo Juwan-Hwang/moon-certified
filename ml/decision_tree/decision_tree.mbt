@@ -15,6 +15,7 @@
 priv struct Node {
   is_leaf : Bool
   label : Int // for leaf: the predicted class; for internal: -1
+  value : Double // for regression leaf: the predicted value
   feature : Int // split feature index (internal only)
   threshold : Double // split threshold (internal only)
   left : Node? // <= threshold
@@ -22,11 +23,12 @@ priv struct Node {
 }
 
 ///|
-/// Decision tree classifier.
+/// Decision tree classifier / regressor.
 pub struct DecisionTree {
   priv mut root : Node?
   priv max_depth : Int
   priv min_samples_split : Int
+  priv mut _is_regressor : Bool
 }
 
 ///|
@@ -47,6 +49,7 @@ pub fn new(max_depth : Int, min_samples_split : Int) -> DecisionTree {
     } else {
       2
     },
+    _is_regressor: false,
   }
 }
 
@@ -164,6 +167,7 @@ fn build(
     return {
       is_leaf: true,
       label: majority(y_labels),
+      value: 0.0,
       feature: -1,
       threshold: 0.0,
       left: None,
@@ -176,6 +180,7 @@ fn build(
       {
         is_leaf: true,
         label: majority(y_labels),
+        value: 0.0,
         feature: -1,
         threshold: 0.0,
         left: None,
@@ -200,6 +205,7 @@ fn build(
         return {
           is_leaf: true,
           label: majority(y_labels),
+          value: 0.0,
           feature: -1,
           threshold: 0.0,
           left: None,
@@ -225,6 +231,7 @@ fn build(
       {
         is_leaf: false,
         label: -1,
+        value: 0.0,
         feature: feat,
         threshold: thresh,
         left: Some(left),
@@ -276,6 +283,227 @@ pub fn predict(tree : DecisionTree, x : Array[Double]) -> Int {
   match tree.root {
     None => 0
     Some(r) => predict_node(r, x)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Regression support
+// ---------------------------------------------------------------------------
+
+///|
+/// Mean of a Double array.
+fn mean(values : Array[Double]) -> Double {
+  let n = values.length()
+  if n == 0 {
+    return 0.0
+  }
+  let mut sum = 0.0
+  for v in values {
+    sum = sum + v
+  }
+  sum / n.to_double()
+}
+
+///|
+/// Variance (population) of a Double array.
+fn variance(values : Array[Double]) -> Double {
+  let n = values.length()
+  if n == 0 {
+    return 0.0
+  }
+  let m = mean(values)
+  let mut sum_sq = 0.0
+  for v in values {
+    let d = v - m
+    sum_sq = sum_sq + d * d
+  }
+  sum_sq / n.to_double()
+}
+
+///|
+/// Find the best split for regression (variance reduction).
+fn best_split_regress(
+  x_data : Array[Array[Double]],
+  y_values : Array[Double],
+  features : Int,
+) -> (Int, Double, Double)? {
+  let n = x_data.length()
+  let parent_var = variance(y_values)
+  let mut best_gain = -1.0
+  let mut best_feat = -1
+  let mut best_thresh = 0.0
+  for f = 0; f < features; f = f + 1 {
+    let values : Array[Double] = []
+    for i = 0; i < n; i = i + 1 {
+      values.push(x_data[i][f])
+    }
+    values.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
+    for i = 1; i < n; i = i + 1 {
+      if values[i] == values[i - 1] {
+        continue
+      }
+      let thresh = (values[i] + values[i - 1]) / 2.0
+      let left_y : Array[Double] = []
+      let right_y : Array[Double] = []
+      for j = 0; j < n; j = j + 1 {
+        if x_data[j][f] <= thresh {
+          left_y.push(y_values[j])
+        } else {
+          right_y.push(y_values[j])
+        }
+      }
+      let nl = left_y.length()
+      let nr = right_y.length()
+      if nl == 0 || nr == 0 {
+        continue
+      }
+      let child_var = (
+          nl.to_double() * variance(left_y) +
+          nr.to_double() * variance(right_y)
+        ) /
+        n.to_double()
+      let gain = parent_var - child_var
+      if gain > best_gain {
+        best_gain = gain
+        best_feat = f
+        best_thresh = thresh
+      }
+    }
+  }
+  if best_feat < 0 {
+    None
+  } else {
+    Some((best_feat, best_thresh, best_gain))
+  }
+}
+
+///|
+/// Recursively build a regression tree.
+fn build_regress(
+  x_data : Array[Array[Double]],
+  y_values : Array[Double],
+  features : Int,
+  depth : Int,
+  max_depth : Int,
+  min_split : Int,
+) -> Node {
+  let n = x_data.length()
+  let parent_var = variance(y_values)
+  if parent_var == 0.0 || depth >= max_depth || n < min_split {
+    return {
+      is_leaf: true,
+      label: -1,
+      value: mean(y_values),
+      feature: -1,
+      threshold: 0.0,
+      left: None,
+      right: None,
+    }
+  }
+  let split = best_split_regress(x_data, y_values, features)
+  match split {
+    None =>
+      {
+        is_leaf: true,
+        label: -1,
+        value: mean(y_values),
+        feature: -1,
+        threshold: 0.0,
+        left: None,
+        right: None,
+      }
+    Some((feat, thresh, _gain)) => {
+      let left_x : Array[Array[Double]] = []
+      let left_y : Array[Double] = []
+      let right_x : Array[Array[Double]] = []
+      let right_y : Array[Double] = []
+      for i = 0; i < n; i = i + 1 {
+        if x_data[i][feat] <= thresh {
+          left_x.push(x_data[i])
+          left_y.push(y_values[i])
+        } else {
+          right_x.push(x_data[i])
+          right_y.push(y_values[i])
+        }
+      }
+      if left_y.length() == 0 || right_y.length() == 0 {
+        return {
+          is_leaf: true,
+          label: -1,
+          value: mean(y_values),
+          feature: -1,
+          threshold: 0.0,
+          left: None,
+          right: None,
+        }
+      }
+      let left = build_regress(left_x, left_y, features, depth + 1, max_depth, min_split)
+      let right = build_regress(
+        right_x, right_y, features, depth + 1, max_depth, min_split,
+      )
+      {
+        is_leaf: false,
+        label: -1,
+        value: 0.0,
+        feature: feat,
+        threshold: thresh,
+        left: Some(left),
+        right: Some(right),
+      }
+    }
+  }
+}
+
+///|
+/// Fit the decision tree for regression.
+pub fn fit_regress(
+  tree : DecisionTree,
+  x_data : Array[Array[Double]],
+  y_values : Array[Double],
+) -> Unit {
+  let n = x_data.length()
+  if n == 0 || y_values.length() != n {
+    return
+  }
+  tree._is_regressor = true
+  let features = x_data[0].length()
+  tree.root = Some(
+    build_regress(
+      x_data,
+      y_values,
+      features,
+      0,
+      tree.max_depth,
+      tree.min_samples_split,
+    ),
+  )
+}
+
+///|
+/// Predict a continuous value for a single sample (regression).
+fn predict_node_regress(node : Node, x : Array[Double]) -> Double {
+  if node.is_leaf {
+    return node.value
+  }
+  if x[node.feature] <= node.threshold {
+    match node.left {
+      None => node.value
+      Some(l) => predict_node_regress(l, x)
+    }
+  } else {
+    match node.right {
+      None => node.value
+      Some(r) => predict_node_regress(r, x)
+    }
+  }
+}
+
+///|
+/// Predict a continuous value for a sample (regression mode).
+pub fn predict_regress(tree : DecisionTree, x : Array[Double]) -> Double {
+  match tree.root {
+    None => 0.0
+    Some(r) => predict_node_regress(r, x)
   }
 }
 

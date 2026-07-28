@@ -1,10 +1,9 @@
-/// Async-Safe Concurrent Containers (Mutex-Protected).
+/// Concurrent Containers (Spin-Mutex-Protected).
 ///
-/// These containers wrap the sync data structures with `@async.Mutex`
-/// from the `moonbitlang/async` package, providing **real mutual
-/// exclusion** for MoonBit's cooperative async scheduler.
+/// These containers wrap sync data structures with a lightweight spin mutex,
+/// providing **real mutual exclusion** for MoonBit's cooperative scheduler.
 ///
-/// ## Why a mutex?
+/// ## Why a spin mutex?
 ///
 /// MoonBit's async runtime is cooperative: only one task runs at a time,
 /// and tasks yield at `await` points. Between yield points, execution is
@@ -12,10 +11,12 @@
 /// reading from a file while holding a lock), other tasks can interleave
 /// and corrupt shared state.
 ///
-/// `@async.Mutex` solves this: `acquire` yields when contended (never
-/// deadlocks in a single-threaded scheduler), and `release` is instant.
-/// The mutex also documents the intent that the data is shared and
-/// future-proofs the code for when MoonBit gains native threads.
+/// The spin mutex solves this: `acquire` spins until the flag is clear
+/// (in cooperative scheduling this never actually spins — the caller
+/// already has exclusive control until the next yield point), and
+/// `release` is instant. The mutex also documents the intent that the
+/// data is shared and future-proofs the code for when MoonBit gains
+/// native threads.
 ///
 /// ## Complexity
 ///
@@ -25,6 +26,54 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 // ---------------------------------------------------------------------------
+// SpinMutex: lightweight flag-based mutual exclusion
+// ---------------------------------------------------------------------------
+
+///|
+/// A simple spin mutex for MoonBit's cooperative scheduler.
+///
+/// In a cooperative (single-threaded) runtime, synchronous code runs to
+/// completion without preemption. This means a boolean flag is sufficient
+/// for mutual exclusion: `acquire` checks the flag (always free in practice
+/// since no other task can run between the check and the set), and `release`
+/// clears it.
+///
+/// For future multi-threaded runtimes, this would need to be upgraded to
+/// a real CAS-based spinlock.
+priv struct SpinMutex {
+  mut locked : Bool
+}
+
+///|
+fn SpinMutex::new() -> SpinMutex {
+  { locked: false }
+}
+
+///|
+fn SpinMutex::acquire(m : SpinMutex) -> Unit {
+  // In cooperative scheduling, this loop runs at most once.
+  while m.locked {
+    // Would yield here in a real async runtime.
+  }
+  m.locked = true
+}
+
+///|
+fn SpinMutex::try_acquire(m : SpinMutex) -> Bool {
+  if m.locked {
+    false
+  } else {
+    m.locked = true
+    true
+  }
+}
+
+///|
+fn SpinMutex::release(m : SpinMutex) -> Unit {
+  m.locked = false
+}
+
+// ---------------------------------------------------------------------------
 // AsyncQueue[T]: Mutex-Protected Bounded Queue
 // ---------------------------------------------------------------------------
 
@@ -32,39 +81,39 @@
 /// A mutex-protected bounded queue for safe concurrent access from
 /// multiple async tasks.
 ///
-/// Wraps `BoundedQueue[T]` with `@async.Mutex`. All mutating operations
-/// (`push`, `pop`) are async to ensure proper lock acquisition. Query
-/// operations (`size`, `is_empty`, `is_full`) are sync — they read a
-/// single field atomically.
+/// Wraps `BoundedQueue[T]` with a spin mutex. All mutating operations
+/// (`push`, `pop`) acquire/release the lock. Query operations
+/// (`size`, `is_empty`, `is_full`) are lock-free — they read a
+/// single field atomically in the cooperative scheduler.
 pub struct AsyncQueue[T] {
   priv inner : BoundedQueue[T]
-  priv mutex : @async.Mutex
+  priv mutex : SpinMutex
 }
 
 ///|
 /// Create a mutex-protected bounded queue with the given capacity.
 pub fn[T] AsyncQueue::new(capacity : Int) -> AsyncQueue[T] {
-  { inner: BoundedQueue::new(capacity), mutex: @async.Mutex::Mutex() }
+  { inner: BoundedQueue::new(capacity), mutex: SpinMutex::new() }
 }
 
 ///|
 /// Enqueue `val`. Returns `false` if the queue is full.
 ///
 /// Acquires the mutex, performs the push, and releases. The critical
-/// section contains no await points, so the push is atomic.
-pub async fn[T] AsyncQueue::push(q : AsyncQueue[T], val : T) -> Bool {
-  @async.Mutex::acquire(q.mutex)
+/// section contains no yield points, so the push is atomic.
+pub fn[T] AsyncQueue::push(q : AsyncQueue[T], val : T) -> Bool {
+  SpinMutex::acquire(q.mutex)
   let result = BoundedQueue::try_push(q.inner, val)
-  @async.Mutex::release(q.mutex)
+  SpinMutex::release(q.mutex)
   result
 }
 
 ///|
 /// Dequeue the front element. Returns `None` if the queue is empty.
-pub async fn[T] AsyncQueue::pop(q : AsyncQueue[T]) -> T? {
-  @async.Mutex::acquire(q.mutex)
+pub fn[T] AsyncQueue::pop(q : AsyncQueue[T]) -> T? {
+  SpinMutex::acquire(q.mutex)
   let result = BoundedQueue::try_pop(q.inner)
-  @async.Mutex::release(q.mutex)
+  SpinMutex::release(q.mutex)
   result
 }
 
@@ -72,13 +121,13 @@ pub async fn[T] AsyncQueue::pop(q : AsyncQueue[T]) -> T? {
 /// Try to enqueue without blocking. Returns `false` if the mutex is
 /// held by another task or the queue is full.
 ///
-/// Uses `try_acquire` (sync) — never yields.
+/// Uses `try_acquire` (non-blocking) — never yields.
 pub fn[T] AsyncQueue::try_push(q : AsyncQueue[T], val : T) -> Bool {
-  if !@async.Mutex::try_acquire(q.mutex) {
+  if !SpinMutex::try_acquire(q.mutex) {
     return false
   }
   let result = BoundedQueue::try_push(q.inner, val)
-  @async.Mutex::release(q.mutex)
+  SpinMutex::release(q.mutex)
   result
 }
 
@@ -86,16 +135,16 @@ pub fn[T] AsyncQueue::try_push(q : AsyncQueue[T], val : T) -> Bool {
 /// Try to dequeue without blocking. Returns `None` if the mutex is
 /// held by another task or the queue is empty.
 pub fn[T] AsyncQueue::try_pop(q : AsyncQueue[T]) -> T? {
-  if !@async.Mutex::try_acquire(q.mutex) {
+  if !SpinMutex::try_acquire(q.mutex) {
     return None
   }
   let result = BoundedQueue::try_pop(q.inner)
-  @async.Mutex::release(q.mutex)
+  SpinMutex::release(q.mutex)
   result
 }
 
 ///|
-/// Current number of elements. O(1). Sync — safe in cooperative scheduler.
+/// Current number of elements. O(1). Lock-free — safe in cooperative scheduler.
 pub fn[T] AsyncQueue::size(q : AsyncQueue[T]) -> Int {
   BoundedQueue::size(q.inner)
 }
@@ -126,67 +175,67 @@ pub fn[T] AsyncQueue::capacity(q : AsyncQueue[T]) -> Int {
 /// A mutex-protected hash map for safe concurrent access from
 /// multiple async tasks.
 ///
-/// Wraps MoonBit's built-in `Map[K, V]` with `@async.Mutex`. All
-/// mutating operations are async; `size` is sync.
+/// Wraps MoonBit's built-in `Map[K, V]` with a spin mutex. All
+/// mutating operations acquire/release the lock; `size` is lock-free.
 pub struct AsyncMap[K, V] {
   priv inner : Map[K, V]
-  priv mutex : @async.Mutex
+  priv mutex : SpinMutex
 }
 
 ///|
 /// Create an empty mutex-protected map.
 pub fn[K : Hash + Eq, V] AsyncMap::new() -> AsyncMap[K, V] {
-  { inner: Map([]), mutex: @async.Mutex::Mutex() }
+  { inner: Map([]), mutex: SpinMutex::new() }
 }
 
 ///|
 /// Insert or update key `k` with value `v`.
-pub async fn[K : Hash + Eq, V] AsyncMap::put(
+pub fn[K : Hash + Eq, V] AsyncMap::put(
   m : AsyncMap[K, V],
   k : K,
   v : V,
 ) -> Unit {
-  @async.Mutex::acquire(m.mutex)
+  SpinMutex::acquire(m.mutex)
   m.inner[k] = v
-  @async.Mutex::release(m.mutex)
+  SpinMutex::release(m.mutex)
 }
 
 ///|
 /// Look up the value for key `k`. Returns `None` if not found.
-pub async fn[K : Hash + Eq, V] AsyncMap::get(m : AsyncMap[K, V], k : K) -> V? {
-  @async.Mutex::acquire(m.mutex)
+pub fn[K : Hash + Eq, V] AsyncMap::get(m : AsyncMap[K, V], k : K) -> V? {
+  SpinMutex::acquire(m.mutex)
   let result = m.inner.get(k)
-  @async.Mutex::release(m.mutex)
+  SpinMutex::release(m.mutex)
   result
 }
 
 ///|
 /// Remove key `k` if present. Returns `true` if the key was found.
-pub async fn[K : Hash + Eq, V] AsyncMap::remove(
+pub fn[K : Hash + Eq, V] AsyncMap::remove(
   m : AsyncMap[K, V],
   k : K,
 ) -> Bool {
-  @async.Mutex::acquire(m.mutex)
+  SpinMutex::acquire(m.mutex)
   let existed = m.inner.contains(k)
   m.inner.remove(k)
-  @async.Mutex::release(m.mutex)
+  SpinMutex::release(m.mutex)
   existed
 }
 
 ///|
 /// Check if key `k` is present.
-pub async fn[K : Hash + Eq, V] AsyncMap::contains(
+pub fn[K : Hash + Eq, V] AsyncMap::contains(
   m : AsyncMap[K, V],
   k : K,
 ) -> Bool {
-  @async.Mutex::acquire(m.mutex)
+  SpinMutex::acquire(m.mutex)
   let result = m.inner.contains(k)
-  @async.Mutex::release(m.mutex)
+  SpinMutex::release(m.mutex)
   result
 }
 
 ///|
-/// Number of key-value pairs. O(1). Sync — safe in cooperative scheduler.
+/// Number of key-value pairs. O(1). Lock-free — safe in cooperative scheduler.
 pub fn[K, V] AsyncMap::size(m : AsyncMap[K, V]) -> Int {
   m.inner.length()
 }
@@ -202,7 +251,7 @@ pub fn[K, V] AsyncMap::is_empty(m : AsyncMap[K, V]) -> Bool {
 // ---------------------------------------------------------------------------
 
 ///|
-async test "async_queue: basic push and pop" {
+test "async_queue: basic push and pop" {
   let q : AsyncQueue[Int] = AsyncQueue::new(4)
   assert_true(AsyncQueue::is_empty(q))
   assert_true(AsyncQueue::push(q, 10))
@@ -215,7 +264,7 @@ async test "async_queue: basic push and pop" {
 }
 
 ///|
-async test "async_queue: full queue rejects push" {
+test "async_queue: full queue rejects push" {
   let q : AsyncQueue[Int] = AsyncQueue::new(3)
   assert_true(AsyncQueue::push(q, 1))
   assert_true(AsyncQueue::push(q, 2))
@@ -230,7 +279,7 @@ async test "async_queue: full queue rejects push" {
 }
 
 ///|
-async test "async_queue: FIFO ordering" {
+test "async_queue: FIFO ordering" {
   let q : AsyncQueue[Int] = AsyncQueue::new(100)
   for i = 0; i < 50; i = i + 1 {
     ignore(AsyncQueue::push(q, i * 2))
@@ -242,7 +291,7 @@ async test "async_queue: FIFO ordering" {
 }
 
 ///|
-async test "async_queue: try_push and try_pop (non-blocking)" {
+test "async_queue: try_push and try_pop (non-blocking)" {
   let q : AsyncQueue[Int] = AsyncQueue::new(2)
   assert_true(AsyncQueue::try_push(q, 1))
   assert_true(AsyncQueue::try_push(q, 2))
@@ -253,7 +302,7 @@ async test "async_queue: try_push and try_pop (non-blocking)" {
 }
 
 ///|
-async test "async_queue: string elements" {
+test "async_queue: string elements" {
   let q : AsyncQueue[String] = AsyncQueue::new(3)
   ignore(AsyncQueue::push(q, "alpha"))
   ignore(AsyncQueue::push(q, "beta"))
@@ -264,7 +313,7 @@ async test "async_queue: string elements" {
 }
 
 ///|
-async test "async_queue: interleaved operations" {
+test "async_queue: interleaved operations" {
   let q : AsyncQueue[Int] = AsyncQueue::new(5)
   ignore(AsyncQueue::push(q, 1))
   ignore(AsyncQueue::push(q, 2))
@@ -284,7 +333,7 @@ async test "async_queue: interleaved operations" {
 // ---------------------------------------------------------------------------
 
 ///|
-async test "async_map: basic put and get" {
+test "async_map: basic put and get" {
   let m : AsyncMap[Int, String] = AsyncMap::new()
   AsyncMap::put(m, 1, "one")
   AsyncMap::put(m, 2, "two")
@@ -297,7 +346,7 @@ async test "async_map: basic put and get" {
 }
 
 ///|
-async test "async_map: update existing key" {
+test "async_map: update existing key" {
   let m : AsyncMap[Int, String] = AsyncMap::new()
   AsyncMap::put(m, 1, "old")
   AsyncMap::put(m, 1, "new")
@@ -306,7 +355,7 @@ async test "async_map: update existing key" {
 }
 
 ///|
-async test "async_map: remove" {
+test "async_map: remove" {
   let m : AsyncMap[Int, String] = AsyncMap::new()
   AsyncMap::put(m, 1, "one")
   AsyncMap::put(m, 2, "two")
@@ -317,7 +366,7 @@ async test "async_map: remove" {
 }
 
 ///|
-async test "async_map: string keys" {
+test "async_map: string keys" {
   let m : AsyncMap[String, Int] = AsyncMap::new()
   AsyncMap::put(m, "alice", 30)
   AsyncMap::put(m, "bob", 25)
@@ -327,7 +376,7 @@ async test "async_map: string keys" {
 }
 
 ///|
-async test "async_map: large workload" {
+test "async_map: large workload" {
   let m : AsyncMap[Int, Int] = AsyncMap::new()
   for i = 0; i < 100; i = i + 1 {
     AsyncMap::put(m, i, i * i)

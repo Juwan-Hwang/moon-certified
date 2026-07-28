@@ -127,6 +127,18 @@ pub fn[T] RingBuffer::is_full(rb : RingBuffer[T]) -> Bool {
   ((rb.tail + 1) & rb.mask) == rb.head
 }
 
+///|
+/// Alias for `RingBuffer::push` — unified `enqueue` naming for queues.
+pub fn[T] RingBuffer::enqueue(rb : RingBuffer[T], val : T) -> Bool {
+  RingBuffer::push(rb, val)
+}
+
+///|
+/// Alias for `RingBuffer::pop` — unified `dequeue` naming for queues.
+pub fn[T] RingBuffer::dequeue(rb : RingBuffer[T]) -> T? {
+  RingBuffer::pop(rb)
+}
+
 // ---------------------------------------------------------------------------
 // BoundedQueue[T]: MPMC bounded queue
 // ---------------------------------------------------------------------------
@@ -204,6 +216,18 @@ pub fn[T] BoundedQueue::is_empty(q : BoundedQueue[T]) -> Bool {
 /// True if the queue is full.
 pub fn[T] BoundedQueue::is_full(q : BoundedQueue[T]) -> Bool {
   q.count >= q.capacity
+}
+
+///|
+/// Alias for `BoundedQueue::try_push` — unified `try_enqueue` naming.
+pub fn[T] BoundedQueue::try_enqueue(q : BoundedQueue[T], val : T) -> Bool {
+  BoundedQueue::try_push(q, val)
+}
+
+///|
+/// Alias for `BoundedQueue::try_pop` — unified `try_dequeue` naming.
+pub fn[T] BoundedQueue::try_dequeue(q : BoundedQueue[T]) -> T? {
+  BoundedQueue::try_pop(q)
 }
 
 // ---------------------------------------------------------------------------

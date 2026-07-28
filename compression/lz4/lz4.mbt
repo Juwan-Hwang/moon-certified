@@ -119,11 +119,10 @@ fn read_u32_le(data : Bytes, pos : Int, end : Int) -> UInt {
   if pos + 4 > end {
     return 0U
   }
-  data[pos]
-  .to_uint()
-  .lor(data[pos + 1].to_uint() << 8)
-  .lor(data[pos + 2].to_uint() << 16)
-  .lor(data[pos + 3].to_uint() << 24)
+  data[pos].to_uint() |
+  (data[pos + 1].to_uint() << 8) |
+  (data[pos + 2].to_uint() << 16) |
+  (data[pos + 3].to_uint() << 24)
 }
 
 ///|
@@ -346,6 +345,292 @@ pub fn decompress(input : Bytes, max_output_size : Int) -> Bytes? {
 }
 
 // ---------------------------------------------------------------------------
+// XXHash32 — used by LZ4 Frame Format for content/block checksums
+// ---------------------------------------------------------------------------
+
+///|
+/// XXHash32 prime constants (from the reference implementation).
+const XXH_PRIME32_1 : UInt = 2654435761U
+const XXH_PRIME32_2 : UInt = 2246822519U
+const XXH_PRIME32_3 : UInt = 3266489917U
+const XXH_PRIME32_4 : UInt = 668265263U
+const XXH_PRIME32_5 : UInt = 374761393U
+
+///|
+/// Rotate left by `n` bits for `UInt`.
+fn rotl_u32(v : UInt, n : Int) -> UInt {
+  ((v << n) | (v >> (32 - n)))
+}
+
+///|
+/// Read a little-endian 32-bit unsigned integer from `data` at `pos`.
+fn read_u32_le_bytes(data : Bytes, pos : Int) -> UInt {
+  data[pos].to_uint() |
+  (data[pos + 1].to_uint() << 8) |
+  (data[pos + 2].to_uint() << 16) |
+  (data[pos + 3].to_uint() << 24)
+}
+
+///|
+/// XXHash32 round: mix one 4-byte lane into an accumulator.
+fn xxh_round(acc : UInt, lane : UInt) -> UInt {
+  let acc1 = acc + (lane * XXH_PRIME32_2)
+  rotl_u32(acc1, 13) * XXH_PRIME32_1
+}
+
+///|
+/// Compute XXHash32 of `data` with the given `seed`.
+///
+/// Implements the full XXHash32 algorithm (non-streaming) per the
+/// specification at https://github.com/Cyan4973/xxHash.
+fn xxh32(data : Bytes, seed : UInt) -> UInt {
+  let len = data.length()
+  let mut pos = 0
+  let mut hash : UInt = 0U
+  if len >= 16 {
+    let mut v1 = seed + XXH_PRIME32_1 + XXH_PRIME32_2
+    let mut v2 = seed + XXH_PRIME32_2
+    let mut v3 = seed
+    let mut v4 = seed - XXH_PRIME32_1
+    while pos + 16 <= len {
+      v1 = xxh_round(v1, read_u32_le_bytes(data, pos))
+      v2 = xxh_round(v2, read_u32_le_bytes(data, pos + 4))
+      v3 = xxh_round(v3, read_u32_le_bytes(data, pos + 8))
+      v4 = xxh_round(v4, read_u32_le_bytes(data, pos + 12))
+      pos = pos + 16
+    }
+    hash = rotl_u32(v1, 1) +
+      rotl_u32(v2, 7) +
+      rotl_u32(v3, 12) +
+      rotl_u32(v4, 18)
+  } else {
+    hash = seed + XXH_PRIME32_5
+  }
+  hash = hash + len.reinterpret_as_uint()
+  // Process remaining 4-byte chunks.
+  while pos + 4 <= len {
+    hash = hash + (read_u32_le_bytes(data, pos) * XXH_PRIME32_3)
+    hash = rotl_u32(hash, 17) * XXH_PRIME32_4
+    pos = pos + 4
+  }
+  // Process remaining individual bytes.
+  while pos < len {
+    hash = hash + (data[pos].to_uint() * XXH_PRIME32_5)
+    hash = rotl_u32(hash, 11) * XXH_PRIME32_1
+    pos = pos + 1
+  }
+  // Avalanche.
+  hash = hash ^ (hash >> 15)
+  hash = hash * XXH_PRIME32_2
+  hash = hash ^ (hash >> 13)
+  hash = hash * XXH_PRIME32_3
+  hash = hash ^ (hash >> 16)
+  hash
+}
+
+// ---------------------------------------------------------------------------
+// LZ4 Frame Format (https://github.com/lz4/lz4/blob/dev/doc/lz4_Frame_format.md)
+// ---------------------------------------------------------------------------
+
+///|
+/// LZ4 Frame magic number (little-endian: 0x04 0x22 0x4D 0x18).
+const LZ4F_MAGIC : UInt = 0x184D2204U
+
+///|
+/// Maximum block size: 64 KB (block size specifier = 4).
+const LZ4F_BLOCKSIZE_64K : Int = 65536
+
+///|
+/// FLG byte: version=01, block-indep=1, no block-checksum, no content-size,
+/// content-checksum=1, no dict.
+/// Bit layout: VV_B_C_S_D_0 = 01_1_0_0_1_0_0 = 0x64
+const LZ4F_FLG : Byte = b'\x64' // 0110_0100
+
+///|
+/// BD byte: block max size = 64KB (specifier 4 = 0b100 in bits 6-4).
+const LZ4F_BD : Byte = b'\x40' // 0100_0000
+
+///|
+/// Write a 32-bit little-endian value to a byte buffer.
+fn write_u32_le(buf : Array[Byte], val : UInt) -> Unit {
+  buf.push((val & 0xFFU).to_byte())
+  buf.push(((val >> 8) & 0xFFU).to_byte())
+  buf.push(((val >> 16) & 0xFFU).to_byte())
+  buf.push(((val >> 24) & 0xFFU).to_byte())
+}
+
+///|
+/// Read a 32-bit little-endian value from bytes at `pos`.
+fn read_u32_le_at(data : Bytes, pos : Int) -> UInt {
+  read_u32_le_bytes(data, pos)
+}
+
+///|
+/// Compress data into LZ4 Frame format.
+///
+/// Wraps the data with an LZ4 frame header, splits into independent
+/// DEFLATE blocks (max 64KB each), and appends an XXHash32 content
+/// checksum.
+///
+/// Returns the LZ4 frame-compressed bytes.
+pub fn frame_compress(data : Bytes) -> Bytes {
+  let output : Array[Byte] = []
+  let n = data.length()
+  // --- Frame Header (7 bytes minimum) ---
+  write_u32_le(output, LZ4F_MAGIC)
+  output.push(LZ4F_FLG)
+  output.push(LZ4F_BD)
+  // HC: header checksum = (XXH32(FLG, BD, seed=0) >> 8) & 0xFF
+  let header_desc = Bytes::from_array([LZ4F_FLG, LZ4F_BD])
+  let hc = ((xxh32(header_desc, 0U) >> 8) & 0xFFU).to_byte()
+  output.push(hc)
+  // --- Data Blocks ---
+  let mut pos = 0
+  while pos < n {
+    let block_end = if pos + LZ4F_BLOCKSIZE_64K < n {
+      pos + LZ4F_BLOCKSIZE_64K
+    } else {
+      n
+    }
+    let block_len = block_end - pos
+    // Extract block data.
+    let block_data : Array[Byte] = []
+    for i = pos; i < block_end; i = i + 1 {
+      block_data.push(data[i])
+    }
+    let block_bytes = Bytes::from_array(block_data)
+    // Compress the block.
+    let compressed = compress(block_bytes)
+    // If compression doesn't help, store uncompressed.
+    if compressed.length() >= block_len {
+      // Uncompressed block: high bit set.
+      write_u32_le(output, (block_len.reinterpret_as_uint() | 0x80000000U))
+      for i = 0; i < block_len; i = i + 1 {
+        output.push(data[pos + i])
+      }
+    } else {
+      // Compressed block.
+      write_u32_le(output, compressed.length().reinterpret_as_uint())
+      for i = 0; i < compressed.length(); i = i + 1 {
+        output.push(compressed[i])
+      }
+    }
+    pos = block_end
+  }
+  // --- EndMark (4 bytes of zeros) ---
+  write_u32_le(output, 0U)
+  // --- Content Checksum (XXHash32 of original data) ---
+  let content_checksum = xxh32(data, 0U)
+  write_u32_le(output, content_checksum)
+  Bytes::from_array(output)
+}
+
+///|
+/// Decompress LZ4 Frame-format data.
+///
+/// Validates the frame header, decompresses each block, and verifies
+/// the XXHash32 content checksum.
+///
+/// Returns `Some(data)` on success, or `None` if the frame is corrupt
+/// or the checksum does not match.
+pub fn frame_decompress(data : Bytes) -> Bytes? {
+  let n = data.length()
+  // Minimum: 4 (magic) + 3 (FLG+BD+HC) + 4 (EndMark) + 4 (checksum) = 15.
+  if n < 15 {
+    return None
+  }
+  // --- Validate magic ---
+  if read_u32_le_at(data, 0) != LZ4F_MAGIC {
+    return None
+  }
+  // --- Parse frame descriptor ---
+  let flg = data[4].to_int()
+  let _bd = data[5].to_int()
+  // Validate version (bits 7-6 must be 01).
+  if ((flg >> 6) & 0x03) != 1 {
+    return None
+  }
+  // Verify header checksum.
+  let header_desc = Bytes::from_array([data[4], data[5]])
+  let expected_hc = ((xxh32(header_desc, 0U) >> 8) & 0xFFU).to_byte()
+  if data[6] != expected_hc {
+    return None
+  }
+  let has_content_checksum = (flg & 0x04) != 0
+  let has_dict_id = (flg & 0x01) != 0
+  let has_content_size = (flg & 0x08) != 0
+  let mut pos = 7
+  // Skip content size if present (8 bytes).
+  if has_content_size {
+    pos = pos + 8
+  }
+  // Skip dictionary ID if present (4 bytes).
+  if has_dict_id {
+    pos = pos + 4
+  }
+  if pos + 4 > n {
+    return None
+  }
+  // --- Read blocks ---
+  let output : Array[Byte] = []
+  let mut done = false
+  while pos + 4 <= n && !done {
+    let block_size_field = read_u32_le_at(data, pos)
+    pos = pos + 4
+    // EndMark: all zeros.
+    if block_size_field == 0U {
+      done = true
+      break
+    }
+    let is_uncompressed = (block_size_field & 0x80000000U) != 0U
+    let block_size = (block_size_field & 0x7FFFFFFFU).reinterpret_as_int()
+    if pos + block_size > n {
+      return None
+    }
+    if is_uncompressed {
+      // Copy raw bytes.
+      for i = 0; i < block_size; i = i + 1 {
+        output.push(data[pos + i])
+      }
+    } else {
+      // Decompress the block.
+      let block_data : Array[Byte] = []
+      for i = 0; i < block_size; i = i + 1 {
+        block_data.push(data[pos + i])
+      }
+      match decompress(Bytes::from_array(block_data), LZ4F_BLOCKSIZE_64K) {
+        None => return None
+        Some(decompressed) =>
+          for i = 0; i < decompressed.length(); i = i + 1 {
+            output.push(decompressed[i])
+          }
+      }
+    }
+    pos = pos + block_size
+    // Skip block checksum if present (FLG bit 4).
+    if (flg & 0x10) != 0 {
+      pos = pos + 4
+    }
+  }
+  if !done {
+    return None // No EndMark found.
+  }
+  // --- Verify content checksum ---
+  if has_content_checksum {
+    if pos + 4 > n {
+      return None
+    }
+    let expected_checksum = read_u32_le_at(data, pos)
+    let result_bytes = Bytes::from_array(output)
+    let actual_checksum = xxh32(result_bytes, 0U)
+    if actual_checksum != expected_checksum {
+      return None
+    }
+  }
+  Some(Bytes::from_array(output))
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -393,6 +678,127 @@ test "lz4: repetitive data" {
   assert_eq(decompressed.length(), input_bytes.length())
   for i = 0; i < input_bytes.length(); i = i + 1 {
     assert_eq(decompressed[i], input_bytes[i])
+  }
+}
+
+///|
+test "lz4 frame: empty data round-trip" {
+  let input = Bytes::make(0, b'\x00')
+  let compressed = frame_compress(input)
+  let decompressed = match frame_decompress(compressed) {
+    None => abort("frame decompression failed")
+    Some(d) => d
+  }
+  assert_eq(decompressed.length(), 0)
+}
+
+///|
+test "lz4 frame: short data round-trip" {
+  let input = Bytes::make(10, b'\x41')
+  let compressed = frame_compress(input)
+  // Verify magic number.
+  assert_eq(compressed[0], b'\x04')
+  assert_eq(compressed[1], b'\x22')
+  assert_eq(compressed[2], b'\x4D')
+  assert_eq(compressed[3], b'\x18')
+  let decompressed = match frame_decompress(compressed) {
+    None => abort("frame decompression failed")
+    Some(d) => d
+  }
+  assert_eq(decompressed.length(), input.length())
+  for i = 0; i < input.length(); i = i + 1 {
+    assert_eq(decompressed[i], input[i])
+  }
+}
+
+///|
+test "lz4 frame: repetitive data round-trip" {
+  let input = Bytes::make(5000, b'\x42')
+  let compressed = frame_compress(input)
+  // Compressed should be smaller.
+  assert_true(compressed.length() < input.length())
+  let decompressed = match frame_decompress(compressed) {
+    None => abort("frame decompression failed")
+    Some(d) => d
+  }
+  assert_eq(decompressed.length(), input.length())
+  for i = 0; i < input.length(); i = i + 1 {
+    assert_eq(decompressed[i], input[i])
+  }
+}
+
+///|
+test "lz4 frame: multi-block data round-trip" {
+  // Data larger than 64KB to test multi-block.
+  let arr : Array[Byte] = []
+  for r = 0; r < 100; r = r + 1 {
+    for i = 0; i < 256; i = i + 1 {
+      arr.push(i.to_byte())
+    }
+  }
+  let input = Bytes::from_array(arr)
+  let compressed = frame_compress(input)
+  let decompressed = match frame_decompress(compressed) {
+    None => abort("frame decompression failed")
+    Some(d) => d
+  }
+  assert_eq(decompressed.length(), input.length())
+  for i = 0; i < input.length(); i = i + 1 {
+    assert_eq(decompressed[i], input[i])
+  }
+}
+
+///|
+test "lz4 frame: corrupt magic returns None" {
+  let bad = Bytes::from_array([
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x70', b'\x40', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  ])
+  assert_true(frame_decompress(bad) is None)
+}
+
+///|
+test "lz4 frame: truncated returns None" {
+  let input = Bytes::make(10, b'\x41')
+  let compressed = frame_compress(input)
+  // Remove last 4 bytes (checksum).
+  let truncated = Bytes::from_array(
+    Array::makei(compressed.length() - 4, fn(i) { compressed[i] }),
+  )
+  assert_true(frame_decompress(truncated) is None)
+}
+
+///|
+test "lz4 frame: corrupt checksum returns None" {
+  let input = Bytes::make(10, b'\x41')
+  let compressed = frame_compress(input)
+  // Corrupt the content checksum (last 4 bytes).
+  let corrupt : Array[Byte] = []
+  for i = 0; i < compressed.length(); i = i + 1 {
+    if i == compressed.length() - 1 {
+      corrupt.push(b'\xFF')
+    } else {
+      corrupt.push(compressed[i])
+    }
+  }
+  assert_true(frame_decompress(Bytes::from_array(corrupt)) is None)
+}
+
+///|
+test "lz4 frame: binary data round-trip" {
+  let arr : Array[Byte] = []
+  for i = 0; i < 256; i = i + 1 {
+    arr.push(i.to_byte())
+  }
+  let input = Bytes::from_array(arr)
+  let compressed = frame_compress(input)
+  let decompressed = match frame_decompress(compressed) {
+    None => abort("frame decompression failed")
+    Some(d) => d
+  }
+  assert_eq(decompressed.length(), input.length())
+  for i = 0; i < input.length(); i = i + 1 {
+    assert_eq(decompressed[i], input[i])
   }
 }
 

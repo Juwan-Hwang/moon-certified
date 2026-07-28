@@ -161,20 +161,14 @@ test "sqrt_mod: p ≡ 3 (mod 4)" {
   // p = 7: QRs are 0,1,2,4. sqrt(2) mod 7 = 3 or 4 (3^2=9≡2, 4^2=16≡2)
   let r = sqrt_mod(2L, 7L)
   assert_true(r is Some(_))
-  match r {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, 7L), 2L)
-    None => abort("expected Some")
-  }
+  let x = @test_utils.expect_some(r, "sqrt_mod(2, 7) should succeed")
+  assert_eq(@int64_utils.mul_mod(x, x, 7L), 2L)
   // sqrt(1) mod 7 = 1 or 6.
-  match sqrt_mod(1L, 7L) {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, 7L), 1L)
-    None => abort("expected Some")
-  }
+  let x1 = @test_utils.expect_some(sqrt_mod(1L, 7L), "sqrt_mod(1, 7) should succeed")
+  assert_eq(@int64_utils.mul_mod(x1, x1, 7L), 1L)
   // sqrt(4) mod 7 = 2 or 5.
-  match sqrt_mod(4L, 7L) {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, 7L), 4L)
-    None => abort("expected Some")
-  }
+  let x2 = @test_utils.expect_some(sqrt_mod(4L, 7L), "sqrt_mod(4, 7) should succeed")
+  assert_eq(@int64_utils.mul_mod(x2, x2, 7L), 4L)
   // 3 is not a QR mod 7.
   assert_true(sqrt_mod(3L, 7L) is None)
 }
@@ -183,18 +177,14 @@ test "sqrt_mod: p ≡ 3 (mod 4)" {
 test "sqrt_mod: p ≡ 1 (mod 4)" {
   // p = 5: QRs are 0,1,4. sqrt(4) mod 5 = 2 or 3.
   let r = sqrt_mod(4L, 5L)
-  match r {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, 5L), 4L)
-    None => abort("expected Some")
-  }
+  let x = @test_utils.expect_some(r, "sqrt_mod(4, 5) should succeed")
+  assert_eq(@int64_utils.mul_mod(x, x, 5L), 4L)
   // 2 is not a QR mod 5.
   assert_true(sqrt_mod(2L, 5L) is None)
   // p = 13: QRs are 0,1,3,4,9,10,12.
   // sqrt(10) mod 13 = 6 or 7 (6^2=36≡10, 7^2=49≡10).
-  match sqrt_mod(10L, 13L) {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, 13L), 10L)
-    None => abort("expected Some")
-  }
+  let x2 = @test_utils.expect_some(sqrt_mod(10L, 13L), "sqrt_mod(10, 13) should succeed")
+  assert_eq(@int64_utils.mul_mod(x2, x2, 13L), 10L)
   // 2 is not a QR mod 13.
   assert_true(sqrt_mod(2L, 13L) is None)
 }
@@ -210,10 +200,8 @@ test "sqrt_mod: large prime" {
   // p = 1000000007 (prime, p ≡ 3 mod 4)
   let p = 1000000007L
   // 4 is a QR; sqrt(4) = 2 or p-2.
-  match sqrt_mod(4L, p) {
-    Some(x) => assert_eq(@int64_utils.mul_mod(x, x, p), 4L)
-    None => abort("expected Some")
-  }
+  let x = @test_utils.expect_some(sqrt_mod(4L, p), "sqrt_mod(4, 1000000007) should succeed")
+  assert_eq(@int64_utils.mul_mod(x, x, p), 4L)
 }
 
 ///|

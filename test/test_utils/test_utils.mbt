@@ -5,27 +5,36 @@
 /// test files) and are not part of the public algorithm library API.
 
 ///|
-/// Lexicographic string comparator: compares character-by-character, then
-/// by length. Returns a negative value when `a` precedes `b`, zero when
-/// equal, and a positive value when `a` follows `b`.
+/// Lexicographic string comparator — thin wrapper around `@utils.str_cmp`.
 ///
-/// MoonBit's default `Compare` for `String` uses shortlex (length-first)
-/// ordering, which differs from the standard lexicographic order that most
-/// algorithm tests expect. This function provides the conventional
-/// character-by-character comparison.
+/// Delegates to the canonical implementation in the `utils` package to
+/// avoid code duplication. See `@utils.str_cmp` for details.
 pub fn str_cmp(a : String, b : String) -> Int {
-  let la = a.length()
-  let lb = b.length()
-  let min = if la < lb { la } else { lb }
-  for k = 0; k < min; k = k + 1 {
-    let ca = a[k].to_int()
-    let cb = b[k].to_int()
-    if ca < cb {
-      return -1
-    }
-    if ca > cb {
-      return 1
-    }
+  @utils.str_cmp(a, b)
+}
+
+///|
+/// Unwrap an `Option`, failing the test with a descriptive assertion if it
+/// is `None`. Centralises the `match … { None => abort(…) }` pattern so
+/// that every test reports failures uniformly.
+///
+/// # Example
+/// ```moonbit
+/// let s = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
+/// ```
+pub fn[T] expect_some(opt : T?, context : String) -> T {
+  match opt {
+    Some(v) => v
+    None => abort("expect_some: expected Some but got None — " + context)
   }
-  la - lb
+}
+
+///|
+/// Assert that an `Option` is `None`, failing the test if it is `Some`.
+/// The dual of [`expect_some`].
+pub fn[T] expect_none(opt : T?, context : String) -> Unit {
+  match opt {
+    None => ()
+    Some(_) => abort("expect_none: expected None but got Some — " + context)
+  }
 }

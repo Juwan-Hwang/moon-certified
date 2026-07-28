@@ -6,6 +6,10 @@ pub fn compress(Bytes) -> Bytes
 
 pub fn decompress(Bytes, Int) -> Bytes?
 
+pub fn frame_compress(Bytes) -> Bytes
+
+pub fn frame_decompress(Bytes) -> Bytes?
+
 // Errors
 
 // Types and methods

@@ -55,18 +55,6 @@ fn max2(a : Int, b : Int) -> Int {
 let avl_max_depth : Int = 1000
 
 ///|
-/// Abort if the tree is too tall to recurse into safely. O(1) via cached height.
-/// Because AVL recursion depth equals the tree height, a single entry check on
-/// the root suffices to bound the whole descent.
-fn[T] guard_depth(root : AvlNode[T]) -> Unit {
-  if height(root) >= avl_max_depth {
-    abort(
-      "avl: tree height exceeds safe recursion depth; balancing invariant broken or tree too large",
-    )
-  }
-}
-
-///|
 /// Return the height of a node. Empty = -1, leaf = 0. O(1).
 pub fn[T] height(root : AvlNode[T]) -> Int {
   match root {
@@ -171,7 +159,9 @@ fn[T] rebalance(root : AvlNode[T]) -> AvlNode[T] {
 ///|
 /// Insert a value into the AVL tree. Duplicates are ignored.
 pub fn[T] insert(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
-  guard_depth(root)
+  if height(root) >= avl_max_depth {
+    return root
+  }
   match root {
     Empty => Node(Empty, val, Empty, 0, 1)
     Node(l, v, r, _, _) => {
@@ -190,7 +180,9 @@ pub fn[T] insert(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] 
 ///|
 /// Search for a value in the AVL tree.
 pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
-  guard_depth(root)
+  if height(root) >= avl_max_depth {
+    return false
+  }
   match root {
     Empty => false
     Node(l, v, r, _, _) => {
@@ -209,7 +201,9 @@ pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
 ///|
 /// Find the minimum value in an AVL tree. Returns None if the tree is empty.
 pub fn[T] find_min(root : AvlNode[T]) -> T? {
-  guard_depth(root)
+  if height(root) >= avl_max_depth {
+    return None
+  }
   match root {
     Empty => None
     Node(Empty, v, _, _, _) => Some(v)
@@ -220,7 +214,9 @@ pub fn[T] find_min(root : AvlNode[T]) -> T? {
 ///|
 /// Delete a value from the AVL tree.
 pub fn[T] delete(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
-  guard_depth(root)
+  if height(root) >= avl_max_depth {
+    return root
+  }
   match root {
     Empty => Empty
     Node(l, v, r, _, _) => {

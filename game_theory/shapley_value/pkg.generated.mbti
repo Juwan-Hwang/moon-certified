@@ -4,7 +4,7 @@ package "moon-certified/game_theory/shapley_value"
 // Values
 pub fn shapley_approximate((Int) -> Double, Int, Int, Int64) -> FixedArray[Double]
 
-pub fn shapley_exact((Int) -> Double, Int) -> FixedArray[Double]
+pub fn shapley_exact((Int) -> Double, Int, sample_count? : Int, seed? : Int64) -> FixedArray[Double]
 
 // Errors
 

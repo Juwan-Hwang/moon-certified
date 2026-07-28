@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/serialization/msgpack"
+
+// Values
+pub fn pack(MsgPack) -> Bytes
+
+pub fn pack_array(Array[MsgPack]) -> Bytes
+
+pub fn pack_bin(Bytes) -> Bytes
+
+pub fn pack_bool(Bool) -> Bytes
+
+pub fn pack_double(Double) -> Bytes
+
+pub fn pack_int64(Int64) -> Bytes
+
+pub fn pack_map(Array[(MsgPack, MsgPack)]) -> Bytes
+
+pub fn pack_nil() -> Bytes
+
+pub fn pack_str(String) -> Bytes
+
+pub fn unpack(Bytes) -> Result[MsgPack, String]
+
+// Errors
+
+// Types and methods
+pub enum MsgPack {
+  Nil
+  Bool(Bool)
+  Int(Int64)
+  UInt(UInt64)
+  Float64(Double)
+  Str(String)
+  Bin(Bytes)
+  Array(Array[MsgPack])
+  Map(Array[(MsgPack, MsgPack)])
+  Ext(Int, Bytes)
+}
+
+// Type aliases
+
+// Traits
+

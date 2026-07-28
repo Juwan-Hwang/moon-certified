@@ -4,7 +4,11 @@ package "moon-certified/compression/lzw"
 // Values
 pub fn compress(Bytes) -> Array[Int]
 
+pub fn compress_with_max_dict_size(Bytes, Int) -> Array[Int]
+
 pub fn decompress(Array[Int]) -> Bytes?
+
+pub fn decompress_with_max_dict_size(Array[Int], Int) -> Bytes?
 
 // Errors
 

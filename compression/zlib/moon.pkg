@@ -1,0 +1,8 @@
+import {
+  "moon-certified/compression/deflate",
+  "moon-certified/utils",
+}
+
+options(
+  "proof-enabled": false,
+)

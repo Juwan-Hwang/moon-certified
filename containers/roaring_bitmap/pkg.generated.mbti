@@ -4,6 +4,8 @@ package "moon-certified/containers/roaring_bitmap"
 // Values
 pub fn roaring_add(RoaringBitmap, UInt) -> Bool
 
+pub fn roaring_add_range(RoaringBitmap, UInt, UInt) -> Unit
+
 pub fn roaring_and(RoaringBitmap, RoaringBitmap) -> RoaringBitmap
 
 pub fn roaring_andnot(RoaringBitmap, RoaringBitmap) -> RoaringBitmap
@@ -27,6 +29,8 @@ pub fn roaring_iterate(RoaringBitmap, (UInt) -> Unit) -> Unit
 pub fn roaring_or(RoaringBitmap, RoaringBitmap) -> RoaringBitmap
 
 pub fn roaring_remove(RoaringBitmap, UInt) -> Bool
+
+pub fn roaring_run_optimize(RoaringBitmap) -> Unit
 
 pub fn roaring_to_array(RoaringBitmap) -> Array[UInt]
 

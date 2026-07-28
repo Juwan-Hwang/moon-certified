@@ -22,32 +22,18 @@ fn m_sqrt(x : Double) -> Double {
 
 ///|
 /// Standard normal PDF: φ(z) = (1/√(2π)) * e^{-z²/2}.
+/// Delegates to `@special_functions.normal_pdf` which includes underflow
+/// protection for large |z|.
 pub fn normal_pdf(z : Double) -> Double {
-  0.3989422804014327 * @math.exp(-0.5 * z * z)
+  @special_functions.normal_pdf(z)
 }
 
 ///|
 /// Standard normal CDF: Φ(z) = ∫_{-∞}^{z} φ(t) dt.
-/// Uses the Abramowitz and Stegun approximation (7.1.26).
+/// Delegates to `@special_functions.normal_cdf` which uses the exact
+/// erf-based formula Φ(z) = 0.5 * (1 + erf(z / √2)).
 pub fn normal_cdf(z : Double) -> Double {
-  if z < -8.0 {
-    return 0.0
-  }
-  if z > 8.0 {
-    return 1.0
-  }
-  let a1 = 0.254829592
-  let a2 = -0.284496736
-  let a3 = 1.421413741
-  let a4 = -1.453152027
-  let a5 = 1.061405429
-  let p = 0.3275911
-  let sign = if z < 0.0 { -1.0 } else { 1.0 }
-  let x = z.abs() / m_sqrt(2.0)
-  let t = 1.0 / (1.0 + p * x)
-  let y = 1.0 -
-    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * @math.exp(-x * x)
-  0.5 * (1.0 + sign * y)
+  @special_functions.normal_cdf(z)
 }
 
 ///|
@@ -174,23 +160,9 @@ fn log_beta(a : Double, b : Double) -> Double {
 
 ///|
 /// Lanczos approximation for log Γ(x).
+/// Delegates to `@special_functions.lgamma` to avoid code duplication.
 fn log_gamma(x : Double) -> Double {
-  if x < 0.5 {
-    return @math.ln(@math.PI / @math.sin(@math.PI * x)) - log_gamma(1.0 - x)
-  }
-  let g = 7.0
-  let c = [
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
-    -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6,
-    1.5056327351493116e-7,
-  ]
-  let x2 = x - 1.0
-  let mut a = c[0]
-  for i = 1; i < 9; i = i + 1 {
-    a = a + c[i] / (x2 + i.to_double())
-  }
-  let t = x2 + g + 0.5
-  0.5 * @math.ln(2.0 * @math.PI) + (x2 + 0.5) * @math.ln(t) - t + @math.ln(a)
+  @special_functions.lgamma(x)
 }
 
 // ---------------------------------------------------------------------------

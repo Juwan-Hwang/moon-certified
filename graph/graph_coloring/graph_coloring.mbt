@@ -37,8 +37,8 @@
 /// the vertex was not coloured. `num_colors` is the total number of distinct
 /// colours used.
 pub struct Coloring {
-  colors : FixedArray[Int]
-  num_colors : Int
+  priv colors : FixedArray[Int]
+  priv num_colors : Int
 }
 
 ///|
@@ -82,8 +82,15 @@ pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
   let colors = FixedArray::make(n, -1)
   // Saturation degree: number of distinct colours among neighbours.
   let saturation = FixedArray::make(n, 0)
-  // Track which colours are present among each vertex's neighbours (bitset).
-  let neighbor_colors = FixedArray::make(n, 0) // bit i set → colour i used by a neighbour
+  // Track which colours are present among each vertex's neighbours.
+  // Use Array[Bool] instead of Int bitset to support arbitrary colour counts
+  // (Int bitset overflows at 31 colours).
+  // NOTE: Must create independent arrays — Array::make(n, []) would share
+  // one mutable array across all vertices.
+  let neighbor_colors : Array[Array[Bool]] = []
+  for i = 0; i < n; i = i + 1 {
+    neighbor_colors.push([])
+  }
 
   let mut num_colors = 0
 
@@ -108,22 +115,25 @@ pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
       break
     }
     // Find the smallest colour not used by any neighbour.
-    let mut used = neighbor_colors[best_v]
+    let nc = neighbor_colors[best_v]
     let mut c = 0
-    while (used & 1) != 0 {
-      used = used >> 1
+    while c < nc.length() && nc[c] {
       c = c + 1
     }
     colors[best_v] = c
     if c + 1 > num_colors {
       num_colors = c + 1
     }
-    // Update neighbours' saturation and neighbour_colors bitset.
+    // Update neighbours' saturation and neighbour_colors.
     for idx = 0; idx < adj[best_v].length(); idx = idx + 1 {
       let u = adj[best_v][idx]
-      let bit = 1 << c
-      if (neighbor_colors[u] & bit) == 0 {
-        neighbor_colors[u] = neighbor_colors[u] | bit
+      let ncu = neighbor_colors[u]
+      // Grow the array if needed.
+      while ncu.length() <= c {
+        ncu.push(false)
+      }
+      if !ncu[c] {
+        ncu[c] = true
         saturation[u] = saturation[u] + 1
       }
     }

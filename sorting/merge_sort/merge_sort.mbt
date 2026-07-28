@@ -41,35 +41,45 @@ fn[T] merge(
 }
 
 ///|
-/// Recursive merge sort helper.
-fn[T] merge_sort_range(
+/// Bottom-up (iterative) merge sort — no recursion, so no stack-overflow
+/// risk on large inputs. Starts with sub-arrays of width 1 and doubles
+/// the width on each pass, merging adjacent pairs.
+fn[T] merge_sort_iterative(
   xs : FixedArray[T],
   buf : FixedArray[T],
-  lo : Int,
-  hi : Int,
+  n : Int,
   cmp : (T, T) -> Int,
 ) -> Unit {
-  if hi - lo <= 1 {
-    return
+  let mut width = 1
+  while width < n {
+    let mut i = 0
+    while i < n {
+      let lo = i
+      let mid = if i + width < n { i + width } else { n }
+      let hi = if i + 2 * width < n { i + 2 * width } else { n }
+      if mid < hi {
+        merge(xs, buf, lo, mid, hi, cmp)
+      }
+      i = i + 2 * width
+    }
+    width = width * 2
   }
-  let mid = lo + (hi - lo) / 2
-  merge_sort_range(xs, buf, lo, mid, cmp)
-  merge_sort_range(xs, buf, mid, hi, cmp)
-  merge(xs, buf, lo, mid, hi, cmp)
 }
 
 ///|
 /// Top-level merge sort. Sorts the entire array in ascending order
-/// according to the provided comparator.
+/// according to the provided comparator. Uses an iterative bottom-up
+/// approach to avoid stack overflow on large inputs.
 pub fn[T] merge_sort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
     return
   }
-  // Safe: n >= 2 here, so xs[0] exists. The buffer is overwritten
-  // by merge before being read, so the initial value doesn't matter.
-  let buf : FixedArray[T] = FixedArray::make(n, xs[0])
-  merge_sort_range(xs, buf, 0, n, cmp)
+  // Use makei to avoid creating n copies of xs[0] (wasteful for reference
+  // types). The buffer is overwritten by merge before being read, so the
+  // initial values are irrelevant — but makei avoids the redundant copy.
+  let buf : FixedArray[T] = FixedArray::makei(n, fn(i) { xs[i] })
+  merge_sort_iterative(xs, buf, n, cmp)
 }
 
 ///|

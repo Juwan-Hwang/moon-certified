@@ -1,5 +1,6 @@
 import {
   "moon-certified/number_theory/int64_utils",
+  "moon-certified/test/test_utils",
 }
 
 options(

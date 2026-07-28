@@ -62,13 +62,12 @@
 /// sites with real atomic CAS — the public API and algorithm structure
 /// stay identical.
 ///
-/// ## Real concurrency today: `@async.Mutex`
+/// ## Real concurrency today: spin mutex
 ///
 /// For code that needs **actual mutual exclusion** in MoonBit's current
-/// async runtime, use the `@async.Mutex` from the `moonbitlang/async`
-/// package. See the `containers/concurrent` module's `AsyncQueue[T]` for
-/// a production-grade mutex-protected queue that works with MoonBit's
-/// cooperative async scheduler.
+/// cooperative runtime, use the spin mutex from the `containers/concurrent`
+/// module's `AsyncQueue[T]` for a production-grade mutex-protected queue
+/// that works with MoonBit's cooperative scheduler.
 ///
 /// ## Bounded capacity (production optimisation)
 ///
@@ -288,6 +287,28 @@ pub fn[T] lock_free_queue_capacity(q : LockFreeQueue[T]) -> Int {
 /// - a failed `enqueue` (full) or `dequeue` (empty) performs 0 CAS.
 pub fn[T] lock_free_queue_cas_count(q : LockFreeQueue[T]) -> Int {
   q.cas_count
+}
+
+// ---------------------------------------------------------------------------
+// Unified API aliases
+// ---------------------------------------------------------------------------
+
+///|
+/// Alias for `lock_free_queue_enqueue` — unified `push` naming.
+///
+/// The `containers/` directory uses a mix of `push`/`pop` (RingBuffer,
+/// TreiberStack) and `enqueue`/`dequeue` (LockFreeQueue, MPMCQueue).
+/// This alias allows callers to use `push`/`pop` uniformly across all
+/// queue types. The `enqueue`/`dequeue` names are retained for backward
+/// compatibility and algorithm-specific documentation.
+pub fn[T] lock_free_queue_push(q : LockFreeQueue[T], item : T) -> Bool {
+  lock_free_queue_enqueue(q, item)
+}
+
+///|
+/// Alias for `lock_free_queue_dequeue` — unified `pop` naming.
+pub fn[T] lock_free_queue_pop(q : LockFreeQueue[T]) -> T? {
+  lock_free_queue_dequeue(q)
 }
 
 // ---------------------------------------------------------------------------

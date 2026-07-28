@@ -6,11 +6,23 @@ pub fn compile(String) -> Regex?
 
 pub fn find(Regex, String) -> (Int, Int)?
 
+pub fn find_captures(Regex, String) -> CaptureMatch?
+
+pub fn group(CaptureMatch, Int) -> (Int, Int)?
+
+pub fn group_count(Regex) -> Int
+
 pub fn is_match(Regex, String) -> Bool
 
 // Errors
 
 // Types and methods
+pub struct CaptureMatch {
+  start : Int
+  end : Int
+  groups : Array[(Int, Int)?]
+}
+
 pub struct Regex {
   // private fields
 }

@@ -69,23 +69,40 @@ fn sm_next_int(rng : SMRng, max_exclusive : Int) -> Int {
 ///|
 /// Compute the exact Shapley value for `n` players.
 ///
+/// For `n ≤ 20` the value is computed exactly via bitmask DP. For `n > 20`
+/// the exact computation is infeasible, so the call transparently falls back
+/// to the Monte Carlo approximation (`shapley_approximate`); the sample count
+/// and PRNG seed of that fallback are configurable via the optional parameters
+/// below (sensible defaults are used when omitted).
+///
 /// # Parameters
 /// - `v`: characteristic function mapping a coalition (bitmask) to its worth.
 ///   Coalition `0` (empty set) should have value `0`.
-/// - `n`: number of players. Must be ≤ 20 for practical runtime.
+/// - `n`: number of players. For `n > 20` the Monte Carlo fallback is used.
+/// - `sample_count`: (optional, default `100000`) number of random
+///   permutations sampled by the Monte Carlo fallback. Ignored when
+///   `n ≤ 20`. Larger values reduce variance at linear cost.
+/// - `seed`: (optional, default `12345`) PRNG seed for the Monte Carlo
+///   fallback, making results reproducible. Ignored when `n ≤ 20`.
 ///
 /// # Returns
 /// Array of `n` doubles — the Shapley value of each player.
 ///
 /// # Complexity
-/// O(2^n × n) time, O(2^n) space.
-pub fn shapley_exact(v : (Int) -> Double, n : Int) -> FixedArray[Double] {
+/// O(2^n × n) time, O(2^n) space for `n ≤ 20`; O(sample_count × n) for the
+/// `n > 20` Monte Carlo fallback.
+pub fn shapley_exact(
+  v : (Int) -> Double,
+  n : Int,
+  sample_count? : Int = 100000,
+  seed? : Int64 = 12345L,
+) -> FixedArray[Double] {
   if n <= 0 {
     return FixedArray::make(0, 0.0)
   }
   if n > 20 {
     // Fall back to Monte Carlo for large n.
-    return shapley_approximate(v, n, 100000, 12345L)
+    return shapley_approximate(v, n, sample_count, seed)
   }
   let total = 1 << n
   // Precompute factorials.

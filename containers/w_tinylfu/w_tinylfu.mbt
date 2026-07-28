@@ -45,28 +45,32 @@ const SEG_PROTECTED : Int = 2
 
 ///|
 /// A W-TinyLFU cache with `Int` keys and `Int` values.
+///
+/// All fields are `priv`: external code interacts with the cache exclusively
+/// through its public functions (`new`, `get`, `put`, `size`), which preserves
+/// the segment-occupancy and frequency-sketch invariants.
 pub struct WTinyLFU {
   /// Node pool: parallel arrays indexed by node id.
-  keys : Array[Int]
-  vals : Array[Int]
-  prevs : Array[Int] // -1 = no predecessor (head)
-  nexts : Array[Int] // -1 = no successor (tail)
-  segs : Array[Int] // which segment a node belongs to
-  free : Array[Int] // recycled node indices for reuse
+  priv keys : Array[Int]
+  priv vals : Array[Int]
+  priv prevs : Array[Int] // -1 = no predecessor (head)
+  priv nexts : Array[Int] // -1 = no successor (tail)
+  priv segs : Array[Int] // which segment a node belongs to
+  priv free : Array[Int] // recycled node indices for reuse
   /// Per-segment head / tail / count, indexed by SEG_*.
-  heads : Array[Int] // -1 = segment empty
-  tails : Array[Int]
-  counts : Array[Int]
+  priv heads : Array[Int] // -1 = segment empty
+  priv tails : Array[Int]
+  priv counts : Array[Int]
   /// Key → node index, for O(1) amortized lookup.
-  index : @hash_table.HashTable[Int, Int]
+  priv index : @hash_table.HashTable[Int, Int]
   /// Count-Min Sketch frequency table.
-  freq : FixedArray[FixedArray[Int]]
-  freq_width : Int
-  freq_depth : Int
-  mut total_adds : Int
-  sample_size : Int
+  priv freq : FixedArray[FixedArray[Int]]
+  priv freq_width : Int
+  priv freq_depth : Int
+  priv mut total_adds : Int
+  priv sample_size : Int
   /// Per-segment capacities, indexed by SEG_*.
-  caps : Array[Int]
+  priv caps : Array[Int]
 }
 
 // ---------------------------------------------------------------------------

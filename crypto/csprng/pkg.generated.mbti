@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/csprng"
+
+// Values
+pub fn generate(DrbgState, Int, Bytes) -> Bytes?
+
+pub fn generate_below(DrbgState, Int) -> Int?
+
+pub fn instantiate(Bytes, Bytes, Bytes) -> DrbgState
+
+pub fn reseed(DrbgState, Bytes, Bytes) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct DrbgState {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

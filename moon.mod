@@ -17,10 +17,6 @@ keywords = [
   "partially-verified",
 ]
 
-import {
-  "moonbitlang/async@0.20.3",
-}
-
 options(
   homepage: "https://github.com/Juwan-Hwang/moon-certified",
   documentation: "https://github.com/Juwan-Hwang/moon-certified/blob/main/README.md",

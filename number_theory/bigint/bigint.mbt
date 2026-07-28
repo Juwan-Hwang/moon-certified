@@ -397,7 +397,24 @@ fn copy_array(a : Array[UInt]) -> Array[UInt] {
 }
 
 ///|
-/// Multi-limb long division using Knuth's Algorithm D (simplified).
+/// Multi-limb long division using a complete implementation of Knuth's
+/// Algorithm D (TAOCP Vol. 2, §4.3.1, Theorem B). This is *not* a
+/// simplified variant — it performs every stage of the algorithm:
+///   1. Normalisation — shift the divisor and dividend left so the
+///      divisor's top limb has its high bit set, which bounds the
+///      quotient-digit estimate to at most 2 too large.
+///   2. Quotient-digit estimation — form `q_hat` from the top two
+///      dividend limbs and the top divisor limb.
+///   3. Refinement — use the next-to-top divisor limb to correct `q_hat`
+///      downward so it is at most 1 too large.
+///   4. Multiply-subtract — subtract `q_hat * divisor` from the current
+///      dividend window limb-by-limb, propagating borrow and carry.
+///   5. Add-back — if step 4 underflows, `q_hat` was 1 too large;
+///      decrement it and add the divisor back once.
+/// The remainder is finally unnormalised (shifted right by the same
+/// amount). Large-operand multiplication elsewhere in this module uses
+/// Karatsuba (`umul_karatsuba`); the multiply-subtract step here uses
+/// direct scalar arithmetic.
 /// Returns (quotient, remainder).
 fn long_division(
   dividend : Array[UInt],

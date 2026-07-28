@@ -129,9 +129,10 @@ let rng_seed : Int = 0x1A2B3C4D
 
 ///|
 /// Advance the LCG one step from `state` and return the new non-negative
-/// state, which doubles as the next node's priority.
+/// state, which doubles as the next node's priority. Delegates to
+/// `@utils.lcg_next` to avoid duplicating LCG constants.
 fn next_priority(state : Int) -> Int {
-  (state * 1103515245 + 12345) & 0x7FFFFFFF
+  @utils.lcg_next(state)
 }
 
 ///|
@@ -693,9 +694,11 @@ test "treap: delete root" {
     tree = insert(tree, k, fn(a, b) { a - b })
   }
   // Deleting the current root key still yields a valid treap.
+  // Tree has 7 nodes inserted; root must exist.
+  assert_true(tree.root is Node(_, _, _, _, _))
   let root_key = match tree.root {
     Node(_, k, _, _, _) => k
-    Empty => abort("unreachable: non-empty tree")
+    Empty => 0 // Unreachable: assertion above guarantees non-empty.
   }
   let t2 = delete(tree, root_key, fn(a, b) { a - b })
   assert_false(search(t2, root_key, fn(a, b) { a - b }))

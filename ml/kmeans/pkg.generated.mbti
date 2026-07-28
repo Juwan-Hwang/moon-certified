@@ -2,15 +2,17 @@
 package "moon-certified/ml/kmeans"
 
 // Values
-pub fn kmeans(Array[(Double, Double)], Int, Int) -> KMeansResult
+pub fn kmeans(Array[Array[Double]], Int, Int) -> KMeansResult
 
-pub fn kmeans_with_seed(Array[(Double, Double)], Int, Int, Int) -> KMeansResult
+pub fn kmeans_with_seed(Array[Array[Double]], Int, Int, Int) -> KMeansResult
+
+pub fn point2d(Double, Double) -> Array[Double]
 
 // Errors
 
 // Types and methods
 pub struct KMeansResult {
-  centroids : Array[(Double, Double)]
+  centroids : Array[Array[Double]]
   assignments : Array[Int]
 }
 

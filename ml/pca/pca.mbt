@@ -59,16 +59,6 @@ let pca_init_min_norm : Double = 1.0e-12
 // ---------------------------------------------------------------------------
 
 ///|
-/// LCG multiplier and increment (≡ 1 mod 4 / odd) with a 31-bit mask, giving
-/// a full-period generator mod 2³¹ (Hull-Dobell). Reused verbatim by
-/// `fisher_yates`, `reservoir_sampling` and `kmeans`, so every PCA run is
-/// bit-for-bit reproducible.
-let pca_lcg_a : Int = 1103515245
-
-///|
-let pca_lcg_c : Int = 12345
-
-///|
 /// Reproducible default seed (matches `kmeans`).
 let pca_default_seed : Int = 0x1A2B3C4D
 
@@ -90,7 +80,7 @@ fn Rng::new(seed : Int) -> Rng {
 ///|
 /// Advance one step; the 31-bit mask keeps the recurrence correct mod 2³¹.
 fn Rng::next(self : Rng) -> Int {
-  self.state = (self.state * pca_lcg_a + pca_lcg_c) & 0x7FFFFFFF
+  self.state = @utils.lcg_next(self.state)
   self.state
 }
 

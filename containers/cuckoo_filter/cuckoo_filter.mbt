@@ -91,15 +91,6 @@ const CF_FP_SEED : Int = 0x1b873593
 const CF_MIX : Int = 0x45d9f3b
 
 ///|
-/// LCG multiplier (≡ 1 mod 4) and increment (odd); with the `& 0x7FFFFFFF`
-/// mask they form a full-period generator mod `2^31`. Shared with the
-/// reservoir sampler and treap elsewhere in this collection.
-const CF_LCG_A : Int = 1103515245
-
-///|
-const CF_LCG_C : Int = 12345
-
-///|
 /// Fixed LCG seed so every default filter behaves deterministically and
 /// independently of test execution order.
 const CF_RNG_SEED : Int = 0x1A2B3C4D
@@ -198,7 +189,7 @@ fn alt_index(i : Int, f : Int, capacity : Int) -> Int {
 /// avoiding the poor low-bit correlations of an LCG. The `Int64` intermediate
 /// prevents `state * m` from overflowing 32-bit `Int` for large `m`.
 fn rand_below(cf : CuckooFilter, m : Int) -> Int {
-  cf.rng = (cf.rng * CF_LCG_A + CF_LCG_C) & 0x7FFFFFFF
+  cf.rng = @utils.lcg_next(cf.rng)
   ((cf.rng.to_int64() * m.to_int64()) >> 31).to_int()
 }
 

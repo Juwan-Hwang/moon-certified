@@ -16,6 +16,10 @@ pub fn[T] lock_free_queue_is_full(LockFreeQueue[T]) -> Bool
 
 pub fn[T] lock_free_queue_new(Int) -> LockFreeQueue[T]
 
+pub fn[T] lock_free_queue_pop(LockFreeQueue[T]) -> T?
+
+pub fn[T] lock_free_queue_push(LockFreeQueue[T], T) -> Bool
+
 pub fn[T] lock_free_queue_size(LockFreeQueue[T]) -> Int
 
 // Errors

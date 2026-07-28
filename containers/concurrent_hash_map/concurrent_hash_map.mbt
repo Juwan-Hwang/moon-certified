@@ -2,10 +2,23 @@
 /// Concurrent Hash Map — Open Addressing (Single-Threaded Simulation).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
+
+/// Slot state: empty (no key has ever been inserted here).
+const SLOT_EMPTY : Int = 0
+
+/// Slot state: occupied (holds a valid key-value pair).
+const SLOT_OCCUPIED : Int = 1
+
+/// Slot state: tombstone (was occupied, now deleted).
+const SLOT_TOMBSTONE : Int = 2
+
+///|
+/// A hash table slot. Fields are private to prevent external mutation
+/// that could break the open-addressing invariants.
 pub struct Slot[K, V] {
-  mut key : K?
-  mut value : V?
-  mut state : Int
+  priv mut key : K?
+  priv mut value : V?
+  priv mut state : Int
 }
 
 ///|
@@ -45,18 +58,18 @@ fn[K, V] ConcurrentHashMap::find_slot(
   let mut first_tombstone = -1
   for _ in 0..<self.capacity {
     let slot = self.slots[idx]
-    if slot.state == 0 {
+    if slot.state == SLOT_EMPTY {
       if first_tombstone >= 0 {
         return (first_tombstone, false)
       }
       return (idx, false)
     }
-    if slot.state == 1 {
+    if slot.state == SLOT_OCCUPIED {
       match slot.key {
         Some(k) => if (self.eq_fn)(k, key) { return (idx, true) }
         None => ()
       }
-    } else if slot.state == 2 && first_tombstone < 0 {
+    } else if slot.state == SLOT_TOMBSTONE && first_tombstone < 0 {
       first_tombstone = idx
     }
     idx = (idx + 1) & mask
@@ -84,11 +97,11 @@ pub fn[K, V] ConcurrentHashMap::put(
     }
     let slot = self.slots[idx]
     if !found {
-      if slot.state != 1 {
+      if slot.state != SLOT_OCCUPIED {
         self.used = self.used + 1
       }
       slot.key = Some(key)
-      slot.state = 1
+      slot.state = SLOT_OCCUPIED
       self.size = self.size + 1
     }
     slot.value = Some(value)
@@ -121,7 +134,7 @@ pub fn[K, V] ConcurrentHashMap::remove(
     return false
   }
   let slot = self.slots[idx]
-  slot.state = 2
+  slot.state = SLOT_TOMBSTONE
   slot.key = None
   slot.value = None
   self.size = self.size - 1
@@ -155,7 +168,7 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   // Re-insert directly (not via put, to avoid recursive resize).
   for i = 0; i < old_cap; i = i + 1 {
     let slot = old_slots[i]
-    if slot.state == 1 {
+    if slot.state == SLOT_OCCUPIED {
       match slot.key {
         Some(k) =>
           match slot.value {
@@ -168,13 +181,13 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
                 idx = idx + new_cap
               }
               // Linear probe for an empty slot.
-              while self.slots[idx].state == 1 {
+              while self.slots[idx].state == SLOT_OCCUPIED {
                 idx = (idx + 1) & mask
               }
               let new_slot = self.slots[idx]
               new_slot.key = Some(k)
               new_slot.value = Some(v)
-              new_slot.state = 1
+              new_slot.state = SLOT_OCCUPIED
               self.size = self.size + 1
               self.used = self.used + 1
             }

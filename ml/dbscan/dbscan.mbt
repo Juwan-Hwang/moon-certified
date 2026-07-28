@@ -195,6 +195,227 @@ pub fn dbscan(
 }
 
 // ---------------------------------------------------------------------------
+// KD-Tree accelerated DBSCAN (for larger datasets)
+// ---------------------------------------------------------------------------
+
+///|
+/// KD-Tree node for DBSCAN range queries.
+///
+/// Supports `Array[Double]` vectors of arbitrary dimension. Unlike the
+/// `geometry/kd_tree` module which is 2D/`Int`-only.
+priv enum DBSKDTNode {
+  DBSKDTEmpty
+  DBSKDTNode(DBSKDTNode, Int, Int, DBSKDTNode)
+  // (left, point_index, axis, right)
+}
+
+///|
+/// Build a KD-Tree from DBSCAN points for accelerated range queries.
+fn dbscan_build_kdtree(
+  points : Array[DBSCANPoint],
+  indices : Array[Int],
+  lo : Int,
+  hi : Int,
+  depth : Int,
+  dims : Int,
+) -> DBSKDTNode {
+  if lo >= hi {
+    return DBSKDTEmpty
+  }
+  let axis = depth % dims
+  let mid = lo + (hi - lo) / 2
+  // Quickselect to find median along axis.
+  dbscan_quickselect(points, indices, lo, hi - 1, mid, axis)
+  DBSKDTNode(
+    dbscan_build_kdtree(points, indices, lo, mid, depth + 1, dims),
+    indices[mid],
+    axis,
+    dbscan_build_kdtree(points, indices, mid + 1, hi, depth + 1, dims),
+  )
+}
+
+///|
+/// Partition the index array so the median element is at position k.
+fn dbscan_quickselect(
+  points : Array[DBSCANPoint],
+  indices : Array[Int],
+  lo : Int,
+  hi : Int,
+  k : Int,
+  axis : Int,
+) -> Unit {
+  if lo >= hi {
+    return
+  }
+  let pivot_idx = indices[hi]
+  let pivot_val = if pivot_idx < points.length() &&
+    axis < points[pivot_idx].coords.length() {
+    points[pivot_idx].coords[axis]
+  } else {
+    0.0
+  }
+  let mut i = lo
+  for j = lo; j < hi; j = j + 1 {
+    let idx = indices[j]
+    let val = if idx < points.length() &&
+      axis < points[idx].coords.length() {
+      points[idx].coords[axis]
+    } else {
+      0.0
+    }
+    if val < pivot_val {
+      let tmp = indices[i]
+      indices[i] = indices[j]
+      indices[j] = tmp
+      i = i + 1
+    }
+  }
+  indices[hi] = indices[i]
+  indices[i] = pivot_idx
+  if i < k {
+    dbscan_quickselect(points, indices, i + 1, hi, k, axis)
+  } else if i > k {
+    dbscan_quickselect(points, indices, lo, i - 1, k, axis)
+  }
+}
+
+///|
+/// Range query: find all point indices within `eps_sq` of `points[center_idx]`.
+/// Uses the KD-Tree for pruning, achieving O(log n + k) average where k is
+/// the number of neighbours found.
+fn dbscan_kdtree_range_query(
+  node : DBSKDTNode,
+  points : Array[DBSCANPoint],
+  center_idx : Int,
+  eps_sq : Double,
+  result : Array[Int],
+) -> Unit {
+  match node {
+    DBSKDTEmpty => ()
+    DBSKDTNode(left, pt_idx, axis, right) => {
+      let dist = dbscan_sq_dist(
+        points[center_idx].coords,
+        points[pt_idx].coords,
+      )
+      if dist <= eps_sq {
+        result.push(pt_idx)
+      }
+      // Determine which subtree to search first.
+      let center_coords = points[center_idx].coords
+      let pt_coords = points[pt_idx].coords
+      let diff = if center_coords.length() > axis &&
+        pt_coords.length() > axis {
+        center_coords[axis] - pt_coords[axis]
+      } else {
+        0.0
+      }
+      let (near, far) = if diff < 0.0 {
+        (left, right)
+      } else {
+        (right, left)
+      }
+      // Always search the near subtree.
+      dbscan_kdtree_range_query(near, points, center_idx, eps_sq, result)
+      // Only search the far subtree if the hypersphere crosses the splitting plane.
+      if diff * diff <= eps_sq {
+        dbscan_kdtree_range_query(far, points, center_idx, eps_sq, result)
+      }
+    }
+  }
+}
+
+///|
+/// Cluster `points` with DBSCAN using a KD-Tree for accelerated range queries.
+///
+/// Builds a KD-Tree (O(n log n)) from the input points and uses it for
+/// ε-neighbourhood queries, achieving O(n log n) average time complexity
+/// instead of the O(n²) brute-force approach.
+///
+/// For small datasets (≤ 64 points), falls back to the brute-force `dbscan`
+/// because the tree-building overhead exceeds the brute-force cost.
+///
+/// The result is identical to `dbscan` for the same inputs — the KD-Tree
+/// only affects performance, not correctness.
+pub fn dbscan_fast(
+  points : Array[DBSCANPoint],
+  eps : Double,
+  min_pts : Int,
+) -> Array[Array[Int]] {
+  let n = points.length()
+  if n == 0 {
+    return []
+  }
+  // For small datasets, brute force is faster.
+  if n <= 64 {
+    return dbscan(points, eps, min_pts)
+  }
+  let eps_sq = eps * eps
+  let mp = if min_pts < 1 { 1 } else { min_pts }
+  // Determine dimensionality.
+  let dims = if n > 0 { points[0].coords.length() } else { 1 }
+  if dims == 0 {
+    return []
+  }
+  // Build KD-Tree.
+  let indices = Array::make(n, 0)
+  for i = 0; i < n; i = i + 1 {
+    indices[i] = i
+  }
+  let tree = dbscan_build_kdtree(points, indices, 0, n, 0, dims)
+  // DBSCAN main loop with KD-Tree range queries.
+  let label = Array::make(n, -1)
+  let clusters : Array[Array[Int]] = []
+  let mut cid = 0
+  for p = 0; p < n; p = p + 1 {
+    if label[p] != -1 {
+      continue
+    }
+    let nbrs : Array[Int] = []
+    dbscan_kdtree_range_query(tree, points, p, eps_sq, nbrs)
+    if nbrs.length() < mp {
+      label[p] = 0
+      continue
+    }
+    cid = cid + 1
+    label[p] = cid
+    let cluster : Array[Int] = [points[p].id]
+    let queue : Array[Int] = []
+    for k = 0; k < nbrs.length(); k = k + 1 {
+      if nbrs[k] != p {
+        queue.push(nbrs[k])
+      }
+    }
+    let mut head = 0
+    while head < queue.length() {
+      let q = queue[head]
+      head = head + 1
+      if label[q] == cid {
+        continue
+      }
+      if label[q] == 0 {
+        label[q] = cid
+        cluster.push(points[q].id)
+        continue
+      }
+      label[q] = cid
+      cluster.push(points[q].id)
+      let qn : Array[Int] = []
+      dbscan_kdtree_range_query(tree, points, q, eps_sq, qn)
+      if qn.length() >= mp {
+        for k = 0; k < qn.length(); k = k + 1 {
+          let r = qn[k]
+          if label[r] != cid {
+            queue.push(r)
+          }
+        }
+      }
+    }
+    clusters.push(cluster)
+  }
+  clusters
+}
+
+// ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 

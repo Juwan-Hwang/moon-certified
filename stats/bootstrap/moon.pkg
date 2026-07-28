@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/math",
+  "moonbitlang/core/double",
+  "moon-certified/utils",
+  "moon-certified/stats/descriptive",
+}
+
+options(
+  "proof-enabled": false,
+)

@@ -245,32 +245,30 @@ test "diameter_sq: vs brute force" {
 
 ///|
 test "diameter_sq: large polygon vs brute force" {
-  // 20-point convex polygon (approximate circle).
+  // 20-point convex polygon approximating a circle of radius 100.
+  // Uses trigonometric functions (not polynomial approximation) to
+  // generate points on a circle, then rounds to integer coordinates.
   let hull : Array[@geometry_utils.Point] = []
-  let radius = 100
+  let radius = 100.0
   for i = 0; i < 20; i = i + 1 {
-    // Generate points on a circle (approximated with integer coords).
-    let angle = i * 18 // degrees, simplified
-    let x = radius * (angle * angle / 100 - 3600 / 100 + 100) / 100
-    let y = radius * (angle - 90) / 100 + 50
+    let theta = 2.0 * 3.14159265358979323846 * i.to_double() / 20.0
+    let x = (radius * @math.cos(theta)).to_int()
+    let y = (radius * @math.sin(theta)).to_int()
     hull.push(point(x, y))
   }
-  // This test may not produce a convex hull, so just verify diameter_sq
-  // returns a non-negative value. For a proper test, we need a convex hull.
-  // Let's use a known convex polygon instead.
-  let hull2 = [
-    point(0, 0),
-    point(50, 0),
-    point(100, 0),
-    point(100, 50),
-    point(100, 100),
-    point(50, 100),
-    point(0, 100),
-    point(0, 50),
-  ]
-  let result = diameter_sq(hull2)
-  // For a 100×100 square, diameter = 100√2, sq = 20000.
-  assert_eq(result, 20000L)
+  // The points are in CCW order (angles increasing from 0 to 2π).
+  let result = diameter_sq(hull)
+  // Brute force: check all pairs.
+  let mut best = 0L
+  for i = 0; i < 20; i = i + 1 {
+    for j = i + 1; j < 20; j = j + 1 {
+      let d = @geometry_utils.dist2(hull[i], hull[j])
+      if d > best {
+        best = d
+      }
+    }
+  }
+  assert_eq(result, best)
 }
 
 ///|

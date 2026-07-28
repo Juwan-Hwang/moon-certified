@@ -10,6 +10,8 @@ pub fn c_conj(Complex) -> Complex
 
 pub fn c_div(Complex, Complex) -> Complex
 
+pub fn c_div_safe(Complex, Complex) -> Complex?
+
 pub fn c_mul(Complex, Complex) -> Complex
 
 pub fn c_sub(Complex, Complex) -> Complex

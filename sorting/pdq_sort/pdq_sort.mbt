@@ -391,7 +391,7 @@ test "pdq_sort: large random" {
   let arr : Array[Int] = []
   let mut seed = 12345
   for i = 0; i < 500; i = i + 1 {
-    seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+    seed = @utils.lcg_next(seed)
     arr.push(seed % 1000)
   }
   pdq_sort_int(arr)

@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/stats/confidence_interval"
+
+// Values
+pub fn mean_ci(Array[Double], Double) -> (Double, Double)
+
+pub fn mean_ci_95(Array[Double]) -> (Double, Double)
+
+pub fn mean_ci_99(Array[Double]) -> (Double, Double)
+
+pub fn mean_difference_ci(Array[Double], Array[Double], Double) -> (Double, Double)
+
+pub fn proportion_ci(Int, Int, Double) -> (Double, Double)
+
+pub fn variance_ci(Array[Double], Double) -> (Double, Double)
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

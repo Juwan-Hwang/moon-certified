@@ -169,6 +169,34 @@ pub fn xorshift64_next(state : Int64) -> Int64 {
 }
 
 // ---------------------------------------------------------------------------
+// Simple LCG (for internal use by treap, skip list, k-means, etc.)
+// ---------------------------------------------------------------------------
+
+///|
+/// LCG multiplier constant (glibc / ANSI C).
+const LCG_A : Int = 1103515245
+
+///|
+/// LCG increment constant (glibc / ANSI C).
+const LCG_C : Int = 12345
+
+///|
+/// One step of a simple 31-bit LCG (Linear Congruential Generator).
+///
+/// Uses the glibc constants `a = 1103515245`, `c = 12345` with modulus
+/// `2^31` (applied via `& 0x7FFFFFFF`). The output is a non-negative `Int`
+/// in `[0, 2^31)`.
+///
+/// This is **not** cryptographically secure — it exists to provide a
+/// lightweight, deterministic pseudo-random source for data structures
+/// that need well-spread values (treap priorities, skip-list levels,
+/// k-means initialisation) without depending on a full PRNG package.
+/// Callers store the returned state back into their field.
+pub fn lcg_next(state : Int) -> Int {
+  (state * LCG_A + LCG_C) & 0x7FFFFFFF
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 

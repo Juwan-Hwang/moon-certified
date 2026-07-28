@@ -70,7 +70,12 @@ pub struct EulerResult {
 ///|
 /// Compute in-degree and out-degree for each vertex.
 ///
-/// Returns `(in_deg, out_deg)` as a pair of `FixedArray[Int]`.
+/// Returns `(in_deg, out_deg)` as a pair of `FixedArray[Int]`. Only **valid**
+/// neighbours (`0 <= v < n`) are counted for both degrees, so the two are
+/// consistent: an out-of-range entry in `adj[u]` is ignored by both the
+/// out-degree of `u` and the in-degree bookkeeping, matching the edge
+/// filtering performed by [`hierholzer`] and the total-edge count in
+/// [`find_euler_path`].
 fn compute_degrees(
   adj : Array[Array[Int]],
   n : Int,
@@ -78,10 +83,10 @@ fn compute_degrees(
   let in_deg = FixedArray::make(n, 0)
   let out_deg = FixedArray::make(n, 0)
   for u = 0; u < n; u = u + 1 {
-    out_deg[u] = adj[u].length()
     for j = 0; j < adj[u].length(); j = j + 1 {
       let v = adj[u][j]
       if v >= 0 && v < n {
+        out_deg[u] = out_deg[u] + 1
         in_deg[v] = in_deg[v] + 1
       }
     }
@@ -400,6 +405,22 @@ test "euler: empty graph" {
   let adj : Array[Array[Int]] = [[], [], []]
   let result = find_euler_path(adj, 3)
   assert_eq(result.path.length(), 0)
+}
+
+///|
+test "euler: out_degree filters invalid neighbours" {
+  // Valid edges: 0 -> 1, 1 -> 0 (a 2-cycle, hence an Euler circuit).
+  // adj[0] also contains an out-of-range neighbour (5) and a negative one
+  // (-1). Previously out_deg[0] counted these via adj[0].length(), giving
+  // out_deg[0] = 3 while in_deg[0] = 1 — a false degree imbalance that made
+  // the algorithm report "no Euler path" instead of a circuit. After
+  // filtering, out_deg[0] = 1 == in_deg[0], so the circuit is found.
+  let adj : Array[Array[Int]] = [[1, 5, -1], [0]]
+  let result = find_euler_path(adj, 2)
+  assert_eq(result.is_circuit, true)
+  // total_edges counts only valid edges: 0->1, 1->0 = 2.
+  assert_eq(result.path.length(), 3) // 2 edges + 1 vertex
+  assert_eq(result.path[0], result.path[2])
 }
 
 ///|

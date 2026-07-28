@@ -215,37 +215,6 @@ let crc16_modbus_table : FixedArray[Int] = build_reflected_table16(
 // ---------------------------------------------------------------------------
 
 ///|
-/// Emit the 1–4 UTF-8 bytes of a single Unicode code point `cp` via `emit`.
-///
-/// Factored out so that [`crc32_str`] can stream bytes straight into the CRC
-/// fold (zero allocation) while the test harness can collect the same bytes
-/// into an array for the `crc32_str`-vs-`crc32` cross-check — guaranteeing the
-/// two paths can never diverge because they share this single encoder.
-///
-/// Ranges follow RFC 3629:
-///   U+0000   .. U+007F   -> 1 byte  (0xxxxxxx)
-///   U+0080   .. U+07FF   -> 2 bytes (110xxxxx 10xxxxxx)
-///   U+0800   .. U+FFFF   -> 3 bytes (1110xxxx 10xxxxxx 10xxxxxx)
-///   U+10000  .. U+10FFFF -> 4 bytes (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
-fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
-  if cp < 0x80U {
-    emit(cp.to_byte())
-  } else if cp < 0x800U {
-    emit((0xC0U | (cp >> 6)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  } else if cp < 0x10000U {
-    emit((0xE0U | (cp >> 12)).to_byte())
-    emit((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  } else {
-    emit((0xF0U | (cp >> 18)).to_byte())
-    emit((0x80U | ((cp >> 12) & 0x3FU)).to_byte())
-    emit((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  }
-}
-
-///|
 /// Materialise the UTF-8 encoding of `s` as a fresh `FixedArray[Byte]`.
 ///
 /// Used only by tests to build the byte array fed to [`crc32`] for the
@@ -254,7 +223,7 @@ fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
 fn utf8_bytes(s : String) -> FixedArray[Byte] {
   let buf : Array[Byte] = []
   for c in s.iter() {
-    utf8_encode(c.to_uint(), fn(b) { buf.push(b) })
+    @utils.utf8_encode_emit(c.to_uint(), fn(b) { buf.push(b) })
   }
   FixedArray::from_array(buf)
 }
@@ -303,7 +272,7 @@ pub fn crc32(data : FixedArray[Byte]) -> UInt {
 pub fn crc32_str(data : String) -> UInt {
   let mut crc = CRC32_INIT
   for c in data.iter() {
-    utf8_encode(c.to_uint(), fn(b) { crc = crc32_step(crc, b) })
+    @utils.utf8_encode_emit(c.to_uint(), fn(b) { crc = crc32_step(crc, b) })
   }
   crc ^ CRC32_XOROUT
 }

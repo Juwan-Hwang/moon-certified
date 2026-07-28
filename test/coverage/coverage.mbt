@@ -167,7 +167,7 @@ pub fn smoke_test() -> Unit {
   ignore(@sparse_matrix.from_triplets(2, 2, [(0, 0, 1.0), (1, 1, 1.0)]))
 
   // ml
-  ignore(@kmeans.kmeans([(0.0, 0.0), (1.0, 1.0)], 2, 10))
+  ignore(@kmeans.kmeans([[0.0, 0.0], [1.0, 1.0]], 2, 10))
   ignore(@dbscan.dbscan([], 1.0, 1))
   ignore(@decision_tree.new(3, 2))
   ignore(@knn.knn_classify([], [1.0], 1))

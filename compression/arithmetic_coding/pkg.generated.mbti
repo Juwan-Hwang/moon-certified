@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/compression/arithmetic_coding"
+
+// Values
+pub fn compress(Bytes) -> Bytes
+
+pub fn decompress(Bytes) -> Bytes?
+
+// Errors
+
+// Types and methods
+type BitReader
+
+type BitWriter
+
+type EncState
+
+type FreqModel
+
+// Type aliases
+
+// Traits
+

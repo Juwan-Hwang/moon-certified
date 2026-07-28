@@ -4,7 +4,7 @@ package "moon-certified/compression/deflate"
 // Values
 pub fn deflate(Bytes) -> Bytes
 
-pub fn inflate(Bytes) -> Bytes
+pub fn inflate(Bytes) -> Bytes?
 
 // Errors
 

@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/serialization/json"
+
+// Values
+pub fn as_array(JsonValue) -> Array[JsonValue]?
+
+pub fn as_bool(JsonValue) -> Bool?
+
+pub fn as_number(JsonValue) -> Double?
+
+pub fn as_object(JsonValue) -> Array[(String, JsonValue)]?
+
+pub fn as_string(JsonValue) -> String?
+
+pub fn get(JsonValue, String) -> JsonValue?
+
+pub fn get_at(JsonValue, Int) -> JsonValue?
+
+pub fn get_bool(JsonValue, String) -> Bool?
+
+pub fn get_num(JsonValue, String) -> Double?
+
+pub fn get_str(JsonValue, String) -> String?
+
+pub fn is_array(JsonValue) -> Bool
+
+pub fn is_bool(JsonValue) -> Bool
+
+pub fn is_null(JsonValue) -> Bool
+
+pub fn is_number(JsonValue) -> Bool
+
+pub fn is_object(JsonValue) -> Bool
+
+pub fn is_string(JsonValue) -> Bool
+
+pub fn json_arr(Array[JsonValue]) -> JsonValue
+
+pub fn json_bool(Bool) -> JsonValue
+
+pub fn json_int(Int) -> JsonValue
+
+pub fn json_null() -> JsonValue
+
+pub fn json_num(Double) -> JsonValue
+
+pub fn json_obj(Array[(String, JsonValue)]) -> JsonValue
+
+pub fn json_str(String) -> JsonValue
+
+pub fn parse(String) -> JsonValue?
+
+pub fn parse_or(String, JsonValue) -> JsonValue
+
+pub fn stringify(JsonValue) -> String
+
+pub fn stringify_pretty(JsonValue, Int) -> String
+
+// Errors
+
+// Types and methods
+pub enum JsonValue {
+  Null
+  Bool(Bool)
+  Number(Double)
+  Str(String)
+  Arr(Array[JsonValue])
+  Obj(Array[(String, JsonValue)])
+}
+
+// Type aliases
+
+// Traits
+

@@ -29,11 +29,11 @@ pub fn sstable_count(LSMTree) -> Int
 // Errors
 
 // Types and methods
-type Entry
-
 pub struct LSMTree {
   // private fields
 }
+
+type MemTable
 
 type SSTable
 

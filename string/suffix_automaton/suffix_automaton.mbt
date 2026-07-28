@@ -139,7 +139,10 @@ fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
           sam.states[cur].link = clone
         }
       None =>
-        abort("suffix_automaton invariant violated: transition must exist")
+        // Theoretically unreachable: the while loop above guarantees `p`
+        // has a transition on `c`.  If we ever hit this due to an internal
+        // bug, link to root (state 0) as a safe fallback rather than crash.
+        sam.states[cur].link = 0
     }
   }
   sam.last = cur

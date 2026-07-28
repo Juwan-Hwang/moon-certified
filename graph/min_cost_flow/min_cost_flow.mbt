@@ -97,25 +97,31 @@ fn build_graph(n : Int, edge_list : Array[(Int, Int, Int, Int)]) -> MCMFGraph {
 /// Supports `push` and `pop_min` in O(log n). Duplicate entries for the same
 /// vertex (stale entries) are filtered by comparing the stored distance
 /// against the current `dist[]` value during `pop_min`.
+///
+/// The heap uses MoonBit's dynamic `Array` directly — `Array::length()`
+/// serves as the logical size, and `Array::pop()` removes the last element.
+/// This avoids the classic bug where a separate `size` field diverges from
+/// the array's actual length after push/pop cycles.
 priv struct MinHeap {
   heap_dist : Array[Int64]
   heap_vtx : Array[Int]
-  mut size : Int
 }
 
 ///|
-fn new_heap(cap : Int) -> MinHeap {
-  { heap_dist: Array::make(cap, 0L), heap_vtx: Array::make(cap, 0), size: 0 }
+/// Create a new empty min-heap. Uses dynamic arrays that grow as needed,
+/// eliminating any risk of buffer overflow on heap_push.
+fn new_heap(_cap : Int) -> MinHeap {
+  { heap_dist: [], heap_vtx: [] }
 }
 
 ///|
+/// Push a `(distance, vertex)` pair onto the heap. Uses `Array::push` for
+/// automatic growth — no fixed-capacity overflow is possible.
 fn heap_push(h : MinHeap, d : Int64, v : Int) -> Unit {
-  let i = h.size
-  h.heap_dist[i] = d
-  h.heap_vtx[i] = v
-  h.size = h.size + 1
+  h.heap_dist.push(d)
+  h.heap_vtx.push(v)
   // Sift up.
-  let mut idx = i
+  let mut idx = h.heap_dist.length() - 1
   while idx > 0 {
     let parent = (idx - 1) / 2
     if h.heap_dist[idx] < h.heap_dist[parent] {
@@ -137,24 +143,29 @@ fn heap_push(h : MinHeap, d : Int64, v : Int) -> Unit {
 /// if the heap is empty. Stale entries (where `dist > cur_dist[vtx]`) are
 /// automatically skipped.
 fn heap_pop(h : MinHeap, cur_dist : Array[Int64]) -> (Int64, Int)? {
-  while h.size > 0 {
+  while h.heap_dist.length() > 0 {
     let d = h.heap_dist[0]
     let v = h.heap_vtx[0]
-    // Remove top.
-    h.size = h.size - 1
-    if h.size > 0 {
-      h.heap_dist[0] = h.heap_dist[h.size]
-      h.heap_vtx[0] = h.heap_vtx[h.size]
-      // Sift down.
+    // Move last element to root, then shrink the array.
+    let last = h.heap_dist.length() - 1
+    if last > 0 {
+      h.heap_dist[0] = h.heap_dist[last]
+      h.heap_vtx[0] = h.heap_vtx[last]
+    }
+    ignore(h.heap_dist.pop())
+    ignore(h.heap_vtx.pop())
+    // Sift down from root.
+    let len = h.heap_dist.length()
+    if len > 0 {
       let mut idx = 0
       while true {
         let left = 2 * idx + 1
         let right = 2 * idx + 2
         let mut smallest = idx
-        if left < h.size && h.heap_dist[left] < h.heap_dist[smallest] {
+        if left < len && h.heap_dist[left] < h.heap_dist[smallest] {
           smallest = left
         }
-        if right < h.size && h.heap_dist[right] < h.heap_dist[smallest] {
+        if right < len && h.heap_dist[right] < h.heap_dist[smallest] {
           smallest = right
         }
         if smallest != idx {

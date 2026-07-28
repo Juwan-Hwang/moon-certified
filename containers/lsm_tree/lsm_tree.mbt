@@ -8,8 +8,10 @@
 ///
 /// ## Architecture
 ///
-/// 1. **MemTable**: In-memory sorted map (red-black tree or skip list).
-///    All writes go here first.
+/// 1. **MemTable**: In-memory sorted map backed by a skip list.
+///    All writes go here first. The skip list provides O(log n) insertion
+///    and lookup while maintaining keys in sorted order, enabling O(n)
+///    flush (no separate sort step) and efficient range scans.
 /// 2. **Immutable MemTable**: When the MemTable is full, it becomes immutable
 ///    and a new MemTable is created. The immutable table is flushed to disk.
 /// 3. **SSTables (Sorted String Tables)**: Immutable sorted files on disk.
@@ -21,10 +23,10 @@
 /// ## This implementation
 ///
 /// This is an in-memory implementation of the LSM-Tree architecture. The
-/// MemTable uses a sorted array (for simplicity and cache efficiency). The
-/// SSTables are stored in memory as sorted arrays with Bloom filters. This
-/// demonstrates the full LSM architecture, making it suitable for testing
-/// and as a reference implementation.
+/// MemTable uses a skip list (probabilistic balanced tree) for O(log n)
+/// insertions, deletions, and lookups, while keeping entries in sorted
+/// order at all times — matching the architecture of LevelDB and RocksDB.
+/// The SSTables are stored in memory as sorted arrays with Bloom filters.
 ///
 /// For disk-backed persistence, users can implement serialization
 /// using the public API (`put`, `get`, `delete`, `flush`, `compact`).
@@ -32,11 +34,12 @@
 /// making it suitable for testing and as a reference implementation.
 ///
 /// ## Complexity
-/// - Write: O(1) amortized (append to MemTable, periodically flush).
-/// - Read: O(L * log N) where L = number of levels (with Bloom filter
-///   optimization, most lookups skip SSTables in O(1)).
+/// - Write: O(log n) per entry (skip list insert), with O(1) amortized
+///   flush since entries are already sorted.
+/// - Read: O(log n + L * log N) where L = number of levels (with Bloom
+///   filter optimization, most lookups skip SSTables in O(1)).
 /// - Compaction: O(N) via k-way merge (not O(N log N) via global sort).
-/// - Range scan: O(log N + K) per level.
+/// - Range scan: O(log n + K) per level.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
@@ -47,6 +50,10 @@ const DEFAULT_MEMTABLE_CAPACITY : Int = 1024
 ///|
 /// Number of Level 0 SSTables that triggers automatic compaction.
 const COMPACTION_THRESHOLD : Int = 4
+
+///|
+/// Maximum skip-list height. Sufficient for 2^32 elements.
+const MEMTABLE_MAX_LEVEL : Int = 32
 
 // ---------------------------------------------------------------------------
 // Bloom Filter (per-SSTable) — delegates to the bloom_filter package
@@ -70,7 +77,7 @@ fn lsm_hash(s : String) -> Int {
 
 ///|
 /// A key-value entry.
-struct Entry {
+priv struct Entry {
   key : String
   value : String
   deleted : Bool // tombstone
@@ -83,11 +90,191 @@ struct SSTable {
   bloom : @bloom_filter.BloomFilter[String]
 }
 
+// ---------------------------------------------------------------------------
+// MemTable — skip-list-backed sorted map
+// ---------------------------------------------------------------------------
+
+///|
+/// A single skip-list node holding a key-value `Entry`.
+///
+/// `forward[i]` is the next node at level `i`, or `None` at the tail.
+/// The array length equals the node's height.
+priv struct MemNode {
+  key : String
+  mut value : Entry
+  forward : FixedArray[MemNode?]
+}
+
+///|
+/// MemTable: a sorted map from `String` keys to `Entry` values, implemented
+/// as a skip list. This provides O(log n) insertion, lookup, and deletion
+/// while keeping all entries in sorted order — the same approach used by
+/// LevelDB and RocksDB for their MemTable.
+///
+/// Unlike a hash map (which requires O(n log n) sorting at flush time),
+/// the skip list's level-0 linked list is already sorted, so flush is O(n).
+struct MemTable {
+  header : MemNode
+  mut level : Int
+  mut count : Int
+  mut rng : Int
+}
+
+///|
+/// Create an empty MemTable.
+fn MemTable::new() -> MemTable {
+  {
+    header: {
+      key: "",
+      value: { key: "", value: "", deleted: false },
+      forward: FixedArray::make(MEMTABLE_MAX_LEVEL, None),
+    },
+    level: 1,
+    count: 0,
+    rng: 0x12345678,
+  }
+}
+
+///|
+/// Advance the LCG and draw a random node height in `[1, MEMTABLE_MAX_LEVEL]`.
+fn MemTable::rand_level(self : MemTable) -> Int {
+  self.rng = @utils.lcg_next(self.rng)
+  let mut lvl = 1
+  let mut bits = self.rng >> 1
+  while lvl < MEMTABLE_MAX_LEVEL && (bits & 1) == 1 {
+    lvl = lvl + 1
+    bits = bits >> 1
+  }
+  lvl
+}
+
+///|
+/// Walk down from the top level, recording the predecessor of `key` at
+/// every level into `update`. Returns the level-0 successor.
+fn MemTable::find_path(
+  self : MemTable,
+  key : String,
+  update : FixedArray[MemNode],
+) -> MemNode? {
+  let mut current = self.header
+  for i = self.level - 1; i >= 0; i = i - 1 {
+    let mut advancing = true
+    while advancing {
+      match current.forward[i] {
+        Some(node) =>
+          if @utils.str_cmp(node.key, key) < 0 {
+            current = node
+          } else {
+            advancing = false
+          }
+        None => advancing = false
+      }
+    }
+    update[i] = current
+  }
+  current.forward[0]
+}
+
+///|
+/// Insert or update a key-value entry. O(log n) expected.
+fn MemTable::insert(self : MemTable, entry : Entry) -> Unit {
+  let update = FixedArray::make(MEMTABLE_MAX_LEVEL, self.header)
+  match self.find_path(entry.key, update) {
+    Some(node) =>
+      if @utils.str_cmp(node.key, entry.key) == 0 {
+        // Duplicate key: update in place.
+        node.value = entry
+        return
+      }
+    None => ()
+  }
+  let new_level = self.rand_level()
+  let new_node : MemNode = {
+    key: entry.key,
+    value: entry,
+    forward: FixedArray::make(new_level, None),
+  }
+  if new_level > self.level {
+    for i = self.level; i < new_level; i = i + 1 {
+      update[i] = self.header
+    }
+    self.level = new_level
+  }
+  for i = 0; i < new_level; i = i + 1 {
+    new_node.forward[i] = update[i].forward[i]
+    update[i].forward[i] = Some(new_node)
+  }
+  self.count = self.count + 1
+}
+
+///|
+/// Look up the entry for `key`. O(log n) expected.
+fn MemTable::get(self : MemTable, key : String) -> Entry? {
+  let mut current = self.header
+  for i = self.level - 1; i >= 0; i = i - 1 {
+    let mut advancing = true
+    while advancing {
+      match current.forward[i] {
+        Some(node) =>
+          if @utils.str_cmp(node.key, key) < 0 {
+            current = node
+          } else {
+            advancing = false
+          }
+        None => advancing = false
+      }
+    }
+  }
+  match current.forward[0] {
+    Some(node) =>
+      if @utils.str_cmp(node.key, key) == 0 {
+        Some(node.value)
+      } else {
+        None
+      }
+    None => None
+  }
+}
+
+///|
+/// Number of entries. O(1).
+fn MemTable::size(self : MemTable) -> Int {
+  self.count
+}
+
+///|
+/// Whether the MemTable is empty. O(1).
+fn MemTable::is_empty(self : MemTable) -> Bool {
+  self.count == 0
+}
+
+///|
+/// Return all entries in ascending key order. O(n).
+/// Walks the level-0 linked list, which is already sorted.
+fn MemTable::inorder(self : MemTable) -> Array[Entry] {
+  let result : Array[Entry] = []
+  let mut current = self.header.forward[0]
+  let mut go = true
+  while go {
+    match current {
+      Some(node) => {
+        result.push(node.value)
+        current = node.forward[0]
+      }
+      None => go = false
+    }
+  }
+  result
+}
+
+// ---------------------------------------------------------------------------
+// The LSM-Tree
+// ---------------------------------------------------------------------------
+
 ///|
 /// The LSM-Tree.
 pub struct LSMTree {
-  priv mut memtable : Map[String, Entry]
-  priv mut memtable_size : Int
+  priv mut memtable : MemTable
   priv memtable_capacity : Int
   priv mut sstables : Array[SSTable] // Level 0 tables (may overlap)
   priv mut level1 : Array[SSTable] // Level 1+ (non-overlapping, merged)
@@ -105,8 +292,7 @@ pub fn new(memtable_capacity : Int) -> LSMTree {
     DEFAULT_MEMTABLE_CAPACITY
   }
   {
-    memtable: Map([]),
-    memtable_size: 0,
+    memtable: MemTable::new(),
     memtable_capacity: cap,
     sstables: [],
     level1: [],
@@ -117,7 +303,7 @@ pub fn new(memtable_capacity : Int) -> LSMTree {
 ///|
 /// Number of entries in the MemTable.
 pub fn memtable_size(tree : LSMTree) -> Int {
-  tree.memtable_size
+  tree.memtable.size()
 }
 
 ///|
@@ -141,25 +327,30 @@ pub fn entry_count(tree : LSMTree) -> Int {
 ///|
 /// Insert or update a key-value pair.
 pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
-  let was_present = tree.memtable.contains(key)
-  let prev_deleted = if was_present {
-    tree.memtable[key].deleted
-  } else {
-    false
-  }
-  tree.memtable[key] = { key, value, deleted: false }
-  if !was_present {
-    tree.memtable_size = tree.memtable_size + 1
-    // Only increment total if the key doesn't exist in SSTables either.
-    // If it exists in SSTables, it's already counted.
-    if !sstable_contains(tree, key) {
-      tree.total_entries = tree.total_entries + 1
+  // Single skip-list lookup: determines whether the key is new,
+  // was a tombstone, or was already alive — without a separate
+  // `contains` + `get` round-trip.
+  match tree.memtable.get(key) {
+    Some(prev) =>
+      if prev.deleted {
+        // Key was a tombstone in memtable; now it's alive again.
+        tree.memtable.insert({ key, value, deleted: false })
+        tree.total_entries = tree.total_entries + 1
+      } else {
+        // Key was already alive; just update the value.
+        tree.memtable.insert({ key, value, deleted: false })
+      }
+    None => {
+      // New key in the MemTable.
+      tree.memtable.insert({ key, value, deleted: false })
+      // Only increment total if the key doesn't exist in SSTables.
+      // If it exists in SSTables, it's already counted.
+      if !sstable_contains(tree, key) {
+        tree.total_entries = tree.total_entries + 1
+      }
     }
-  } else if prev_deleted {
-    // Key was a tombstone in memtable; now it's alive again.
-    tree.total_entries = tree.total_entries + 1
   }
-  if tree.memtable_size >= tree.memtable_capacity {
+  if tree.memtable.size() >= tree.memtable_capacity {
     flush(tree)
   }
 }
@@ -167,25 +358,26 @@ pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
 ///|
 /// Delete a key (writes a tombstone).
 pub fn delete(tree : LSMTree, key : String) -> Unit {
-  let was_present = tree.memtable.contains(key)
-  let prev_deleted = if was_present {
-    tree.memtable[key].deleted
-  } else {
-    false
-  }
-  tree.memtable[key] = { key, value: "", deleted: true }
-  if !was_present {
-    tree.memtable_size = tree.memtable_size + 1
-    // Check if the key exists in SSTables; if so, decrement.
-    if sstable_contains(tree, key) {
-      tree.total_entries = tree.total_entries - 1
+  match tree.memtable.get(key) {
+    Some(prev) =>
+      if prev.deleted {
+        // Already a tombstone — nothing changes.
+        tree.memtable.insert({ key, value: "", deleted: true })
+      } else {
+        // Key was alive in memtable; now it's a tombstone.
+        tree.memtable.insert({ key, value: "", deleted: true })
+        tree.total_entries = tree.total_entries - 1
+      }
+    None => {
+      // Key not in MemTable.
+      tree.memtable.insert({ key, value: "", deleted: true })
+      // Check if the key exists in SSTables; if so, decrement.
+      if sstable_contains(tree, key) {
+        tree.total_entries = tree.total_entries - 1
+      }
     }
-  } else if !prev_deleted {
-    // Key was alive in memtable; now it's a tombstone.
-    tree.total_entries = tree.total_entries - 1
   }
-  // If prev_deleted, it was already a tombstone — nothing changes.
-  if tree.memtable_size >= tree.memtable_capacity {
+  if tree.memtable.size() >= tree.memtable_capacity {
     flush(tree)
   }
 }
@@ -205,16 +397,16 @@ pub fn batch_put(tree : LSMTree, pairs : Array[(String, String)]) -> Unit {
 
 ///|
 /// Flush the MemTable to an SSTable (Level 0).
+///
+/// Because the MemTable is a skip list, entries are already sorted —
+/// no additional sort step is needed (O(n) flush vs O(n log n) for a
+/// hash-map-based MemTable).
 pub fn flush(tree : LSMTree) -> Unit {
-  if tree.memtable_size == 0 {
+  if tree.memtable.is_empty() {
     return
   }
-  // Sort entries by key.
-  let entries : Array[Entry] = []
-  for _k, v in tree.memtable {
-    entries.push(v)
-  }
-  entries.sort_by(fn(a, b) { @utils.str_cmp(a.key, b.key) })
+  // Entries are already sorted by key (skip list level-0 traversal).
+  let entries = tree.memtable.inorder()
   // Build Bloom filter for this SSTable.
   let bloom = @bloom_filter.new(entries.length(), 0.01, lsm_hash)
   for i = 0; i < entries.length(); i = i + 1 {
@@ -222,8 +414,7 @@ pub fn flush(tree : LSMTree) -> Unit {
   }
   tree.sstables.push({ entries, bloom })
   // Reset MemTable.
-  tree.memtable = Map([])
-  tree.memtable_size = 0
+  tree.memtable = MemTable::new()
   // Trigger compaction if too many Level 0 tables.
   if tree.sstables.length() >= COMPACTION_THRESHOLD {
     compact(tree)
@@ -261,8 +452,9 @@ pub fn compact(tree : LSMTree) -> Unit {
     }
   }
   // Also count live entries remaining in the memtable.
-  for _k, e in tree.memtable {
-    if !e.deleted {
+  let memtable_entries = tree.memtable.inorder()
+  for i = 0; i < memtable_entries.length(); i = i + 1 {
+    if !memtable_entries[i].deleted {
       live_count = live_count + 1
     }
   }
@@ -423,7 +615,7 @@ fn sift_down(
 /// Searches: MemTable → Level 0 SSTables (newest first) → Level 1.
 /// Uses Bloom filters to skip SSTables that definitely don't contain the key.
 pub fn get(tree : LSMTree, key : String) -> String? {
-  // 1. Check MemTable.
+  // 1. Check MemTable (skip list, O(log n)).
   match tree.memtable.get(key) {
     Some(entry) => {
       if entry.deleted {
@@ -541,7 +733,7 @@ pub fn range_scan(
   // with newer sources overriding older ones (same key → newer wins).
   //
   // Sources in order from newest to oldest:
-  //   1. MemTable (newest)
+  //   1. MemTable (newest, skip list — already sorted)
   //   2. Level 0 SSTables (reverse order — most recently flushed is newest)
   //   3. Level 1 SSTables (oldest)
   //
@@ -550,10 +742,13 @@ pub fn range_scan(
   // Collect all matching entries from all sources, tagged with source priority.
   // Lower priority = newer (wins).
   let all_entries : Array[(String, String, Bool, Int)] = []
-  // Priority 0 = MemTable (newest).
-  for k, e in tree.memtable {
-    if @utils.str_cmp(k, start) >= 0 && @utils.str_cmp(k, end) < 0 {
-      all_entries.push((k, e.value, e.deleted, 0))
+  // Priority 0 = MemTable (newest). Skip list is already sorted, so we can
+  // iterate in order and filter by range.
+  let memtable_entries = tree.memtable.inorder()
+  for i = 0; i < memtable_entries.length(); i = i + 1 {
+    let e = memtable_entries[i]
+    if @utils.str_cmp(e.key, start) >= 0 && @utils.str_cmp(e.key, end) < 0 {
+      all_entries.push((e.key, e.value, e.deleted, 0))
     }
   }
   // Priority 1+i = Level 0 SSTables (most recent first).
@@ -872,4 +1067,20 @@ test "lsm: delete all then compact" {
   assert_eq(get(tree, "d"), Some("4"))
   assert_eq(get(tree, "e"), Some("5"))
   assert_eq(entry_count(tree), 3)
+}
+
+///|
+test "lsm: memtable is sorted (skip list property)" {
+  let tree = new(100)
+  // Insert keys in reverse order.
+  put(tree, "zebra", "z")
+  put(tree, "apple", "a")
+  put(tree, "mango", "m")
+  put(tree, "banana", "b")
+  // Range scan should return sorted results.
+  let result = range_scan(tree, "a", "z")
+  assert_eq(result.length(), 3)
+  assert_eq(result[0].0, "apple")
+  assert_eq(result[1].0, "banana")
+  assert_eq(result[2].0, "mango")
 }

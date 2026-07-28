@@ -5,6 +5,14 @@
 /// all data values reside in the leaves. The leaves are linked together in a
 /// linked list, enabling efficient range queries and sequential access.
 ///
+/// ## Generics
+///
+/// The tree is parameterised over key type `K` and value type `V`. A
+/// `cmp_fn : (K, K) -> Int` (negative ⇒ `<`, zero ⇒ `=`, positive ⇒ `>`)
+/// is stored in the root struct and used for all comparisons, following the
+/// same callback-based genericity pattern as `HashTable[K, V]` and
+/// `LRUCache[K, V]`.
+///
 /// ## Supported operations
 /// - `insert` — O(log n), with split-on-overflow.
 /// - `search` — O(log n).
@@ -22,52 +30,68 @@ const BPTREE_MIN_DEGREE : Int = 4 // t; max keys per node = 2t - 1 = 7
 
 ///|
 /// B+ Tree leaf node.
-pub struct BPTreeLeaf {
-  keys : Array[Int]
-  values : Array[Int]
-  mut next : BPTreeLeaf? // Pointer to the next leaf (for range queries)
+pub struct BPTreeLeaf[K, V] {
+  keys : Array[K]
+  values : Array[V]
+  mut next : BPTreeLeaf[K, V]? // Pointer to the next leaf (for range queries)
 }
 
 ///|
 /// B+ Tree internal node.
-pub struct BPTreeNode {
-  keys : Array[Int]
-  children : Array[BPTreeChild]
+pub struct BPTreeNode[K, V] {
+  keys : Array[K]
+  children : Array[BPTreeChild[K, V]]
 }
 
 ///|
 /// B+ Tree child: either an internal node or a leaf.
-pub enum BPTreeChild {
-  Node(BPTreeNode)
-  Leaf(BPTreeLeaf)
+pub enum BPTreeChild[K, V] {
+  Node(BPTreeNode[K, V])
+  Leaf(BPTreeLeaf[K, V])
 }
 
 ///|
 /// B+ Tree root.
-pub struct BPTree {
-  mut root : BPTreeChild
+pub struct BPTree[K, V] {
+  mut root : BPTreeChild[K, V]
   mut size : Int
+  cmp_fn : (K, K) -> Int
 }
 
 ///|
-/// Create an empty B+ Tree.
-pub fn new() -> BPTree {
-  { root: Leaf({ keys: [], values: [], next: None }), size: 0 }
+/// Create an empty B+ Tree with the given comparison function.
+///
+/// `cmp_fn` defines the total ordering on keys. It must return a negative
+/// value when `a < b`, zero when `a == b`, and a positive value when `a > b`.
+/// For `Int` keys, pass `fn(a, b) { a - b }` or use the `new_int` convenience
+/// constructor.
+pub fn[K, V] new(cmp_fn : (K, K) -> Int) -> BPTree[K, V] {
+  {
+    root: Leaf({ keys: [], values: [], next: None }),
+    size: 0,
+    cmp_fn,
+  }
+}
+
+///|
+/// Convenience constructor for `Int`-keyed trees.
+pub fn[V] new_int() -> BPTree[Int, V] {
+  new(fn(a, b) { a - b })
 }
 
 ///|
 /// Insert a (key, value) pair into the B+ Tree.
 ///
 /// If the key already exists, its value is updated (size unchanged).
-pub fn insert(tree : BPTree, key : Int, value : Int) -> Unit {
-  let (new_root, is_new) = insert_child(tree.root, key, value)
+pub fn[K, V] insert(tree : BPTree[K, V], key : K, value : V) -> Unit {
+  let (new_root, is_new) = insert_child(tree.root, key, value, tree.cmp_fn)
   // If the root is an internal node that overflowed, split it and create
   // a new root one level higher.
   match new_root {
     Node(node) =>
       if node.keys.length() > 2 * BPTREE_MIN_DEGREE - 1 {
         let (left, right, sep_key) = split_node(node)
-        let new_root_node : BPTreeNode = {
+        let new_root_node : BPTreeNode[K, V] = {
           keys: [sep_key],
           children: [Node(left), Node(right)],
         }
@@ -85,18 +109,19 @@ pub fn insert(tree : BPTree, key : Int, value : Int) -> Unit {
 ///|
 /// Insert into a child. Returns the (possibly new) child and a flag indicating
 /// whether the key was new (not an update).
-fn insert_child(
-  child : BPTreeChild,
-  key : Int,
-  value : Int,
-) -> (BPTreeChild, Bool) {
+fn[K, V] insert_child(
+  child : BPTreeChild[K, V],
+  key : K,
+  value : V,
+  cmp_fn : (K, K) -> Int,
+) -> (BPTreeChild[K, V], Bool) {
   match child {
     Leaf(leaf) => {
-      let (new_leaf, is_new) = insert_leaf(leaf, key, value)
+      let (new_leaf, is_new) = insert_leaf(leaf, key, value, cmp_fn)
       if new_leaf.keys.length() > 2 * BPTREE_MIN_DEGREE - 1 {
         // Split leaf.
         let (left, right, sep_key) = split_leaf(new_leaf)
-        let node : BPTreeNode = {
+        let node : BPTreeNode[K, V] = {
           keys: [sep_key],
           children: [Leaf(left), Leaf(right)],
         }
@@ -108,10 +133,10 @@ fn insert_child(
     Node(node) => {
       // Find the child to descend into.
       let mut idx = 0
-      while idx < node.keys.length() && key >= node.keys[idx] {
+      while idx < node.keys.length() && cmp_fn(key, node.keys[idx]) >= 0 {
         idx = idx + 1
       }
-      let (new_child, is_new) = insert_child(node.children[idx], key, value)
+      let (new_child, is_new) = insert_child(node.children[idx], key, value, cmp_fn)
       node.children[idx] = new_child
       // Check if the child split.
       match new_child {
@@ -138,12 +163,17 @@ fn insert_child(
 ///|
 /// Insert into a leaf node. Returns the (possibly new) leaf and whether the
 /// key was new (not an update).
-fn insert_leaf(leaf : BPTreeLeaf, key : Int, value : Int) -> (BPTreeLeaf, Bool) {
+fn[K, V] insert_leaf(
+  leaf : BPTreeLeaf[K, V],
+  key : K,
+  value : V,
+  cmp_fn : (K, K) -> Int,
+) -> (BPTreeLeaf[K, V], Bool) {
   let mut idx = 0
-  while idx < leaf.keys.length() && leaf.keys[idx] < key {
+  while idx < leaf.keys.length() && cmp_fn(leaf.keys[idx], key) < 0 {
     idx = idx + 1
   }
-  if idx < leaf.keys.length() && leaf.keys[idx] == key {
+  if idx < leaf.keys.length() && cmp_fn(leaf.keys[idx], key) == 0 {
     // Update existing value.
     leaf.values[idx] = value
     (leaf, false)
@@ -156,9 +186,9 @@ fn insert_leaf(leaf : BPTreeLeaf, key : Int, value : Int) -> (BPTreeLeaf, Bool) 
 
 ///|
 /// Split a leaf node into two. Returns (left, right, separator_key).
-fn split_leaf(leaf : BPTreeLeaf) -> (BPTreeLeaf, BPTreeLeaf, Int) {
+fn[K, V] split_leaf(leaf : BPTreeLeaf[K, V]) -> (BPTreeLeaf[K, V], BPTreeLeaf[K, V], K) {
   let mid = leaf.keys.length() / 2
-  let right : BPTreeLeaf = { keys: [], values: [], next: leaf.next }
+  let right : BPTreeLeaf[K, V] = { keys: [], values: [], next: leaf.next }
   for i = mid; i < leaf.keys.length(); i = i + 1 {
     right.keys.push(leaf.keys[i])
     right.values.push(leaf.values[i])
@@ -175,10 +205,12 @@ fn split_leaf(leaf : BPTreeLeaf) -> (BPTreeLeaf, BPTreeLeaf, Int) {
 
 ///|
 /// Split an internal node. Returns (left, right, separator_key).
-fn split_node(node : BPTreeNode) -> (BPTreeNode, BPTreeNode, Int) {
+fn[K, V] split_node(
+  node : BPTreeNode[K, V]
+) -> (BPTreeNode[K, V], BPTreeNode[K, V], K) {
   let mid = node.keys.length() / 2
   let sep = node.keys[mid]
-  let right : BPTreeNode = { keys: [], children: [] }
+  let right : BPTreeNode[K, V] = { keys: [], children: [] }
   // Right gets keys[mid+1..] and children[mid+1..].
   for i = mid + 1; i < node.keys.length(); i = i + 1 {
     right.keys.push(node.keys[i])
@@ -198,16 +230,20 @@ fn split_node(node : BPTreeNode) -> (BPTreeNode, BPTreeNode, Int) {
 
 ///|
 /// Search for a key in the B+ Tree. Returns the value if found.
-pub fn search(tree : BPTree, key : Int) -> Int? {
-  search_child(tree.root, key)
+pub fn[K, V] search(tree : BPTree[K, V], key : K) -> V? {
+  search_child(tree.root, key, tree.cmp_fn)
 }
 
 ///|
-fn search_child(child : BPTreeChild, key : Int) -> Int? {
+fn[K, V] search_child(
+  child : BPTreeChild[K, V],
+  key : K,
+  cmp_fn : (K, K) -> Int,
+) -> V? {
   match child {
     Leaf(leaf) => {
       for i = 0; i < leaf.keys.length(); i = i + 1 {
-        if leaf.keys[i] == key {
+        if cmp_fn(leaf.keys[i], key) == 0 {
           return Some(leaf.values[i])
         }
       }
@@ -215,10 +251,10 @@ fn search_child(child : BPTreeChild, key : Int) -> Int? {
     }
     Node(node) => {
       let mut idx = 0
-      while idx < node.keys.length() && key >= node.keys[idx] {
+      while idx < node.keys.length() && cmp_fn(key, node.keys[idx]) >= 0 {
         idx = idx + 1
       }
-      search_child(node.children[idx], key)
+      search_child(node.children[idx], key, cmp_fn)
     }
   }
 }
@@ -226,23 +262,21 @@ fn search_child(child : BPTreeChild, key : Int) -> Int? {
 ///|
 /// Range query: find all (key, value) pairs with keys in [lo, hi].
 ///
-/// Returns a flat array of alternating keys and values:
-/// [k0, v0, k1, v1, ...].
-pub fn range_query(tree : BPTree, lo : Int, hi : Int) -> Array[Int] {
-  let result : Array[Int] = []
+/// Returns an array of `(key, value)` tuples.
+pub fn[K, V] range_query(tree : BPTree[K, V], lo : K, hi : K) -> Array[(K, V)] {
+  let result : Array[(K, V)] = []
   // Find the leftmost leaf containing keys >= lo.
-  let leaf = find_leaf(tree.root, lo)
+  let leaf = find_leaf(tree.root, lo, tree.cmp_fn)
   let mut cur = leaf
   let mut done = false
   while cur is Some(leaf_node) && !done {
     for i = 0; i < leaf_node.keys.length(); i = i + 1 {
-      if leaf_node.keys[i] > hi {
+      if (tree.cmp_fn)(leaf_node.keys[i], hi) > 0 {
         done = true
         break
       }
-      if leaf_node.keys[i] >= lo {
-        result.push(leaf_node.keys[i])
-        result.push(leaf_node.values[i])
+      if (tree.cmp_fn)(leaf_node.keys[i], lo) >= 0 {
+        result.push((leaf_node.keys[i], leaf_node.values[i]))
       }
     }
     if !done {
@@ -254,35 +288,39 @@ pub fn range_query(tree : BPTree, lo : Int, hi : Int) -> Array[Int] {
 
 ///|
 /// Find the leaf that should contain `key`.
-fn find_leaf(child : BPTreeChild, key : Int) -> BPTreeLeaf? {
+fn[K, V] find_leaf(
+  child : BPTreeChild[K, V],
+  key : K,
+  cmp_fn : (K, K) -> Int,
+) -> BPTreeLeaf[K, V]? {
   match child {
     Leaf(leaf) => Some(leaf)
     Node(node) => {
       let mut idx = 0
-      while idx < node.keys.length() && key >= node.keys[idx] {
+      while idx < node.keys.length() && cmp_fn(key, node.keys[idx]) >= 0 {
         idx = idx + 1
       }
-      find_leaf(node.children[idx], key)
+      find_leaf(node.children[idx], key, cmp_fn)
     }
   }
 }
 
 ///|
 /// Get the number of entries in the tree.
-pub fn size(tree : BPTree) -> Int {
+pub fn[K, V] size(tree : BPTree[K, V]) -> Int {
   tree.size
 }
 
 ///|
 /// Collect all keys in sorted order (for testing).
-pub fn to_sorted_array(tree : BPTree) -> Array[Int] {
-  let result : Array[Int] = []
+pub fn[K, V] to_sorted_array(tree : BPTree[K, V]) -> Array[K] {
+  let result : Array[K] = []
   collect_keys(tree.root, result)
   result
 }
 
 ///|
-fn collect_keys(child : BPTreeChild, result : Array[Int]) -> Unit {
+fn[K, V] collect_keys(child : BPTreeChild[K, V], result : Array[K]) -> Unit {
   match child {
     Leaf(leaf) =>
       for i = 0; i < leaf.keys.length(); i = i + 1 {
@@ -308,8 +346,8 @@ fn collect_keys(child : BPTreeChild, result : Array[Int]) -> Unit {
 ///
 /// ## Complexity
 /// - Time: O(log n) — single root-to-leaf descent with O(1) rebalancing.
-pub fn delete(tree : BPTree, key : Int) -> Bool {
-  let found = delete_child(tree.root, key)
+pub fn[K, V] delete(tree : BPTree[K, V], key : K) -> Bool {
+  let found = delete_child(tree.root, key, tree.cmp_fn)
   if found {
     tree.size = tree.size - 1
     // Contract: if root is an internal node with a single child, promote it.
@@ -326,21 +364,29 @@ pub fn delete(tree : BPTree, key : Int) -> Bool {
 
 ///|
 /// Dispatch deletion to the appropriate node type.
-fn delete_child(child : BPTreeChild, key : Int) -> Bool {
+fn[K, V] delete_child(
+  child : BPTreeChild[K, V],
+  key : K,
+  cmp_fn : (K, K) -> Int,
+) -> Bool {
   match child {
-    Leaf(leaf) => delete_from_leaf(leaf, key)
-    Node(node) => delete_from_node(node, key)
+    Leaf(leaf) => delete_from_leaf(leaf, key, cmp_fn)
+    Node(node) => delete_from_node(node, key, cmp_fn)
   }
 }
 
 ///|
 /// Remove a key from a leaf node. Returns whether the key was found.
-fn delete_from_leaf(leaf : BPTreeLeaf, key : Int) -> Bool {
+fn[K, V] delete_from_leaf(
+  leaf : BPTreeLeaf[K, V],
+  key : K,
+  cmp_fn : (K, K) -> Int,
+) -> Bool {
   let mut idx = 0
-  while idx < leaf.keys.length() && leaf.keys[idx] < key {
+  while idx < leaf.keys.length() && cmp_fn(leaf.keys[idx], key) < 0 {
     idx = idx + 1
   }
-  if idx < leaf.keys.length() && leaf.keys[idx] == key {
+  if idx < leaf.keys.length() && cmp_fn(leaf.keys[idx], key) == 0 {
     ignore(leaf.keys.remove(idx))
     ignore(leaf.values.remove(idx))
     true
@@ -352,12 +398,16 @@ fn delete_from_leaf(leaf : BPTreeLeaf, key : Int) -> Bool {
 ///|
 /// Remove a key from an internal node by descending to the appropriate child,
 /// then rebalancing if the child underflows.
-fn delete_from_node(node : BPTreeNode, key : Int) -> Bool {
+fn[K, V] delete_from_node(
+  node : BPTreeNode[K, V],
+  key : K,
+  cmp_fn : (K, K) -> Int,
+) -> Bool {
   let mut idx = 0
-  while idx < node.keys.length() && key >= node.keys[idx] {
+  while idx < node.keys.length() && cmp_fn(key, node.keys[idx]) >= 0 {
     idx = idx + 1
   }
-  let found = delete_child(node.children[idx], key)
+  let found = delete_child(node.children[idx], key, cmp_fn)
   if !found {
     return false
   }
@@ -378,7 +428,11 @@ fn delete_from_node(node : BPTreeNode, key : Int) -> Bool {
 ///|
 /// Rebalance a leaf that has underflowed.
 /// Strategy: borrow from left sibling → borrow from right sibling → merge.
-fn rebalance_leaf(parent : BPTreeNode, idx : Int, cur : BPTreeLeaf) -> Unit {
+fn[K, V] rebalance_leaf(
+  parent : BPTreeNode[K, V],
+  idx : Int,
+  cur : BPTreeLeaf[K, V],
+) -> Unit {
   let min_keys = BPTREE_MIN_DEGREE - 1
   // 1. Try borrowing from the left sibling.
   if idx > 0 {
@@ -435,7 +489,7 @@ fn rebalance_leaf(parent : BPTreeNode, idx : Int, cur : BPTreeLeaf) -> Unit {
 ///|
 /// Merge the leaf at `left_idx + 1` into the leaf at `left_idx`.
 /// Removes the separator key and the right child from the parent.
-fn merge_leaf(parent : BPTreeNode, left_idx : Int) -> Unit {
+fn[K, V] merge_leaf(parent : BPTreeNode[K, V], left_idx : Int) -> Unit {
   let left = match parent.children[left_idx] {
     Leaf(l) => l
     _ => return
@@ -459,7 +513,11 @@ fn merge_leaf(parent : BPTreeNode, left_idx : Int) -> Unit {
 ///|
 /// Rebalance an internal node that has underflowed.
 /// Strategy: borrow from left sibling → borrow from right sibling → merge.
-fn rebalance_node(parent : BPTreeNode, idx : Int, cur : BPTreeNode) -> Unit {
+fn[K, V] rebalance_node(
+  parent : BPTreeNode[K, V],
+  idx : Int,
+  cur : BPTreeNode[K, V],
+) -> Unit {
   let min_keys = BPTREE_MIN_DEGREE - 1
   // 1. Try borrowing from the left sibling.
   if idx > 0 {
@@ -511,7 +569,7 @@ fn rebalance_node(parent : BPTreeNode, idx : Int, cur : BPTreeNode) -> Unit {
 ///|
 /// Merge the internal node at `left_idx + 1` into the node at `left_idx`.
 /// Pulls the separator key down from the parent into the merged node.
-fn merge_node(parent : BPTreeNode, left_idx : Int) -> Unit {
+fn[K, V] merge_node(parent : BPTreeNode[K, V], left_idx : Int) -> Unit {
   let left = match parent.children[left_idx] {
     Node(n) => n
     _ => return
@@ -540,7 +598,7 @@ fn merge_node(parent : BPTreeNode, left_idx : Int) -> Unit {
 
 ///|
 test "bptree: insert and search" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new(fn(a, b) { a - b })
   insert(tree, 10, 100)
   insert(tree, 20, 200)
   insert(tree, 5, 50)
@@ -552,7 +610,7 @@ test "bptree: insert and search" {
 
 ///|
 test "bptree: update existing key" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   insert(tree, 10, 200) // update — size should not change
   assert_eq(search(tree, 10), Some(200))
@@ -561,7 +619,7 @@ test "bptree: update existing key" {
 
 ///|
 test "bptree: sorted order" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   let keys = [50, 10, 30, 20, 40, 60, 5, 15, 25, 35]
   for i = 0; i < keys.length(); i = i + 1 {
     insert(tree, keys[i], keys[i] * 2)
@@ -576,24 +634,24 @@ test "bptree: sorted order" {
 
 ///|
 test "bptree: range query" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < 100; i = i + 1 {
     insert(tree, i, i * 10)
   }
   // Range [10, 20] should return 11 entries.
   let result = range_query(tree, 10, 20)
-  assert_eq(result.length(), 22) // 11 keys * 2 (key + value)
+  assert_eq(result.length(), 11) // 11 (key, value) pairs
   // First entry should be (10, 100).
-  assert_eq(result[0], 10)
-  assert_eq(result[1], 100)
+  assert_eq(result[0].0, 10)
+  assert_eq(result[0].1, 100)
   // Last entry should be (20, 200).
-  assert_eq(result[result.length() - 2], 20)
-  assert_eq(result[result.length() - 1], 200)
+  assert_eq(result[result.length() - 1].0, 20)
+  assert_eq(result[result.length() - 1].1, 200)
 }
 
 ///|
 test "bptree: range query with no results" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   insert(tree, 20, 200)
   let result = range_query(tree, 30, 40)
@@ -602,7 +660,7 @@ test "bptree: range query with no results" {
 
 ///|
 test "bptree: large insert" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   let n = 500
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i)
@@ -621,7 +679,7 @@ test "bptree: large insert" {
 
 ///|
 test "bptree: reverse order insert" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < 100; i = i + 1 {
     insert(tree, 99 - i, 99 - i)
   }
@@ -633,7 +691,7 @@ test "bptree: reverse order insert" {
 
 ///|
 test "bptree: duplicate keys" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   insert(tree, 10, 200)
   insert(tree, 10, 300)
@@ -644,7 +702,7 @@ test "bptree: duplicate keys" {
 
 ///|
 test "bptree: negative keys" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, -10, 100)
   insert(tree, -5, 200)
   insert(tree, 0, 300)
@@ -658,17 +716,17 @@ test "bptree: negative keys" {
 
 ///|
 test "bptree: range query full range" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < 50; i = i + 1 {
     insert(tree, i, i)
   }
   let result = range_query(tree, 0, 49)
-  assert_eq(result.length(), 100) // 50 keys * 2
+  assert_eq(result.length(), 50) // 50 (key, value) pairs
 }
 
 ///|
 test "bptree: empty tree" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   assert_eq(search(tree, 10), None)
   assert_eq(to_sorted_array(tree).length(), 0)
   assert_eq(range_query(tree, 0, 100).length(), 0)
@@ -676,14 +734,14 @@ test "bptree: empty tree" {
 
 ///|
 test "bptree: delete from empty tree" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   assert_eq(delete(tree, 42), false)
   assert_eq(size(tree), 0)
 }
 
 ///|
 test "bptree: delete single element" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   assert_eq(delete(tree, 10), true)
   assert_eq(search(tree, 10), None)
@@ -692,7 +750,7 @@ test "bptree: delete single element" {
 
 ///|
 test "bptree: delete non-existent key" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   insert(tree, 20, 200)
   assert_eq(delete(tree, 15), false)
@@ -703,7 +761,7 @@ test "bptree: delete non-existent key" {
 
 ///|
 test "bptree: delete and reinsert" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 10, 100)
   insert(tree, 20, 200)
   insert(tree, 30, 300)
@@ -718,7 +776,7 @@ test "bptree: delete and reinsert" {
 ///|
 test "bptree: delete all sequential" {
   let n = 200
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i * 2)
   }
@@ -734,7 +792,7 @@ test "bptree: delete all sequential" {
 ///|
 test "bptree: delete all reverse" {
   let n = 200
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i * 2)
   }
@@ -748,7 +806,7 @@ test "bptree: delete all reverse" {
 ///|
 test "bptree: delete every other" {
   let n = 100
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i)
   }
@@ -778,7 +836,7 @@ test "bptree: delete triggers merge" {
   // Insert enough elements to create multiple levels, then delete
   // enough to trigger merges.
   let n = 500
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i)
   }
@@ -803,7 +861,7 @@ test "bptree: delete triggers merge" {
 
 ///|
 test "bptree: delete maintains range query" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < 100; i = i + 1 {
     insert(tree, i, i * 10)
   }
@@ -813,16 +871,16 @@ test "bptree: delete maintains range query" {
   }
   // Range query [10, 40] should skip deleted keys.
   let result = range_query(tree, 10, 40)
-  // Keys 10-19 (10) + 30-40 (11) = 21 keys * 2 = 42 entries.
-  assert_eq(result.length(), 42)
+  // Keys 10-19 (10) + 30-40 (11) = 21 keys.
+  assert_eq(result.length(), 21)
   // First entry should be (10, 100).
-  assert_eq(result[0], 10)
-  assert_eq(result[1], 100)
+  assert_eq(result[0].0, 10)
+  assert_eq(result[0].1, 100)
 }
 
 ///|
 test "bptree: delete root key" {
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   insert(tree, 50, 500)
   insert(tree, 30, 300)
   insert(tree, 70, 700)
@@ -837,7 +895,7 @@ test "bptree: delete root key" {
 ///|
 test "bptree: stress delete" {
   let n = 1000
-  let tree = new()
+  let tree : BPTree[Int, Int] = new_int()
   for i = 0; i < n; i = i + 1 {
     insert(tree, i, i)
   }
@@ -853,4 +911,41 @@ test "bptree: stress delete" {
   for i = 0; i < n; i = i + 1 {
     assert_eq(search(tree, i), None)
   }
+}
+
+///|
+test "bptree: generic string keys" {
+  let tree : BPTree[String, Int] = new(@utils.str_cmp)
+  insert(tree, "banana", 1)
+  insert(tree, "apple", 2)
+  insert(tree, "cherry", 3)
+  assert_eq(search(tree, "apple"), Some(2))
+  assert_eq(search(tree, "banana"), Some(1))
+  assert_eq(search(tree, "cherry"), Some(3))
+  assert_eq(search(tree, "date"), None)
+  let sorted = to_sorted_array(tree)
+  assert_eq(sorted[0], "apple")
+  assert_eq(sorted[1], "banana")
+  assert_eq(sorted[2], "cherry")
+  assert_eq(delete(tree, "banana"), true)
+  assert_eq(search(tree, "banana"), None)
+  assert_eq(size(tree), 2)
+}
+
+///|
+test "bptree: generic int64 keys" {
+  let tree : BPTree[Int64, String] = new(
+    fn(a, b) {
+      if a < b { -1 } else if a > b { 1 } else { 0 }
+    },
+  )
+  insert(tree, 100L, "hundred")
+  insert(tree, 50L, "fifty")
+  insert(tree, 200L, "two hundred")
+  assert_eq(search(tree, 50L), Some("fifty"))
+  assert_eq(search(tree, 200L), Some("two hundred"))
+  let sorted = to_sorted_array(tree)
+  assert_eq(sorted[0], 50L)
+  assert_eq(sorted[1], 100L)
+  assert_eq(sorted[2], 200L)
 }

@@ -1,0 +1,9 @@
+import {
+  "moon-certified/compression/deflate",
+  "moon-certified/containers/crc",
+  "moon-certified/utils",
+}
+
+options(
+  "proof-enabled": false,
+)

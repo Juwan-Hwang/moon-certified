@@ -86,7 +86,7 @@ pub fn SkipList::new() -> SkipList {
 /// lowest bit of this LCG has period 2, so we start consuming from bit 1 for
 /// slightly better spread; this is a quality tweak, not a correctness concern.
 fn SkipList::rand_level(self : SkipList) -> Int {
-  self.rng = (self.rng * 1103515245 + 12345) & 0x7FFFFFFF
+  self.rng = @utils.lcg_next(self.rng)
   let mut lvl = 1
   let mut bits = self.rng >> 1
   while lvl < MAX_LEVEL && (bits & 1) == 1 {

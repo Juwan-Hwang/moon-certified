@@ -50,12 +50,24 @@ pub fn multiple_knapsack(
       continue
     }
     // Binary decomposition: split count into powers of 2.
+    // Use Int64 for the meta-item weight/value to detect overflow: when
+    // `w * take` or `v * take` exceeds Int32 range, the meta-item is
+    // skipped (it cannot fit in any feasible knapsack whose capacity is
+    // an Int, or its value would overflow the DP accumulation).
     let mut remaining = c
     let mut k = 1
     while remaining > 0 {
       let take = if k > remaining { remaining } else { k }
-      let bw = w * take
-      let bv = v * take
+      let bw64 = w.to_int64() * take.to_int64()
+      let bv64 = v.to_int64() * take.to_int64()
+      // Skip meta-items whose weight or value overflows Int32.
+      if bw64 > 2147483647L || bv64 > 2147483647L {
+        remaining = remaining - take
+        k = k * 2
+        continue
+      }
+      let bw = bw64.to_int()
+      let bv = bv64.to_int()
       // 0/1 knapsack for this meta-item (reverse order).
       let mut cap = capacity
       while cap >= bw {

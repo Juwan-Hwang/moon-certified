@@ -4,9 +4,13 @@ package "moon-certified/ml/decision_tree"
 // Values
 pub fn fit(DecisionTree, Array[Array[Double]], Array[Int]) -> Unit
 
+pub fn fit_regress(DecisionTree, Array[Array[Double]], Array[Double]) -> Unit
+
 pub fn new(Int, Int) -> DecisionTree
 
 pub fn predict(DecisionTree, Array[Double]) -> Int
+
+pub fn predict_regress(DecisionTree, Array[Double]) -> Double
 
 // Errors
 

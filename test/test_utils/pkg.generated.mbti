@@ -2,6 +2,10 @@
 package "moon-certified/test/test_utils"
 
 // Values
+pub fn[T] expect_none(T?, String) -> Unit
+
+pub fn[T] expect_some(T?, String) -> T
+
 pub fn str_cmp(String, String) -> Int
 
 // Errors

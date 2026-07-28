@@ -1,10 +1,6 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moon-certified/containers/w_tinylfu"
 
-import {
-  "moon-certified/containers/hash_table",
-}
-
 // Values
 pub fn get(WTinyLFU, Int) -> Int?
 
@@ -18,22 +14,7 @@ pub fn size(WTinyLFU) -> Int
 
 // Types and methods
 pub struct WTinyLFU {
-  keys : Array[Int]
-  vals : Array[Int]
-  prevs : Array[Int]
-  nexts : Array[Int]
-  segs : Array[Int]
-  free : Array[Int]
-  heads : Array[Int]
-  tails : Array[Int]
-  counts : Array[Int]
-  index : @hash_table.HashTable[Int, Int]
-  freq : FixedArray[FixedArray[Int]]
-  freq_width : Int
-  freq_depth : Int
-  mut total_adds : Int
-  sample_size : Int
-  caps : Array[Int]
+  // private fields
 }
 
 // Type aliases

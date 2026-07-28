@@ -157,10 +157,7 @@ pub fn nth_prime(s : EulerSieve, k : Int) -> Int? {
 
 ///|
 test "euler_sieve: basic primes up to 30" {
-  let s = match sieve(30) {
-    Some(v) => v
-    None => abort("expected sieve result")
-  }
+  let s = @test_utils.expect_some(sieve(30), "sieve(30) should succeed")
   let ps = primes(s)
   assert_eq(ps.length(), 10)
   assert_eq(ps[0], 2)
@@ -177,22 +174,10 @@ test "euler_sieve: basic primes up to 30" {
 
 ///|
 test "euler_sieve: prime count matches known values" {
-  let s10 = match sieve(10) {
-    Some(v) => v
-    None => abort("")
-  }
-  let s100 = match sieve(100) {
-    Some(v) => v
-    None => abort("")
-  }
-  let s1000 = match sieve(1000) {
-    Some(v) => v
-    None => abort("")
-  }
-  let s10000 = match sieve(10000) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s10 = @test_utils.expect_some(sieve(10), "sieve(10) should succeed")
+  let s100 = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
+  let s1000 = @test_utils.expect_some(sieve(1000), "sieve(1000) should succeed")
+  let s10000 = @test_utils.expect_some(sieve(10000), "sieve(10000) should succeed")
   assert_eq(prime_count(s10), 4)
   assert_eq(prime_count(s100), 25)
   assert_eq(prime_count(s1000), 168)
@@ -201,10 +186,7 @@ test "euler_sieve: prime count matches known values" {
 
 ///|
 test "euler_sieve: is_prime" {
-  let s = match sieve(100) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
   assert_true(is_prime(s, 2))
   assert_true(is_prime(s, 97))
   assert_false(is_prime(s, 1))
@@ -215,10 +197,7 @@ test "euler_sieve: is_prime" {
 
 ///|
 test "euler_sieve: smallest prime factor" {
-  let s = match sieve(100) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
   assert_eq(smallest_prime_factor(s, 2), Some(2))
   assert_eq(smallest_prime_factor(s, 12), Some(2))
   assert_eq(smallest_prime_factor(s, 49), Some(7))
@@ -229,14 +208,8 @@ test "euler_sieve: smallest prime factor" {
 
 ///|
 test "euler_sieve: factorize" {
-  let s = match sieve(10000) {
-    Some(v) => v
-    None => abort("")
-  }
-  let f = match factorize(s, 360) {
-    Some(v) => v
-    None => abort("expected factorization")
-  }
+  let s = @test_utils.expect_some(sieve(10000), "sieve(10000) should succeed")
+  let f = @test_utils.expect_some(factorize(s, 360), "factorize(s, 360) should succeed")
   assert_eq(f.length(), 3)
   assert_eq(f[0], (2, 3))
   assert_eq(f[1], (3, 2))
@@ -245,38 +218,23 @@ test "euler_sieve: factorize" {
 
 ///|
 test "euler_sieve: factorize prime" {
-  let s = match sieve(1000) {
-    Some(v) => v
-    None => abort("")
-  }
-  let f = match factorize(s, 997) {
-    Some(v) => v
-    None => abort("expected factorization")
-  }
+  let s = @test_utils.expect_some(sieve(1000), "sieve(1000) should succeed")
+  let f = @test_utils.expect_some(factorize(s, 997), "factorize(s, 997) should succeed")
   assert_eq(f.length(), 1)
   assert_eq(f[0], (997, 1))
 }
 
 ///|
 test "euler_sieve: factorize power of 2" {
-  let s = match sieve(1024) {
-    Some(v) => v
-    None => abort("")
-  }
-  let f = match factorize(s, 1024) {
-    Some(v) => v
-    None => abort("expected factorization")
-  }
+  let s = @test_utils.expect_some(sieve(1024), "sieve(1024) should succeed")
+  let f = @test_utils.expect_some(factorize(s, 1024), "factorize(s, 1024) should succeed")
   assert_eq(f.length(), 1)
   assert_eq(f[0], (2, 10))
 }
 
 ///|
 test "euler_sieve: nth_prime" {
-  let s = match sieve(100) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
   assert_eq(nth_prime(s, 0), Some(2))
   assert_eq(nth_prime(s, 1), Some(3))
   assert_eq(nth_prime(s, 24), Some(97))
@@ -286,20 +244,14 @@ test "euler_sieve: nth_prime" {
 
 ///|
 test "euler_sieve: sieve(1) returns empty" {
-  let s = match sieve(1) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(1), "sieve(1) should succeed")
   assert_eq(prime_count(s), 0)
   assert_false(is_prime(s, 1))
 }
 
 ///|
 test "euler_sieve: sieve(2) returns single prime" {
-  let s = match sieve(2) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(2), "sieve(2) should succeed")
   assert_eq(prime_count(s), 1)
   assert_true(is_prime(s, 2))
   assert_false(is_prime(s, 3))
@@ -312,10 +264,7 @@ test "euler_sieve: rejects oversized input" {
 
 ///|
 test "euler_sieve: cross-check with trial division" {
-  let s = match sieve(5000) {
-    Some(v) => v
-    None => abort("")
-  }
+  let s = @test_utils.expect_some(sieve(5000), "sieve(5000) should succeed")
   // Verify every spf entry is correct
   for i = 2; i <= 5000; i = i + 1 {
     let p = s.spf[i]

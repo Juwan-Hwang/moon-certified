@@ -36,8 +36,9 @@
 /// ## API
 ///
 /// - `Complex` — complex number type (`Double` real / imaginary parts)
-/// - `c_add`, `c_sub`, `c_mul`, `c_div`, `c_abs`, `c_conj` — complex arithmetic
+/// - `c_add`, `c_sub`, `c_mul`, `c_div`, `c_div_safe`, `c_abs`, `c_conj` — complex arithmetic
 /// - `fft(a, invert)` — in-place forward or inverse FFT
+/// - `fft_checked(a, invert)` — variant returning `false` on non-power-of-2 input
 /// - `multiply(a, b)` — polynomial multiplication returning `a * b`
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
@@ -116,6 +117,26 @@ pub fn c_div(a : Complex, b : Complex) -> Complex {
     real: (a.real * b.real + a.imag * b.imag) / denom,
     imag: (a.imag * b.real - a.real * b.imag) / denom,
   }
+}
+
+///|
+/// Safe complex division: returns `None` when `|b|^2 == 0`.
+///
+/// [`c_div`] follows IEEE-754 semantics and produces `Inf`/`NaN` when the
+/// denominator `|b|^2` is zero. `c_div_safe` instead returns `None` for a
+/// zero (or null) divisor, making it the right choice for pipelines that
+/// must not propagate non-finite values (e.g. division by a transform bin
+/// that happens to be exactly `0 + 0i`). For any non-zero `b` it returns
+/// `Some(a / b)` computed identically to [`c_div`].
+pub fn c_div_safe(a : Complex, b : Complex) -> Complex? {
+  let denom = b.real * b.real + b.imag * b.imag
+  if denom == 0.0 {
+    return None
+  }
+  Some({
+    real: (a.real * b.real + a.imag * b.imag) / denom,
+    imag: (a.imag * b.real - a.real * b.imag) / denom,
+  })
 }
 
 ///|
@@ -415,6 +436,34 @@ test "fft: complex arithmetic" {
   let z5 = c_conj(complex(3.0, 4.0))
   assert_approx(re(z5), 3.0)
   assert_approx(im(z5), -4.0)
+}
+
+///|
+test "fft: c_div_safe returns None for zero divisor" {
+  // |0 + 0i|^2 == 0 → None, instead of the Inf/NaN that c_div would produce.
+  assert_true(c_div_safe(complex(3.0, 4.0), complex(0.0, 0.0)) is None)
+  // Pure-imaginary zero is still zero.
+  assert_true(c_div_safe(complex(1.0, 1.0), complex(0.0, -0.0)) is None)
+  // A null numerator over zero is also None (0/0 is NaN, not a number).
+  assert_true(c_div_safe(complex(0.0, 0.0), complex(0.0, 0.0)) is None)
+}
+
+///|
+test "fft: c_div_safe agrees with c_div for non-zero divisor" {
+  // (3 + 4i) / (1 + i) = 3.5 + 0.5i
+  let safe = c_div_safe(complex(3.0, 4.0), complex(1.0, 1.0))
+  let raw = c_div(complex(3.0, 4.0), complex(1.0, 1.0))
+  match safe {
+    Some(z) => {
+      assert_approx(re(z), re(raw))
+      assert_approx(im(z), im(raw))
+    }
+    None => abort("c_div_safe should not return None for a non-zero divisor")
+  }
+  // A small-but-non-zero divisor stays finite: |b|^2 = 1e-200 (representable,
+  // not underflowed), so c_div_safe returns Some rather than None.
+  let small = c_div_safe(complex(1.0, 0.0), complex(1.0e-100, 0.0))
+  assert_true(small is Some(_))
 }
 
 ///|

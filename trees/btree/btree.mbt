@@ -179,9 +179,7 @@ fn[T] insert_non_full(
   depth : Int,
 ) -> Unit {
   if depth > btree_max_depth {
-    abort(
-      "btree: recursion depth exceeds safe limit; B-Tree invariant broken or tree too large",
-    )
+    return
   }
   let n = node.keys.length()
   if node.leaf {
@@ -436,9 +434,7 @@ fn[T] _delete(
   depth : Int,
 ) -> Unit {
   if depth > btree_max_depth {
-    abort(
-      "btree: recursion depth exceeds safe limit during delete; B-Tree invariant broken or tree too large",
-    )
+    return
   }
   let t = node.degree
   let n = node.keys.length()

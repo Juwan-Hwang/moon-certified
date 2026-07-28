@@ -2,42 +2,45 @@
 package "moon-certified/trees/bplus_tree"
 
 // Values
-pub fn delete(BPTree, Int) -> Bool
+pub fn[K, V] delete(BPTree[K, V], K) -> Bool
 
-pub fn insert(BPTree, Int, Int) -> Unit
+pub fn[K, V] insert(BPTree[K, V], K, V) -> Unit
 
-pub fn new() -> BPTree
+pub fn[K, V] new((K, K) -> Int) -> BPTree[K, V]
 
-pub fn range_query(BPTree, Int, Int) -> Array[Int]
+pub fn[V] new_int() -> BPTree[Int, V]
 
-pub fn search(BPTree, Int) -> Int?
+pub fn[K, V] range_query(BPTree[K, V], K, K) -> Array[(K, V)]
 
-pub fn size(BPTree) -> Int
+pub fn[K, V] search(BPTree[K, V], K) -> V?
 
-pub fn to_sorted_array(BPTree) -> Array[Int]
+pub fn[K, V] size(BPTree[K, V]) -> Int
+
+pub fn[K, V] to_sorted_array(BPTree[K, V]) -> Array[K]
 
 // Errors
 
 // Types and methods
-pub struct BPTree {
-  mut root : BPTreeChild
+pub struct BPTree[K, V] {
+  mut root : BPTreeChild[K, V]
   mut size : Int
+  cmp_fn : (K, K) -> Int
 }
 
-pub enum BPTreeChild {
-  Node(BPTreeNode)
-  Leaf(BPTreeLeaf)
+pub enum BPTreeChild[K, V] {
+  Node(BPTreeNode[K, V])
+  Leaf(BPTreeLeaf[K, V])
 }
 
-pub struct BPTreeLeaf {
-  keys : Array[Int]
-  values : Array[Int]
-  mut next : BPTreeLeaf?
+pub struct BPTreeLeaf[K, V] {
+  keys : Array[K]
+  values : Array[V]
+  mut next : BPTreeLeaf[K, V]?
 }
 
-pub struct BPTreeNode {
-  keys : Array[Int]
-  children : Array[BPTreeChild]
+pub struct BPTreeNode[K, V] {
+  keys : Array[K]
+  children : Array[BPTreeChild[K, V]]
 }
 
 // Type aliases

@@ -17,9 +17,7 @@ pub fn[K, V] ConcurrentHashMap::put(Self[K, V], K, V) -> Unit
 pub fn[K, V] ConcurrentHashMap::remove(Self[K, V], K) -> Bool
 
 pub struct Slot[K, V] {
-  mut key : K?
-  mut value : V?
-  mut state : Int
+  // private fields
 }
 
 // Type aliases

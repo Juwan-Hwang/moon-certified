@@ -61,11 +61,6 @@ fn circle_three(
 }
 
 ///|
-fn lcg_next(state : Int) -> Int {
-  (state * 1103515245 + 12345) & 0x7fffffff
-}
-
-///|
 pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
   let n = points.length()
   if n == 0 {
@@ -74,7 +69,7 @@ pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
   let pts = points.copy()
   let mut seed = 42
   for i = n - 1; i > 0; i = i - 1 {
-    seed = lcg_next(seed)
+    seed = @utils.lcg_next(seed)
     let j = seed % (i + 1)
     let tmp = pts[i]
     pts[i] = pts[j]

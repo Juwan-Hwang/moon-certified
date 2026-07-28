@@ -1,0 +1,9 @@
+import {
+  "moon-certified/string/bwt",
+  "moon-certified/compression/huffman",
+  "moon-certified/utils",
+}
+
+options(
+  "proof-enabled": false,
+)

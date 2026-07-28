@@ -4,6 +4,8 @@ package "moon-certified/ml/dbscan"
 // Values
 pub fn dbscan(Array[DBSCANPoint], Double, Int) -> Array[Array[Int]]
 
+pub fn dbscan_fast(Array[DBSCANPoint], Double, Int) -> Array[Array[Int]]
+
 // Errors
 
 // Types and methods

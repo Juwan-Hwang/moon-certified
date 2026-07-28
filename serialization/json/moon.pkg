@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/double",
+  "moonbitlang/core/string",
+}
+
+options(
+  "proof-enabled": false,
+)

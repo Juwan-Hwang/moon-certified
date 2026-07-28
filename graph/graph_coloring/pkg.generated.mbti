@@ -18,8 +18,7 @@ pub fn welsh_powell(Array[Array[Int]], Int) -> Coloring
 
 // Types and methods
 pub struct Coloring {
-  colors : FixedArray[Int]
-  num_colors : Int
+  // private fields
 }
 
 // Type aliases

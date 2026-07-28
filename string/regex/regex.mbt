@@ -1,4 +1,4 @@
-/// Regex Engine — Thompson NFA Construction and Simulation.
+/// Regex Engine — Thompson NFA Construction and Simulation with Capture Groups.
 ///
 /// This package implements a regular expression engine based on Thompson's
 /// NFA construction and parallel (all-states-at-once) simulation, following
@@ -15,26 +15,37 @@
 /// | `+`         | one or more (greedy)                  |
 /// | `?`         | zero or one (greedy)                  |
 /// | `a\|b`      | alternation (a or b)                  |
-/// | `(abc)`     | grouping                              |
+/// | `(abc)`     | capture group                         |
 /// | `[abc]`     | character class                       |
 /// | `[^abc]`    | negated character class               |
 /// | `[a-z]`     | character range                       |
 /// | `\.`        | escaped literal (any char after `\`)  |
 ///
+/// ## Capture Groups
+///
+/// Parenthesised sub-expressions `(expr)` become numbered capture groups.
+/// Group 0 is the entire match; groups 1, 2, … are assigned left-to-right
+/// by opening parenthesis order. Use `find_captures` to retrieve sub-match
+/// positions.
+///
 /// ## Algorithm
 ///
 /// 1. **Parse**: A recursive-descent parser builds NFA fragments directly
-///    (no intermediate AST) using Thompson's construction.
+///    (no intermediate AST) using Thompson's construction. Capture groups
+///    emit marker states (CaptureStart / CaptureEnd) that record positions
+///    during simulation.
 /// 2. **Simulate**: The NFA is simulated in parallel — all reachable states
 ///    are tracked simultaneously, giving O(n·m) worst-case time (n = text
-///    length, m = pattern length) with no catastrophic backtracking.
+///    length, m = pattern length) with no catastrophic backtracking. Each
+///    active thread carries its own capture-position array; the first thread
+///    to reach a state wins (POSIX leftmost semantics).
 ///
 /// ## Limitations
 ///
 /// - Character classes support byte values 0–255 (Latin-1). Characters
 ///   outside this range will not match `[...]` classes but will match `.`.
 /// - `.` matches any character (including newline).
-/// - No capture groups, backreferences, or lookahead.
+/// - No backreferences or lookahead.
 /// - Matching is leftmost-longest (POSIX semantics).
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
@@ -64,8 +75,10 @@ priv enum Matcher {
 ///
 /// - **Match state**: `matcher` is `Some(...)`, `out1` is the next state,
 ///   `out2` is unused (-1).
-/// - **Split state**: `matcher` is `None`, `is_accept` is `false`. Both
-///   `out1` and `out2` are epsilon transitions.
+/// - **Split state**: `matcher` is `None`, `is_accept` is `false`,
+///   `capture_group` is -1. Both `out1` and `out2` are epsilon transitions.
+/// - **Capture state**: `capture_group >= 0`, `is_capture_start` indicates
+///   start vs end. Epsilon-like (no input consumed), `out1` is the next state.
 /// - **Accept state**: `is_accept` is `true`, `matcher` is `None`, both
 ///   outs are -1.
 priv struct NFAState {
@@ -73,6 +86,8 @@ priv struct NFAState {
   mut out1 : Int // first out-transition (-1 = none/dangling)
   mut out2 : Int // second out-transition (-1 = none/dangling)
   is_accept : Bool
+  capture_group : Int // -1 = not a capture state; >= 0 = group id
+  is_capture_start : Bool // true = CaptureStart, false = CaptureEnd
 }
 
 // ---------------------------------------------------------------------------
@@ -103,12 +118,13 @@ priv struct Builder {
   pattern : String
   mut pos : Int
   states : Array[NFAState]
+  mut group_count : Int // number of capture groups (excluding group 0)
 }
 
 ///|
 /// Create a new builder for `pattern`.
 fn new_builder(pattern : String) -> Builder {
-  { pattern, pos: 0, states: [] }
+  { pattern, pos: 0, states: [], group_count: 0 }
 }
 
 ///|
@@ -141,28 +157,46 @@ fn new_state(
   out1 : Int,
   out2 : Int,
   is_accept : Bool,
+  capture_group : Int,
+  is_capture_start : Bool,
 ) -> Int {
   let idx = b.states.length()
-  b.states.push({ matcher, out1, out2, is_accept })
+  b.states.push({ matcher, out1, out2, is_accept, capture_group, is_capture_start })
   idx
 }
 
 ///|
 /// Allocate a Match state (consumes one character, then transitions to `out1`).
 fn new_match(b : Builder, matcher : Matcher) -> Int {
-  new_state(b, Some(matcher), -1, -1, false)
+  new_state(b, Some(matcher), -1, -1, false, -1, false)
 }
 
 ///|
 /// Allocate a Split state (two epsilon transitions).
 fn new_split(b : Builder, out1 : Int, out2 : Int) -> Int {
-  new_state(b, None, out1, out2, false)
+  new_state(b, None, out1, out2, false, -1, false)
+}
+
+///|
+/// Allocate a CaptureStart state for group `group_id`.
+/// Epsilon-like: does not consume input, records the current text position
+/// as the start of capture group `group_id`, then transitions to `out1`.
+fn new_capture_start(b : Builder, group_id : Int) -> Int {
+  new_state(b, None, -1, -1, false, group_id, true)
+}
+
+///|
+/// Allocate a CaptureEnd state for group `group_id`.
+/// Epsilon-like: does not consume input, records the current text position
+/// as the end of capture group `group_id`, then transitions to `out1`.
+fn new_capture_end(b : Builder, group_id : Int) -> Int {
+  new_state(b, None, -1, -1, false, group_id, false)
 }
 
 ///|
 /// Allocate the Accept (final) state.
 fn new_accept(b : Builder) -> Int {
-  new_state(b, None, -1, -1, true)
+  new_state(b, None, -1, -1, true, -1, false)
 }
 
 ///|
@@ -316,18 +350,32 @@ fn parse_quantified(b : Builder) -> Frag? {
 
 ///|
 /// Parse a single atom: `(` regex `)` | `[` class `]` | `\` escape | `.` | literal
+///
+/// For `(`, a capture group is created: the group number is assigned
+/// incrementally, and CaptureStart/CaptureEnd states are emitted around the
+/// inner fragment.
 fn parse_atom(b : Builder) -> Frag? {
   match next_char(b) {
     None => None // Unexpected end of input
     Some(c) =>
       if c == 40 {
-        // '(' — grouping
+        // '(' — capture group
+        b.group_count = b.group_count + 1
+        let group_id = b.group_count
+        let cap_start = new_capture_start(b, group_id)
         let inner = parse_alternation(b)
         match inner {
           None => None
           Some(frag) =>
             match next_char(b) {
-              Some(41) => Some(frag) // ')'
+              Some(41) => {
+                // ')' — close capture group
+                let cap_end = new_capture_end(b, group_id)
+                // Connect: cap_start -> frag -> cap_end
+                patch(b, [(cap_start, 0)], frag.start)
+                patch(b, frag.out, cap_end)
+                Some({ start: cap_start, out: [(cap_end, 0)] })
+              }
               _ => None // Missing ')'
             }
         }
@@ -341,12 +389,93 @@ fn parse_atom(b : Builder) -> Frag? {
           }
         }
       } else if c == 92 {
-        // '\' — escaped character
+        // '\' — escaped character or character class shorthand
         match next_char(b) {
           None => None // Trailing backslash
           Some(escaped) => {
-            let s = new_match(b, Char(escaped))
-            Some({ start: s, out: [(s, 0)] })
+            // Handle character class shorthands: \d, \D, \w, \W, \s, \S
+            let shorthand = match escaped {
+              100 => {
+                // \d — digit [0-9]
+                let set = FixedArray::make(256, false)
+                for i = 48; i <= 57; i = i + 1 {
+                  set[i] = true
+                }
+                Some(ClassNode(set, false))
+              }
+              68 => {
+                // \D — non-digit [^0-9]
+                let set = FixedArray::make(256, false)
+                for i = 48; i <= 57; i = i + 1 {
+                  set[i] = true
+                }
+                Some(ClassNode(set, true))
+              }
+              119 => {
+                // \w — word character [a-zA-Z0-9_]
+                let set = FixedArray::make(256, false)
+                for i = 48; i <= 57; i = i + 1 {
+                  set[i] = true
+                }
+                for i = 65; i <= 90; i = i + 1 {
+                  set[i] = true
+                }
+                for i = 97; i <= 122; i = i + 1 {
+                  set[i] = true
+                }
+                set[95] = true // underscore
+                Some(ClassNode(set, false))
+              }
+              87 => {
+                // \W — non-word character
+                let set = FixedArray::make(256, false)
+                for i = 48; i <= 57; i = i + 1 {
+                  set[i] = true
+                }
+                for i = 65; i <= 90; i = i + 1 {
+                  set[i] = true
+                }
+                for i = 97; i <= 122; i = i + 1 {
+                  set[i] = true
+                }
+                set[95] = true
+                Some(ClassNode(set, true))
+              }
+              115 => {
+                // \s — whitespace [ \t\n\r\f\v]
+                let set = FixedArray::make(256, false)
+                set[32] = true // space
+                set[9] = true // tab
+                set[10] = true // newline
+                set[13] = true // carriage return
+                set[12] = true // form feed
+                set[11] = true // vertical tab
+                Some(ClassNode(set, false))
+              }
+              83 => {
+                // \S — non-whitespace
+                let set = FixedArray::make(256, false)
+                set[32] = true
+                set[9] = true
+                set[10] = true
+                set[13] = true
+                set[12] = true
+                set[11] = true
+                Some(ClassNode(set, true))
+              }
+              _ => None
+            }
+            match shorthand {
+              Some(m) => {
+                let s = new_match(b, m)
+                Some({ start: s, out: [(s, 0)] })
+              }
+              None => {
+                // Regular escaped character
+                let s = new_match(b, Char(escaped))
+                Some({ start: s, out: [(s, 0)] })
+              }
+            }
           }
         }
       } else if c == 46 {
@@ -462,7 +591,7 @@ fn parse_class(b : Builder) -> Matcher? {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — Regex struct, compile, is_match, find
+// Public API — Regex struct, compile, match functions
 // ---------------------------------------------------------------------------
 
 ///|
@@ -475,6 +604,7 @@ fn parse_class(b : Builder) -> Matcher? {
 pub struct Regex {
   priv states : Array[NFAState]
   priv start : Int
+  priv num_groups : Int // number of capture groups (excluding group 0)
 }
 
 ///|
@@ -498,14 +628,62 @@ pub fn compile(pattern : String) -> Regex? {
     Some(frag) => {
       let accept = new_accept(b)
       patch(b, frag.out, accept)
-      Some({ states: b.states, start: frag.start })
+      Some({ states: b.states, start: frag.start, num_groups: b.group_count })
     }
   }
 }
 
+///|
+/// Returns the number of capture groups in the compiled regex (excluding
+/// group 0, which is the entire match). For a pattern with no parentheses,
+/// this returns 0.
+pub fn group_count(re : Regex) -> Int {
+  re.num_groups
+}
+
 // ---------------------------------------------------------------------------
-// NFA simulation helpers
+// Capture result type
 // ---------------------------------------------------------------------------
+
+///|
+/// The result of a capture-group match.
+///
+/// - `start` / `end`: byte offsets of the entire match (group 0).
+/// - `groups`: array of length `group_count(re)`. `groups[i]` corresponds
+///   to capture group `i + 1`. `Some((s, e))` if the group participated in
+///   the match, `None` if it did not match (e.g. inside an unmatched
+///   alternation branch).
+pub struct CaptureMatch {
+  start : Int
+  end : Int
+  groups : Array[(Int, Int)?]
+}
+
+///|
+/// Retrieve a capture group from a match.
+///
+/// `idx == 0` returns the entire match `(start, end)`.
+/// `idx >= 1` returns the corresponding capture group, or `None` if the
+/// group did not participate in the match.
+pub fn group(m : CaptureMatch, idx : Int) -> (Int, Int)? {
+  if idx == 0 {
+    Some((m.start, m.end))
+  } else if idx >= 1 && idx <= m.groups.length() {
+    m.groups[idx - 1]
+  } else {
+    None
+  }
+}
+
+// ---------------------------------------------------------------------------
+// NFA simulation helpers (capture-aware)
+// ---------------------------------------------------------------------------
+
+///|
+/// A thread in the parallel NFA simulation: a state index paired with
+/// capture positions. `captures[2*g]` = start of group `g+1`,
+/// `captures[2*g+1]` = end of group `g+1`, -1 = unset.
+type Thread = (Int, FixedArray[Int])
 
 ///|
 /// Clear the visited array (set all entries to false).
@@ -516,16 +694,37 @@ fn clear_visited(visited : FixedArray[Bool]) -> Unit {
 }
 
 ///|
+/// Deep-copy a captures array.
+fn copy_captures(caps : FixedArray[Int]) -> FixedArray[Int] {
+  let n = caps.length()
+  if n == 0 {
+    return FixedArray::make(0, 0)
+  }
+  let result = FixedArray::make(n, 0)
+  for i = 0; i < n; i = i + 1 {
+    result[i] = caps[i]
+  }
+  result
+}
+
+///|
 /// Recursively add a state and all states reachable via epsilon transitions
 /// to `list`. Uses `visited` to avoid revisiting (prevents infinite loops
 /// on cycles like `a*`).
 ///
-/// Only Match and Accept states are added to `list`; Split states are
-/// traversed but not stored (they represent pure epsilon transitions).
+/// Only Match and Accept states are added to `list`; Split and Capture
+/// states are traversed but not stored (they represent pure epsilon
+/// transitions). Capture states update the thread's captures array
+/// (copy-on-write) before following their out-transition.
+///
+/// `pos` is the current text position (the index of the next character to
+/// be consumed). Capture markers record this position.
 fn add_state(
   states : Array[NFAState],
   state_idx : Int,
-  list : Array[Int],
+  pos : Int,
+  captures : FixedArray[Int],
+  list : Array[Thread],
   visited : FixedArray[Bool],
 ) -> Unit {
   if state_idx < 0 || state_idx >= states.length() {
@@ -537,30 +736,49 @@ fn add_state(
   visited[state_idx] = true
   let s = states[state_idx]
   if s.is_accept {
-    list.push(state_idx)
+    list.push((state_idx, captures))
+  } else if s.capture_group >= 0 {
+    // Capture state: epsilon-like, update captures and follow out1.
+    // Copy-on-write: create a new captures array so the original thread's
+    // captures are not affected (split branches may share the same array).
+    let new_caps = copy_captures(captures)
+    let g = s.capture_group
+    // captures indices: group 1 is at [0],[1]; group g is at [2*(g-1)],[2*(g-1)+1].
+    let base = 2 * (g - 1)
+    if s.is_capture_start {
+      new_caps[base] = pos
+    } else {
+      new_caps[base + 1] = pos
+    }
+    add_state(states, s.out1, pos, new_caps, list, visited)
   } else {
     match s.matcher {
       None => {
         // Split state: follow both epsilon transitions.
-        add_state(states, s.out1, list, visited)
-        add_state(states, s.out2, list, visited)
+        add_state(states, s.out1, pos, captures, list, visited)
+        add_state(states, s.out2, pos, captures, list, visited)
       }
       Some(_) =>
-        // Match state: add to list.
-        list.push(state_idx)
+        // Match state: add to list with its captures.
+        list.push((state_idx, captures))
     }
   }
 }
 
 ///|
-/// Check if any state in `list` is the Accept state.
-fn has_accept(states : Array[NFAState], list : Array[Int]) -> Bool {
+/// Check if any thread in `list` is in the Accept state.
+/// Returns the captures of the first accepting thread, or `None`.
+fn find_accept(
+  states : Array[NFAState],
+  list : Array[Thread],
+) -> FixedArray[Int]? {
   for i = 0; i < list.length(); i = i + 1 {
-    if states[list[i]].is_accept {
-      return true
+    let (state_idx, captures) = list[i]
+    if states[state_idx].is_accept {
+      return Some(captures)
     }
   }
-  false
+  None
 }
 
 ///|
@@ -587,21 +805,27 @@ fn match_char(m : Matcher, ch : Int) -> Bool {
 /// Advance the NFA by one character. For each Match state in `current`
 /// whose matcher accepts `ch`, follow its out-transition (with epsilon-closure)
 /// and add to `next`. Clears `visited` and `next` before processing.
+///
+/// `pos` is the text position *after* consuming `ch` (i.e. the index of the
+/// next character). Capture markers encountered during epsilon closure record
+/// this position.
 fn step(
   states : Array[NFAState],
-  current : Array[Int],
+  current : Array[Thread],
   ch : Int,
-  next : Array[Int],
+  pos : Int,
+  next : Array[Thread],
   visited : FixedArray[Bool],
 ) -> Unit {
   clear_visited(visited)
   next.clear()
   for i = 0; i < current.length(); i = i + 1 {
-    let s = states[current[i]]
+    let (state_idx, captures) = current[i]
+    let s = states[state_idx]
     match s.matcher {
       Some(m) =>
         if match_char(m, ch) {
-          add_state(states, s.out1, next, visited)
+          add_state(states, s.out1, pos, captures, next, visited)
         }
       None => () // Accept state: no transition.
     }
@@ -651,28 +875,64 @@ pub fn is_match(re : Regex, text : String) -> Bool {
 /// }
 /// ```
 pub fn find(re : Regex, text : String) -> (Int, Int)? {
+  match find_captures(re, text) {
+    None => None
+    Some(m) => Some((m.start, m.end))
+  }
+}
+
+///|
+/// Find the first (leftmost-longest) match of `re` in `text`, with capture
+/// group positions.
+///
+/// Returns `Some(CaptureMatch)` if a match is found, or `None` if no match.
+/// The `CaptureMatch` contains the overall match span and the positions of
+/// each capture group.
+///
+/// ```moonbit nocheck
+/// let re = compile("(\\d+)-(\\d+)").unwrap()
+/// match find_captures(re, "abc 123-456 end") {
+///   Some(m) => {
+///     assert_eq(m.start, 4)
+///     assert_eq(m.end, 11)
+///     // Group 1: "123" at (4, 7)
+///     assert_eq(group(m, 1), Some((4, 7)))
+///     // Group 2: "456" at (8, 11)
+///     assert_eq(group(m, 2), Some((8, 11)))
+///   }
+///   None => fail("expected match")
+/// }
+/// ```
+pub fn find_captures(re : Regex, text : String) -> CaptureMatch? {
   let n = text.length()
   let num_states = re.states.length()
   let visited = FixedArray::make(num_states, false)
-  let current : Array[Int] = []
-  let next : Array[Int] = []
+  let current : Array[Thread] = []
+  let next : Array[Thread] = []
+  let caps_size = 2 * re.num_groups
   // Try matching starting at each position (including past the end for
   // empty-string matches).
   for s = 0; s <= n; s = s + 1 {
-    // Initialize the NFA at position s.
+    // Initialize the NFA at position s with empty captures.
     clear_visited(visited)
     current.clear()
-    add_state(re.states, re.start, current, visited)
+    let initial_caps = FixedArray::make(caps_size, -1)
+    add_state(re.states, re.start, s, initial_caps, current, visited)
     // Check for an immediate (empty) match.
     let mut best_end = -1
-    if has_accept(re.states, current) {
-      best_end = s
+    let mut best_caps : FixedArray[Int]? = None
+    match find_accept(re.states, current) {
+      Some(caps) => {
+        best_end = s
+        best_caps = Some(caps)
+      }
+      None => ()
     }
     // Advance through the remaining text.
     let mut e = s
     let mut alive = true
     while e < n && alive {
-      step(re.states, current, text[e].to_int(), next, visited)
+      step(re.states, current, text[e].to_int(), e + 1, next, visited)
       e = e + 1
       // Move next into current.
       current.clear()
@@ -681,12 +941,32 @@ pub fn find(re : Regex, text : String) -> (Int, Int)? {
       }
       if current.length() == 0 {
         alive = false
-      } else if has_accept(re.states, current) {
-        best_end = e
+      } else {
+        match find_accept(re.states, current) {
+          Some(caps) => {
+            best_end = e
+            best_caps = Some(caps)
+          }
+          None => ()
+        }
       }
     }
     if best_end >= 0 {
-      return Some((s, best_end))
+      // Build the CaptureMatch from the best captures.
+      let groups : Array[(Int, Int)?] = Array::make(re.num_groups, None)
+      match best_caps {
+        Some(caps) =>
+          for g = 1; g <= re.num_groups; g = g + 1 {
+            let base = 2 * (g - 1)
+            let gs = caps[base]
+            let ge = caps[base + 1]
+            if gs >= 0 && ge >= 0 {
+              groups[g - 1] = Some((gs, ge))
+            }
+          }
+        None => ()
+      }
+      return Some({ start: s, end: best_end, groups })
     }
   }
   None
@@ -930,4 +1210,199 @@ test "regex: multiple quantifiers" {
   assert_true(is_match(re, "aaabbc"))
   assert_true(is_match(re, "bc"))
   assert_false(is_match(re, "d"))
+}
+
+// ---------------------------------------------------------------------------
+// Capture group tests
+// ---------------------------------------------------------------------------
+
+///|
+test "regex: group_count" {
+  assert_eq(group_count(compile("abc").unwrap()), 0)
+  assert_eq(group_count(compile("(abc)").unwrap()), 1)
+  assert_eq(group_count(compile("(a)(b)(c)").unwrap()), 3)
+  assert_eq(group_count(compile("(a(b(c)))").unwrap()), 3)
+  assert_eq(group_count(compile("(a|b)*c(d|e)+").unwrap()), 2)
+}
+
+///|
+test "regex: basic capture group" {
+  let re = compile("(\\d+)-(\\d+)").unwrap()
+  match find_captures(re, "abc 123-456 end") {
+    Some(m) => {
+      assert_eq(m.start, 4)
+      assert_eq(m.end, 11)
+      assert_eq(group(m, 0), Some((4, 11)))
+      assert_eq(group(m, 1), Some((4, 7))) // "123"
+      assert_eq(group(m, 2), Some((8, 11))) // "456"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture group with alternation" {
+  let re = compile("(foo|bar)").unwrap()
+  match find_captures(re, "hello bar world") {
+    Some(m) => {
+      assert_eq(m.start, 6)
+      assert_eq(m.end, 9)
+      assert_eq(group(m, 1), Some((6, 9))) // "bar"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: nested capture groups" {
+  let re = compile("(a(b)c)").unwrap()
+  match find_captures(re, "abc") {
+    Some(m) => {
+      assert_eq(group(m, 1), Some((0, 3))) // "abc"
+      assert_eq(group(m, 2), Some((1, 2))) // "b"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture in starred group" {
+  let re = compile("(ab)*").unwrap()
+  match find_captures(re, "ababab") {
+    Some(m) => {
+      // The last iteration of (ab) should be captured.
+      let g1 = group(m, 1)
+      assert_true(g1 is Some(_))
+      match g1 {
+        Some((s, e)) => {
+          // Last "ab" is at positions 4..6.
+          assert_eq(s, 4)
+          assert_eq(e, 6)
+        }
+        None => fail("expected group 1")
+      }
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture group not matched (alternation)" {
+  // When the first branch matches, the second group doesn't participate.
+  let re = compile("(a)|(b)").unwrap()
+  match find_captures(re, "a") {
+    Some(m) => {
+      assert_eq(group(m, 1), Some((0, 1))) // "a"
+      assert_eq(group(m, 2), None) // "b" branch not taken
+    }
+    None => fail("expected match")
+  }
+  match find_captures(re, "b") {
+    Some(m) => {
+      assert_eq(group(m, 1), None) // "a" branch not taken
+      assert_eq(group(m, 2), Some((0, 1))) // "b"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: no capture groups" {
+  let re = compile("abc").unwrap()
+  match find_captures(re, "xxabcxx") {
+    Some(m) => {
+      assert_eq(m.start, 2)
+      assert_eq(m.end, 5)
+      assert_eq(m.groups.length(), 0)
+      assert_eq(group(m, 0), Some((2, 5)))
+      assert_eq(group(m, 1), None) // out of range
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture with email-like pattern" {
+  let re = compile("([a-z]+)@([a-z]+)\\.([a-z]+)").unwrap()
+  match find_captures(re, "contact: user@example.com end") {
+    Some(m) => {
+      assert_eq(group(m, 1), Some((9, 13))) // "user"
+      assert_eq(group(m, 2), Some((14, 21))) // "example"
+      assert_eq(group(m, 3), Some((22, 25))) // "com"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture group out of range returns None" {
+  let re = compile("(a)").unwrap()
+  match find_captures(re, "a") {
+    Some(m) => {
+      assert_eq(group(m, 0), Some((0, 1)))
+      assert_eq(group(m, 1), Some((0, 1)))
+      assert_eq(group(m, 2), None) // out of range
+      assert_eq(group(m, -1), None) // negative
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: find_captures no match returns None" {
+  let re = compile("(xyz)").unwrap()
+  assert_true(find_captures(re, "abcdef") is None)
+}
+
+///|
+test "regex: empty capture group" {
+  let re = compile("a()b").unwrap()
+  match find_captures(re, "ab") {
+    Some(m) => {
+      assert_eq(m.start, 0)
+      assert_eq(m.end, 2)
+      // Group 1 matches empty string at position 1.
+      assert_eq(group(m, 1), Some((1, 1)))
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: multiple capture groups in sequence" {
+  let re = compile("(\\d+):(\\d+):(\\d+)").unwrap()
+  match find_captures(re, "time 10:20:30 end") {
+    Some(m) => {
+      assert_eq(group(m, 1), Some((5, 7))) // "10"
+      assert_eq(group(m, 2), Some((8, 10))) // "20"
+      assert_eq(group(m, 3), Some((11, 13))) // "30"
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: capture group with quantifier" {
+  let re = compile("(\\w+)").unwrap()
+  match find_captures(re, "  hello  ") {
+    Some(m) => {
+      assert_eq(m.start, 2)
+      assert_eq(m.end, 7)
+      assert_eq(group(m, 1), Some((2, 7)))
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: deeply nested capture groups" {
+  let re = compile("(a(b(c)d)e)").unwrap()
+  match find_captures(re, "abcde") {
+    Some(m) => {
+      assert_eq(group(m, 1), Some((0, 5))) // "abcde"
+      assert_eq(group(m, 2), Some((1, 4))) // "bcd"
+      assert_eq(group(m, 3), Some((2, 3))) // "c"
+    }
+    None => fail("expected match")
+  }
 }

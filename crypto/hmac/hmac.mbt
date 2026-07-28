@@ -35,36 +35,6 @@ let hex_chars : FixedArray[Char] = FixedArray::from_array([
 ])
 
 ///|
-/// Encode a single UTF-8 code point into the buffer.
-fn utf8_encode(cp : UInt, buf : Array[Byte]) -> Unit {
-  if cp <= 0x7FU {
-    buf.push(cp.to_byte())
-  } else if cp <= 0x7FFU {
-    buf.push((0xC0U | (cp >> 6)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  } else if cp <= 0xFFFFU {
-    buf.push((0xE0U | (cp >> 12)).to_byte())
-    buf.push((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  } else {
-    buf.push((0xF0U | (cp >> 18)).to_byte())
-    buf.push((0x80U | ((cp >> 12) & 0x3FU)).to_byte())
-    buf.push((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  }
-}
-
-///|
-/// Convert a MoonBit String to UTF-8 Bytes.
-fn string_to_bytes(s : String) -> Bytes {
-  let buf : Array[Byte] = []
-  for c in s.iter() {
-    utf8_encode(c.to_uint(), buf)
-  }
-  Bytes::from_array(buf)
-}
-
-///|
 /// Compute HMAC-SHA-256 of a message with the given key.
 ///
 /// Returns the 32-byte authentication tag.
@@ -156,7 +126,7 @@ test "hmac: rfc 4231 test case 1" {
     b'\x0b', b'\x0b', b'\x0b', b'\x0b', b'\x0b', b'\x0b', b'\x0b', b'\x0b', b'\x0b',
     b'\x0b', b'\x0b',
   ])
-  let data = string_to_bytes("Hi There")
+  let data = @utils.string_to_bytes("Hi There")
   let expected = "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
   assert_eq(hmac_sha256_hex(key, data), expected)
 }
@@ -164,8 +134,8 @@ test "hmac: rfc 4231 test case 1" {
 ///|
 test "hmac: rfc 4231 test case 2" {
   // Jefe key with message "what do ya want for nothing?"
-  let key = string_to_bytes("Jefe")
-  let data = string_to_bytes("what do ya want for nothing?")
+  let key = @utils.string_to_bytes("Jefe")
+  let data = @utils.string_to_bytes("what do ya want for nothing?")
   let expected = "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
   assert_eq(hmac_sha256_hex(key, data), expected)
 }
@@ -185,26 +155,26 @@ test "hmac: empty message" {
 ///|
 test "hmac: long key" {
   // Key longer than block size (64 bytes) — should be hashed first.
-  let key = string_to_bytes(
+  let key = @utils.string_to_bytes(
     "This is a very long key that exceeds the SHA-256 block size of 64 bytes and must be hashed first before being used in HMAC computation",
   )
-  let data = string_to_bytes("message")
+  let data = @utils.string_to_bytes("message")
   let result = hmac_sha256(key, data)
   assert_eq(result.length(), 32)
 }
 
 ///|
 test "hmac: determinism" {
-  let key = string_to_bytes("secret")
-  let msg = string_to_bytes("hello")
+  let key = @utils.string_to_bytes("secret")
+  let msg = @utils.string_to_bytes("hello")
   assert_eq(hmac_sha256(key, msg), hmac_sha256(key, msg))
 }
 
 ///|
 test "hmac: different keys produce different macs" {
-  let msg = string_to_bytes("hello")
-  let mac1 = hmac_sha256(string_to_bytes("key1"), msg)
-  let mac2 = hmac_sha256(string_to_bytes("key2"), msg)
+  let msg = @utils.string_to_bytes("hello")
+  let mac1 = hmac_sha256(@utils.string_to_bytes("key1"), msg)
+  let mac2 = hmac_sha256(@utils.string_to_bytes("key2"), msg)
   assert_true(mac1 != mac2)
 }
 

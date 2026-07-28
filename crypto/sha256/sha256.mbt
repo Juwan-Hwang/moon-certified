@@ -220,38 +220,6 @@ fn compress(
 // ---------------------------------------------------------------------------
 
 ///|
-/// Emit the 1–4 UTF-8 bytes of a single Unicode code point `cp` via `emit`.
-///
-/// Factored out so that [`sha256_string`] can encode a string to UTF-8 bytes
-/// for hashing. Ranges follow RFC 3629:
-///   U+0000   .. U+007F   -> 1 byte  (0xxxxxxx)
-///   U+0080   .. U+07FF   -> 2 bytes (110xxxxx 10xxxxxx)
-///   U+0800   .. U+FFFF   -> 3 bytes (1110xxxx 10xxxxxx 10xxxxxx)
-///   U+10000  .. U+10FFFF -> 4 bytes (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
-fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
-  // Validate code point range per RFC 3629: U+0000..U+10FFFF.
-  // Code points above U+10FFFF are invalid; skip them silently.
-  if cp > 0x10FFFFU {
-    return
-  }
-  if cp < 0x80U {
-    emit(cp.to_byte())
-  } else if cp < 0x800U {
-    emit((0xC0U | (cp >> 6)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  } else if cp < 0x10000U {
-    emit((0xE0U | (cp >> 12)).to_byte())
-    emit((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  } else {
-    emit((0xF0U | (cp >> 18)).to_byte())
-    emit((0x80U | ((cp >> 12) & 0x3FU)).to_byte())
-    emit((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    emit((0x80U | (cp & 0x3FU)).to_byte())
-  }
-}
-
-///|
 /// Materialise the UTF-8 encoding of `s` as a fresh `Bytes`.
 ///
 /// Used by [`sha256_string`] to obtain the byte sequence to hash. MoonBit
@@ -261,7 +229,7 @@ fn utf8_encode(cp : UInt, emit : (Byte) -> Unit) -> Unit {
 fn utf8_bytes(s : String) -> Bytes {
   let buf : Array[Byte] = []
   for c in s.iter() {
-    utf8_encode(c.to_uint(), fn(b) { buf.push(b) })
+    @utils.utf8_encode_emit(c.to_uint(), fn(b) { buf.push(b) })
   }
   Bytes::from_array(buf)
 }

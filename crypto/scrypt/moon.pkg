@@ -1,0 +1,7 @@
+import {
+  "moon-certified/crypto/pbkdf2",
+}
+
+options(
+  "proof-enabled": false,
+)

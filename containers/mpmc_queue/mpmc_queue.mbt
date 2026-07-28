@@ -1,10 +1,37 @@
-/// MPMC Bounded Queue — Lock-Free Multi-Producer Multi-Consumer Queue.
+/// MPMC Bounded Queue — Vyukov's Algorithm (Single-Threaded Simulation)
+/// ========================================================================
 ///
 /// This is a bounded MPMC queue based on the array-based ring buffer
 /// design described by Dmitry Vyukov (used in Linux kernel, Intel TBB,
 /// Folly). Unlike the Michael-Scott linked-list queue, this uses a
 /// pre-allocated array with per-slot sequence numbers, achieving
 /// better cache locality and no ABA problem.
+///
+/// ## Concurrency model
+///
+/// MoonBit currently compiles to WebAssembly / JavaScript, which are
+/// **single-threaded** execution environments. There is no native
+/// compare-and-swap (CAS) or atomic primitive in the language.
+///
+/// This implementation is a **faithful single-threaded simulation**:
+/// - The data-structure layout, per-slot sequence numbers, and CAS
+///   retry loops exactly match Vyukov's algorithm.
+/// - Each CAS site is explicitly marked in the code, so the algorithm's
+///   atomic-operation profile can be observed and tested.
+/// - In single-threaded mode, every CAS trivially succeeds (no other
+///   thread can have raced), so the queue is correct by construction.
+///
+/// When MoonBit gains multi-threading and atomics, upgrading this module
+/// to a true lock-free queue requires only replacing the simulated CAS
+/// sites with real atomic CAS — the public API and algorithm structure
+/// stay identical.
+///
+/// ## Real concurrency today: spin mutex
+///
+/// For code that needs **actual mutual exclusion** in MoonBit's current
+/// cooperative runtime, use the spin mutex from the `containers/concurrent`
+/// module's `AsyncQueue[T]` for a production-grade mutex-protected queue
+/// that works with MoonBit's cooperative scheduler.
 ///
 /// ## Algorithm
 ///
@@ -34,7 +61,10 @@
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 ///|
-/// A bounded MPMC queue using Vyukov's algorithm.
+/// A bounded MPMC queue using Vyukov's algorithm (single-threaded simulation).
+///
+/// See the module-level documentation for the concurrency model and
+/// upgrade path to real lock-free operation.
 pub struct MPMCQueue[T] {
   priv buffer : FixedArray[T?]
   priv sequences : FixedArray[Int]
@@ -125,9 +155,14 @@ pub fn[T] mpmc_queue_dequeue(q : MPMCQueue[T]) -> T? {
 pub fn[T] mpmc_queue_size(q : MPMCQueue[T]) -> Int {
   let t = q.tail
   let h = q.head
+  // tail and head are monotonically increasing sequence numbers.
+  // The actual element count is (tail - head), which correctly handles
+  // wraparound because both are unbounded counters (not indices).
   if t >= h {
     t - h
   } else {
+    // This should not happen in a correct single-threaded simulation,
+    // but return 0 as a safe default.
     0
   }
 }
@@ -142,6 +177,27 @@ pub fn[T] mpmc_queue_is_empty(q : MPMCQueue[T]) -> Bool {
 /// Maximum capacity. O(1).
 pub fn[T] mpmc_queue_capacity(q : MPMCQueue[T]) -> Int {
   q.capacity
+}
+
+// ---------------------------------------------------------------------------
+// Unified API aliases
+// ---------------------------------------------------------------------------
+
+///|
+/// Alias for `mpmc_queue_enqueue` — unified `push` naming.
+///
+/// The `containers/` directory uses a mix of `push`/`pop` (RingBuffer,
+/// TreiberStack) and `enqueue`/`dequeue` (LockFreeQueue, MPMCQueue).
+/// This alias allows callers to use `push`/`pop` uniformly across all
+/// queue types.
+pub fn[T] mpmc_queue_push(q : MPMCQueue[T], item : T) -> Bool {
+  mpmc_queue_enqueue(q, item)
+}
+
+///|
+/// Alias for `mpmc_queue_dequeue` — unified `pop` naming.
+pub fn[T] mpmc_queue_pop(q : MPMCQueue[T]) -> T? {
+  mpmc_queue_dequeue(q)
 }
 
 // ---------------------------------------------------------------------------

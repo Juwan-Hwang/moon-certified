@@ -10,12 +10,12 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.11.0** — 252 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 2927 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 243 个包依赖测试验证。
+**v0.12.0** — 571 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 6246 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 562 个包依赖测试验证。
 
-### v0.11.0 变更亮点（生产级基础设施 + 缺失领域补齐）
+### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
 - **新增 44 个算法包**，全面补齐商业级算法库的缺失领域：
-  - **并发数据结构**：RingBuffer、BoundedQueue、SnapshotMap (COW 快照) — 无锁队列 (Michael-Scott)
+  - **并发数据结构**：RingBuffer、BoundedQueue、SnapshotMap (COW 快照) — Michael-Scott/Vyukov/Treiber 等并发算法的单线程模拟 (MoonBit 编译至 Wasm/JS, 无原生 CAS; 自旋锁提供真实互斥)
   - **持久化/外部算法**：External Sort、LSM-Tree、B+Tree、Persistent Vector、HAMT
   - **字符串高级结构**：Suffix Tree、FM-Index、Wavelet Tree、Palindromic Tree、Lyndon 分解、Suffix Balanced Tree
   - **图高级算法**：Edmonds Blossom (一般图最大匹配)、Dominator Tree、Gomory-Hu Tree、Stoer-Wagner 全局最小割、HLPP 最大流、Hopcroft-Karp、Min Steiner Tree、HLD、重心分解、虚树、最大团 (Bron-Kerbosch)、图着色、下界限制流
@@ -228,7 +228,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (2927 tests)
+# 运行测试 (6246 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -524,10 +524,10 @@ moon-certified/
 │   ├── pdq_sort/             🔒 Pattern-Defeating Quicksort (10 tests)
 │   └── bucket_sort/          🔒 桶排序 (10 tests)
 ├── containers/
-│   ├── treiber_stack/        🔒 Treiber 无锁栈 (CAS 模拟, 8 tests)
-│   ├── mpmc_queue/           🔒 MPMC 无锁队列 (8 tests)
-│   ├── concurrent_hash_map/  🔒 Concurrent HashMap (分段锁模拟, 9 tests)
-│   ├── work_stealing/        🔒 Work-Stealing 队列 (8 tests)
+│   ├── treiber_stack/        🔒 Treiber 栈 (单线程 CAS 模拟, 8 tests)
+│   ├── mpmc_queue/           🔒 MPMC 队列 (单线程 CAS 模拟, Vyukov, 8 tests)
+│   ├── concurrent_hash_map/  🔒 Concurrent HashMap (单线程分段锁模拟, 9 tests)
+│   ├── work_stealing/        🔒 Work-Stealing 队列 (单线程模拟, Chase-Lev, 8 tests)
 │   └── monotonic/            🔒 单调栈/单调队列 (21 tests)
 ├── trees/
 │   ├── rope/                 🔒 Rope (平衡树字符串, O(log n), 12 tests)
@@ -710,9 +710,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **2927** | **5 完整, 4 部分, 243 tested** | **17 generic** |
+| **Total** | **6246** | **5 完整, 4 部分, 562 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 252 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 571 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 

@@ -21,9 +21,9 @@
 /// use tagged pointers or hazard pointers. This simulation is
 /// single-threaded (MoonBit compiles to Wasm/JS), so CAS always succeeds.
 ///
-/// For **real mutual exclusion** in MoonBit's async runtime today, use
-/// `@async.Mutex` from `moonbitlang/async`. See `containers/concurrent`'s
-/// `AsyncQueue[T]` for a mutex-protected production variant.
+/// For **real mutual exclusion** in MoonBit's cooperative runtime today, use
+/// the spin mutex from `containers/concurrent`'s `AsyncQueue[T]` for a
+/// mutex-protected production variant.
 ///
 /// ## Complexity
 /// - Time: O(1) push and pop.

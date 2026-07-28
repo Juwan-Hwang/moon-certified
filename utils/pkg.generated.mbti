@@ -2,6 +2,10 @@
 package "moon-certified/utils"
 
 // Values
+pub fn bytes_to_string(Bytes) -> String
+
+pub fn lcg_next(Int) -> Int
+
 pub fn next_pow2(Int) -> Int
 
 pub fn splitmix64_next(Int64) -> (Int64, Int64)
@@ -10,9 +14,15 @@ pub fn splitmix64_next_double(Int64) -> (Int64, Double)
 
 pub fn str_cmp(String, String) -> Int
 
+pub fn string_to_bytes(String) -> Bytes
+
 pub fn[T] swap_array(Array[T], Int, Int) -> Unit
 
 pub fn[T] swap_fixed(FixedArray[T], Int, Int) -> Unit
+
+pub fn utf8_encode(UInt, Array[Byte]) -> Unit
+
+pub fn utf8_encode_emit(UInt, (Byte) -> Unit) -> Unit
 
 pub fn xorshift64_next(Int64) -> Int64
 

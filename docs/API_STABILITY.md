@@ -3,7 +3,7 @@
 **Project:** moon-certified — Formally verified core algorithms and data structures for MoonBit
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
-**Current released version:** 0.11.0
+**Current released version:** 0.12.0
 **Document version:** 1.1
 **Last updated:** 2026-07-26
 
@@ -485,7 +485,7 @@ The following are **not** breaking and require at most a minor bump:
 2. **Deprecate first** (where feasible): in the current minor version, mark the
    old API deprecated per [Section 3](#3-deprecation-policy) and introduce the
    new API alongside it.
-3. **Bump the major version** in `moon.mod.json` and add a `BREAKING` section to
+3. **Bump the major version** in `moon.mod` and add a `BREAKING` section to
    `CHANGELOG.md` with before/after snippets.
 4. **Update this document** if any tier assignments change.
 5. **Ensure CI is green**: `moon check --deny-warn`, `moon test`, and `moon prove`
@@ -495,7 +495,7 @@ The following are **not** breaking and require at most a minor bump:
 
 ## 6. Package Categorization
 
-The current development tree contains **215 algorithm packages** (excluding the
+The current development tree contains **571 algorithm packages** (excluding the
 root module, shared `test_utils`, and `test/`/`benchmarks/` infrastructure
 packages). Each is assigned to exactly one stability tier. The released
 `v0.11.0` contained 215 packages.
@@ -584,7 +584,7 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At the released `v0.11.0` the suite comprises **2515 tests**; the development
+At the released `v0.12.0` the suite comprises **6246 tests**; the development
 branch adds further fuzz and stress coverage. The guarantees below apply to every
 package, with tier-specific additions.
 
@@ -684,6 +684,7 @@ A green CI is a prerequisite for any release.
 | 0.9.0 | 2026-07-24 | 86 | 1321 | — | 12 new packages; `int64_utils` shared module; encapsulation hardening; overflow fixes. |
 | 0.10.0 | 2026-07-25 | 113 | 1599 | 9/9 | 27 new packages (additive, non-breaking). |
 | 0.11.0 | 2026-07-26 | 215 | 2515 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
+| 0.12.0 | 2026-07-28 | 571 | 6246 | 9/9 | 356 new packages (crypto, compression, serialization, datetime, ML, stats); DEFLATE real LZ77+Huffman; LSM-Tree skip-list MemTable; Roaring Bitmap Run container; concurrent struct encapsulation; documentation consistency fixes. |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.

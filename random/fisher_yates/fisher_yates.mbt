@@ -42,19 +42,8 @@
 /// uniformity check over many runs.
 
 // ---------------------------------------------------------------------------
-// Internal LCG (Linear Congruential Generator)
+// Internal LCG (Linear Congruential Generator) — delegates to @utils.lcg_next
 // ---------------------------------------------------------------------------
-
-///|
-/// LCG multiplier (≡ 1 mod 4) and increment (odd). Together with the
-/// `& 0x7FFFFFFF` mask they yield a full-period generator mod 2^31
-/// (Hull-Dobell theorem). Because the mask keeps only the low 31 bits, the
-/// recurrence is correct mod 2^31 regardless of any wraparound in the wider
-/// `Int` product `state * lcg_a + lcg_c`.
-let lcg_a : Int = 1103515245
-
-///|
-let lcg_c : Int = 12345
 
 ///|
 /// Default LCG seed. Any fixed non-zero value makes the default `shuffle_int`
@@ -79,7 +68,7 @@ fn Lcg::new(seed : Int) -> Lcg {
 /// Advance the LCG one step and return the new state, a non-negative `Int` in
 /// [0, 2^31).
 fn Lcg::next(self : Lcg) -> Int {
-  self.state = (self.state * lcg_a + lcg_c) & 0x7FFFFFFF
+  self.state = @utils.lcg_next(self.state)
   self.state
 }
 
@@ -104,11 +93,11 @@ pub fn make_lcg(seed : Int) -> () -> Int {
 /// Shuffle a `FixedArray[T]` in place using the Fisher-Yates (Knuth)
 /// algorithm.
 ///
-/// `rng` must return a non-negative `Int` on each call; the index chosen at
-/// step `i` is `(rng() >> 16) % (i + 1)`, uniform over `[0, i]` for a
-/// uniform `rng`. The upper 15 bits of the RNG output are used because LCGs
-/// have weak low-order bits (Knuth, TAOCP Vol. 2 §3.2.1.1). Arrays of
-/// length 0 or 1 are returned unchanged.
+/// `rng` must return a non-negative `Int` on each call. The index chosen at
+/// step `i` is drawn uniformly from `[0, i]` using rejection sampling on the
+/// upper bits of the RNG output to eliminate modulo bias. The upper bits are
+/// used because LCGs have weak low-order bits (Knuth, TAOCP Vol. 2 §3.2.1.1).
+/// Arrays of length 0 or 1 are returned unchanged.
 pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
   let n = xs.length()
   if n <= 1 {
@@ -119,8 +108,15 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
   // it into position i, fixing it in place.
   let mut i = n - 1
   while i > 0 {
-    // Use the high bits of the RNG output to avoid LCG low-bit weakness.
-    let j = (rng() >> 16) % (i + 1)
+    // Rejection sampling on the upper 15 bits to avoid modulo bias.
+    // The threshold is the largest multiple of (i+1) that fits in 2^15.
+    let range = i + 1
+    let threshold = 32768 - (32768 % range)
+    let mut r = (rng() >> 16) & 0x7FFF
+    while r >= threshold {
+      r = (rng() >> 16) & 0x7FFF
+    }
+    let j = r % range
     @utils.swap_fixed(xs, i, j)
     i = i - 1
   }

@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/svm"
+
+// Values
+pub fn decision_function(SVMModel, Array[Double]) -> Double
+
+pub fn default_config() -> SVMConfig
+
+pub fn make_config(Double, Int, Double, Double) -> SVMConfig
+
+pub fn n_features(SVMModel) -> Int
+
+pub fn num_support_vectors(SVMModel) -> Int
+
+pub fn predict(SVMModel, Array[Double]) -> Double
+
+pub fn train(Array[Array[Double]], Array[Double], SVMConfig) -> SVMModel?
+
+// Errors
+
+// Types and methods
+pub struct SVMConfig {
+  // private fields
+}
+
+pub struct SVMModel {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

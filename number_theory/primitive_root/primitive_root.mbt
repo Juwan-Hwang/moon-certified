@@ -383,10 +383,8 @@ test "primitive_root: prime powers" {
   // 9 = 3^2, primitive root exists.
   let r = primitive_root(9L)
   assert_true(r is Some(_))
-  match r {
-    Some(g) => assert_true(is_primitive_root(g, 9L))
-    None => abort("expected Some")
-  }
+  let g = @test_utils.expect_some(r, "primitive_root(9) should succeed")
+  assert_true(is_primitive_root(g, 9L))
   // 25 = 5^2, primitive root exists.
   let r2 = primitive_root(25L)
   assert_true(r2 is Some(_))

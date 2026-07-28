@@ -44,12 +44,12 @@ pub fn fmix64(input : Int64) -> Int64 {
 ///
 /// Returns 1 for n ≤ 1. Useful for sizing hash table buckets and ring
 /// buffers to a power of 2 so that modulo can be replaced with `& (cap - 1)`.
+///
+/// This is a thin delegation to `@utils.next_pow2`: the canonical
+/// bit-twiddling implementation lives in the shared `utils` module and is
+/// kept in a single place to avoid divergence.
 pub fn next_pow2(n : Int) -> Int {
-  let mut p = 1
-  while p < n {
-    p = p * 2
-  }
-  p
+  @utils.next_pow2(n)
 }
 
 ///|

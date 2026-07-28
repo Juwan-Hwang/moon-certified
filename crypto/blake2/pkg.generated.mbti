@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/blake2"
+
+// Values
+pub fn blake2b(Bytes, Int) -> Bytes
+
+pub fn blake2b_256(Bytes) -> Bytes
+
+pub fn blake2b_512(Bytes) -> Bytes
+
+pub fn blake2b_finalize(Blake2bState) -> Bytes
+
+pub fn blake2b_hex(Bytes, Int) -> String
+
+pub fn blake2b_init(Int) -> Blake2bState
+
+pub fn blake2b_update(Blake2bState, Bytes) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Blake2bState {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

@@ -44,14 +44,6 @@
 let default_seed : Int = 0x1A2B3C4D
 
 ///|
-/// LCG multiplier (≡ 1 mod 4) and increment (odd); together with the
-/// `& 0x7FFFFFFF` mask they give a full-period generator mod 2^31.
-let lcg_a : Int = 1103515245
-
-///|
-let lcg_c : Int = 12345
-
-///|
 /// A reservoir sampler holding up to `capacity` (k) items of type `T`.
 ///
 /// `reservoir` stores the current sample, `seen` counts every element
@@ -96,7 +88,7 @@ pub fn[T] with_seed(capacity : Int, seed : Int) -> ReservoirSampler[T] {
 /// the low-bit correlations of an LCG. The `Int64` intermediate prevents the
 /// `state * m` product from overflowing 32-bit `Int` for large `m`.
 fn[T] rand_below(sampler : ReservoirSampler[T], m : Int) -> Int {
-  sampler.rng = (sampler.rng * lcg_a + lcg_c) & 0x7FFFFFFF
+  sampler.rng = @utils.lcg_next(sampler.rng)
   ((sampler.rng.to_int64() * m.to_int64()) >> 31).to_int()
 }
 
@@ -229,7 +221,7 @@ test "reservoir: uniform distribution (chi-square)" {
   let freq = FixedArray::make(n, 0)
   for r = 0; r < runs; r = r + 1 {
     // A distinct, well-spread seed per run yields independent samples.
-    let s : ReservoirSampler[Int] = with_seed(k, (r + 1) * lcg_a + lcg_c)
+    let s : ReservoirSampler[Int] = with_seed(k, @utils.lcg_next(r + 1))
     for i = 0; i < n; i = i + 1 {
       add(s, i)
     }

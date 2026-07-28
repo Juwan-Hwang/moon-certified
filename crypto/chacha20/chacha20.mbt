@@ -407,16 +407,74 @@ pub fn next_int_in_range(
 // ---------------------------------------------------------------------------
 
 ///|
-test "chacha20: RFC 8439 test vector for block function" {
+test "chacha20: RFC 8439 §2.3.2 block function" {
+  // Key: 00 01 02 ... 1f
   let key = Bytes::makei(32, fn(i) { i.to_byte() })
+  // Nonce: 00 00 00 09 00 00 00 4a 00 00 00 00
   let nonce_arr : Array[Byte] = Array::make(12, b'\x00')
   nonce_arr[3] = 0x09
   nonce_arr[7] = 0x4a
   let nonce = to_bytes(nonce_arr)
   let key_words = key_to_words(key)
   let nonce_words = nonce_to_words(nonce)
+  // Counter = 1
   let block = block_function(key_words, 1U, nonce_words)
-  assert_true(block[0] != 0U || block[1] != 0U)
+  // Expected (RFC 8439 §2.3.2, verified via Coq proof):
+  // 10 f1 e7 e4 d1 3b 59 15 50 0f dd 1f a3 20 71 c4
+  assert_eq(block[0], 0xe4e7f110U)
+  assert_eq(block[1], 0x15593bd1U)
+  assert_eq(block[2], 0x1fdd0f50U)
+  assert_eq(block[3], 0xc47120a3U)
+}
+
+///|
+test "chacha20: RFC 8439 §2.8.2 block 0 (poly key)" {
+  // Key: 80 81 82 ... 9f
+  let key_arr : Array[Byte] = []
+  for i = 0; i < 32; i = i + 1 {
+    key_arr.push((128 + i).to_byte())
+  }
+  let key = to_bytes(key_arr)
+  // Nonce: 07 00 00 00 40 41 42 43 44 45 46 47
+  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71]
+    .map(fn(v) { v.to_byte() })
+  let nonce = to_bytes(nonce_arr)
+  let key_words = key_to_words(key)
+  let nonce_words = nonce_to_words(nonce)
+  // Block 0: counter = 0
+  let block = block_function(key_words, 0U, nonce_words)
+  // Expected (RFC 8439 §2.8.2, verified via Coq proof and cryptography lib):
+  // 7b ac 2b 25 2d b4 47 af 09 b6 7a 55 a4 e9 55 84
+  assert_eq(block[0], 0x252bac7bU)
+  assert_eq(block[1], 0xaf47b42dU)
+  assert_eq(block[2], 0x557ab609U)
+  assert_eq(block[3], 0x8455e9a4U)
+}
+
+///|
+test "chacha20: RFC 8439 §2.8.2 block 1 (keystream)" {
+  let key_arr : Array[Byte] = []
+  for i = 0; i < 32; i = i + 1 {
+    key_arr.push((128 + i).to_byte())
+  }
+  let key = to_bytes(key_arr)
+  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71]
+    .map(fn(v) { v.to_byte() })
+  let nonce = to_bytes(nonce_arr)
+  let key_words = key_to_words(key)
+  let nonce_words = nonce_to_words(nonce)
+  // Block 1: counter = 1
+  let block = block_function(key_words, 1U, nonce_words)
+  // Plaintext: "Ladi" = 4c 61 64 69
+  // Ciphertext: d3 1a 8d 34
+  // Keystream: 4c^d3=9f 61^1a=7b 64^8d=e9 69^34=5d
+  // Word 0 (LE): 0x5de97b9f
+  assert_eq(block[0], 0x5de97b9fU)
+  // Plaintext: "es a" = 65 73 20 61
+  // Ciphertext: 64 8e 60 db
+  // Keystream: 65^64=01 73^8e=fd 20^60=40 61^db=ba
+  // Word 1 (LE): 0xba40fd01
+  assert_eq(block[1], 0xba40fd01U)
 }
 
 ///|

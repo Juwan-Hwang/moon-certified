@@ -8,9 +8,17 @@ pub fn decode(HuffmanTree, Array[Bool]) -> String
 
 pub fn decode_byte(HuffmanTree, Array[Bool]) -> Bytes
 
+pub fn decode_packed(HuffmanTree, Bytes) -> String
+
+pub fn decode_packed_bytes(HuffmanTree, Bytes) -> Bytes
+
 pub fn encode(HuffmanTree, String) -> Array[Bool]
 
 pub fn encode_byte(HuffmanTree, Bytes) -> Array[Bool]
+
+pub fn encode_packed(HuffmanTree, String) -> Bytes
+
+pub fn encode_packed_bytes(HuffmanTree, Bytes) -> Bytes
 
 // Errors
 

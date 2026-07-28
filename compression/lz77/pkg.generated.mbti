@@ -4,7 +4,7 @@ package "moon-certified/compression/lz77"
 // Values
 pub fn compress(Bytes) -> Bytes
 
-pub fn decompress(Bytes) -> Bytes
+pub fn decompress(Bytes) -> Bytes?
 
 // Errors
 

@@ -1,0 +1,8 @@
+import {
+  "moon-certified/crypto/chacha20",
+  "moon-certified/crypto/poly1305",
+}
+
+options(
+  "proof-enabled": false,
+)

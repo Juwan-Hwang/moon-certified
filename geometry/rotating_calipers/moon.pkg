@@ -1,4 +1,5 @@
 import {
+  "moonbitlang/core/math",
   "moon-certified/geometry/geometry_utils",
 }
 

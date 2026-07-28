@@ -25,12 +25,6 @@
 /// Time complexity: O(VE²)
 
 ///|
-/// Sentinel value representing "infinite capacity" for the bottleneck search.
-/// Using `Int::max_value` means the bottleneck is bounded by the largest
-/// single edge capacity.
-let int_max : Int = 2147483647
-
-///|
 /// BFS to find an augmenting path from `src` to `sink` in the residual graph.
 ///
 /// `residual` is an `n × n` matrix of residual capacities.
@@ -97,6 +91,15 @@ pub fn max_flow(
   if graph.length() < n * n {
     return None
   }
+  // Input validation: capacities must be non-negative. A negative entry is an
+  // input error that breaks the augmenting-path invariant (`residual > 0`),
+  // which could yield an incorrect (or non-terminating-looking) flow. Rather
+  // than proceed on malformed input, return 0 flow.
+  for i = 0; i < n * n; i = i + 1 {
+    if graph[i] < 0 {
+      return Some(0L)
+    }
+  }
   // Copy capacities into the residual graph (original capacities are
   // consumed during augmentation; we must not mutate the caller's array).
   let residual = FixedArray::make(n * n, 0)
@@ -108,7 +111,10 @@ pub fn max_flow(
   // Repeatedly find the shortest augmenting path (BFS) and push flow.
   while bfs_augmenting_path(residual, n, src, sink, parent) {
     // Find the bottleneck (minimum residual capacity) along the path.
-    let mut path_flow = int_max
+    // `@int.MAX_VALUE` acts as the sentinel "infinity": it is larger than any
+    // real residual capacity, so the first edge clamps `path_flow` to a
+    // genuine capacity value.
+    let mut path_flow = @int.MAX_VALUE
     let mut v = sink
     while v != src {
       let u = parent[v]
@@ -182,6 +188,24 @@ test "max_flow: no path" {
   graph[0 * n + 1] = 10
   graph[2 * n + 3] = 10
   assert_eq(max_flow(graph, n, 0, 3), Some(0L))
+}
+
+///|
+test "max_flow: negative capacity returns 0 flow" {
+  // Negative capacities are an invalid input. Even though a path 0 -> 1 -> 2
+  // exists with positive total capacity, the malformed entry is rejected and
+  // the function returns 0 flow rather than computing on a broken residual.
+  let n = 3
+  let graph = FixedArray::make(n * n, 0)
+  graph[0 * n + 1] = -5
+  graph[1 * n + 2] = 10
+  assert_eq(max_flow(graph, n, 0, 2), Some(0L))
+  // A single negative entry anywhere is enough to reject the whole input.
+  let graph2 = FixedArray::make(n * n, 0)
+  graph2[0 * n + 1] = 10
+  graph2[1 * n + 2] = 10
+  graph2[2 * n + 0] = -1
+  assert_eq(max_flow(graph2, n, 0, 2), Some(0L))
 }
 
 ///|

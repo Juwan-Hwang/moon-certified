@@ -1,0 +1,8 @@
+import {
+  "moon-certified/crypto/blake2",
+  "moon-certified/utils",
+}
+
+options(
+  "proof-enabled": false,
+)

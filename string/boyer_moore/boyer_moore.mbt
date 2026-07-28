@@ -151,11 +151,16 @@ pub fn search(text : String, pattern : String) -> Int? {
 ///|
 /// Find all occurrences of `pattern` in `text`.
 ///
-/// Returns an array of starting indices, in ascending order.
-pub fn search_all(text : String, pattern : String) -> FixedArray[Int] {
+/// Returns an `Array[Int]` of starting indices, in ascending order, including
+/// overlapping occurrences. Uses the same bad-character and good-suffix
+/// tables as [`search`]; on a full match the pattern advances by
+/// `good_suffix[0]` (the minimum shift consistent with the good-suffix rule),
+/// which finds every overlapping occurrence while still skipping sections
+/// that cannot match.
+pub fn search_all(text : String, pattern : String) -> Array[Int] {
   let result : Array[Int] = []
   if pattern.length() == 0 || pattern.length() > text.length() {
-    return FixedArray::from_array(result.view())
+    return result
   }
   let bad_char = build_bad_char(pattern)
   let good_suffix = build_good_suffix(pattern)
@@ -169,7 +174,8 @@ pub fn search_all(text : String, pattern : String) -> FixedArray[Int] {
     }
     if j < 0 {
       result.push(s)
-      // Shift by 1 (or by good_suffix[0]) to find the next occurrence.
+      // Shift by good_suffix[0] to reach the next position where the
+      // pattern can match, catching overlapping occurrences.
       s = s + good_suffix[0]
     } else {
       let bc_shift = j - bad_char.get(text[s + j].to_int()).unwrap_or(-1)
@@ -178,7 +184,7 @@ pub fn search_all(text : String, pattern : String) -> FixedArray[Int] {
       s = s + (if shift < 1 { 1 } else { shift })
     }
   }
-  FixedArray::from_array(result.view())
+  result
 }
 
 // ---------------------------------------------------------------------------
@@ -320,4 +326,49 @@ fn brute_search(text : String, pattern : String) -> Int? {
     }
   }
   None
+}
+
+///|
+/// Brute-force `search_all` oracle: scans every start position and collects
+/// all (overlapping) matches. Used to cross-check the Boyer-Moore
+/// `search_all` shift logic, which must not skip overlapping occurrences.
+fn brute_search_all(text : String, pattern : String) -> Array[Int] {
+  let result : Array[Int] = []
+  if pattern.length() == 0 || pattern.length() > text.length() {
+    return result
+  }
+  let n = text.length()
+  let m = pattern.length()
+  for i = 0; i + m <= n; i = i + 1 {
+    let mut match_ok = true
+    for j = 0; j < m; j = j + 1 {
+      if text[i + j] != pattern[j] {
+        match_ok = false
+        break
+      }
+    }
+    if match_ok {
+      result.push(i)
+    }
+  }
+  result
+}
+
+///|
+test "boyer_moore: search_all matches brute force" {
+  // Cross-check the overlapping-match shift logic against brute force.
+  let texts = ["ababcababc", "mississippi", "aaaaaaaab", "xyzxyzxyz", "ababa", "aabaaabaa"]
+  let patterns = ["ab", "ss", "aaa", "xyz", "z", "abc", "aaaa", "aba", "aa"]
+  for t_idx = 0; t_idx < texts.length(); t_idx = t_idx + 1 {
+    let text = texts[t_idx]
+    for p_idx = 0; p_idx < patterns.length(); p_idx = p_idx + 1 {
+      let pat = patterns[p_idx]
+      let bf = brute_search_all(text, pat)
+      let bm = search_all(text, pat)
+      assert_eq(bm.length(), bf.length())
+      for i = 0; i < bf.length(); i = i + 1 {
+        assert_eq(bm[i], bf[i])
+      }
+    }
+  }
 }

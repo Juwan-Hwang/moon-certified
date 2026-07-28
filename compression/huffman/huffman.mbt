@@ -169,76 +169,17 @@ fn heap_pop(heap : Array[HeapItem]) -> HeapItem {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Encode a single Unicode code point to UTF-8 bytes, appending to `buf`.
-/// Follows RFC 3629:
-///   U+0000   .. U+007F   -> 1 byte  (0xxxxxxx)
-///   U+0080   .. U+07FF   -> 2 bytes (110xxxxx 10xxxxxx)
-///   U+0800   .. U+FFFF   -> 3 bytes (1110xxxx 10xxxxxx 10xxxxxx)
-///   U+10000  .. U+10FFFF -> 4 bytes (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
-fn utf8_encode(cp : UInt, buf : Array[Byte]) -> Unit {
-  if cp < 0x80U {
-    buf.push(cp.to_byte())
-  } else if cp < 0x800U {
-    buf.push((0xC0U | (cp >> 6)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  } else if cp < 0x10000U {
-    buf.push((0xE0U | (cp >> 12)).to_byte())
-    buf.push((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  } else {
-    buf.push((0xF0U | (cp >> 18)).to_byte())
-    buf.push((0x80U | ((cp >> 12) & 0x3FU)).to_byte())
-    buf.push((0x80U | ((cp >> 6) & 0x3FU)).to_byte())
-    buf.push((0x80U | (cp & 0x3FU)).to_byte())
-  }
-}
-
-///|
 /// Convert a MoonBit `String` to its UTF-8 byte representation as `Bytes`.
-/// MoonBit strings are internally UTF-16; this function correctly encodes
-/// the full Unicode code-point sequence (including surrogate pairs) to UTF-8.
+/// Delegates to `@utils.string_to_bytes` to avoid code duplication.
 fn string_to_utf8(text : String) -> Bytes {
-  let buf : Array[Byte] = []
-  for c in text.iter() {
-    utf8_encode(c.to_uint(), buf)
-  }
-  Bytes::from_array(buf)
+  @utils.string_to_bytes(text)
 }
 
 ///|
 /// Decode UTF-8 `Bytes` back to a MoonBit `String`.
-/// Handles 1–4 byte sequences per RFC 3629.
+/// Delegates to `@utils.bytes_to_string` to avoid code duplication.
 fn utf8_to_string(bytes : Bytes) -> String {
-  let buf = StringBuilder()
-  let n = bytes.length()
-  let mut i = 0
-  while i < n {
-    let b0 = bytes[i].to_int()
-    let cp = if b0 < 0x80 {
-      i = i + 1
-      b0
-    } else if b0 < 0xE0 {
-      let b1 = bytes[i + 1].to_int()
-      i = i + 2
-      ((b0 & 0x1F) << 6) | (b1 & 0x3F)
-    } else if b0 < 0xF0 {
-      let b1 = bytes[i + 1].to_int()
-      let b2 = bytes[i + 2].to_int()
-      i = i + 3
-      ((b0 & 0x0F) << 12) | ((b1 & 0x3F) << 6) | (b2 & 0x3F)
-    } else {
-      let b1 = bytes[i + 1].to_int()
-      let b2 = bytes[i + 2].to_int()
-      let b3 = bytes[i + 3].to_int()
-      i = i + 4
-      ((b0 & 0x07) << 18) |
-      ((b1 & 0x3F) << 12) |
-      ((b2 & 0x3F) << 6) |
-      (b3 & 0x3F)
-    }
-    buf.write_char(cp.unsafe_to_char())
-  }
-  buf.to_string()
+  @utils.bytes_to_string(bytes)
 }
 
 // ---------------------------------------------------------------------------
@@ -393,6 +334,99 @@ fn encode_bytes(tree : HuffmanTree, bytes : Bytes) -> Array[Bool] {
     let m = code.length()
     for j = 0; j < m; j = j + 1 {
       bits.push(code[j])
+    }
+  }
+  bits
+}
+
+// ---------------------------------------------------------------------------
+// Packed byte stream encoding / decoding
+// ---------------------------------------------------------------------------
+
+///|
+/// Encode a string to a **packed byte stream** using the Huffman tree.
+///
+/// Unlike `encode` (which returns `Array[Bool]` with one machine word per
+/// bit), this function packs bits LSB-first into bytes, producing a compact
+/// representation suitable for actual compression. The first 4 bytes of the
+/// output are the **bit count** (little-endian UInt32), so the decoder knows
+/// exactly how many bits are valid (the final byte may be zero-padded).
+pub fn encode_packed(tree : HuffmanTree, text : String) -> Bytes {
+  let bytes = string_to_utf8(text)
+  encode_packed_bytes(tree, bytes)
+}
+
+///|
+/// Encode raw bytes to a **packed byte stream** using the Huffman tree.
+pub fn encode_packed_bytes(tree : HuffmanTree, data : Bytes) -> Bytes {
+  let bits = encode_bytes(tree, data)
+  pack_bits(bits)
+}
+
+///|
+/// Decode a **packed byte stream** back to a string using the Huffman tree.
+pub fn decode_packed(tree : HuffmanTree, packed : Bytes) -> String {
+  let bytes = decode_packed_bytes(tree, packed)
+  utf8_to_string(bytes)
+}
+
+///|
+/// Decode a **packed byte stream** back to raw bytes using the Huffman tree.
+pub fn decode_packed_bytes(tree : HuffmanTree, packed : Bytes) -> Bytes {
+  if packed.length() < 4 {
+    return b""
+  }
+  let bit_count = packed[0].to_int() |
+    (packed[1].to_int() << 8) |
+    (packed[2].to_int() << 16) |
+    (packed[3].to_int() << 24)
+  let bits = unpack_bits(packed, 4, bit_count)
+  decode_bytes(tree, bits)
+}
+
+///|
+/// Pack an `Array[Bool]` into a compact `Bytes` with a 4-byte LE bit-count
+/// header. Bits are packed LSB-first within each byte.
+fn pack_bits(bits : Array[Bool]) -> Bytes {
+  let total_bits = bits.length()
+  let output : Array[Byte] = []
+  // 4-byte LE bit count header.
+  output.push((total_bits & 0xFF).to_byte())
+  output.push(((total_bits >> 8) & 0xFF).to_byte())
+  output.push(((total_bits >> 16) & 0xFF).to_byte())
+  output.push(((total_bits >> 24) & 0xFF).to_byte())
+  // Pack bits LSB-first.
+  let mut current : Int = 0
+  let mut count : Int = 0
+  for i = 0; i < total_bits; i = i + 1 {
+    if bits[i] {
+      current = current | (1 << count)
+    }
+    count = count + 1
+    if count == 8 {
+      output.push(current.to_byte())
+      current = 0
+      count = 0
+    }
+  }
+  if count > 0 {
+    output.push(current.to_byte())
+  }
+  Bytes::from_array(output)
+}
+
+///|
+/// Unpack `bit_count` bits from `data` starting at byte offset `start`.
+/// Returns an `Array[Bool]` where `false` = 0-bit, `true` = 1-bit.
+fn unpack_bits(data : Bytes, start : Int, bit_count : Int) -> Array[Bool] {
+  let bits : Array[Bool] = []
+  for i = 0; i < bit_count; i = i + 1 {
+    let byte_idx = start + i / 8
+    let bit_idx = i % 8
+    if byte_idx < data.length() {
+      bits.push(((data[byte_idx].to_int() >> bit_idx) & 1) == 1)
+    } else {
+      bits.push(false)
     }
   }
   bits
@@ -689,4 +723,76 @@ test "Huffman: deterministic tree construction" {
   for i = 0; i < bits1.length(); i = i + 1 {
     assert_eq(bits1[i], bits2[i])
   }
+}
+
+///|
+test "Huffman: packed round-trip (hello world)" {
+  let text = "hello world"
+  let tree = build_tree(text)
+  let packed = encode_packed(tree, text)
+  let decoded = decode_packed(tree, packed)
+  assert_eq(decoded, text)
+  // Packed should be smaller than raw bytes.
+  assert_true(packed.length() < text.length())
+}
+
+///|
+test "Huffman: packed round-trip (empty)" {
+  let tree = build_tree("")
+  let packed = encode_packed(tree, "")
+  let decoded = decode_packed(tree, packed)
+  assert_eq(decoded, "")
+}
+
+///|
+test "Huffman: packed round-trip (single char)" {
+  let tree = build_tree("a")
+  let packed = encode_packed(tree, "a")
+  let decoded = decode_packed(tree, packed)
+  assert_eq(decoded, "a")
+}
+
+///|
+test "Huffman: packed round-trip (UTF-8)" {
+  let text = "你好，世界！Hello World!"
+  let tree = build_tree(text)
+  let packed = encode_packed(tree, text)
+  let decoded = decode_packed(tree, packed)
+  assert_eq(decoded, text)
+}
+
+///|
+test "Huffman: packed round-trip (large text)" {
+  let sb = StringBuilder()
+  for i = 0; i < 200; i = i + 1 {
+    sb.write_string("the quick brown fox jumps over the lazy dog. ")
+  }
+  let text = sb.to_string()
+  let tree = build_tree(text)
+  let packed = encode_packed(tree, text)
+  let decoded = decode_packed(tree, packed)
+  assert_eq(decoded, text)
+  // Huffman coding on English text typically achieves ~60% compression.
+  assert_true(packed.length() < text.length())
+}
+
+///|
+test "Huffman: packed byte API round-trip" {
+  let text = "the quick brown fox jumps over the lazy dog"
+  let tree = build_tree(text)
+  let data = b"fox jumps"
+  let packed = encode_packed_bytes(tree, data)
+  let decoded = decode_packed_bytes(tree, packed)
+  assert_eq(decoded, data)
+}
+
+///|
+test "Huffman: packed is smaller than Array[Bool]" {
+  let text = "aaaaabbbbccd"
+  let tree = build_tree(text)
+  let bits = encode(tree, text)
+  let packed = encode_packed(tree, text)
+  // Array[Bool] uses ~8 bytes per bit (one Bool per word).
+  // Packed uses ~1 bit per bit. So packed should be much smaller.
+  assert_true(packed.length() < bits.length())
 }

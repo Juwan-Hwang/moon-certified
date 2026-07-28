@@ -3,16 +3,19 @@
 /// Builds the suffix array of a string in O(n log^2 n) time using a
 /// comparison-based merge sort. The suffix array `sa` is a permutation of
 /// [0, n) such that `s[sa[0]..] < s[sa[1]..] < ... < s[sa[n-1]..]`
-/// lexicographically (byte-level comparison).
+/// lexicographically (Unicode codepoint-level comparison).
 ///
 /// Algorithm:
-/// 1. Initialise ranks to individual byte values.
+/// 1. Initialise ranks to individual character code values (`s[i].to_int()`).
 /// 2. For k = 1, 2, 4, ...: sort suffixes by the rank pair
 ///    (rank[i], rank[i+k]), then recompute ranks from the sorted order.
 /// 3. Stop when all suffixes have distinct ranks (max rank == n - 1).
 ///
-/// IMPORTANT: MoonBit's String indexing is byte-level, not Unicode codepoint.
-/// For multi-byte UTF-8 strings, suffixes are compared at the byte level.
+/// IMPORTANT: MoonBit's `String[i]` returns a `Char` (a UTF-16 code unit,
+/// i.e. a Unicode codepoint for BMP characters), not a raw byte. Suffixes
+/// are therefore compared at the Unicode codepoint level, not the byte
+/// level. `String::length()` likewise counts code units, so `n` here is the
+/// number of code units, not a byte count.
 ///
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
