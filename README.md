@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.12.0** — 322 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3365 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 313 个包依赖测试验证。
+**v0.12.0** — 322 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3373 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 313 个包依赖测试验证。
 
 ### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -229,7 +229,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (3365 tests)
+# 运行测试 (3373 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -644,7 +644,7 @@ moon-certified/
 │   ├── hkdf/                🔒 HKDF 密钥派生 (7 tests)
 │   ├── pbkdf2/              🔒 PBKDF2 密码派生 (6 tests)
 │   ├── scrypt/              🔒 scrypt 密码哈希 (6 tests)
-│   ├── bcrypt/              🔒 bcrypt 密码哈希 (6 tests)
+│   ├── bcrypt/              🔒 bcrypt 密码哈希 (8 tests)
 │   ├── argon2/              🔒 Argon2 密码哈希 (6 tests)
 │   ├── aes/                 🔒 AES 对称加密 (8 tests)
 │   ├── rsa/                 🔒 RSA 非对称加密 (7 tests)
@@ -815,7 +815,7 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3365** | **5 完整, 4 部分, 313 tested** | **17 generic** |
+| **Total** | **3373** | **5 完整, 4 部分, 313 tested** | **17 generic** |
 
 > 注：上表仅列出部分代表性包。完整 322 个包的测试统计请运行 `moon test` 查看。
 

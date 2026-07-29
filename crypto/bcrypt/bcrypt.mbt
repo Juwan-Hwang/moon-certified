@@ -257,7 +257,7 @@ let _s_init : FixedArray[UInt] = FixedArray::from_array([
 // Blowfish core
 // ---------------------------------------------------------------------------
 
-struct Blowfish {
+priv struct Blowfish {
   p : FixedArray[UInt] // 18 words
   s : FixedArray[UInt] // 1024 words (4 * 256)
 }
@@ -275,10 +275,10 @@ fn new_blowfish() -> Blowfish {
 }
 
 fn f(state : Blowfish, x : UInt) -> UInt {
-  let a = (x >> 24).to_int()
-  let b = ((x >> 16) & 0xFFU).to_int()
-  let c = ((x >> 8) & 0xFFU).to_int()
-  let d = (x & 0xFFU).to_int()
+  let a = (x >> 24).reinterpret_as_int()
+  let b = ((x >> 16) & 0xFFU).reinterpret_as_int()
+  let c = ((x >> 8) & 0xFFU).reinterpret_as_int()
+  let d = (x & 0xFFU).reinterpret_as_int()
   let s = state.s
   let r = (s[0 * 256 + a] + s[1 * 256 + b]) ^ s[2 * 256 + c]
   r + s[3 * 256 + d]
@@ -367,7 +367,7 @@ fn eks_blowfish_setup(cost : Int, salt : Bytes, password : Bytes) -> Blowfish {
   // Step 1: XOR salt into P-array, encrypt and replace P and S.
   expand_key(state, salt)
   // Step 2: Repeat 2^cost times: ExpandKey(password), ExpandKey(salt).
-  let rounds = (1U << cost).to_int()
+  let rounds = (1U << cost).reinterpret_as_int()
   for _ in 0..<rounds {
     expand_key(state, password)
     expand_key(state, salt)
@@ -382,31 +382,41 @@ fn eks_blowfish_setup(cost : Int, salt : Bytes, password : Bytes) -> Blowfish {
 let _bcrypt_alphabet : String =
   "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
+/// Pre-converted alphabet bytes for O(1) indexing.
+let _bcrypt_alpha_bytes : FixedArray[Byte] = FixedArray::from_array([
+  b'.', b'/', b'A', b'B', b'C', b'D', b'E', b'F', b'G', b'H', b'I', b'J',
+  b'K', b'L', b'M', b'N', b'O', b'P', b'Q', b'R', b'S', b'T', b'U', b'V',
+  b'W', b'X', b'Y', b'Z', b'a', b'b', b'c', b'd', b'e', b'f', b'g', b'h',
+  b'i', b'j', b'k', b'l', b'm', b'n', b'o', b'p', b'q', b'r', b's', b't',
+  b'u', b'v', b'w', b'x', b'y', b'z', b'0', b'1', b'2', b'3', b'4', b'5',
+  b'6', b'7', b'8', b'9',
+])
+
 fn bcrypt_base64_encode(data : Bytes) -> String {
   let n = data.length()
-  let mut result = ""
+  let buf = StringBuilder()
   let mut i = 0
   while i < n {
     let b0 = data[i].to_int()
     let b1 = if i + 1 < n { data[i + 1].to_int() } else { 0 }
     let b2 = if i + 2 < n { data[i + 2].to_int() } else { 0 }
-    result = result + _bcrypt_alphabet[(b0 >> 2) & 0x3F].to_string()
-    result = result + _bcrypt_alphabet[((b0 << 4) | (b1 >> 4)) & 0x3F].to_string()
+    buf.write_char(_bcrypt_alpha_bytes[(b0 >> 2) & 0x3F].to_int().unsafe_to_char())
+    buf.write_char(_bcrypt_alpha_bytes[((b0 << 4) | (b1 >> 4)) & 0x3F].to_int().unsafe_to_char())
     if i + 1 < n {
-      result = result + _bcrypt_alphabet[((b1 << 2) | (b2 >> 6)) & 0x3F].to_string()
+      buf.write_char(_bcrypt_alpha_bytes[((b1 << 2) | (b2 >> 6)) & 0x3F].to_int().unsafe_to_char())
     }
     if i + 2 < n {
-      result = result + _bcrypt_alphabet[b2 & 0x3F].to_string()
+      buf.write_char(_bcrypt_alpha_bytes[b2 & 0x3F].to_int().unsafe_to_char())
     }
     i = i + 3
   }
-  result
+  buf.to_string()
 }
 
 fn bcrypt_base64_decode(s : String) -> Bytes? {
   let decode_table = FixedArray::make(128, -1)
   for i = 0; i < 64; i = i + 1 {
-    decode_table[_bcrypt_alphabet[i].to_int()] = i
+    decode_table[_bcrypt_alpha_bytes[i].to_int()] = i
   }
   let n = s.length()
   let out_len = n * 3 / 4
@@ -586,8 +596,8 @@ pub fn verify(password : Bytes, hash_str : String) -> Bool {
     return false
   }
   // Extract salt (7-28) and expected hash (29-59).
-  let salt_b64 = hash_str.substring(start=7, end=29)
-  let expected_hash_b64 = hash_str.substring(start=29, end=60)
+  let salt_b64 = hash_str[7:29].to_owned()
+  let expected_hash_b64 = hash_str[29:60].to_owned()
   match bcrypt_base64_decode(salt_b64) {
     None => false
     Some(decoded_salt) => {
@@ -597,7 +607,7 @@ pub fn verify(password : Bytes, hash_str : String) -> Bool {
       match hash(password, cost, decoded_salt) {
         None => false
         Some(computed) => {
-          let computed_hash_b64 = computed.substring(start=29, end=60)
+          let computed_hash_b64 = computed[29:60].to_owned()
           computed_hash_b64 == expected_hash_b64
         }
       }
@@ -675,7 +685,7 @@ test "bcrypt: output format validation" {
   // Must be exactly 60 characters.
   assert_eq(h.length(), 60)
   // Must start with $2b$.
-  assert_eq(h.substring(start=0, end=4), "$2b$")
+  assert_eq(h[0:4].to_owned(), "$2b$")
   // Cost field must be present.
   assert_eq(h[4], '0')
   assert_eq(h[5], '4')
