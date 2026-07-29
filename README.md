@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.12.0** — 273 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3365 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 264 个包依赖测试验证。
+**v0.12.0** — 322 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3365 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 313 个包依赖测试验证。
 
 ### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
 
@@ -519,14 +519,14 @@ moon-certified/
 │   ├── euler_sieve/        🔒 Euler 线性筛 (O(n) + O(log n) 因式分解, 11 tests)
 │   └── ntt/                🔒 数论变换 NTT (O(n log n) 多项式乘法, 11 tests)
 │   ├── bigint/             🔒 大整数运算 (加减乘除, 10 tests)
-│   ├── cipolla/            🔒 Cipolla 平方根 (模素数, 7 tests)
+│   ├── cipolla/            🔒 Cipolla 平方根 (模素数, 17 tests)
 │   ├── finite_field/       🔒 有限域 GF(p) 运算 (7 tests)
 │   ├── mobius/             🔒 Möbius 反演 (7 tests)
 │   ├── polynomial/         🔒 多项式运算 (NTT 乘法, 8 tests)
 │   ├── primitive_root/     🔒 原根 (7 tests)
 │   ├── quadratic_residue/  🔒 二次剩余 (Tonelli-Shanks, 7 tests)
 │   ├── reed_solomon/       🔒 Reed-Solomon 编解码 (8 tests)
-│   └── pohlig_hellman/     🔒 Pohlig-Hellman 离散对数 (7 tests)
+│   └── pohlig_hellman/     🔒 Pohlig-Hellman 离散对数 (16 tests)
 ├── math/
 │   ├── array_sum/            ⚠️ 数组求和 (partial verified + checked variant)
 │   ├── combinatorics/        🔒 组合数学 (组合数/Catalan/Stirling, Int64 防溢出, 15 tests)
@@ -572,7 +572,7 @@ moon-certified/
 │   ├── xoshiro/              🔒 Xoshiro256**/512** PRNG (8 tests)
 │   ├── gaussian_sampling/    🔒 Box-Muller 高斯采样 (6 tests)
 │   ├── zobrist_hash/         🔒 Zobrist 哈希 (棋盘状态哈希, 5 tests)
-│   └── mcmc/                 🔒 Metropolis-Hastings MCMC (5 tests)
+│   └── mcmc/                 🔒 Metropolis-Hastings MCMC (14 tests)
 │   └── monte_carlo/        🔒 Monte Carlo 积分 (7 tests)
 ├── sorting/
 │   ├── timsort/              🔒 TimSort (run 检测+归并栈, 稳定, 12 tests)
@@ -598,8 +598,8 @@ moon-certified/
 │   └── tree_isomorphism/     🔒 树同构 (AHU 算法, 7 tests)
 ├── string/
 │   ├── dawg/                 🔒 DAWG (压缩字典, 10 tests)
-│   ├── sa_is/                🔒 SA-IS 后缀数组 (O(n), 8 tests)
-│   ├── bwt/                  🔒 Burrows-Wheeler 变换 (7 tests)
+│   ├── sa_is/                🔒 SA-IS 后缀数组 (O(n), 17 tests)
+│   ├── bwt/                  🔒 Burrows-Wheeler 变换 (15 tests)
 │   └── suffix_balanced_tree/ 🔒 后缀平衡树 (归并排序, 8 tests)
 ├── geometry/
 │   ├── minkowski_sum/        🔒 Minkowski 和 (凸多边形, 8 tests)
@@ -815,9 +815,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3291** | **5 完整, 4 部分, 262 tested** | **17 generic** |
+| **Total** | **3365** | **5 完整, 4 部分, 313 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 271 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 322 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 
