@@ -195,3 +195,45 @@ test "fwht: power of 2 check" {
   // Should remain unchanged.
   assert_eq(data, [1.0, 2.0, 3.0])
 }
+
+///|
+test "fwht: single element" {
+  let data = [5.0]
+  fwht(data)
+  assert_true(absd(data[0] - 5.0) < 0.0000000001)
+}
+
+///|
+test "fwht: eight element roundtrip" {
+  let data = [3.0, -1.0, 2.0, 4.0, -2.0, 5.0, 1.0, -3.0]
+  let original = data.copy()
+  fwht(data)
+  ifwht(data)
+  for i = 0; i < 8; i = i + 1 {
+    assert_true(absd(data[i] - original[i]) < 0.0000000001)
+  }
+}
+
+///|
+test "xor_convolve: identity convolution" {
+  // Convolving with delta [1,0,0,0] should return the original
+  let a = [3, 7, 2, 5]
+  let delta = [1, 0, 0, 0]
+  let c = xor_convolve(a, delta)
+  assert_eq(c, [3, 7, 2, 5])
+}
+
+///|
+test "xor_convolve: mismatched lengths returns empty" {
+  let a = [1, 2, 3, 4]
+  let b = [1, 2, 3]
+  assert_eq(xor_convolve(a, b).length(), 0)
+}
+
+///|
+test "fwht_int: known transform values" {
+  // H_2 * [1, 0] = [1, 1]
+  let data = [1, 0]
+  fwht_int(data)
+  assert_eq(data, [1, 1])
+}

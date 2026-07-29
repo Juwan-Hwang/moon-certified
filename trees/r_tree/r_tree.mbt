@@ -326,3 +326,64 @@ test "rtree: many entries" {
   // Entries 10..20 intersect (11 entries: indices 10 through 20).
   assert_true(r.length() >= 10)
 }
+
+///|
+test "rtree: query returns correct values" {
+  let t = rtree_new(8)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 100)
+  t.insert({ min_x: 5.0, min_y: 5.0, max_x: 6.0, max_y: 6.0 }, 200)
+  t.insert({ min_x: 0.5, min_y: 0.5, max_x: 5.5, max_y: 5.5 }, 300)
+  let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 6.0, max_y: 6.0 })
+  assert_eq(r.length(), 3)
+  let values : Array[Int] = []
+  for i = 0; i < r.length(); i = i + 1 {
+    values.push(r[i].value)
+  }
+  assert_true(values.contains(100))
+  assert_true(values.contains(200))
+  assert_true(values.contains(300))
+}
+
+///|
+test "rtree: overlapping rectangles" {
+  let t = rtree_new(4)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 5.0, max_y: 5.0 }, 1)
+  t.insert({ min_x: 3.0, min_y: 3.0, max_x: 8.0, max_y: 8.0 }, 2)
+  t.insert({ min_x: 4.0, min_y: 4.0, max_x: 6.0, max_y: 6.0 }, 3)
+  // Query the overlap region
+  let r = t.query({ min_x: 4.0, min_y: 4.0, max_x: 5.0, max_y: 5.0 })
+  assert_eq(r.length(), 3)
+}
+
+///|
+test "rtree: boundary touch query" {
+  let t = rtree_new(8)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0 }, 1)
+  // Query that just touches the boundary
+  let r = t.query({ min_x: 2.0, min_y: 2.0, max_x: 4.0, max_y: 4.0 })
+  assert_eq(r.length(), 1)
+}
+
+///|
+test "rtree: large scale insert and query" {
+  let t = rtree_new(8)
+  // Insert a grid of 100 rectangles
+  for i = 0; i < 10; i = i + 1 {
+    for j = 0; j < 10; j = j + 1 {
+      let x = i.to_double() * 10.0
+      let y = j.to_double() * 10.0
+      t.insert({ min_x: x, min_y: y, max_x: x + 8.0, max_y: y + 8.0 }, i * 10 + j)
+    }
+  }
+  // Query a region covering roughly 2x2 grid cells
+  let r = t.query({ min_x: 5.0, min_y: 5.0, max_x: 25.0, max_y: 25.0 })
+  assert_true(r.length() >= 4)
+}
+
+///|
+test "rtree: point query no match" {
+  let t = rtree_new(8)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
+  let r = t.query_point(5.0, 5.0)
+  assert_eq(r.length(), 0)
+}

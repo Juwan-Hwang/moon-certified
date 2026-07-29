@@ -1,6 +1,13 @@
 ///|
 /// Concurrent Hash Map — Open Addressing (Single-Threaded Simulation).
 ///
+/// **WARNING: NOT thread-safe.** Despite the name "Concurrent", this is a
+/// single-threaded hash map. The "Concurrent" in the struct name is
+/// historical/aspirational and is retained only for API stability — do NOT
+/// rename it. This module provides no synchronization, no atomic
+/// operations, and no memory-ordering guarantees. Using it from multiple
+/// threads concurrently will cause data races and corruption.
+///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 /// Slot state: empty (no key has ever been inserted here).

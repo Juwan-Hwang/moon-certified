@@ -210,3 +210,48 @@ test "polynomial_fit: linear" {
   assert_true(absd(coeffs[0] - 1.0) < 0.000001)
   assert_true(absd(coeffs[1] - 2.0) < 0.000001)
 }
+
+///|
+test "linear_fit: single point returns zeros" {
+  let (a, b, r2) = linear_fit([(5.0, 10.0)])
+  assert_true(absd(a) < 0.0000000001)
+  assert_true(absd(b) < 0.0000000001)
+  assert_true(absd(r2) < 0.0000000001)
+}
+
+///|
+test "linear_fit: vertical line (zero denominator)" {
+  // All x values are the same → denom = 0
+  let points = [(3.0, 1.0), (3.0, 5.0), (3.0, 10.0)]
+  let (a, b, _) = linear_fit(points)
+  // Should return mean y and slope 0
+  assert_true(absd(a - (1.0 + 5.0 + 10.0) / 3.0) < 0.0000000001)
+  assert_true(absd(b) < 0.0000000001)
+}
+
+///|
+test "polynomial_fit: constant (degree 0)" {
+  let points = [(0.0, 5.0), (1.0, 5.0), (2.0, 5.0)]
+  let coeffs = polynomial_fit(points, 0)
+  assert_true(absd(coeffs[0] - 5.0) < 0.000001)
+}
+
+///|
+test "polynomial_fit: insufficient data returns zeros" {
+  let points = [(0.0, 1.0)]
+  let coeffs = polynomial_fit(points, 3)
+  assert_eq(coeffs.length(), 4)
+  for i = 0; i < 4; i = i + 1 {
+    assert_true(absd(coeffs[i]) < 0.0000000001)
+  }
+}
+
+///|
+test "linear_fit: negative correlation" {
+  // y = 10 - 2x
+  let points = [(0.0, 10.0), (1.0, 8.0), (2.0, 6.0), (3.0, 4.0)]
+  let (a, b, r2) = linear_fit(points)
+  assert_true(absd(a - 10.0) < 0.0000000001)
+  assert_true(absd(b + 2.0) < 0.0000000001)
+  assert_true(absd(r2 - 1.0) < 0.0000000001)
+}

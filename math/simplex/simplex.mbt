@@ -385,11 +385,9 @@ pub fn solve(
 // ---------------------------------------------------------------------------
 
 ///|
-/// Tolerant equality for `Double`: passes within an absolute bound of
-/// `1e-6` or a relative bound of `1e-6` of the combined magnitudes.
+/// Tolerant equality for `Double`: delegates to `@utils.approx_eq`.
 fn approx_eq(a : Double, b : Double) -> Bool {
-  let diff = (a - b).abs()
-  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
+  @utils.approx_eq(a, b)
 }
 
 ///|

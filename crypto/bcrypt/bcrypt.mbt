@@ -44,9 +44,9 @@
 /// ## Security notes
 ///
 /// - bcrypt has a 72-byte password limit. Passwords longer than 72 bytes
-///   are silently truncated. For longer passwords, pre-hash with SHA-256
-///   (but be aware of null-byte issues; use `$2b$` with base64-encoded
-///   pre-hash if needed).
+///   are **pre-hashed with SHA-256** before being passed to bcrypt, which
+///   prevents silent truncation while keeping the output within the 72-byte
+///   Blowfish key limit. SHA-256 produces 32 bytes, well within the limit.
 ///
 /// - MoonBit has a garbage collector; password bytes may persist in memory
 ///   until GC collects them. This is a platform limitation.
@@ -513,8 +513,9 @@ fn uint_to_bytes(v : UInt, data : FixedArray[Byte], offset : Int) -> Unit {
 ///|
 /// bcrypt password hash.
 ///
-/// - `password`: the password bytes (max 72 bytes; longer passwords are
-///   silently truncated).
+/// - `password`: the password bytes. Passwords longer than 72 bytes are
+///   pre-hashed with SHA-256 to avoid silent truncation, following the
+///   recommended practice for long passwords.
 /// - `cost`: the cost factor (4–31). OWASP recommends ≥ 12 for production.
 /// - `salt`: exactly 16 bytes of random salt.
 ///
@@ -527,13 +528,11 @@ pub fn hash(password : Bytes, cost : Int, salt : Bytes) -> String? {
   if salt.length() != 16 {
     return None
   }
-  // Truncate password to 72 bytes.
+  // Pre-hash with SHA-256 if password exceeds 72 bytes.
+  // This prevents silent truncation while keeping the output under the
+  // 72-byte Blowfish key limit. SHA-256 produces 32 bytes.
   let pwd = if password.length() > 72 {
-    let truncated = FixedArray::make(72, b'\x00')
-    for i = 0; i < 72; i = i + 1 {
-      truncated[i] = password[i]
-    }
-    Bytes::from_array(truncated)
+    @sha256.sha256(password)
   } else {
     password
   }
@@ -608,7 +607,10 @@ pub fn verify(password : Bytes, hash_str : String) -> Bool {
         None => false
         Some(computed) => {
           let computed_hash_b64 = computed[29:60].to_owned()
-          computed_hash_b64 == expected_hash_b64
+          // Constant-time comparison to prevent timing side-channel attacks.
+          // Even though both strings should be 31 chars, we use constant-time
+          // comparison to avoid leaking information about matching prefix length.
+          constant_time_str_eq(computed_hash_b64, expected_hash_b64)
         }
       }
     }
@@ -625,6 +627,29 @@ fn str_to_bytes(s : String) -> FixedArray[Byte] {
     arr[i] = s[i].to_int().to_byte()
   }
   arr
+}
+
+///|
+/// Constant-time string comparison.
+///
+/// Compares two strings without short-circuiting on the first mismatched
+/// character, preventing timing side-channel attacks. The comparison
+/// always iterates over the full length of both strings.
+///
+/// Returns `true` if the strings are equal, `false` otherwise.
+fn constant_time_str_eq(a : String, b : String) -> Bool {
+  let len_a = a.length()
+  let len_b = b.length()
+  // Use the max length to ensure we always iterate the same number of
+  // times regardless of where the first difference occurs.
+  let max_len = if len_a > len_b { len_a } else { len_b }
+  let mut diff = (len_a ^ len_b) // Non-zero if lengths differ.
+  for i = 0; i < max_len; i = i + 1 {
+    let ca = if i < len_a { a[i].to_int() } else { 0 }
+    let cb = if i < len_b { b[i].to_int() } else { 0 }
+    diff = diff | (ca ^ cb)
+  }
+  diff == 0
 }
 
 // ---------------------------------------------------------------------------
@@ -743,8 +768,8 @@ test "bcrypt: empty password" {
 }
 
 ///|
-test "bcrypt: long password truncation" {
-  // Passwords longer than 72 bytes are truncated.
+test "bcrypt: long password pre-hashing" {
+  // Passwords longer than 72 bytes are pre-hashed with SHA-256.
   let long_pw = FixedArray::make(100, b'\x00')
   for i = 0; i < 100; i = i + 1 {
     long_pw[i] = (i % 256).to_byte()
@@ -759,13 +784,14 @@ test "bcrypt: long password truncation" {
     None => abort("hash failed")
   }
   assert_true(verify(password, h))
-  // A password that differs only after byte 72 should still verify.
+  // A password that differs only after byte 72 should NOT verify,
+  // because SHA-256 pre-hashing captures the full password.
   let long_pw2 = FixedArray::make(100, b'\x00')
-  for i = 0; i < 72; i = i + 1 {
+  for i = 0; i < 100; i = i + 1 {
     long_pw2[i] = (i % 256).to_byte()
   }
   long_pw2[99] = b'\xFF'
-  assert_true(verify(Bytes::from_array(long_pw2), h))
+  assert_false(verify(Bytes::from_array(long_pw2), h))
 }
 
 ///|

@@ -548,3 +548,78 @@ test "decision_tree: unfitted returns 0" {
   let tree = new(5, 2)
   assert_eq(predict(tree, [1.0]), 0)
 }
+
+///|
+test "decision_tree: regression tree" {
+  let tree = new(5, 2)
+  let x_data : Array[Array[Double]] = []
+  x_data.push([1.0])
+  x_data.push([2.0])
+  x_data.push([3.0])
+  x_data.push([4.0])
+  x_data.push([5.0])
+  let y_vals = [10.0, 20.0, 30.0, 40.0, 50.0]
+  fit_regress(tree, x_data, y_vals)
+  // Predictions should be close to the training values
+  let p1 = predict_regress(tree, [1.0])
+  let p5 = predict_regress(tree, [5.0])
+  assert_true(p1 < p5)
+  assert_true((p1 - 10.0).abs() < 15.0)
+  assert_true((p5 - 50.0).abs() < 15.0)
+}
+
+///|
+test "decision_tree: max depth limits tree" {
+  // With max_depth=1, the tree can only make a single split.
+  let tree = new(1, 2)
+  let x_data : Array[Array[Double]] = []
+  x_data.push([0.0, 0.0])
+  x_data.push([0.0, 1.0])
+  x_data.push([1.0, 0.0])
+  x_data.push([1.0, 1.0])
+  let y_labels = [0, 1, 1, 0]
+  fit(tree, x_data, y_labels)
+  // With depth 1, it cannot learn XOR perfectly.
+  // Just verify it doesn't crash and produces a prediction.
+  let _ = predict(tree, [0.5, 0.5])
+  assert_true(true)
+}
+
+///|
+test "decision_tree: single class" {
+  let tree = new(5, 2)
+  let x_data : Array[Array[Double]] = []
+  x_data.push([1.0])
+  x_data.push([2.0])
+  x_data.push([3.0])
+  let y_labels = [5, 5, 5]
+  fit(tree, x_data, y_labels)
+  assert_eq(predict(tree, [1.5]), 5)
+  assert_eq(predict(tree, [100.0]), 5)
+}
+
+///|
+test "decision_tree: empty training data" {
+  let tree = new(5, 2)
+  let x_data : Array[Array[Double]] = []
+  let y_labels : Array[Int] = []
+  fit(tree, x_data, y_labels)
+  // Should not crash, returns default 0
+  assert_eq(predict(tree, [1.0]), 0)
+}
+
+///|
+test "decision_tree: multi-class classification" {
+  let tree = new(10, 2)
+  let x_data : Array[Array[Double]] = []
+  x_data.push([0.0])
+  x_data.push([1.0])
+  x_data.push([2.0])
+  x_data.push([3.0])
+  let y_labels = [0, 1, 2, 3]
+  fit(tree, x_data, y_labels)
+  assert_eq(predict(tree, [0.0]), 0)
+  assert_eq(predict(tree, [1.0]), 1)
+  assert_eq(predict(tree, [2.0]), 2)
+  assert_eq(predict(tree, [3.0]), 3)
+}

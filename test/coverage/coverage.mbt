@@ -193,7 +193,7 @@ pub fn smoke_test() -> Unit {
   ignore(@fibonacci_search.fibonacci_search([1, 2, 3], 2))
   ignore(@jump_search.jump_search([1, 2, 3], 2))
   ignore(@quickselect.quickselect([3, 1, 2], 0))
-  ignore(@hnsw.new(4, 16))
+  ignore(@hnsw.new(4, 16, 12345UL))
 
   // sorting
   ignore(@bucket_sort.bucket_sort([1.0, 2.0], 0.0, 3.0))

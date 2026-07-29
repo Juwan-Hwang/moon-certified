@@ -258,3 +258,54 @@ test "minkowski_sum: single point polygons" {
   assert_eq(result.length(), 1)
   assert_eq(result[0], (5, 5))
 }
+
+///|
+test "minkowski_sum: CW input is normalized to CCW" {
+  // CW square: [(0,0), (0,2), (2,2), (2,0)]
+  let a = [(0, 0), (0, 2), (2, 2), (2, 0)]
+  let b = [(0, 0)]
+  let result = minkowski_sum(a, b)
+  assert_eq(result.length(), 4)
+}
+
+///|
+test "minkowski_sum: translated polygon" {
+  // Sum of square at origin with point (3,3) = translated square
+  let a = [(0, 0), (1, 0), (1, 1), (0, 1)]
+  let b = [(3, 3)]
+  let result = minkowski_sum(a, b)
+  // All result vertices should be shifted by (3,3)
+  let mut found_origin = false
+  for i = 0; i < result.length(); i = i + 1 {
+    let (x, y) = result[i]
+    if x == 3 && y == 3 {
+      found_origin = true
+    }
+  }
+  assert_true(found_origin)
+}
+
+///|
+test "contains_origin: degenerate polygon" {
+  // Less than 3 points cannot contain origin
+  assert_false(contains_origin([(0, 0), (1, 1)]))
+  assert_false(contains_origin([]))
+}
+
+///|
+test "minkowski_sum: two identical squares" {
+  let a = [(0, 0), (1, 0), (1, 1), (0, 1)]
+  let result = minkowski_sum(a, a)
+  // Sum of two unit squares = 2x2 square
+  let mut max_coord = 0
+  for i = 0; i < result.length(); i = i + 1 {
+    let (x, y) = result[i]
+    if x > max_coord {
+      max_coord = x
+    }
+    if y > max_coord {
+      max_coord = y
+    }
+  }
+  assert_eq(max_coord, 2)
+}

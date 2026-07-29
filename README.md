@@ -10,13 +10,13 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**0.1.0** — 273 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3373 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 264 个包依赖测试验证。
+**0.1.0** — 337 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3968 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 328 个包依赖测试验证。
 
 > 本项目尚处于开发阶段，从未正式发布。0.1.0 反映当前开发状态。
 
 ### 功能概览
 
-- **273 个算法包**，覆盖核心算法全领域：
+- **337 个算法包**，覆盖核心算法全领域：
   - **并发数据结构**：RingBuffer、BoundedQueue、SnapshotMap (COW 快照) — Michael-Scott/Vyukov/Treiber 等并发算法的单线程模拟 (MoonBit 编译至 Wasm/JS, 无原生 CAS; 自旋锁提供真实互斥)
   - **持久化/外部算法**：External Sort、LSM-Tree、B+Tree、Persistent Vector、HAMT
   - **字符串高级结构**：Suffix Tree、FM-Index、Wavelet Tree、Palindromic Tree、Lyndon 分解、Suffix Balanced Tree
@@ -171,7 +171,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (3373 tests)
+# 运行测试 (3968 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -469,6 +469,10 @@ moon-certified/
 │   ├── quadratic_residue/  🔒 二次剩余 (Tonelli-Shanks, 7 tests)
 │   ├── reed_solomon/       🔒 Reed-Solomon 编解码 (8 tests)
 │   └── pohlig_hellman/     🔒 Pohlig-Hellman 离散对数 (16 tests)
+│   ├── carmichael/         🔒 Carmichael 函数 (5 tests)
+│   ├── aks/                🔒 AKS 确定性素数测试 (5 tests)
+│   ├── quadratic_sieve/    🔒 二次筛法因式分解 (5 tests)
+│   └── lehman_factor/      🔒 Lehman 因式分解 (5 tests)
 ├── math/
 │   ├── array_sum/            ⚠️ 数组求和 (partial verified + checked variant)
 │   ├── combinatorics/        🔒 组合数学 (组合数/Catalan/Stirling, Int64 防溢出, 15 tests)
@@ -505,6 +509,8 @@ moon-certified/
 │   ├── mcts/                 🔒 Monte Carlo Tree Search (UCT, 7 tests)
 │   ├── gale_shapley/         🔒 Gale-Shapley 稳定匹配 (10 tests)
 │   └── shapley_value/        🔒 Shapley 值 (精确+Monte Carlo, 5 tests)
+│   ├── negamax/             🔒 Negamax 搜索 (Alpha-Beta 剪枝, 3 tests)
+│   └── transposition_table/ 🔒 置换表 (Zobrist 哈希, 6 tests)
 ├── random/
 │   ├── reservoir_sampling/   🔒 水库采样 (O(n) 在线采样, 8 tests)
 │   ├── weighted_sampling/    🔒 Alias Method + 加权水库采样 (SplitMix64, 8 tests)
@@ -525,7 +531,12 @@ moon-certified/
 │   ├── treiber_stack/        🔒 Treiber 栈 (单线程 CAS 模拟, 8 tests)
 │   ├── mpmc_queue/           🔒 MPMC 队列 (单线程 CAS 模拟, Vyukov, 8 tests)
 │   ├── concurrent_hash_map/  🔒 Concurrent HashMap (单线程分段锁模拟, 9 tests)
-│   ├── work_stealing/        🔒 Work-Stealing 队列 (单线程模拟, Chase-Lev, 8 tests)
+│   └── work_stealing/        🔒 Work-Stealing 队列 (单线程模拟, Chase-Lev, 8 tests)
+│   ├── lock_free_queue/    🔒 无锁队列 (单线程模拟, 8 tests)
+│   ├── skip_list/          🔒 跳表 (独立包, 4 tests)
+│   ├── counting_bloom/     🔒 计数布隆过滤器 (5 tests)
+│   ├── cuckoo_hashmap/    🔒 布谷鸟哈希表 (6 tests)
+│   └── bimap/             🔒 双向映射 (5 tests)
 │   └── monotonic/            🔒 单调栈/单调队列 (21 tests)
 ├── trees/
 │   ├── rope/                 🔒 Rope (平衡树字符串, O(log n), 12 tests)
@@ -538,11 +549,16 @@ moon-certified/
 │   ├── k_shortest_paths/     🔒 K 最短路 (Yen 算法, 8 tests)
 │   ├── network_simplex/      🔒 最小费用流 (SSP+SPFA, 9 tests)
 │   └── tree_isomorphism/     🔒 树同构 (AHU 算法, 7 tests)
+│   ├── push_relabel/       🔒 Push-Relabel 最大流 (5 tests)
+│   ├── planar_test/        🔒 平面图判定 (5 tests)
+│   └── isomorphism/        🔒 图同构 (VF2 算法, 5 tests)
 ├── string/
 │   ├── dawg/                 🔒 DAWG (压缩字典, 10 tests)
 │   ├── sa_is/                🔒 SA-IS 后缀数组 (O(n), 17 tests)
 │   ├── bwt/                  🔒 Burrows-Wheeler 变换 (15 tests)
 │   └── suffix_balanced_tree/ 🔒 后缀平衡树 (归并排序, 8 tests)
+│   ├── unicode_normalization/ 🔒 Unicode 规范化 (NFC/NFD/NFKC/NFKD, 6 tests)
+│   └── encoding_conversion/  🔒 编码转换 (UTF-8/UTF-16/GBK, 6 tests)
 ├── geometry/
 │   ├── minkowski_sum/        🔒 Minkowski 和 (凸多边形, 8 tests)
 │   ├── segment_intersection/🔒 通用线段求交 (Bentley-Ottmann, 10 tests)
@@ -573,25 +589,40 @@ moon-certified/
 │   ├── lbfgs/               🔒 L-BFGS 拟牛顿优化器 (大规模优化, 9 tests)
 │   ├── autodiff/            🔒 自动微分 (前向模式, 双数, 19 tests)
 │   └── sparse_matrix/       🔒 稀疏矩阵 (CSR 格式, 7 tests)
+│   ├── eigenvalue/          🔒 特征值分解 (Jacobi 方法, 5 tests)
+│   ├── qr_pivoting/         🔒 QR 分解 (列主元, 5 tests)
+│   ├── groebner/            🔒 Gröbner 基 (Buchberger 算法, 5 tests)
+│   ├── polynomial_factor/   🔒 多项式因式分解 (5 tests)
+│   ├── ilp/                 🔒 整数线性规划 (5 tests)
+│   └── sdp/                 🔒 半正定规划 (Jacobi 特征值, 7 tests)
 ├── crypto/
 │   ├── sha256/              🔒 SHA-256 哈希 (10 tests)
 │   ├── sha512/              🔒 SHA-512 哈希 (8 tests)
 │   ├── sha3/                🔒 SHA-3 (Keccak) 哈希 (8 tests)
+│   ├── sha1/                🔒 SHA-1 哈希 (10 tests)
 │   ├── blake2/              🔒 BLAKE2 哈希 (8 tests)
 │   ├── blake3/              🔒 BLAKE3 哈希 (8 tests)
 │   ├── hmac/                🔒 HMAC 消息认证 (7 tests)
 │   ├── chacha20/            🔒 ChaCha20 流密码 (8 tests)
 │   ├── chacha20_poly1305/   🔒 ChaCha20-Poly1305 AEAD (7 tests)
+│   ├── xchacha20/           🔒 XChaCha20 (HChaCha20 + ChaCha20, 8 tests)
 │   ├── poly1305/            🔒 Poly1305 MAC (7 tests)
 │   ├── hkdf/                🔒 HKDF 密钥派生 (7 tests)
 │   ├── pbkdf2/              🔒 PBKDF2 密码派生 (6 tests)
 │   ├── scrypt/              🔒 scrypt 密码哈希 (6 tests)
 │   ├── bcrypt/              🔒 bcrypt 密码哈希 (8 tests)
 │   ├── argon2/              🔒 Argon2 密码哈希 (6 tests)
-│   ├── aes/                 🔒 AES 对称加密 (8 tests)
-│   ├── rsa/                 🔒 RSA 非对称加密 (7 tests)
+│   ├── aes/                 🔒 AES 对称加密 (constant-time S-box, 8 tests)
+│   ├── aes_ccm/             🔒 AES-CCM AEAD (7 tests)
+│   ├── rsa/                 🔒 RSA 非对称加密 (OAEP/PSS, 7 tests)
+│   ├── ecdsa/               🔒 ECDSA P-256 (RFC 6979, 13 tests)
+│   ├── ed25519/             🔒 Ed25519 签名 (RFC 8032, 13 tests)
+│   ├── x25519/              🔒 X25519 密钥交换 (RFC 7748, 8 tests)
+│   ├── secp256k1/           🔒 secp256k1 (Bitcoin/Ethereum, 10 tests)
 │   ├── csprng/              🔒 CSPRNG 安全随机数 (6 tests)
-│   └── base64/              🔒 Base64 编码 (7 tests)
+│   ├── base64/              🔒 Base64 编码 (7 tests)
+│   ├── base32/              🔒 Base32 编码 (9 tests)
+│   └── hex/                 🔒 Hex 编解码 (14 tests)
 ├── compression/
 │   ├── huffman/             🔒 Huffman 编码 (8 tests)
 │   ├── lz4/                 🔒 LZ4 压缩 (7 tests)
@@ -602,7 +633,9 @@ moon-certified/
 │   ├── deflate/             🔒 DEFLATE 压缩 (RFC 1951, 8 tests)
 │   ├── gzip/                🔒 gzip 容器 (RFC 1952, 7 tests)
 │   ├── zlib/                🔒 zlib 容器 (RFC 1950, 7 tests)
-│   └── snappy/              🔒 Snappy 压缩 (7 tests)
+│   ├── snappy/              🔒 Snappy 压缩 (7 tests)
+│   ├── zstd/                🔒 Zstandard 压缩 (6 tests)
+│   └── brotli/              🔒 Brotli 压缩 (7 tests)
 ├── ml/
 │   ├── kmeans/              🔒 K-Means++ 聚类 (8 tests)
 │   ├── knn/                 🔒 K-近邻 (KD-Tree 加速, 8 tests)
@@ -610,7 +643,16 @@ moon-certified/
 │   ├── pca/                 🔒 主成分分析 PCA (8 tests)
 │   ├── svm/                 🔒 支持向量机 SVM (8 tests)
 │   ├── logistic_regression/ 🔒 逻辑回归 (8 tests)
-│   └── decision_tree/       🔒 决策树 CART (8 tests)
+│   ├── decision_tree/       🔒 决策树 CART (8 tests)
+│   ├── random_forest/       🔒 随机森林 (分类+回归+OOB, 8 tests)
+│   ├── gradient_boosting/   🔒 梯度提升 (GBDT, 7 tests)
+│   ├── adaboost/            🔒 AdaBoost (6 tests)
+│   ├── mlp/                 🔒 多层感知机 MLP (8 tests)
+│   ├── gmm/                 🔒 高斯混合模型 GMM (EM, 7 tests)
+│   ├── hierarchical_clustering/ 🔒 层次聚类 (7 tests)
+│   ├── gaussian_process/    🔒 高斯过程回归 (6 tests)
+│   ├── naive_bayes/         🔒 朴素贝叶斯 (8 tests)
+│   └── model_evaluation/    🔒 模型评估 (accuracy/precision/recall/F1/AUC, 10 tests)
 ├── stats/
 │   ├── descriptive/         🔒 描述统计 (9 tests)
 │   ├── linear_regression/   🔒 线性回归 (8 tests)
@@ -618,22 +660,39 @@ moon-certified/
 │   ├── correlation/         🔒 相关系数 (Pearson/Spearman, 7 tests)
 │   ├── confidence_interval/ 🔒 置信区间 (7 tests)
 │   ├── bootstrap/           🔒 Bootstrap 重采样 (7 tests)
-│   └── distributions/       🔒 概率分布 (Normal/Binomial/Poisson, 8 tests)
+│   ├── distributions/       🔒 概率分布 (Normal/Exp/Binomial/Poisson/Beta/t/Chi2/F/Gamma, 38 tests)
+│   ├── anova/               🔒 方差分析 ANOVA (8 tests)
+│   └── nonparametric/       🔒 非参数检验 (Mann-Whitney/Wilcoxon/Kruskal-Wallis, 8 tests)
 ├── serialization/
 │   ├── json/                🔒 JSON 编解码 (7 tests)
-│   └── msgpack/             🔒 MessagePack 编解码 (7 tests)
+│   ├── msgpack/             🔒 MessagePack 编解码 (7 tests)
+│   ├── csv/                 🔒 CSV 编解码 (6 tests)
+│   ├── toml/                🔒 TOML 1.0.0 解析器 (15 tests)
+│   ├── yaml/                🔒 YAML 解析器 (8 tests)
+│   ├── cbor/                🔒 CBOR 编解码 (7 tests)
+│   └── protobuf/            🔒 Protobuf 编解码 (6 tests)
 ├── time/
 │   └── chrono/              🔒 日期时间库 (ISO 8601, Duration, 时区, 15 tests)
 ├── utils/
-│   ├── (utils)              🔒 共享工具 (swap/str_cmp/next_pow2/encoding)
+│   ├── (utils)              🔒 共享工具 (swap/str_cmp/next_pow2/encoding/approx_eq)
 │   ├── prng/                🔒 PRNG (SplitMix64/XorShift64/LCG)
-│   └── itertools/           🔒 itertools (range/repeat/enumerate/window/chunk/fold)
+│   ├── itertools/           🔒 itertools (range/repeat/enumerate/window/chunk/fold)
+│   ├── structured_logging/  🔒 结构化日志 (6 tests)
+│   └── error_chain/         🔒 错误链 (5 tests)
 ├── test/
 │   ├── property_test/       🔒 QuickCheck 风格属性测试框架 (随机输入生成 + 反例缩减)
 │   ├── fuzz/                🔒 Fuzz 测试 + 对抗性输入测试
 │   ├── stress/              🔒 压力测试 (排序置换验证, LIS 子序列验证)
 │   ├── test_utils/          🔒 共享测试工具 (消除 str_cmp 重复)
 │   └── coverage/            🔒 测试覆盖率报告
+├── finance/
+│   ├── black_scholes/       🔒 Black-Scholes 期权定价 (11 tests)
+│   ├── portfolio_optimization/ 🔒 投资组合优化 (Markowitz/Black-Litterman, 8 tests)
+│   ├── risk_management/     🔒 风险管理 (VaR/CVaR/压力测试, 8 tests)
+│   ├── greeks/              🔒 Greeks 风险敏感度 (Delta/Gamma/Vega/Theta/Rho, 9 tests)
+│   ├── time_series/         🔒 时间序列分析 (ARIMA/GARCH/ADF, 12 tests)
+│   ├── execution/           🔒 执行算法 (TWAP/VWAP/Implementation Shortfall, 8 tests)
+│   └── backtest/            🔒 回测框架 (事件驱动/绩效分析, 9 tests)
 ├── docs/
 │   └── API_STABILITY.md     📋 API 稳定性策略与版本历史
 ├── benchmarks/              🔒 性能基准测试 (wall-clock + 复杂度验证)
@@ -766,9 +825,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3373** | **5 完整, 4 部分, 264 tested** | **17 generic** |
+| **Total** | **3968** | **5 完整, 4 部分, 328 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 273 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 337 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 

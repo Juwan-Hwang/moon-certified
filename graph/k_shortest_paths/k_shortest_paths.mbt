@@ -267,3 +267,42 @@ test "k_shortest_paths: no path" {
   let paths = k_shortest_paths(2, adj, 0, 1, 1)
   assert_eq(paths.length(), 0)
 }
+
+///|
+test "k_shortest_paths: multiple equal-weight paths" {
+  // Diamond: 0→1→3 and 0→2→3, both weight 2
+  let adj : Array[Array[KEdge]] = [
+    [k_edge(1, 1), k_edge(2, 1)],
+    [k_edge(3, 1)],
+    [k_edge(3, 1)],
+    [],
+  ]
+  let paths = k_shortest_paths(4, adj, 0, 3, 2)
+  assert_eq(paths.length(), 2)
+  assert_eq(paths[0].0, 2)
+  assert_eq(paths[1].0, 2)
+}
+
+///|
+test "k_shortest_paths: k larger than available paths" {
+  let adj : Array[Array[KEdge]] = [
+    [k_edge(1, 5)],
+    [k_edge(2, 3)],
+    [],
+  ]
+  let paths = k_shortest_paths(3, adj, 0, 2, 10)
+  assert_true(paths.length() <= 10)
+  assert_true(paths.length() >= 1)
+  assert_eq(paths[0].0, 8)
+}
+
+///|
+test "k_shortest_paths: self-loop source" {
+  let adj : Array[Array[KEdge]] = [
+    [k_edge(0, 1), k_edge(1, 5)],
+    [],
+  ]
+  let paths = k_shortest_paths(2, adj, 0, 1, 1)
+  assert_eq(paths.length(), 1)
+  assert_eq(paths[0].0, 5)
+}

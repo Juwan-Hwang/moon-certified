@@ -540,3 +540,93 @@ test "rs: detect too many errors" {
   let result = rs_decode(gf, codeword, 4, t)
   assert_true(result is None)
 }
+
+///|
+test "gf256: division and inverse" {
+  let gf = gf256_new()
+  // a / b * b = a for non-zero a, b
+  for v = 1; v < 10; v = v + 1 {
+    match gf_div(gf, v, 3) {
+      Some(q) => assert_eq(gf_mul(gf, q, 3), v)
+      None => assert_true(false)
+    }
+  }
+  // Division by zero returns None
+  assert_true(gf_div(gf, 5, 0) is None)
+  // Inverse of zero returns None
+  assert_true(gf_inv(gf, 0) is None)
+}
+
+///|
+test "gf256: power and repeated multiplication" {
+  let gf = gf256_new()
+  // a^3 = a * a * a
+  for a = 1; a < 8; a = a + 1 {
+    let powed = gf_pow(gf, a, 3)
+    let manual = gf_mul(gf, gf_mul(gf, a, a), a)
+    assert_eq(powed, manual)
+  }
+  // a^0 = 1 for non-zero a
+  assert_eq(gf_pow(gf, 7, 0), 1)
+}
+
+///|
+test "rs: single data symbol" {
+  let gf = gf256_new()
+  let data = FixedArray::make(1, 0)
+  data[0] = 99
+  let t = 1
+  let codeword = rs_encode(gf, data, t)
+  assert_eq(codeword.length(), 1 + 2 * t)
+  match rs_decode(gf, codeword, 1, t) {
+    Some(decoded) => assert_eq(decoded[0], 99)
+    None => assert_true(false)
+  }
+}
+
+///|
+test "rs: correct error in data region" {
+  let gf = gf256_new()
+  let data = FixedArray::make(5, 0)
+  data[0] = 0x12
+  data[1] = 0x34
+  data[2] = 0x56
+  data[3] = 0x78
+  data[4] = 0x9A
+  let t = 3
+  let codeword = rs_encode(gf, data, t)
+  // Introduce one error in the data region (high index)
+  let data_pos = 2 * t + 2
+  codeword[data_pos] = codeword[data_pos] ^ 0xAB
+  match rs_decode(gf, codeword, 5, t) {
+    Some(decoded) => {
+      for i = 0; i < 5; i = i + 1 {
+        assert_eq(decoded[i], data[i])
+      }
+    }
+    None => assert_true(false)
+  }
+}
+
+///|
+test "rs: correct maximum errors" {
+  let gf = gf256_new()
+  let data = FixedArray::make(4, 0)
+  data[0] = 0x01
+  data[1] = 0x02
+  data[2] = 0x03
+  data[3] = 0x04
+  let t = 2 // can correct up to 2 errors
+  let codeword = rs_encode(gf, data, t)
+  // Introduce exactly t=2 errors
+  codeword[0] = codeword[0] ^ 0x10
+  codeword[3] = codeword[3] ^ 0x20
+  match rs_decode(gf, codeword, 4, t) {
+    Some(decoded) => {
+      for i = 0; i < 4; i = i + 1 {
+        assert_eq(decoded[i], data[i])
+      }
+    }
+    None => assert_true(false)
+  }
+}

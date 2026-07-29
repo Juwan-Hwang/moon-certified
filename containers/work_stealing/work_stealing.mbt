@@ -1,5 +1,11 @@
 /// Work-Stealing Deque — Chase-Lev Algorithm (Single-Threaded Simulation).
 ///
+/// **WARNING: NOT thread-safe.** MoonBit does not provide CAS
+/// (compare-and-swap) or other atomic primitives. The original Chase-Lev
+/// algorithm relies on CAS for safe concurrent stealing; without it, this
+/// implementation is single-threaded only. Concurrent access from multiple
+/// threads will cause data races and corruption.
+///
 /// A work-stealing deque allows a worker thread to push/pop from one end
 /// (LIFO) while other threads steal from the other end (FIFO). This is
 /// the core data structure for task-parallel runtime schedulers
@@ -11,8 +17,10 @@
 /// - `bottom`: points past the last pushed item (owner pushes/pops here).
 /// - `top`: points to the first stealable item (thieves steal here).
 ///
-/// The owner does push/pop without synchronization; thieves use CAS.
-/// In single-threaded mode, all operations are trivially safe.
+/// The original algorithm has the owner do push/pop without
+/// synchronization while thieves use CAS. Because MoonBit lacks CAS, this
+/// implementation omits all synchronization and is correct only in a
+/// single-threaded context, where all operations are trivially safe.
 ///
 /// ## Complexity
 /// - push/pop/steal: O(1) amortized.

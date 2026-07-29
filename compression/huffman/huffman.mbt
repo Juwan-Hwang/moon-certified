@@ -189,7 +189,7 @@ fn utf8_to_string(bytes : Bytes) -> String {
 ///|
 /// Build a 256-entry frequency table from a byte sequence.
 /// Entry `i` contains the count of byte value `i` in the input.
-fn build_freq_table(bytes : Bytes) -> FixedArray[Int] {
+pub fn build_freq_table(bytes : Bytes) -> FixedArray[Int] {
   let freq = FixedArray::make(256, 0)
   let n = bytes.length()
   for i = 0; i < n; i = i + 1 {
@@ -222,7 +222,7 @@ pub fn build_tree(text : String) -> HuffmanTree {
 
 ///|
 /// Build a Huffman tree from a 256-entry frequency table.
-fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
+pub fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
   // Collect non-zero frequency bytes into a min-heap.
   let heap : Array[HeapItem] = []
   let mut order = 0
@@ -492,6 +492,153 @@ fn decode_bytes(tree : HuffmanTree, bits : Array[Bool]) -> Bytes {
           Bytes::from_array(result)
         }
       }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tree serialization / deserialization
+// ---------------------------------------------------------------------------
+
+///|
+/// Serialize a Huffman tree into a compact bit representation.
+///
+/// Uses pre-order traversal:
+/// - `0` bit → internal node (recurse left, then right)
+/// - `1` bit → leaf, followed by 8 bits for the byte value (MSB first)
+///
+/// This format is self-delimiting: the tree structure is fully determined
+/// by the bit sequence, so the deserializer knows exactly when to stop.
+///
+/// Returns `(bits, bit_count)` where `bits` is the packed byte array
+/// (LSB-first within each byte) and `bit_count` is the number of valid
+/// bits in the last byte.
+pub fn serialize_tree(tree : HuffmanTree) -> Bytes {
+  let bits : Array[Bool] = []
+  match tree.root {
+    None => ()
+    Some(root) => serialize_node(root, bits)
+  }
+  // Pack bits MSB-first for consistency with tree structure.
+  let byte_len = (bits.length() + 7) / 8
+  let result : Array[Byte] = Array::make(byte_len, b'\x00')
+  for i = 0; i < bits.length(); i = i + 1 {
+    if bits[i] {
+      result[i / 8] = result[i / 8] | (1 << (7 - (i % 8))).to_byte()
+    }
+  }
+  Bytes::from_array(result)
+}
+
+///|
+/// Number of bits in the serialized tree.
+pub fn serialize_tree_bit_count(tree : HuffmanTree) -> Int {
+  match tree.root {
+    None => 0
+    Some(root) => count_node_bits(root, 0)
+  }
+}
+
+fn count_node_bits(node : HNode, acc : Int) -> Int {
+  match node {
+    Leaf(_) => acc + 9 // 1 flag bit + 8 data bits
+    Internal(left, right) => {
+      let acc1 = acc + 1
+      let acc2 = count_node_bits(left, acc1)
+      count_node_bits(right, acc2)
+    }
+  }
+}
+
+fn serialize_node(node : HNode, bits : Array[Bool]) -> Unit {
+  match node {
+    Leaf(b) => {
+      bits.push(true) // Leaf marker
+      // Write 8 bits MSB first.
+      for shift = 7; shift >= 0; shift = shift - 1 {
+        bits.push(((b >> shift) & 1) == 1)
+      }
+    }
+    Internal(left, right) => {
+      bits.push(false) // Internal marker
+      serialize_node(left, bits)
+      serialize_node(right, bits)
+    }
+  }
+}
+
+///|
+/// Deserialize a Huffman tree from a packed byte array.
+///
+/// `data` is the packed tree bytes (MSB-first within each byte).
+/// `bit_count` is the number of valid bits to read.
+///
+/// Returns `Some(HuffmanTree)` on success, `None` if the data is malformed.
+pub fn deserialize_tree(data : Bytes, bit_count : Int) -> HuffmanTree? {
+  if bit_count == 0 {
+    let empty : Array[Bool] = []
+    return Some({ root: None, codes: FixedArray::make(256, empty) })
+  }
+  let cursor = BitCursor::{ pos: 0 }
+  match deserialize_node(data, bit_count, cursor) {
+    None => None
+    Some(root) => {
+      let empty : Array[Bool] = []
+      let codes : FixedArray[Array[Bool]] = FixedArray::make(256, empty)
+      build_codes(root, [], codes)
+      Some({ root: Some(root), codes })
+    }
+  }
+}
+
+/// Mutable cursor for reading bits during tree deserialization.
+priv struct BitCursor {
+  mut pos : Int
+}
+
+fn deserialize_node(
+  data : Bytes,
+  bit_count : Int,
+  cursor : BitCursor,
+) -> HNode? {
+  if cursor.pos >= bit_count {
+    return None
+  }
+  let is_leaf = read_bit(data, cursor.pos)
+  cursor.pos = cursor.pos + 1
+  if is_leaf {
+    // Read 8 bits for the byte value (MSB first).
+    let mut b = 0
+    for shift = 7; shift >= 0; shift = shift - 1 {
+      if cursor.pos >= bit_count {
+        return None // Malformed: not enough bits for leaf data.
+      }
+      if read_bit(data, cursor.pos) {
+        b = b | (1 << shift)
+      }
+      cursor.pos = cursor.pos + 1
+    }
+    Some(Leaf(b))
+  } else {
+    // Internal node: read left then right.
+    match deserialize_node(data, bit_count, cursor) {
+      None => None
+      Some(left) =>
+        match deserialize_node(data, bit_count, cursor) {
+          None => None
+          Some(right) => Some(Internal(left, right))
+        }
+    }
+  }
+}
+
+/// Read the `idx`-th bit from `data` (MSB-first within each byte).
+fn read_bit(data : Bytes, idx : Int) -> Bool {
+  let byte_idx = idx / 8
+  let bit_idx = 7 - (idx % 8)
+  if byte_idx >= data.length() {
+    false
+  } else {
+    ((data[byte_idx].to_int() >> bit_idx) & 1) == 1
   }
 }
 

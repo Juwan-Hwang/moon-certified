@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/core/math",
+  "moonbitlang/core/double",
+  "moon-certified/math/special_functions",
+}
+
+options(
+  "proof-enabled": false,
+)

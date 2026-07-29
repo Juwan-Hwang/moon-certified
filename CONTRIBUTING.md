@@ -45,11 +45,11 @@ Each algorithm package lives in its own directory:
 
 ```
 category/algorithm_name/
-├── moon.pkg.json    # Package manifest
+├── moon.pkg    # Package manifest
 ├── algorithm_name.mbt  # Implementation + tests
 ```
 
-The `moon.pkg.json` should set `"proof-enabled": false` unless the package
+The `moon.pkg` should set `"proof-enabled": false` unless the package
 has formal verification proofs.
 
 ### Code Style

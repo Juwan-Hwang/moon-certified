@@ -92,3 +92,18 @@ pub fn next_pow2(n : Int) -> Int {
   m = m | (m >> 16)
   m + 1
 }
+
+///|
+/// Approximate equality for floating-point numbers.
+///
+/// Uses a hybrid absolute/relative tolerance: two values are considered
+/// equal if their difference is less than `1e-6` in absolute terms, or
+/// less than `1e-6` times the sum of their magnitudes (relative terms).
+/// This handles both near-zero and large values gracefully.
+///
+/// This is the canonical implementation shared across all algorithm
+/// packages to eliminate duplication.
+pub fn approx_eq(a : Double, b : Double) -> Bool {
+  let diff = (a - b).abs()
+  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
+}

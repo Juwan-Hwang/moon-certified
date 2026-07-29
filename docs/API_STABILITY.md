@@ -4,7 +4,7 @@
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
 **Current version:** 0.1.0 (development — not yet formally released)
-**Document version:** 2.0
+**Document version:** 2.1
 **Last updated:** 2026-07-29
 
 ---
@@ -127,7 +127,7 @@ requires a major version bump and a migration guide.
 #### Verified tier
 
 A package whose correctness is established by a machine-checked formal proof via
-`moon prove` (Why3 + Z3), with `"proof-enabled": true` in its `moon.pkg.json`.
+`moon prove` (Why3 + Z3), with `"proof-enabled": true` in its `moon.pkg`.
 
 - **Guarantee.** The proven properties hold for **all** legal inputs, not merely
   tested inputs. The proof contract (preconditions, postconditions, loop
@@ -335,9 +335,9 @@ The following are **not** breaking and require at most a minor bump:
 
 ## 6. Package Categorization
 
-The current development tree contains **273 algorithm packages** (excluding the
-root module, shared `test_utils`, and `test/`/`benchmarks/` infrastructure
-packages). Each is assigned to exactly one stability tier.
+The current development tree contains **337 packages** (excluding the
+`benchmarks/` infrastructure package and the `.mooncakes/` dependency directory).
+Each is assigned to exactly one stability tier.
 
 ### Verified tier (9 packages)
 
@@ -390,16 +390,35 @@ graphs (`bfs_dfs`, `dijkstra_heap`, `johnson`, `kruskal`, `prim`, `scc`, `lca`,
 `digit_dp`, `knuth_opt`, `divide_conquer_dp`, `convex_hull_trick`, `sos_dp`),
 containers (`binary_heap`, `hash_table`, `lru_cache`, `ttl_cache`, `w_tinylfu`,
 `bloom_filter`, `cuckoo_filter`, `count_min_sketch`, `hyperloglog`,
-`union_find`, `priority_queue`, `monotonic`, `crc`), game theory (`nim_sg`),
-and random (`reservoir_sampling`, `weighted_sampling`).
+`union_find`, `priority_queue`, `monotonic`, `crc`), game theory (`nim_sg`,
+`alpha_beta`, `mcts`, `gale_shapley`, `shapley_value`), and random
+(`reservoir_sampling`, `weighted_sampling`, `fisher_yates`, `mersenne_twister`,
+`pcg`, `xoshiro`, `gaussian_sampling`, `zobrist_hash`, `mcmc`, `monte_carlo`).
+The `test/` infrastructure packages (`property_test`, `fuzz`, `stress`,
+`test_utils`, `coverage`) are also Stable.
 
 Each of these packages satisfies the [Testing Guarantee](#7-testing-guarantee)
 for the Stable tier.
 
-### Experimental tier (10 packages)
+### Experimental tier (74 packages)
 
 Newly added packages whose APIs are not yet frozen. They are correct (they pass
 `moon test`) but may change in any minor version until promoted to Stable.
+This includes the original 10 experimental packages plus 64 packages added
+during ongoing development — spanning cryptography (`ecdsa`, `ed25519`, `x25519`,
+`secp256k1`, `aes_ccm`, `sha1`, `xchacha20`, `base32`, `hex`), serialization
+(`csv`, `toml`, `yaml`, `cbor`, `protobuf`), machine learning (`random_forest`,
+`gradient_boosting`, `adaboost`, `mlp`, `gmm`, `hierarchical_clustering`,
+`gaussian_process`, `naive_bayes`, `model_evaluation`), finance (`black_scholes`,
+`portfolio_optimization`, `risk_management`, `greeks`, `time_series`,
+`execution`, `backtest`), advanced math (`eigenvalue`, `qr_pivoting`, `groebner`,
+`polynomial_factor`, `ilp`, `sdp`), number theory (`carmichael`, `aks`,
+`quadratic_sieve`, `lehman_factor`), graph algorithms (`push_relabel`,
+`planar_test`, `isomorphism`), containers (`bimap`, `counting_bloom`,
+`cuckoo_hashmap`, `skip_list`), string processing (`unicode_normalization`,
+`encoding_conversion`), statistics (`anova`, `nonparametric`), compression
+(`zstd`, `brotli`), game theory (`negamax`, `transposition_table`), and utilities
+(`structured_logging`, `error_chain`).
 
 | Package | Path | Domain |
 |---------|------|--------|
@@ -423,7 +442,7 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At version `0.1.0` the suite comprises **3373 tests**. The guarantees below
+At version `0.1.0` the suite comprises **3968 tests**. The guarantees below
 apply to every package, with tier-specific additions.
 
 ### 7.1 Functional tests
@@ -511,7 +530,7 @@ A green CI is a prerequisite for any release.
 
 | Version | Date | Packages | Tests | Verified | Theme |
 |---------|------|----------|-------|----------|-------|
-| 0.1.0 | 2026-07-29 | 273 | 3373 | 9/9 | Initial development release. 273 algorithm packages, 9 verified (5 full + 4 partial). Not yet formally released. |
+| 0.1.0 | 2026-07-29 | 337 | 3968 | 9/9 | Initial development release. 337 packages, 9 verified (5 full + 4 partial). Not yet formally released. |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.

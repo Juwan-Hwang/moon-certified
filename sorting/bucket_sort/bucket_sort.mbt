@@ -107,3 +107,31 @@ test "bucket_sort: uniform distribution" {
     assert_eq(sorted[i], i.to_double())
   }
 }
+
+///|
+test "bucket_sort: duplicates" {
+  let arr = [3.0, 1.0, 3.0, 2.0, 1.0, 3.0]
+  let sorted = bucket_sort(arr, 0.0, 5.0)
+  assert_eq(sorted, [1.0, 1.0, 2.0, 3.0, 3.0, 3.0])
+}
+
+///|
+test "bucket_sort: already sorted" {
+  let arr = [1.0, 2.0, 3.0, 4.0, 5.0]
+  let sorted = bucket_sort(arr, 0.0, 10.0)
+  assert_eq(sorted, arr)
+}
+
+///|
+test "bucket_sort: reverse sorted" {
+  let arr = [9.0, 7.0, 5.0, 3.0, 1.0]
+  let sorted = bucket_sort(arr, 0.0, 10.0)
+  assert_eq(sorted, [1.0, 3.0, 5.0, 7.0, 9.0])
+}
+
+///|
+test "bucket_sort: negative values" {
+  let arr = [-5.0, -1.0, -3.0, 0.0, 2.0]
+  let sorted = bucket_sort(arr, -10.0, 10.0)
+  assert_eq(sorted, [-5.0, -3.0, -1.0, 0.0, 2.0])
+}

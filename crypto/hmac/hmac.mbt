@@ -102,14 +102,18 @@ pub fn hmac_sha256_hex(key : Bytes, message : Bytes) -> String {
 ///|
 /// Constant-time comparison of two byte arrays.
 /// Returns true if they are equal. Does not short-circuit, preventing
-/// timing attacks.
+/// timing attacks. Length mismatch is handled without early return:
+/// the function always iterates over the longer array to avoid leaking
+/// length information through timing.
 pub fn constant_time_eq(a : Bytes, b : Bytes) -> Bool {
-  if a.length() != b.length() {
-    return false
-  }
-  let mut diff = 0
-  for i = 0; i < a.length(); i = i + 1 {
-    diff = diff | (a[i].to_int() ^ b[i].to_int())
+  let len_a = a.length()
+  let len_b = b.length()
+  let max_len = if len_a > len_b { len_a } else { len_b }
+  let mut diff = len_a ^ len_b // Non-zero if lengths differ.
+  for i = 0; i < max_len; i = i + 1 {
+    let va = if i < len_a { a[i].to_int() } else { 0 }
+    let vb = if i < len_b { b[i].to_int() } else { 0 }
+    diff = diff | (va ^ vb)
   }
   diff == 0
 }

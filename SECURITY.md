@@ -4,9 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.12.x  | Yes       |
-| 0.11.x  | Yes       |
-| < 0.11  | No        |
+| 0.1.x   | Yes       |
+| < 0.1   | No        |
 
 ## Reporting a Vulnerability
 
@@ -34,12 +33,12 @@ Public API functions validate inputs and return `Option` types for invalid
 input. No public API function calls `abort()` or `panic()` on invalid user
 input — invalid data returns `None` or a `*_checked` variant.
 
-A small number of internal helper functions use `abort()` as a defensive
-guard for code paths that are provably unreachable when invariants hold
-(e.g., exhausting a `match` on an enum that has been pre-validated). These
-guards cannot be triggered by any valid or invalid user input to a public
-API function. Test code also uses `abort()` for assertions, but test code
-is not included in production builds.
+A small number of internal helper functions previously used `abort()` as a
+defensive guard for code paths that are provably unreachable when invariants
+hold. As of v0.1.0, all `abort()` calls have been removed from production
+code paths — they are replaced with safe default values or `Option` returns.
+`abort()` remains only in test code for assertions, which is not included
+in production builds.
 
 ### Random Number Generation
 
@@ -56,17 +55,19 @@ true multi-threaded concurrency until MoonBit adds multi-threading support.
 
 ### Cryptographic Modules
 
-The `crypto/` packages (AES, ChaCha20, SHA-256, SHA-512, SHA-3, Poly1305,
-ChaCha20-Poly1305 AEAD, HMAC, HKDF, PBKDF2, scrypt, CSPRNG/HMAC-DRBG, Base64)
+The `crypto/` packages (AES, ChaCha20, SHA-256, SHA-512, SHA-3, SHA-1,
+Poly1305, ChaCha20-Poly1305 AEAD, HMAC, HKDF, PBKDF2, scrypt, bcrypt,
+Argon2, CSPRNG/HMAC-DRBG, RSA with OAEP/PSS, ECDSA with P-256, Ed25519,
+X25519, secp256k1, AES-CCM, XChaCha20, Base64, Base32, Hex)
 implement standard algorithms per their respective FIPS/RFC specifications.
 Test vectors from NIST and IETF RFCs are used to verify correctness.
 
-**AES side-channel limitation**: The AES implementation uses precomputed
-S-box table lookups, which are **not constant-time** and are vulnerable to
-cache-timing attacks on platforms with shared caches. In MoonBit's current
-WebAssembly target, this is not exploitable (Wasm linear memory has no
-shared-cache side channel). Do not use this AES implementation in
-environments where side-channel attacks are a concern.
+**AES constant-time implementation**: The AES implementation uses
+constant-time S-box computation (`ct_sbox` / `ct_inv_sbox`) via on-the-fly
+computation instead of precomputed table lookups, mitigating cache-timing
+side-channel attacks. In MoonBit's current WebAssembly target, this is
+additionally safe because Wasm linear memory has no shared-cache side
+channel.
 
 **Key material in memory**: MoonBit has a garbage collector, so the
 `zeroize` function (in `crypto/pbkdf2`) can only clear the mutable buffer

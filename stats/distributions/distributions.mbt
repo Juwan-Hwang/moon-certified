@@ -410,3 +410,441 @@ test "beta_pdf: outside support" {
   assert_true(beta_pdf(-0.1, 2.0, 2.0) == 0.0)
   assert_true(beta_pdf(1.1, 2.0, 2.0) == 0.0)
 }
+
+// ---------------------------------------------------------------------------
+// Student's t-distribution
+// ---------------------------------------------------------------------------
+
+///|
+/// Probability density function of the Student's t-distribution with
+/// `df` degrees of freedom.
+///
+/// ```
+/// f(x) = Γ((df+1)/2) / (√(df·π) · Γ(df/2)) · (1 + x²/df)^(−(df+1)/2)
+/// ```
+///
+/// Returns `0.0` when `df ≤ 0`.
+pub fn student_t_pdf(x : Double, df : Double) -> Double {
+  if df <= 0.0 {
+    return 0.0
+  }
+  let log_num = @special_functions.lgamma((df + 1.0) / 2.0)
+  let log_den = @special_functions.lgamma(df / 2.0) +
+    0.5 * @math.ln(df * @math.PI)
+  let log_body = -((df + 1.0) / 2.0) * @math.ln(1.0 + x * x / df)
+  @math.exp(log_num - log_den + log_body)
+}
+
+///|
+/// Cumulative distribution function of the Student's t-distribution with
+/// `df` degrees of freedom.
+///
+/// Uses the regularized incomplete beta function:
+/// For t > 0: CDF = 1 - 0.5 * I_{df/(df+t²)}(df/2, 1/2)
+/// For t ≤ 0: CDF = 0.5 * I_{df/(df+t²)}(df/2, 1/2)
+///
+/// Returns `0.5` at `x = 0` (by symmetry). Returns `0.0` when `df ≤ 0`.
+pub fn student_t_cdf(x : Double, df : Double) -> Double {
+  if df <= 0.0 {
+    return 0.0
+  }
+  if x == 0.0 {
+    return 0.5
+  }
+  // Compute the regularized incomplete beta function I_x(a, b)
+  // where x = df / (df + t²), a = df/2, b = 1/2.
+  let t2 = x * x
+  let z = df / (df + t2)
+  let a = df / 2.0
+  let b = 0.5
+  let ibeta = regularized_incomplete_beta(z, a, b)
+  if x > 0.0 {
+    1.0 - 0.5 * ibeta
+  } else {
+    0.5 * ibeta
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chi-square distribution
+// ---------------------------------------------------------------------------
+
+///|
+/// Probability density function of the chi-square distribution with
+/// `k` degrees of freedom.
+///
+/// ```
+/// f(x) = x^(k/2−1) · e^(−x/2) / (2^(k/2) · Γ(k/2))
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0` or `k ≤ 0`.
+pub fn chi_square_pdf(x : Double, k : Double) -> Double {
+  if x <= 0.0 || k <= 0.0 {
+    return 0.0
+  }
+  let log_pdf = (k / 2.0 - 1.0) * @math.ln(x) -
+    x / 2.0 -
+    (k / 2.0) * @math.ln(2.0) -
+    @special_functions.lgamma(k / 2.0)
+  @math.exp(log_pdf)
+}
+
+///|
+/// Cumulative distribution function of the chi-square distribution with
+/// `k` degrees of freedom.
+///
+/// Uses the regularized lower incomplete gamma function:
+/// ```
+/// F(x; k) = P(k/2, x/2) = γ(k/2, x/2) / Γ(k/2)
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0` or `k ≤ 0`.
+pub fn chi_square_cdf(x : Double, k : Double) -> Double {
+  if x <= 0.0 || k <= 0.0 {
+    return 0.0
+  }
+  regularized_lower_incomplete_gamma(k / 2.0, x / 2.0)
+}
+
+// ---------------------------------------------------------------------------
+// F-distribution
+// ---------------------------------------------------------------------------
+
+///|
+/// Probability density function of the F-distribution with
+/// `d1` and `d2` degrees of freedom.
+///
+/// ```
+/// f(x) = ( (d1·x)^d1 · d2^d2 / (d1·x + d2)^(d1+d2) )^(1/2) /
+///        ( x · B(d1/2, d2/2) )
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0`, `d1 ≤ 0`, or `d2 ≤ 0`.
+pub fn f_pdf(x : Double, d1 : Double, d2 : Double) -> Double {
+  if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
+    return 0.0
+  }
+  let log_pdf = (d1 / 2.0) * @math.ln(d1 * x) +
+    (d2 / 2.0) * @math.ln(d2) -
+    ((d1 + d2) / 2.0) * @math.ln(d1 * x + d2) -
+    @math.ln(x) -
+    (@special_functions.lgamma(d1 / 2.0) +
+     @special_functions.lgamma(d2 / 2.0) -
+     @special_functions.lgamma((d1 + d2) / 2.0))
+  @math.exp(log_pdf)
+}
+
+///|
+/// Cumulative distribution function of the F-distribution.
+///
+/// Uses the regularized incomplete beta function:
+/// ```
+/// F(x; d1, d2) = I_{d1·x / (d1·x + d2)}(d1/2, d2/2)
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0`, `d1 ≤ 0`, or `d2 ≤ 0`.
+pub fn f_cdf(x : Double, d1 : Double, d2 : Double) -> Double {
+  if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
+    return 0.0
+  }
+  let z = (d1 * x) / (d1 * x + d2)
+  regularized_incomplete_beta(z, d1 / 2.0, d2 / 2.0)
+}
+
+// ---------------------------------------------------------------------------
+// Gamma distribution
+// ---------------------------------------------------------------------------
+
+///|
+/// Probability density function of the gamma distribution with
+/// shape `k` and scale `θ`.
+///
+/// ```
+/// f(x) = x^(k−1) · e^(−x/θ) / (θ^k · Γ(k))
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0`, `k ≤ 0`, or `θ ≤ 0`.
+pub fn gamma_pdf(x : Double, k : Double, theta : Double) -> Double {
+  if x <= 0.0 || k <= 0.0 || theta <= 0.0 {
+    return 0.0
+  }
+  let log_pdf = (k - 1.0) * @math.ln(x) -
+    x / theta -
+    k * @math.ln(theta) -
+    @special_functions.lgamma(k)
+  @math.exp(log_pdf)
+}
+
+///|
+/// Cumulative distribution function of the gamma distribution with
+/// shape `k` and scale `θ`.
+///
+/// Uses the regularized lower incomplete gamma function:
+/// ```
+/// F(x; k, θ) = P(k, x/θ) = γ(k, x/θ) / Γ(k)
+/// ```
+///
+/// Returns `0.0` when `x ≤ 0`, `k ≤ 0`, or `θ ≤ 0`.
+pub fn gamma_cdf(x : Double, k : Double, theta : Double) -> Double {
+  if x <= 0.0 || k <= 0.0 || theta <= 0.0 {
+    return 0.0
+  }
+  regularized_lower_incomplete_gamma(k, x / theta)
+}
+
+// ---------------------------------------------------------------------------
+// Internal: Regularized incomplete beta and gamma functions
+// ---------------------------------------------------------------------------
+
+/// Regularized lower incomplete gamma function P(a, x) = γ(a, x) / Γ(a).
+///
+/// Uses the series expansion for x < a+1 and continued fraction for x ≥ a+1
+/// (Numerical Recipes §6.2).
+fn regularized_lower_incomplete_gamma(a : Double, x : Double) -> Double {
+  if x < 0.0 || a <= 0.0 {
+    return 0.0
+  }
+  if x == 0.0 {
+    return 0.0
+  }
+  if x < a + 1.0 {
+    // Series expansion.
+    let mut term = 1.0 / a
+    let mut sum = term
+    let mut n = 1
+    while n < 200 {
+      term = term * x / (a + n.to_double())
+      sum = sum + term
+      if term.abs() < sum.abs() * 1.0e-15 {
+        break
+      }
+      n = n + 1
+    }
+    sum * @math.exp(-x + a * @math.ln(x) - @special_functions.lgamma(a))
+  } else {
+    // Continued fraction (Lentz's method).
+    let mut f = 1.0e-30
+    let mut c = 1.0e-30
+    let mut d = 0.0
+    let mut i = 1
+    while i < 200 {
+      let an = if i == 1 {
+        0.0
+      } else {
+        (i.to_double() - 1.0) - a
+      }
+      let denom = an + x
+      if denom.abs() < 1.0e-30 {
+        d = 1.0e-30
+      } else {
+        d = denom
+      }
+      d = 1.0 / d
+      let delta = d * c
+      f = f * delta
+      if (delta - 1.0).abs() < 1.0e-15 {
+        break
+      }
+      c = 1.0 / (an + x)
+      let b_an = i.to_double()
+      let denom2 = b_an + x
+      if denom2.abs() < 1.0e-30 {
+        d = 1.0e-30
+      } else {
+        d = 1.0 / denom2
+      }
+      d = d * b_an
+      let delta2 = d * c
+      f = f * delta2
+      if (delta2 - 1.0).abs() < 1.0e-15 {
+        break
+      }
+      c = 1.0 / (b_an + x)
+      i = i + 2
+    }
+    1.0 - f * @math.exp(-x + a * @math.ln(x) - @special_functions.lgamma(a))
+  }
+}
+
+/// Regularized incomplete beta function I_x(a, b).
+///
+/// Uses the continued fraction representation (Numerical Recipes §6.4).
+fn regularized_incomplete_beta(x : Double, a : Double, b : Double) -> Double {
+  if x <= 0.0 {
+    return 0.0
+  }
+  if x >= 1.0 {
+    return 1.0
+  }
+  if a <= 0.0 || b <= 0.0 {
+    return 0.0
+  }
+  let lbeta = @special_functions.lgamma(a + b) -
+    @special_functions.lgamma(a) -
+    @special_functions.lgamma(b)
+  let front = @math.exp(lbeta + a * @math.ln(x) + b * @math.ln(1.0 - x))
+  // Use symmetry: I_x(a,b) = 1 - I_{1-x}(b,a) for x > (a+1)/(a+b+2).
+  if x < (a + 1.0) / (a + b + 2.0) {
+    // Continued fraction gives I_x directly.
+    front * beta_continued_fraction(x, a, b) / a
+  } else {
+    // Use complement.
+    let front2 = @math.exp(lbeta + b * @math.ln(1.0 - x) + a * @math.ln(x))
+    1.0 - front2 * beta_continued_fraction(1.0 - x, b, a) / b
+  }
+}
+
+/// Continued fraction for the incomplete beta function (Lentz's method).
+fn beta_continued_fraction(x : Double, a : Double, b : Double) -> Double {
+  let mut f = 1.0e-30
+  let mut c = 1.0e-30
+  let mut d = 0.0
+  let mut i = 0
+  while i < 300 {
+    let m = i.to_double()
+    let numerator = if i == 0 {
+      1.0
+    } else if i % 2 == 0 {
+      m * (b - m) * x / ((a + 2.0 * m - 1.0) * (a + 2.0 * m))
+    } else {
+      -((a + m) * (a + b + m) * x) / ((a + 2.0 * m) * (a + 2.0 * m + 1.0))
+    }
+    let denom = 1.0 + numerator
+    if denom.abs() < 1.0e-30 {
+      d = 1.0e-30
+    } else {
+      d = 1.0 / denom
+    }
+    let delta = d * c
+    f = f * delta
+    if (delta - 1.0).abs() < 1.0e-15 {
+      break
+    }
+    c = 1.0 + numerator
+    if c.abs() < 1.0e-30 {
+      c = 1.0e-30
+    }
+    i = i + 1
+  }
+  f
+}
+
+// ---------------------------------------------------------------------------
+// Tests for new distributions
+// ---------------------------------------------------------------------------
+
+///|
+test "student_t_pdf: at zero" {
+  // t(1) at 0: f(0) = Γ(1) / (√(π) · Γ(0.5)) = 1 / (√π · √π) = 1/π ≈ 0.3183
+  let expected = 1.0 / @math.PI
+  assert_true((student_t_pdf(0.0, 1.0) - expected).abs() < 1.0e-6)
+}
+
+///|
+test "student_t_pdf: symmetry" {
+  let df = 5.0
+  let pos = student_t_pdf(1.5, df)
+  let neg = student_t_pdf(-1.5, df)
+  assert_true((pos - neg).abs() < 1.0e-10)
+}
+
+///|
+test "student_t_pdf: convergence to normal" {
+  // With large df, t-distribution approaches normal.
+  let df = 1000.0
+  let t_val = student_t_pdf(1.0, df)
+  let normal_val = normal_pdf(1.0, 0.0, 1.0)
+  assert_true((t_val - normal_val).abs() < 0.01)
+}
+
+///|
+test "student_t_cdf: at zero" {
+  assert_true((student_t_cdf(0.0, 1.0) - 0.5).abs() < 1.0e-10)
+  assert_true((student_t_cdf(0.0, 10.0) - 0.5).abs() < 1.0e-10)
+}
+
+///|
+test "student_t_cdf: symmetry" {
+  let df = 5.0
+  let pos = student_t_cdf(1.5, df)
+  let neg = student_t_cdf(-1.5, df)
+  assert_true((pos + neg - 1.0).abs() < 1.0e-6)
+}
+
+///|
+test "chi_square_pdf: known value" {
+  // χ²(2) at x=1: f(1) = e^(-1/2) / 2 ≈ 0.30327
+  let expected = @math.exp(-0.5) / 2.0
+  assert_true((chi_square_pdf(1.0, 2.0) - expected).abs() < 1.0e-6)
+}
+
+///|
+test "chi_square_pdf: invalid inputs" {
+  assert_true(chi_square_pdf(-1.0, 2.0) == 0.0)
+  assert_true(chi_square_pdf(1.0, 0.0) == 0.0)
+  assert_true(chi_square_pdf(0.0, 2.0) == 0.0)
+}
+
+///|
+test "chi_square_cdf: at zero" {
+  assert_true(chi_square_cdf(0.0, 2.0) == 0.0)
+}
+
+///|
+test "chi_square_cdf: known value" {
+  // χ²(2) CDF at x=2: F(2) = 1 - e^(-1) ≈ 0.6321
+  let expected = 1.0 - @math.exp(-1.0)
+  assert_true((chi_square_cdf(2.0, 2.0) - expected).abs() < 1.0e-6)
+}
+
+///|
+test "f_pdf: positive for valid inputs" {
+  assert_true(f_pdf(1.0, 5.0, 10.0) > 0.0)
+}
+
+///|
+test "f_pdf: invalid inputs" {
+  assert_true(f_pdf(-1.0, 5.0, 10.0) == 0.0)
+  assert_true(f_pdf(1.0, 0.0, 10.0) == 0.0)
+  assert_true(f_pdf(1.0, 5.0, 0.0) == 0.0)
+}
+
+///|
+test "f_cdf: at zero" {
+  assert_true(f_cdf(0.0, 5.0, 10.0) == 0.0)
+}
+
+///|
+test "f_cdf: increases with x" {
+  let cdf1 = f_cdf(0.5, 5.0, 10.0)
+  let cdf2 = f_cdf(1.0, 5.0, 10.0)
+  let cdf3 = f_cdf(2.0, 5.0, 10.0)
+  assert_true(cdf1 < cdf2)
+  assert_true(cdf2 < cdf3)
+}
+
+///|
+test "gamma_pdf: known value" {
+  // Gamma(k=1, θ=1) = Exponential(1): f(1) = e^(-1) ≈ 0.3679
+  let expected = @math.exp(-1.0)
+  assert_true((gamma_pdf(1.0, 1.0, 1.0) - expected).abs() < 1.0e-6)
+}
+
+///|
+test "gamma_pdf: invalid inputs" {
+  assert_true(gamma_pdf(-1.0, 1.0, 1.0) == 0.0)
+  assert_true(gamma_pdf(1.0, 0.0, 1.0) == 0.0)
+  assert_true(gamma_pdf(1.0, 1.0, 0.0) == 0.0)
+}
+
+///|
+test "gamma_cdf: at zero" {
+  assert_true(gamma_cdf(0.0, 1.0, 1.0) == 0.0)
+}
+
+///|
+test "gamma_cdf: known value" {
+  // Gamma(k=1, θ=1) = Exponential(1): F(1) = 1 - e^(-1) ≈ 0.6321
+  let expected = 1.0 - @math.exp(-1.0)
+  assert_true((gamma_cdf(1.0, 1.0, 1.0) - expected).abs() < 1.0e-6)
+}

@@ -72,3 +72,54 @@ test "n=1" {
   let women = [[0]]
   assert_eq(stable_matching(1, men, women), [0])
 }
+
+///|
+test "all men get their last choice" {
+  // Women all prefer man 0, men all prefer woman 0
+  // Man 0 gets woman 0, men 1 and 2 get their 2nd/3rd choices
+  let men = [
+    [0, 1, 2],
+    [0, 1, 2],
+    [0, 1, 2],
+  ]
+  let women = [
+    [0, 1, 2],
+    [0, 1, 2],
+    [0, 1, 2],
+  ]
+  let result = stable_matching(3, men, women)
+  // Man 0 should get woman 0 (both rank each other first)
+  assert_eq(result[0], 0)
+  // All men should be matched
+  let mut all_matched = true
+  for i = 0; i < 3; i = i + 1 {
+    if result[i] < 0 {
+      all_matched = false
+    }
+  }
+  assert_true(all_matched)
+}
+
+///|
+test "n=4 with conflicting preferences" {
+  let men = [
+    [3, 1, 2, 0],
+    [1, 0, 2, 3],
+    [0, 1, 3, 2],
+    [2, 3, 0, 1],
+  ]
+  let women = [
+    [2, 0, 3, 1],
+    [1, 3, 0, 2],
+    [3, 2, 1, 0],
+    [0, 1, 2, 3],
+  ]
+  let result = stable_matching(4, men, women)
+  // Verify all women are assigned exactly once
+  let seen : Array[Bool] = [false, false, false, false]
+  for i = 0; i < 4; i = i + 1 {
+    assert_true(result[i] >= 0 && result[i] < 4)
+    assert_false(seen[result[i]])
+    seen[result[i]] = true
+  }
+}

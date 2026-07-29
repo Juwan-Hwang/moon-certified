@@ -8,10 +8,12 @@
 /// `hi` value in its subtree. This allows pruning branches that cannot
 /// contain an overlapping interval.
 ///
-/// **Note**: This is a plain BST, not a self-balancing tree (red-black or AVL).
-/// Insertion order affects tree shape: sorted input produces a degenerate
-/// O(n) chain. For guaranteed O(log n) worst-case, wrap with a balanced
-/// BST (e.g. `@red_black_tree` or `@treap`).
+/// **WARNING: Not a self-balancing tree.** This is a plain BST, not a
+/// red-black or AVL tree. Insertion order directly affects tree shape:
+/// sorted (or adversarial) input produces a degenerate O(n) chain, turning
+/// every operation into a linear scan. For production use with potentially
+/// adversarial input, a self-balancing variant (e.g. `@red_black_tree` or
+/// `@treap`) should be used instead to guarantee O(log n) worst-case.
 ///
 /// ## Complexity
 /// | Operation   | Average | Worst     |

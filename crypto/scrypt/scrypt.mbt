@@ -424,27 +424,27 @@ pub fn scrypt_checked(
 // ---------------------------------------------------------------------------
 
 ///|
+fn bytes_to_hex(data : Bytes) -> String {
+  @hex.encode(data)
+}
+
+///|
 test "scrypt: RFC 7914 test vector 1" {
   // scrypt(P="", S="", N=16, r=1, p=1, dklen=64)
-  // Expected (hex): 77d6576238657b203b19ca42c18a0497f16b4844e3074ae8dfdffa390
-  //                 edee7e6611f265c2e3a399c4ee86e7a1f4
   let password = Bytes::from_array([])
   let salt = Bytes::from_array([])
   let result = scrypt(password, salt, 16, 1, 1, 64)
   assert_true(result is Some(_))
   let dk = result.unwrap()
   assert_eq(dk.length(), 64)
-  // First 4 bytes: 0x77 0xd6 0x57 0x62
-  assert_eq(dk[0], b'\x77')
-  assert_eq(dk[1], b'\xd6')
-  assert_eq(dk[2], b'\x57')
-  assert_eq(dk[3], b'\x62')
+  // Full 64-byte verification against RFC 7914 §12 test vector 1
+  let expected = "77d6576238657b203b19ca42c18a0497f16b4844e3074ae8dfdffa3fede21442fcd0069ded0948f8326a753a0fc81f17e8d3e0fb2e0d3628cf35e20c38d18906"
+  assert_eq(bytes_to_hex(dk), expected)
 }
 
 ///|
 test "scrypt: RFC 7914 test vector 2" {
   // scrypt(P="password", S="NaCl", N=1024, r=8, p=16, dklen=64)
-  // Expected starts with: fdbabe1c9d347200...
   let password = Bytes::from_array([
     b'\x70', b'\x61', b'\x73', b'\x73', b'\x77', b'\x6f', b'\x72', b'\x64',
   ])
@@ -455,11 +455,9 @@ test "scrypt: RFC 7914 test vector 2" {
   assert_true(result is Some(_))
   let dk = result.unwrap()
   assert_eq(dk.length(), 64)
-  // First 4 bytes: 0xfd 0xba 0xbe 0x1c
-  assert_eq(dk[0], b'\xfd')
-  assert_eq(dk[1], b'\xba')
-  assert_eq(dk[2], b'\xbe')
-  assert_eq(dk[3], b'\x1c')
+  // Full 64-byte verification against RFC 7914 §12 test vector 2
+  let expected = "fdbabe1c9d3472007856e7190d01e9fe7c6ad7cbc8237830e77376634b3731622eaf30d92e22a3886ff109279d9830dac727afb94a83ee6d8360cbdfa2cc0640"
+  assert_eq(bytes_to_hex(dk), expected)
 }
 
 ///|

@@ -99,3 +99,42 @@ test "aliens_trick: at-most semantics with negatives" {
   // Only 10 and 20 are positive; k = 5 so take both -> 30
   assert_eq(aliens_trick(4, [10, -5, 20, -10], 5), Some(30))
 }
+
+///|
+test "aliens_trick: k equals zero" {
+  assert_eq(aliens_trick(3, [10, 20, 30], 0), Some(0))
+}
+
+///|
+test "aliens_trick: n equals zero" {
+  assert_eq(aliens_trick(0, [], 5), Some(0))
+}
+
+///|
+test "aliens_trick: all negative costs" {
+  assert_eq(aliens_trick(3, [-10, -20, -30], 2), Some(0))
+}
+
+///|
+test "aliens_trick: k greater than n" {
+  // Pick all positive: 5 + 10 + 15 = 30
+  assert_eq(aliens_trick(3, [5, 10, 15], 10), Some(30))
+}
+
+///|
+test "aliens_trick: single element" {
+  assert_eq(aliens_trick(1, [42], 1), Some(42))
+}
+
+///|
+test "aliens_trick: invalid inputs return None" {
+  assert_true(aliens_trick(-1, [1, 2], 1) is None)
+  assert_true(aliens_trick(2, [1], 1) is None)
+  assert_true(aliens_trick(2, [1, 2], -1) is None)
+}
+
+///|
+test "aliens_trick: exact k with mixed signs" {
+  // costs = [3, -1, 5, -2, 7], k = 3 → pick 3, 5, 7 = 15
+  assert_eq(aliens_trick(5, [3, -1, 5, -2, 7], 3), Some(15))
+}

@@ -16,10 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `binary_search`, `linear_search`, `max_element`, `min_element`, `is_sorted` — full correctness proofs via `moon prove` (Why3 + Z3)
 - `array_sum`, `gcd`, `fast_power`, `dijkstra` — partial verification (non-negativity / bounds safety)
 
-#### Sorting (14 packages)
+#### Sorting (13 packages)
 - `insertion_sort`, `selection_sort`, `merge_sort`, `quick_sort` — generic `FixedArray[T]` + comparator
 - `heap_sort`, `counting_sort`, `radix_sort`, `timsort`, `introsort`, `pdq_sort`, `bucket_sort`, `external_sort`
-- `is_sorted` (verified), `bitonic_sort`, `pancake_sort`
+- `is_sorted` (verified)
 
 #### Search (15 packages)
 - `binary_search` (verified), `linear_search` (verified), `bound_search`, `interpolation_search`, `exponential_search`
@@ -33,82 +33,108 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `trie`, `skip_list`, `sparse_table`, `link_cut`, `persistent_vector`, `hamt`
 - `li_chao_tree`, `mo_algorithm`, `rope`, `interval_tree`, `range_tree`, `r_tree`, `fibonacci_heap`
 
-#### Containers (26 packages)
+#### Containers (30 packages)
 - `binary_heap`, `hash_table`, `lru_cache`, `ttl_cache`, `w_tinylfu`, `bloom_filter`, `cuckoo_filter`
 - `count_min_sketch`, `hyperloglog`, `union_find`, `priority_queue`, `monotonic`, `bitset`, `deque`
 - `consistent_hash`, `crc`, `hash_utils`, `lsm_tree`, `roaring_bitmap`, `count_sketch`, `concurrent`
 - `treiber_stack`, `mpmc_queue`, `concurrent_hash_map`, `work_stealing`, `lock_free_queue`
+- `bimap` (bidirectional map), `counting_bloom` (counting Bloom filter), `cuckoo_hashmap` (cuckoo hash table), `skip_list` (probabilistic skip list)
 
-#### Graph (40 packages)
+#### Graph (43 packages)
 - `bfs_dfs`, `adj_list`, `topological_sort`, `topological_sort_adj`, `kruskal`, `prim`, `scc`, `dijkstra`, `dijkstra_heap`
 - `johnson`, `bidirectional_bfs`, `a_star`, `max_flow`, `advanced` (Bellman-Ford + Floyd-Warshall), `min_cost_flow`
 - `two_sat`, `dinic`, `lca`, `bridge_articulation`, `euler_path`, `hungarian`, `hopcroft_karp`, `stoer_wagner`
 - `max_clique`, `edmonds_blossom`, `dominator_tree`, `gomory_hu`, `hlpp`, `hld`, `centroid_decomposition`
 - `virtual_tree`, `min_steiner_tree`, `graph_coloring`, `flow_with_bounds`, `pagerank`, `chu_liu`
-- `k_shortest_paths`, `network_simplex`, `tree_isomorphism`
+- `k_shortest_paths`, `network_simplex`, `tree_isomorphism`, `graph_utils` (shared graph utilities)
+- `push_relabel` (max flow via push-relabel), `planar_test` (planarity testing), `isomorphism` (VF2 graph isomorphism)
 
-#### String (20 packages)
+#### String (22 packages)
 - `kmp`, `rabin_karp`, `suffix_array`, `z_function`, `manacher`, `aho_corasick`, `boyer_moore`, `lcp_array`
 - `suffix_automaton`, `suffix_tree`, `palindromic_tree`, `rolling_hash`, `lyndon`, `fm_index`, `wavelet_tree`
 - `regex`, `dawg`, `sa_is`, `bwt`, `suffix_balanced_tree`
+- `unicode_normalization` (NFC/NFD/NFKC/NFKD), `encoding_conversion` (UTF-8/UTF-16/GBK)
 
-#### Number Theory (19 packages)
+#### Number Theory (23 packages)
 - `gcd` (partial verified), `fast_power` (partial verified), `int64_utils`, `prime`, `miller_rabin`, `crt`
 - `bsgs`, `pollard_rho`, `euler_sieve`, `ntt`, `bigint`, `cipolla`, `finite_field`, `mobius`
 - `polynomial`, `primitive_root`, `quadratic_residue`, `reed_solomon`, `pohlig_hellman`
+- `carmichael` (Carmichael function), `aks` (AKS deterministic primality), `quadratic_sieve` (quadratic sieve factoring), `lehman_factor` (Lehman factoring)
 
-#### Math (19 packages)
+#### Math (25 packages)
 - `array_sum` (partial verified), `combinatorics`, `matrix`, `matrix_decomp`, `newton_method`, `berlekamp_massey`
 - `fft`, `simplex`, `fwht`, `numerical_integration`, `ode_solver`, `interpolation`, `least_squares`
 - `special_functions`, `conjugate_gradient`, `gmres`, `lbfgs`, `autodiff`, `sparse_matrix`
+- `eigenvalue` (Jacobi eigenvalue decomposition), `qr_pivoting` (column-pivoted QR), `groebner` (Gröbner basis via Buchberger), `polynomial_factor` (polynomial factorization), `ilp` (integer linear programming), `sdp` (semidefinite programming)
 
 #### Geometry (19 packages)
 - `convex_hull`, `andrew_hull`, `convex_hull_3d`, `half_plane_intersection`, `kd_tree`, `rotating_calipers`
 - `closest_pair`, `segment_ops`, `delaunay`, `voronoi`, `dynamic_hull`, `min_enclosing_circle`
 - `minkowski_sum`, `polygon_boolean`, `segment_intersection`, `point_in_polygon`, `polygon_ops`
-- `bentley_ottmann`
+- `bentley_ottmann`, `geometry_utils` (shared geometry primitives)
 
 #### Dynamic Programming (16 packages)
 - `dp`, `lis`, `interval_dp`, `tree_dp`, `digit_dp`, `aliens_trick`, `knapsack_opt`, `matrix_chain`
 - `monotone_queue_dp`, `smawk`, `bitmask_dp`, `convex_hull_trick`, `divide_conquer_dp`, `knuth_opt`
 - `plug_dp`, `sos_dp`
 
-#### Game Theory (5 packages)
+#### Game Theory (7 packages)
 - `nim_sg`, `alpha_beta`, `mcts`, `gale_shapley`, `shapley_value`
+- `negamax` (negamax search with alpha-beta pruning), `transposition_table` (Zobrist hashing)
 
 #### Random (10 packages)
 - `reservoir_sampling`, `weighted_sampling`, `fisher_yates`, `mersenne_twister`, `pcg`, `xoshiro`
 - `gaussian_sampling`, `zobrist_hash`, `mcmc`, `monte_carlo`
 
-#### Crypto (18 packages)
-- `sha256`, `sha512`, `sha3`, `blake2`, `blake3`, `hmac`, `chacha20`, `chacha20_poly1305`, `poly1305`
-- `hkdf`, `pbkdf2`, `scrypt`, `bcrypt`, `argon2`, `aes`, `rsa`, `csprng`, `base64`
+#### Crypto (27 packages)
+- `sha256`, `sha512`, `sha3`, `sha1`, `blake2`, `blake3`, `hmac`, `chacha20`, `chacha20_poly1305`, `poly1305`
+- `xchacha20` (extended-nonce ChaCha20 via HChaCha20)
+- `hkdf`, `pbkdf2`, `scrypt`, `bcrypt`, `argon2`, `aes`, `aes_ccm` (AES-CCM AEAD), `rsa` (OAEP/PSS), `csprng`
+- `ecdsa` (P-256, RFC 6979 deterministic nonce), `ed25519` (RFC 8032), `x25519` (RFC 7748 key exchange), `secp256k1` (Bitcoin/Ethereum curve)
+- `base64`, `base32`, `hex`
 
-#### Compression (10 packages)
+#### Compression (12 packages)
 - `huffman`, `lz4`, `lz77`, `lzw`, `arithmetic_coding`, `bwt_compress`, `deflate`, `gzip`, `zlib`, `snappy`
+- `zstd` (Zstandard framing), `brotli` (Brotli compression)
 
-#### Machine Learning (7 packages)
+#### Machine Learning (16 packages)
 - `kmeans`, `knn`, `dbscan`, `pca`, `svm`, `logistic_regression`, `decision_tree`
+- `random_forest` (classification + regression + OOB), `gradient_boosting` (GBDT), `adaboost` (AdaBoost SAMME)
+- `mlp` (multi-layer perceptron), `gmm` (Gaussian mixture model via EM), `hierarchical_clustering` (agglomerative)
+- `gaussian_process` (GP regression), `naive_bayes` (multinomial/Gaussian), `model_evaluation` (accuracy/precision/recall/F1/AUC)
 
-#### Statistics (7 packages)
+#### Statistics (9 packages)
 - `descriptive`, `linear_regression`, `hypothesis_testing`, `correlation`, `confidence_interval`, `bootstrap`, `distributions`
+- `anova` (one-way/two-way ANOVA), `nonparametric` (Mann-Whitney/Wilcoxon/Kruskal-Wallis)
 
-#### Serialization (2 packages)
+#### Serialization (7 packages)
 - `json`, `msgpack`
+- `csv` (RFC 4180), `toml` (TOML 1.0.0), `yaml` (YAML 1.1 subset), `cbor` (RFC 8949), `protobuf` (Protocol Buffers wire format)
 
 #### Time (1 package)
 - `chrono`
 
-#### Utilities (2 packages)
-- `utils` (swap, str_cmp, next_pow2, encoding, fresh_seed)
+#### Utilities (4 packages)
+- `utils` (swap, str_cmp, next_pow2, encoding, approx_eq, fresh_seed)
 - `prng` (SplitMix64, XorShift64, LCG)
 - `itertools` (range, repeat, enumerate, window, chunk, fold)
+- `structured_logging` (structured key-value logging), `error_chain` (error context chaining)
+
+#### Finance (7 packages)
+- `black_scholes` (Black-Scholes option pricing + implied volatility)
+- `portfolio_optimization` (Markowitz mean-variance + Black-Litterman)
+- `risk_management` (VaR, CVaR, stress testing)
+- `greeks` (Delta, Gamma, Vega, Theta, Rho)
+- `time_series` (ARIMA, GARCH, ADF stationarity test)
+- `execution` (TWAP, VWAP, Implementation Shortfall)
+- `backtest` (event-driven backtesting + performance analytics)
 
 #### Test Infrastructure
 - `test/property_test` — QuickCheck-style property-based testing framework
 - `test/fuzz` — adversarial-input fuzz tests
 - `test/stress` — large-scale stress tests
 - `test/test_utils` — shared test utilities
+- `test/coverage` — test coverage reporting
 - `benchmarks/` — performance benchmarks with complexity verification
 
 #### CI/CD

@@ -243,15 +243,17 @@ fn take_step(
   let e1 = compute_error(i1, y, k, alphas, bias[0], n) - y1
   let e2 = compute_error(i2, y, k, alphas, bias[0], n) - y2
   let s = y1 * y2
-  // Compute bounds L and H for alpha2
+  // Compute bounds L and H for alpha2 (RFC SMO §12.2.2)
   let (l, h) = if s < 0.0 {
-    let _l = (0.0).max(alpha2 - alpha1)
-    let _h = config.c.min(config.c + alpha2 - alpha1)
-    (_l, _h)
+    // y1 != y2: L = max(0, α2 - α1), H = min(C, C + α2 - α1)
+    let lo = (0.0).max(alpha2 - alpha1)
+    let hi = config.c.min(config.c + alpha2 - alpha1)
+    (lo, hi)
   } else {
-    let _l = (0.0).max(alpha2 + alpha1 - config.c)
-    let _h = config.c.min(alpha2 + alpha1)
-    (_l, _h)
+    // y1 == y2: L = max(0, α1 + α2 - C), H = min(C, α1 + α2)
+    let lo = (0.0).max(alpha2 + alpha1 - config.c)
+    let hi = config.c.min(alpha2 + alpha1)
+    (lo, hi)
   }
   if h <= l {
     return false

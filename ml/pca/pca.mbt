@@ -455,11 +455,9 @@ pub fn pca_transform(
 // ---------------------------------------------------------------------------
 
 ///|
-/// Tolerant `Double` equality: passes within an absolute bound (`1e-6`) or a
-/// relative bound (`1e-6` of the combined magnitude).
+/// Tolerant `Double` equality: delegates to `@utils.approx_eq`.
 fn approx_eq(a : Double, b : Double) -> Bool {
-  let diff = (a - b).abs()
-  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
+  @utils.approx_eq(a, b)
 }
 
 ///|

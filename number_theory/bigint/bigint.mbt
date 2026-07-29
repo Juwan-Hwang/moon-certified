@@ -462,10 +462,11 @@ fn long_division(
     let d_top = norm_div[n - 1].to_uint64()
     let mut q_hat = top / d_top
     let mut r_hat = top % d_top
-    // Refine: ensure q_hat is not too large.
-    let test_val = q_hat * norm_div[n - 2].to_uint64()
+    // Refine: ensure q_hat is not too large (Knuth Algorithm D, step D3).
+    // The test value must be recomputed each iteration because q_hat changes.
     while q_hat >= 0x100000000UL ||
-          test_val > (r_hat << 32) + norm_dividend[j + n - 2].to_uint64() {
+      q_hat * norm_div[n - 2].to_uint64() >
+      (r_hat << 32) + norm_dividend[j + n - 2].to_uint64() {
       q_hat = q_hat - 1UL
       r_hat = r_hat + d_top
       if r_hat >= 0x100000000UL {
@@ -1154,6 +1155,50 @@ pub fn is_odd(b : BigInt) -> Bool {
 }
 
 ///|
+/// Return the number of bits required to represent the absolute value.
+/// Returns 0 for zero, 1 for one, etc.
+pub fn bit_length(b : BigInt) -> Int {
+  if is_zero(b) {
+    return 0
+  }
+  let n = b.limbs.length()
+  let top = b.limbs[n - 1]
+  // Count bits in the top limb.
+  let mut bits = 0
+  let mut v = top
+  if v == 0U {
+    // Should not happen after trim, but guard anyway.
+    bits = 0
+  } else {
+    // Binary search for the highest set bit in a 32-bit value.
+    if (v & 0xFFFF0000U) != 0U {
+      bits = bits + 16
+      v = v >> 16
+    }
+    if (v & 0x0000FF00U) != 0U {
+      bits = bits + 8
+      v = v >> 8
+    }
+    if (v & 0x000000F0U) != 0U {
+      bits = bits + 4
+      v = v >> 4
+    }
+    if (v & 0x0000000CU) != 0U {
+      bits = bits + 2
+      v = v >> 2
+    }
+    if (v & 0x00000002U) != 0U {
+      bits = bits + 1
+      v = v >> 1
+    }
+    if v != 0U {
+      bits = bits + 1
+    }
+  }
+  (n - 1) * 32 + bits
+}
+
+///|
 /// Modular exponentiation: base^exp mod modulus.
 /// Returns None if modulus is zero.
 pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
@@ -1336,6 +1381,44 @@ test "bigint: division" {
       assert_eq(to_string(q), "1000000000")
       assert_eq(to_string(r), "1000000000")
     }
+    None => assert_true(false)
+  }
+}
+
+///|
+test "bigint: large multiply and mod" {
+  // Test: 2^64 mod (2^64 - 1) = 1
+  let m1 = unwrap(from_string("18446744073709551615"))
+  let v1 = unwrap(from_string("18446744073709551616"))
+  match rem(v1, m1) {
+    Some(r) => assert_eq(to_string(r), "1")
+    None => assert_true(false)
+  }
+  // Test: (2^64)^2 mod (2^64 - 1) = 1
+  match rem(mul(v1, v1), m1) {
+    Some(r) => assert_eq(to_string(r), "1")
+    None => assert_true(false)
+  }
+  // Test: 2^256 mod p = 2^32 + 977 (secp256k1 prime)
+  let p256 = unwrap(from_string(
+    "115792089237316195423570985008687907853269984665640564039457584007908834671663",
+  ))
+  let v256 = add(p256, add(shl(one(), 32), from_int_value(977)))
+  match rem(v256, p256) {
+    Some(r) => assert_eq(to_string(r), "4294968273")
+    None => assert_true(false)
+  }
+  // Test: p^2 mod p = 0
+  match rem(mul(p256, p256), p256) {
+    Some(r) => assert_eq(to_string(r), "0")
+    None => assert_true(false)
+  }
+  // Test: (a * b) / b == a for large values
+  let gy = unwrap(from_string(
+    "32670510020758816978083085130507043184471273380659243275938904335757337482424",
+  ))
+  match div(mul(gy, gy), gy) {
+    Some(q) => assert_eq(to_string(q), to_string(gy))
     None => assert_true(false)
   }
 }

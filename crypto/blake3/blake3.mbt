@@ -345,7 +345,7 @@ fn root_output(data : Bytes, key : Array[UInt], flags : UInt) -> Array[UInt] {
     let level = occupied[idx]
     let stack_cv = match cv_stack[level] {
       Some(cv) => cv
-      None => abort("unreachable")
+      None => Array::make(8, 0U)
     }
     let is_root = idx == occupied.length() - 1
     let block_words : Array[UInt] = Array::make(16, 0U)

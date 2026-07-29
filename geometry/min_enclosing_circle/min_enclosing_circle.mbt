@@ -130,3 +130,34 @@ test "min_enclosing_circle: many points" {
   assert_true(c.cy.abs() < 1.0e-10)
   assert_true((c.r - 1.0).abs() < 1.0e-10)
 }
+
+///|
+test "min_enclosing_circle: two points" {
+  let pts = [(0.0, 0.0), (2.0, 0.0)]
+  let c = min_enclosing_circle(pts)
+  assert_true((c.cx - 1.0).abs() < 1.0e-10)
+  assert_true(c.cy.abs() < 1.0e-10)
+  assert_true((c.r - 1.0).abs() < 1.0e-10)
+}
+
+///|
+test "min_enclosing_circle: collinear points" {
+  let pts = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 0.0)]
+  let c = min_enclosing_circle(pts)
+  assert_true((c.cx - 1.5).abs() < 1.0e-10)
+  assert_true(c.cy.abs() < 1.0e-10)
+  assert_true((c.r - 1.5).abs() < 1.0e-10)
+}
+
+///|
+test "min_enclosing_circle: all points inside" {
+  // Outer points define the circle, inner points are irrelevant
+  let pts = [
+    (5.0, 0.0), (-5.0, 0.0), (0.0, 5.0), (0.0, -5.0),
+    (1.0, 1.0), (-1.0, -1.0), (0.0, 0.0), (2.0, 0.0),
+  ]
+  let c = min_enclosing_circle(pts)
+  assert_true(c.cx.abs() < 1.0e-10)
+  assert_true(c.cy.abs() < 1.0e-10)
+  assert_true((c.r - 5.0).abs() < 1.0e-10)
+}

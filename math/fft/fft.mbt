@@ -348,13 +348,11 @@ pub fn multiply(a : Array[Double], b : Array[Double]) -> Array[Double] {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Tolerant equality for `Double`: passes if the difference is within an
-/// absolute bound (`1e-6`) or a relative bound (`1e-6` of the larger
-/// magnitude). Used everywhere FFT results are compared, since the transform
+/// Tolerant equality for `Double`: delegates to `@utils.approx_eq`.
+/// Used everywhere FFT results are compared, since the transform
 /// accumulates a small amount of floating-point error.
 fn approx_eq(a : Double, b : Double) -> Bool {
-  let diff = (a - b).abs()
-  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
+  @utils.approx_eq(a, b)
 }
 
 ///|

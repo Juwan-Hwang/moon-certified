@@ -545,10 +545,19 @@ pub fn frame_decompress(data : Bytes) -> Bytes? {
   }
   // --- Parse frame descriptor ---
   let flg = data[4].to_int()
-  let _bd = data[5].to_int()
-  // Validate version (bits 7-6 must be 01).
+  let bd = data[5].to_int()
+  // Validate version (bits 7-6 of FLG must be 01).
   if ((flg >> 6) & 0x03) != 1 {
     return None
+  }
+  // Validate BD byte: block max size (bits 6-4) must be one of
+  // 4 (64KB), 5 (256KB), 6 (1MB), 7 (4MB). Bit 7 must be 0 (reserved).
+  let block_max_spec = (bd >> 4) & 0x07
+  if block_max_spec < 4 || block_max_spec > 7 {
+    return None
+  }
+  if (bd & 0x80) != 0 {
+    return None // Reserved bit must be 0.
   }
   // Verify header checksum.
   let header_desc = Bytes::from_array([data[4], data[5]])

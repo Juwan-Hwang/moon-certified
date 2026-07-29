@@ -279,8 +279,7 @@ pub fn point2d(x : Double, y : Double) -> Array[Double] {
 // ---------------------------------------------------------------------------
 
 fn approx_eq(a : Double, b : Double) -> Bool {
-  let diff = (a - b).abs()
-  diff < 1.0e-6 || diff < 1.0e-6 * (a.abs() + b.abs())
+  @utils.approx_eq(a, b)
 }
 
 fn centroid_index_near(

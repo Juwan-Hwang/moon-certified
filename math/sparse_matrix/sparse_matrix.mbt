@@ -245,3 +245,55 @@ test "sparse_matrix: conjugate gradient" {
   assert_true((x[0] - expected[0]).abs() < 1.0e-8)
   assert_true((x[1] - expected[1]).abs() < 1.0e-8)
 }
+
+///|
+test "sparse_matrix: empty matrix" {
+  let m = from_triplets(3, 3, [])
+  assert_eq(num_rows(m), 3)
+  assert_eq(num_cols(m), 3)
+  assert_eq(nnz(m), 0)
+  assert_true((get(m, 0, 0) - 0.0).abs() < 1.0e-10)
+}
+
+///|
+test "sparse_matrix: out of bounds get returns zero" {
+  let m = from_triplets(2, 2, [(0, 0, 1.0)])
+  assert_true((get(m, 5, 5) - 0.0).abs() < 1.0e-10)
+  assert_true((get(m, -1, 0) - 0.0).abs() < 1.0e-10)
+}
+
+///|
+test "sparse_matrix: rectangular matrix spmv" {
+  // 2x3 matrix: [[1, 0, 2], [0, 3, 0]]
+  let m = from_triplets(2, 3, [(0, 0, 1.0), (0, 2, 2.0), (1, 1, 3.0)])
+  let x = [1.0, 2.0, 3.0]
+  let y = spmv(m, x)
+  // Row 0: 1*1 + 0*2 + 2*3 = 7
+  assert_true((y[0] - 7.0).abs() < 1.0e-10)
+  // Row 1: 0*1 + 3*2 + 0*3 = 6
+  assert_true((y[1] - 6.0).abs() < 1.0e-10)
+}
+
+///|
+test "sparse_matrix: cg with zero rhs" {
+  let a = from_triplets(2, 2, [(0, 0, 1.0), (1, 1, 1.0)])
+  let b = [0.0, 0.0]
+  let x = conjugate_gradient(a, b, 10, 1.0e-10)
+  assert_true((x[0] - 0.0).abs() < 1.0e-10)
+  assert_true((x[1] - 0.0).abs() < 1.0e-10)
+}
+
+///|
+test "sparse_matrix: cg 3x3 system" {
+  // [[2,0,0],[0,3,0],[0,0,4]] * x = [4, 9, 16] → x = [2, 3, 4]
+  let a = from_triplets(3, 3, [
+    (0, 0, 2.0),
+    (1, 1, 3.0),
+    (2, 2, 4.0),
+  ])
+  let b = [4.0, 9.0, 16.0]
+  let x = conjugate_gradient(a, b, 100, 1.0e-10)
+  assert_true((x[0] - 2.0).abs() < 1.0e-8)
+  assert_true((x[1] - 3.0).abs() < 1.0e-8)
+  assert_true((x[2] - 4.0).abs() < 1.0e-8)
+}

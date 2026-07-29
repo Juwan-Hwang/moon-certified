@@ -8,7 +8,7 @@ import {
 // Values
 pub fn decrypt(RSAPrivateKey, Bytes) -> Bytes?
 
-pub fn encrypt(RSAPublicKey, Bytes) -> Bytes?
+pub fn encrypt(RSAPublicKey, Bytes, Bytes, Bytes) -> Bytes?
 
 pub fn generate_keypair(Int, Bytes, Bytes) -> (RSAPublicKey, RSAPrivateKey)?
 

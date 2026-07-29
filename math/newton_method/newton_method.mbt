@@ -315,7 +315,9 @@ test "solve: zero derivative returns ZeroDerivative" {
   let df = fn(_x : Double) -> Double { 0.0 }
   match solve_default(f, df, 1.0) {
     ZeroDerivative(_) => assert_true(true)
-    _ => assert_true(false)
+    Converged(_) => assert_true(false)
+    MaxIterations(_) => assert_true(false)
+    Diverged => assert_true(false)
   }
 }
 
@@ -330,22 +332,19 @@ test "solve: immediate convergence when f(x0) = 0" {
 }
 
 ///|
-test "solve: divergence detected" {
-  // f(x) = x^3, df = 3x^2; starting at a tiny x, derivative is tiny,
-  // but not below EPS. Step = x^3/(3x^2) = x/3, so it converges.
-  // Use a function that truly diverges: f(x) = atan(x) - 10 (root far out),
-  // df = 1/(1+x^2). Near x=0, derivative=1, step = atan(0)-10 = -10.
-  // x jumps to 10, then derivative ~ 1/101, step huge → divergence.
-  let f = fn(x : Double) -> Double {
-    // A contrived function that drives x to infinity.
-    1.0 / (x * x + 1.0) - 100.0
+test "solve: cycling function hits MaxIterations" {
+  // f(x) = x³ - 2x + 2 is a classic example where Newton's method
+  // cycles between x=0 and x=1 without converging.
+  // x0=0: f=2, f'=-2 → x1 = 0 - 2/(-2) = 1
+  // x1=1: f=1, f'=1  → x2 = 1 - 1/1 = 0  (back to start)
+  let f = fn(x : Double) -> Double { x * x * x - 2.0 * x + 2.0 }
+  let df = fn(x : Double) -> Double { 3.0 * x * x - 2.0 }
+  match solve_default(f, df, 0.0) {
+    MaxIterations(_) => assert_true(true)
+    Diverged => assert_true(true)
+    Converged(_) => assert_true(false)
+    ZeroDerivative(_) => assert_true(false)
   }
-  let df = fn(x : Double) -> Double {
-    -2.0 * x / ((x * x + 1.0) * (x * x + 1.0))
-  }
-  // This may or may not diverge depending on numerics; just ensure no crash.
-  let _ = solve_default(f, df, 0.001)
-  assert_true(true)
 }
 
 ///|

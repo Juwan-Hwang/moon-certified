@@ -6,9 +6,7 @@ pub fn insert(HNSW, Int, Array[Double]) -> Unit
 
 pub fn len(HNSW) -> Int
 
-pub fn new(Int, Int) -> HNSW
-
-pub fn new_with_seed(Int, Int, UInt64) -> HNSW
+pub fn new(Int, Int, UInt64) -> HNSW
 
 pub fn search(HNSW, Array[Double], Int, Int) -> Array[(Double, Int)]
 

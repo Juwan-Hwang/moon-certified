@@ -18,23 +18,23 @@
 /// AES is a NIST-standardised block cipher used in TLS, IPsec, and countless
 /// other protocols.
 ///
-/// **Side-channel note**: This implementation uses precomputed S-box table
-/// lookups for SubBytes/InvSubBytes. Table-based implementations are
-/// **not constant-time** — they are vulnerable to cache-timing attacks in
-/// environments where the attacker can observe memory access patterns
-/// (shared cloud hosts, certain sandboxed environments). Commercial-grade
-/// libraries (OpenSSL, ring, BoringSSL) use AES-NI hardware instructions
-/// or bitsliced software implementations to achieve true constant-time.
+/// **Constant-time implementation**: SubBytes and InvSubBytes compute the
+/// S-box on-the-fly using GF(2^8) arithmetic (multiplicative inverse via
+/// Fermat's little theorem + affine transformation) rather than precomputed
+/// table lookups. The `gf_mul` helper also uses branch-free conditional XOR
+/// via `ct_nonzero_mask`. This eliminates cache-timing side channels present
+/// in table-based implementations.
+///
+/// The precomputed S-box and inverse S-box tables are retained solely for
+/// test-time verification that the on-the-fly computation matches FIPS 197.
 ///
 /// MoonBit currently has no FFI or inline-assembly capability, so hardware
 /// AES-NI is unavailable. In a single-tenant WebAssembly runtime (the
-/// current MoonBit target), cache-timing attacks are not practically
-/// exploitable because Wasm linear memory has no shared-cache side channel.
-/// **Do not use this implementation in multi-tenant or native-process
-/// environments where side-channel attacks are a concern.**
+/// current MoonBit target), the constant-time software implementation
+/// provides the best available side-channel resistance.
 ///
-/// The S-box is precomputed from the FIPS 197 specification and verified
-/// against NIST test vectors.
+/// The S-box computation is verified against NIST test vectors and the
+/// precomputed FIPS 197 table.
 ///
 /// ## References
 ///
@@ -127,27 +127,127 @@ let rcon : FixedArray[Byte] = FixedArray::from_array([
 ])
 
 // ---------------------------------------------------------------------------
-// GF(2^8) operations for MixColumns and GHASH
+// Constant-time GF(2^8) operations for SubBytes, MixColumns, and GHASH
 // ---------------------------------------------------------------------------
 
 ///|
+/// Constant-time nonzero mask: returns 0xFF if `b != 0`, 0x00 if `b == 0`.
+///
+/// Uses only arithmetic operations (add, shift, multiply) — no branches —
+/// so execution time is independent of the input value. For Byte inputs
+/// (range 0–255), `(v + 255) >> 8` is 0 when v==0 and 1 when v>0.
+fn ct_nonzero_mask(b : Byte) -> Byte {
+  let v = b.to_int()
+  let nz = (v + 0xFF) >> 8
+  (nz * 0xFF).to_byte()
+}
+
+///|
 /// Multiply two bytes in GF(2^8) using the AES polynomial x^8 + x^4 + x^3 + x + 1.
+///
+/// This is a **constant-time** implementation: both conditional XORs use
+/// `ct_nonzero_mask` instead of branches, so the execution path is identical
+/// regardless of input values.
 fn gf_mul(a : Byte, b : Byte) -> Byte {
   let mut p : Byte = b'\x00'
   let mut aa = a
   let mut bb = b
   for i = 0; i < 8; i = i + 1 {
-    if (bb & b'\x01') != b'\x00' {
-      p = p ^ aa
-    }
-    let hi = aa & b'\x80'
+    // p ^= aa if low bit of bb is set (branch-free).
+    p = p ^ (aa & ct_nonzero_mask(bb & b'\x01'))
+    // Reduce if high bit was set before shift (branch-free).
+    let hi_mask = ct_nonzero_mask(aa & b'\x80')
     aa = aa << 1
-    if hi != b'\x00' {
-      aa = aa ^ b'\x1b'
-    }
+    aa = aa ^ (b'\x1b' & hi_mask)
     bb = bb >> 1
   }
   p
+}
+
+///|
+/// Multiplicative inverse in GF(2^8) using Fermat's little theorem.
+///
+/// In GF(2^8)*, every element satisfies a^255 = 1, so a^(-1) = a^254.
+/// By convention, 0^(-1) = 0 (the AES S-box maps 0 → 0).
+///
+/// The exponentiation uses square-and-multiply with a **fixed** sequence of
+/// operations (no data-dependent branching), making it constant-time.
+/// 254 = 0b11111110, so we square 7 times and multiply 7 times.
+fn gf_inv(a : Byte) -> Byte {
+  let a2 = gf_mul(a, a) // a^2
+  let a4 = gf_mul(a2, a2) // a^4
+  let a8 = gf_mul(a4, a4) // a^8
+  let a16 = gf_mul(a8, a8) // a^16
+  let a32 = gf_mul(a16, a16) // a^32
+  let a64 = gf_mul(a32, a32) // a^64
+  let a128 = gf_mul(a64, a64) // a^128
+  // a^254 = a^2 · a^4 · a^8 · a^16 · a^32 · a^64 · a^128
+  gf_mul(
+    a2,
+    gf_mul(
+      a4,
+      gf_mul(a8, gf_mul(a16, gf_mul(a32, gf_mul(a64, a128)))),
+    ),
+  )
+}
+
+///|
+/// Forward AES affine transformation (FIPS 197 §5.1.1).
+///
+/// For each output bit i:
+///   b'_i = b_i ⊕ b_{(i+4)%8} ⊕ b_{(i+5)%8} ⊕ b_{(i+6)%8} ⊕ b_{(i+7)%8} ⊕ c_i
+/// where c = 0x63 (01100011).
+///
+/// Operates bit-by-bit with no data-dependent branches.
+fn affine_forward(b : Byte) -> Byte {
+  let bi = b.to_int()
+  let ci = 0x63
+  let mut result = 0
+  for i = 0; i < 8; i = i + 1 {
+    let bit = ((bi >> i) & 1) ^
+      ((bi >> ((i + 4) % 8)) & 1) ^
+      ((bi >> ((i + 5) % 8)) & 1) ^
+      ((bi >> ((i + 6) % 8)) & 1) ^
+      ((bi >> ((i + 7) % 8)) & 1) ^
+      ((ci >> i) & 1)
+    result = result | (bit << i)
+  }
+  result.to_byte()
+}
+
+///|
+/// Inverse AES affine transformation (FIPS 197 §5.3.2).
+///
+/// For each output bit i:
+///   b_i = b'_{(i+2)%8} ⊕ b'_{(i+5)%8} ⊕ b'_{(i+7)%8} ⊕ d_i
+/// where d = 0x05 (00000101).
+fn affine_inverse(b : Byte) -> Byte {
+  let bi = b.to_int()
+  let di = 0x05
+  let mut result = 0
+  for i = 0; i < 8; i = i + 1 {
+    let bit = ((bi >> ((i + 2) % 8)) & 1) ^
+      ((bi >> ((i + 5) % 8)) & 1) ^
+      ((bi >> ((i + 7) % 8)) & 1) ^
+      ((di >> i) & 1)
+    result = result | (bit << i)
+  }
+  result.to_byte()
+}
+
+///|
+/// Constant-time S-box: S(x) = Affine(GF_inv(x)).
+///
+/// Computes the AES S-box value on-the-fly using GF(2^8) arithmetic instead
+/// of a table lookup, eliminating cache-timing side channels.
+fn ct_sbox(x : Byte) -> Byte {
+  affine_forward(gf_inv(x))
+}
+
+///|
+/// Constant-time inverse S-box: S^{-1}(y) = GF_inv(Affine_inv(y)).
+fn ct_inv_sbox(y : Byte) -> Byte {
+  gf_inv(affine_inverse(y))
 }
 
 // ---------------------------------------------------------------------------
@@ -156,13 +256,11 @@ fn gf_mul(a : Byte, b : Byte) -> Byte {
 
 ///|
 /// SubWord: apply S-box to each byte of a 4-byte word.
+///
+/// Uses the constant-time `ct_sbox` to avoid cache-timing side channels
+/// during key expansion.
 fn sub_word(w : (Byte, Byte, Byte, Byte)) -> (Byte, Byte, Byte, Byte) {
-  (
-    sbox[w.0.to_int()],
-    sbox[w.1.to_int()],
-    sbox[w.2.to_int()],
-    sbox[w.3.to_int()],
-  )
+  (ct_sbox(w.0), ct_sbox(w.1), ct_sbox(w.2), ct_sbox(w.3))
 }
 
 ///|
@@ -258,17 +356,22 @@ fn add_round_key(
 
 ///|
 /// SubBytes: apply S-box to each byte of the state.
+///
+/// Uses the constant-time `ct_sbox` (on-the-fly GF(2^8) computation) instead
+/// of a table lookup, eliminating cache-timing side channels.
 fn sub_bytes(state : FixedArray[Byte]) -> Unit {
   for i = 0; i < 16; i = i + 1 {
-    state[i] = sbox[state[i].to_int()]
+    state[i] = ct_sbox(state[i])
   }
 }
 
 ///|
 /// InvSubBytes: apply inverse S-box to each byte of the state.
+///
+/// Uses the constant-time `ct_inv_sbox` instead of a table lookup.
 fn inv_sub_bytes(state : FixedArray[Byte]) -> Unit {
   for i = 0; i < 16; i = i + 1 {
-    state[i] = inv_sbox[state[i].to_int()]
+    state[i] = ct_inv_sbox(state[i])
   }
 }
 
@@ -986,6 +1089,9 @@ test "aes: CBC mode round-trip" {
 /// would break all AES operations. This test asserts every one of the 256
 /// entries against the known values, providing defence-in-depth against
 /// transcription errors in the constant table.
+///
+/// It also verifies that the constant-time on-the-fly computation (`ct_sbox`)
+/// matches the precomputed table for all 256 input values.
 test "aes: S-box verified against FIPS 197" {
   // FIPS 197 Figure 7 — the complete AES S-box.
   let expected = FixedArray::from_array([
@@ -1010,6 +1116,11 @@ test "aes: S-box verified against FIPS 197" {
   for i = 0; i < 256; i = i + 1 {
     assert_eq(sbox[i], expected[i])
   }
+  // Verify constant-time ct_sbox matches the precomputed table.
+  for i = 0; i < 256; i = i + 1 {
+    let b = i.to_byte()
+    assert_eq(ct_sbox(b), sbox[i])
+  }
 }
 
 ///|
@@ -1018,12 +1129,20 @@ test "aes: S-box verified against FIPS 197" {
 /// The inverse S-box must be the functional inverse of the S-box:
 /// `inv_sbox[sbox[x]] == x` for all `x` in `[0, 256)`. This property is
 /// both tested directly and verified against the known constant table.
+///
+/// It also verifies that the constant-time `ct_inv_sbox` matches the
+/// precomputed inverse S-box table for all 256 input values.
 test "aes: inverse S-box is functional inverse of S-box" {
   // Verify inv_sbox[sbox[x]] == x for all x in [0, 256).
   for i = 0; i < 256; i = i + 1 {
     let encrypted = sbox[i]
     let decrypted = inv_sbox[encrypted.to_int()]
     assert_eq(decrypted.to_int(), i)
+  }
+  // Verify constant-time ct_inv_sbox matches the precomputed table.
+  for i = 0; i < 256; i = i + 1 {
+    let b = i.to_byte()
+    assert_eq(ct_inv_sbox(b), inv_sbox[i])
   }
 }
 

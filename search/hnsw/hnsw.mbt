@@ -53,22 +53,16 @@ pub struct HNSW {
 ///
 /// - `m`: maximum connections per node (typical: 16).
 /// - `ef_construction`: search width during construction (typical: 200).
+/// - `seed`: PRNG seed for layer assignment. Use different seeds for
+///   independent indices. A seed of 0 is replaced with a fixed non-zero
+///   constant to avoid the degenerate all-zero PRNG state.
 ///
-/// **Note**: All indices created with `new()` share the same PRNG seed (12345),
-/// so the same insertion sequence produces identical structures. For
-/// independent indices, use [`new_with_seed`].
-pub fn new(m : Int, ef_construction : Int) -> HNSW {
-  new_with_seed(m, ef_construction, 12345UL)
-}
-
-///|
-/// Create a new HNSW index with a user-specified PRNG seed. Different seeds
-/// produce different random layer assignments, yielding structurally distinct
-/// indices even for the same insertion order.
-///
-/// This is the recommended constructor for production code where multiple
-/// independent indices are needed.
-pub fn new_with_seed(m : Int, ef_construction : Int, seed : UInt64) -> HNSW {
+/// **Production note**: the seed determines the random layer assignments
+/// during construction. Using the same seed with the same insertion order
+/// produces identical structures — this is useful for reproducible testing.
+/// For production indices that must be statistically independent, supply
+/// distinct seeds (e.g. derived from a CSPRNG or system entropy).
+pub fn new(m : Int, ef_construction : Int, seed : UInt64) -> HNSW {
   let mm = if m < 2 { 2 } else { m }
   {
     nodes: [],
@@ -429,7 +423,7 @@ pub fn len(h : HNSW) -> Int {
 
 ///|
 test "hnsw: single insert and search" {
-  let h = new(4, 16)
+  let h = new(4, 16, 12345UL)
   insert(h, 0, [1.0, 0.0, 0.0])
   assert_eq(len(h), 1)
   let results = search(h, [1.0, 0.0, 0.0], 1, 16)
@@ -439,7 +433,7 @@ test "hnsw: single insert and search" {
 
 ///|
 test "hnsw: exact search small" {
-  let h = new(4, 16)
+  let h = new(4, 16, 12345UL)
   insert(h, 0, [0.0, 0.0])
   insert(h, 1, [1.0, 0.0])
   insert(h, 2, [0.0, 1.0])
@@ -452,7 +446,7 @@ test "hnsw: exact search small" {
 
 ///|
 test "hnsw: larger dataset" {
-  let h = new(8, 32)
+  let h = new(8, 32, 12345UL)
   // Insert a 2D grid of points.
   for i = 0; i < 10; i = i + 1 {
     for j = 0; j < 10; j = j + 1 {
@@ -469,7 +463,7 @@ test "hnsw: larger dataset" {
 
 ///|
 test "hnsw: empty index" {
-  let h = new(4, 16)
+  let h = new(4, 16, 12345UL)
   let results = search(h, [1.0, 2.0], 5, 16)
   assert_eq(results.length(), 0)
 }
