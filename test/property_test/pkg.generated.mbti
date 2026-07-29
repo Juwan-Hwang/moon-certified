@@ -1,10 +1,7 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moon-certified/crypto/bcrypt"
+package "moon-certified/test/property_test"
 
 // Values
-pub fn hash(Bytes, Int, Bytes) -> String?
-
-pub fn verify(Bytes, String) -> Bool
 
 // Errors
 

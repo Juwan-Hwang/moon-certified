@@ -8,22 +8,11 @@
 /// as iterations approach infinity. Because the Gaussian proposal is
 /// symmetric, the Hastings ratio reduces to the target ratio.
 
-// xorshift64 PRNG for tests.
-priv struct Rng {
-  mut state : Int64
-}
-
-///|
+// Test PRNG: uses @utils.XorShift64 for uniform Double in [0, 1).
 fn make_rng(seed : Int64) -> () -> Double {
-  let r = { state: if seed == 0L { 0x9E3779B97F4A7C15L } else { seed } }
+  let rng = @utils.XorShift64::new(seed.reinterpret_as_uint64())
   fn() {
-    let mut x = r.state
-    x = x ^ (x << 13)
-    x = x ^ (x >> 7)
-    x = x ^ (x << 17)
-    r.state = x
-    let abs_x = if x < 0L { -x } else { x }
-    (abs_x & 0x001FFFFFFFFFFFFFL).to_double() / 9007199254740992.0
+    rng.next_double()
   }
 }
 

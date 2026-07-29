@@ -9,13 +9,6 @@ pub fn decompress(Bytes) -> Bytes?
 // Errors
 
 // Types and methods
-type BitReader
-
-type BitWriter
-
-type EncState
-
-type FreqModel
 
 // Type aliases
 

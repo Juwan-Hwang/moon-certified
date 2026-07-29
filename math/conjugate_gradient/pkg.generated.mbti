@@ -1,0 +1,16 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/conjugate_gradient"
+
+// Values
+pub fn cg_solve(Array[Array[Double]], Array[Double], Array[Double]) -> Array[Double]?
+
+pub fn cg_solve_with(Array[Array[Double]], Array[Double], Array[Double], Double, Int) -> Array[Double]?
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -3,9 +3,9 @@
 **Project:** moon-certified — Formally verified core algorithms and data structures for MoonBit
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
-**Current released version:** 0.12.0
-**Document version:** 1.1
-**Last updated:** 2026-07-26
+**Current version:** 0.1.0 (development — not yet formally released)
+**Document version:** 2.0
+**Last updated:** 2026-07-29
 
 ---
 
@@ -70,14 +70,11 @@ The version string `MAJOR.MINOR.PATCH` is interpreted as follows:
 | `MINOR` | New functionality is added in a backwards-compatible manner: new packages, new public functions, new types, performance improvements, new verification results. | **Full** backwards compatibility. Code targeting `0.x.y` continues to compile and behave identically on `0.x.(y+1)`. |
 | `PATCH` | Backwards-compatible bug fixes, documentation improvements, test additions, or internal refactors with no observable behaviour change. | **Full** backwards compatibility, including identical observable output. |
 
-**Pre-1.0 caveat.** The project is currently in the `0.x` series. Under SemVer,
-`0.x` releases may, in principle, contain breaking changes in a minor bump.
-`moon-certified` nonetheless treats `0.x` minor releases as if they were `1.x`
-minor releases: **breaking changes require a major version bump even before
-1.0**, and minor releases are reserved for backwards-compatible additions.
-Historical breaking changes (see [Section 4](#4-migration-guide)) were confined
-to the `0.2`–`0.5` window during early stabilisation and were each accompanied
-by a migration guide; no breaking changes have been introduced since `0.5.0`.
+**Pre-1.0 caveat.** The project is currently at version `0.1.0` and has not
+been formally released. Under SemVer, `0.x` releases may contain breaking
+changes in any bump. Until the project reaches `1.0`, consumers should expect
+that APIs may change. The API stability tiers below describe the *intended*
+guarantees once the project stabilises.
 
 **Versioning of verified contracts.** When a package's formal-verification
 contract (its `proof_require` / `proof_ensure` / `proof_invariant` annotations
@@ -106,7 +103,7 @@ without a version bump, and without a changelog entry.
 | `.mbt` test blocks (`test "..." { ... }`) | **No** | Not part of the API. |
 | `.mbtp` predicate/lemma definitions | **No** (internal to verification) | May be restructured freely; only the *proven properties* they establish are part of the contract. |
 
-**Encapsulation policy.** As of `v0.9.0`, all struct fields across
+**Encapsulation policy.** All struct fields across
 `binary_heap`, `hash_table`, `bloom_filter`, `btree`, `treap`, `lru_cache`,
 `skip_list`, `trie`, `monotonic`, `priority_queue`, `segment_tree_lazy`, and
 `suffix_automaton` were made `priv`. Consumers interact with these types
@@ -201,8 +198,8 @@ Removal never happens without a deprecation period.
 - During the deprecation window, the element continues to compile and behave
   exactly as before — deprecation is advisory, not a behavioural change.
 
-Worked example: if `foo` is deprecated in `0.11.0`, it remains in `0.11.x` and
-`0.12.x` and may be removed no earlier than `1.0.0`.
+Worked example: if `foo` is deprecated in `0.1.0`, it remains in `0.1.x` and
+`0.2.x` and may be removed no earlier than `1.0.0`.
 
 ### 3.2 The `@deprecated` annotation plan
 
@@ -215,7 +212,7 @@ interim:
   recommended replacement, and a one-line reason. Example (from `fast_power`):
 
   ```moonbit
-  /// DEPRECATED (since v0.9.0): prefer `fast_power_checked`, which returns
+  /// DEPRECATED (since 0.1.0): prefer `fast_power_checked`, which returns
   /// `Int?` and detects Int32 overflow. `fast_power` silently wraps on overflow.
   pub fn fast_power(base : Int, exp : Int) -> Int { ... }
   ```
@@ -247,169 +244,12 @@ The historical breaking changes and their migrations are documented in
 
 ## 4. Migration Guide
 
-This section catalogues the key API migrations in the project's history. Only
-changes that affected the public API are listed; internal refactors are omitted.
+This project is at version `0.1.0` and has not been formally released prior to
+this version. There are no previous versions to migrate from.
 
-### v0.3.0 (2024-12-01) — Elimination of magic values
-
-**Theme.** Sentinel values (`-1`, empty arrays) used to signal "not found" or
-"invalid input" were replaced with `Option` types and a dedicated `SPResult`
-enum. This was the project's largest breaking change to return-type semantics.
-
-| Package | Old return | New return | Migration |
-|---------|-----------|-----------|-----------|
-| `dijkstra` | `FixedArray[Int]` with `-1` meaning "unreachable" | `FixedArray[Int?]` with `None` meaning "unreachable" | Replace `if dist[i] == -1` with `match dist[i] { Some(d) => ...; None => ... }`. |
-| `bound_search` | `-1` on empty array | `0` (equals array length; semantically consistent) | Remove `-1` checks on empty input; the result is now always a valid index in `[0, len]`. |
-| `mod_inverse` | `-1` when no inverse exists | `Int?` (`None` = no inverse or invalid input) | Replace `if r == -1` with `match r { Some(inv) => ...; None => ... }`. |
-| `union_find.find` | `-1` on out-of-bounds index | `Int?` (`None` = out of bounds) | Replace `if r == -1` with `match r { Some(root) => ...; None => ... }`. |
-| `bellman_ford` / `floyd_warshall` (`advanced`) | empty array or `-1` | `SPResult?` | `None` = invalid input; `Some(NegativeCycle)` = negative cycle detected; `Some(Distances(arr))` = success, where `arr` is `FixedArray[Int?]`. |
-| `topological_sort` | empty array on cycle | `FixedArray[Int]?` (`None` = cycle or invalid input) | Replace length-zero checks with `Option` matching. |
-| `bfs_distances` | empty array on invalid input | `FixedArray[Int]?` (`None` = invalid input; `-1` retained *only* as the BFS "unreachable" hop marker, since hop count is always ≥ 0) | Distinguish "invalid input" (`None`) from "unreachable node" (`Some(arr)` containing `-1`). |
-
-The `SPResult` enum is now part of the public API of the `advanced` package:
-
-```moonbit
-pub enum SPResult {
-  Distances(FixedArray[Int?])  // Some(d) = reachable, None = unreachable
-  NegativeCycle                // a negative cycle was detected
-}
-```
-
-**Why.** Magic values conflated valid results with error conditions (e.g., a
-path of weight `-1` was indistinguishable from "no path"), making correct usage
-error-prone. Algebraic types make failure modes explicit and unrepresentable
-when mishandled.
-
-### v0.5.0 (2026-07-23) — Int64 overflow protection
-
-**Theme.** Critical algorithms whose intermediate computations can exceed the
-32-bit `Int` range were upgraded to use `Int64` internally and to return
-`Int64` (or `Option`) results that distinguish overflow / invalid input from
-legitimate zero values.
-
-| Package / function | Change | Migration |
-|--------------------|--------|-----------|
-| `dijkstra_heap` | Distances accumulated in `Int64`; returns `None` on overflow instead of a wrong result. | If you previously treated the result as `Int`, it is now `Int64?`; unwrap and convert with `.to_int()` only after confirming the value fits. |
-| `convex_hull` (and `andrew_hull`) | Cross products computed in `Int64` to prevent overflow for large coordinates. | No signature change for the public `convex_hull` entry point; the protection is internal. Point coordinates remain `Int`. |
-| `max_flow` | `total_flow` accumulated in `Int64`; returns `Int64?` (`None` = invalid input, `Some(0L)` = valid zero flow). | Replace equality checks against `0` with `Option` matching; `Some(0L)` is a *valid* result, distinct from `None`. |
-| `dinic` | All capacities and flows use `Int64`; returns `Int64?`. | Same as `max_flow`: distinguish `None` (invalid) from `Some(0L)` (zero flow). |
-| `min_cost_flow` | `total_flow` / `total_cost` accumulated in `Int64`; returns `(Int64, Int64)?`; SPFA negative-cycle detection added. | Result is now `(flow, cost)?`; `None` = invalid input or negative cycle. |
-| `fast_power_checked` (new) | Returns `Int?` (`None` on overflow). | Prefer this over `fast_power` for untrusted exponents. |
-| `gcd` | Safe handling of `Int::MIN` via `Int64`; only `gcd(Int::MIN, Int::MIN)` clamps to `Int::MAX`. | No action needed unless you relied on the old (buggy) `Int::MIN` behaviour. |
-
-**Why.** Silent 32-bit overflow produced incorrect results for inputs that are
-valid in the mathematical sense but exceed the machine integer range. The
-`Int64` upgrades and `Option` returns make overflow an explicit, detectable
-condition rather than a silent correctness bug.
-
-### v0.9.0 (2026-07-24) — Shared `int64_utils` module extraction
-
-**Theme.** Number-theory packages had each maintained private copies of `Int64`
-modular-arithmetic helpers. These were extracted into a single shared
-`int64_utils` package to eliminate duplication and ensure a single, tested,
-overflow-correct implementation.
-
-- **New public package:** `number_theory/int64_utils`, exporting:
-
-  ```moonbit
-  pub fn mod64(Int64, Int64) -> Int64       // non-negative modulo
-  pub fn gcd64(Int64, Int64) -> Int64       // handles Int64::MIN correctly
-  pub fn mul_mod(Int64, Int64, Int64) -> Int64
-  pub fn pow_mod64(Int64, Int64, Int64) -> Int64
-  pub fn is_prime64(Int64) -> Bool          // full Int64 range witness set
-  ```
-
-- **Affected packages:** `bsgs`, `crt`, `pollard_rho`, and `miller_rabin` now
-  `import` `int64_utils` instead of carrying private copies.
-
-- **Migration.** This was a **non-breaking** change for consumers of `bsgs`,
-  `crt`, `pollard_rho`, and `miller_rabin`: their public signatures are
-  unchanged. Consumers who had copied the private helpers should switch to
-  `@int64_utils`. Two correctness fixes rode along with the consolidation:
-  - `gcd64` no longer overflows on `Int64::MIN` (it runs the Euclidean algorithm
-    on signed inputs and normalises at the end, rather than taking a buggy
-    absolute value first).
-  - `is_prime64`'s Miller-Rabin witness set was expanded from `{2, 7, 61}`
-    (valid only for `n < 2³²`) to the 12-witness set
-    `{2,3,5,7,11,13,17,19,23,29,31,37}` (valid for the full `Int64` range,
-    per Sorenson & Webster, 2015).
-
-### v0.11.0 (2026-07-26) — 97 new packages + production-grade fixes (non-breaking)
-
-**Theme.** The largest additive release to date. No existing public API was changed,
-removed, or renamed. Test count rose from 1599 to 2515; package count rose from
-113 to 215.
-
-New packages spanned sorting (TimSort, Introsort, PdqSort, Bucket Sort), game theory
-(Alpha-Beta, MCTS, Gale-Shapley, Shapley Value), random (Mersenne Twister, PCG,
-Xoshiro, Fisher-Yates, Gaussian, Zobrist, MCMC), concurrency (Treiber Stack, MPMC
-Queue, Concurrent HashMap, Work-Stealing), trees (Rope, Interval Tree, Range Tree,
-R-Tree, Fibonacci Heap), graph (Chu-Liu, K-Shortest Paths, Network Simplex, Tree
-Isomorphism), string (DAWG, SA-IS, BWT, Suffix Balanced Tree), geometry (Minkowski
-Sum, Segment Intersection, Point-in-Polygon, Polygon Ops, Bentley-Ottmann), DP
-(Aliens' Trick, Knapsack Opt, Matrix Chain, Monotone Queue DP, SMAWK), and math
-(FWHT, Numerical Integration, ODE Solver, Interpolation, Least Squares).
-
-Critical fixes:
-- `flow_with_bounds`: edge_flow() now reports actual flow, not lower bound.
-- `bplus_tree`: delete with merge-on-underflow implemented.
-- `external_sort`: k-way merge using min-heap (O(n log k)).
-- `lsm_tree`: Bloom Filter implemented, total_entries counting fixed, k-way compaction.
-- Floyd-Warshall and min_cost_flow: migrated to Int64 for overflow safety.
-- RB/Treap/AVL trees: recursive depth protection added.
-- ~30 public functions: abort() replaced with Option/error returns.
-
-**Migration.** Most existing code continues to compile and behave identically.
-Functions that previously called `abort()` now return `Option` types — callers
-should update to handle the `None` case.
-
-### v0.10.0 (2026-07-25) — 27 new packages (non-breaking)
-
-**Theme.** A large additive release. No existing public API was changed,
-removed, or renamed. Test count rose from 1321 to 1599; package count rose from
-86 to 113.
-
-New packages spanned string algorithms (suffix tree, palindromic tree, rolling
-hash, Lyndon decomposition), graph algorithms (Hopcroft-Karp, Stoer-Wagner,
-Bron-Kerbosch max clique), tree structures (Link-Cut tree, persistent vector),
-geometry (3D convex hull, half-plane intersection), mathematics (matrix
-decompositions, Newton's method, Berlekamp-Massey, FFT, simplex), containers
-(W-TinyLFU, cuckoo filter, HyperLogLog, TTL cache, Count-Min Sketch), digit DP,
-Nim/Sprague-Grundy game theory, and reservoir sampling.
-
-**Migration.** None required. Existing code continues to compile and behave
-identically. New `import` paths are additive only.
-
-### Unreleased / development branch — Experimental packages and fuzz testing
-
-**Theme.** The development branch adds a new **Experimental** tier of packages
-and a dedicated fuzz-test suite. These are correct (they pass `moon test`) but
-their public APIs are not yet frozen.
-
-New Experimental packages (10):
-
-| Package | Domain | Summary |
-|---------|--------|---------|
-| `containers/concurrent` | Concurrency | `RingBuffer[T]`, `BoundedQueue[T]`, `SnapshotMap[K,V]` (copy-on-write). Designed for current single-threaded MoonBit with a forward path to lock-free primitives when multi-threading lands. |
-| `graph/gomory_hu` | Graph theory | Gomory-Hu tree for all-pairs min-cut in O(n) max-flow computations. Built on `@max_flow`. |
-| `graph/dominator_tree` | Graph theory | Lengauer-Tarjan dominator tree construction. |
-| `graph/min_steiner_tree` | Graph theory | Minimum Steiner tree (NP-hard; exact for small terminal sets). |
-| `graph/flow_with_bounds` | Graph theory | Maximum flow with lower and upper capacity bounds (circulation with demands). |
-| `containers/lsm_tree` | Containers | Log-Structured Merge-tree (memtable + SSTable levels + compaction). |
-| `string/fm_index` | String | FM-index for O(m) backward search and count over the BWT. |
-| `string/wavelet_tree` | String | Wavelet tree for rank/select and range-count queries. |
-| `number_theory/reed_solomon` | Number theory | Reed-Solomon error-correction coding over GF(2⁸) (encode + decode with up to ⌊(n−k)/2⌋ symbol corrections). |
-| `sorting/external_sort` | Sorting | External merge sort for datasets larger than memory (in-memory simulation of run generation + k-way merge). |
-
-New test infrastructure:
-
-- `test/fuzz` — adversarial-input fuzz tests across sorting, data structures,
-  graphs, strings, number theory, geometry, and concurrent structures. Uses a
-  deterministic xorshift64 PRNG for reproducible failures.
-
-**Migration.** None required for existing Stable/Verified code. Consumers who
-adopt an Experimental package should be prepared for API changes in subsequent
-minor versions until the package is promoted to Stable.
+When breaking changes occur in future versions, migration guides will be added
+here with concrete before/after code snippets, rationale, and replacement API
+pointers.
 
 ---
 
@@ -495,10 +335,9 @@ The following are **not** breaking and require at most a minor bump:
 
 ## 6. Package Categorization
 
-The current development tree contains **571 algorithm packages** (excluding the
+The current development tree contains **273 algorithm packages** (excluding the
 root module, shared `test_utils`, and `test/`/`benchmarks/` infrastructure
-packages). Each is assigned to exactly one stability tier. The released
-`v0.11.0` contained 215 packages.
+packages). Each is assigned to exactly one stability tier.
 
 ### Verified tier (9 packages)
 
@@ -523,7 +362,7 @@ within the major version.
 **not** formally verified; only the `Int` versions carry proofs. The generic
 versions are validated by testing only.
 
-### Stable tier (133 packages)
+### Stable tier (254 packages)
 
 All non-verified, non-experimental packages with comprehensive test coverage.
 Their public APIs are frozen within the major version. This tier spans every
@@ -584,9 +423,8 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At the released `v0.12.0` the suite comprises **6246 tests**; the development
-branch adds further fuzz and stress coverage. The guarantees below apply to every
-package, with tier-specific additions.
+At version `0.1.0` the suite comprises **3373 tests**. The guarantees below
+apply to every package, with tier-specific additions.
 
 ### 7.1 Functional tests
 
@@ -673,25 +511,14 @@ A green CI is a prerequisite for any release.
 
 | Version | Date | Packages | Tests | Verified | Theme |
 |---------|------|----------|-------|----------|-------|
-| 0.1.0 | 2024-10-15 | 25 | — | 5 full | Initial release; verification infrastructure. |
-| 0.2.0 | 2024-11-01 | 33 | — | 5 full | Generic sorting/search; `SPResult`/`Option` error handling; red-black tree (Okasaki). |
-| 0.3.0 | 2024-12-01 | — | — | 5 full + partial | Magic values eliminated; RB-tree Kahrs deletion; data-structure encapsulation. |
-| 0.4.0 | 2025-01-15 | 43 | 601 | — | LRU, Bloom filter, B-Tree, A*, Edmonds-Karp; stress-test package. |
-| 0.5.0 | 2026-07-23 | 58 | 830 | — | 15 new packages; 13 P0 fixes; Int64 overflow protection. |
-| 0.6.0 | 2026-07-24 | 66 | 958 | — | 8 new packages (Aho-Corasick, MCMF, Splay, BSGS, Pollard-Rho, KD-Tree, rotating calipers, 2-SAT). |
-| 0.7.0 | 2026-07-24 | — | — | — | P0 quality fixes (gcd `Int::MIN`, 0 warnings, CJK safety, per-instance RNG). |
-| 0.8.0 | 2026-07-24 | — | — | — | 8 new packages (euler_sieve, sparse_table, lca, dinic, closest_pair, segment_ops, combinatorics, matrix). |
-| 0.9.0 | 2026-07-24 | 86 | 1321 | — | 12 new packages; `int64_utils` shared module; encapsulation hardening; overflow fixes. |
-| 0.10.0 | 2026-07-25 | 113 | 1599 | 9/9 | 27 new packages (additive, non-breaking). |
-| 0.11.0 | 2026-07-26 | 215 | 2515 | 9/9 | 97 new packages + production-grade fixes (Int64 overflow, abort→Option, P0 bug fixes). |
-| 0.12.0 | 2026-07-28 | 571 | 6246 | 9/9 | 356 new packages (crypto, compression, serialization, datetime, ML, stats); DEFLATE real LZ77+Huffman; LSM-Tree skip-list MemTable; Roaring Bitmap Run container; concurrent struct encapsulation; documentation consistency fixes. |
+| 0.1.0 | 2026-07-29 | 273 | 3373 | 9/9 | Initial development release. 273 algorithm packages, 9 verified (5 full + 4 partial). Not yet formally released. |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.
   The 9 consist of 5 full-correctness proofs and 4 partial proofs.
-- Package counts exclude the `test/` and `benchmarks/` infrastructure packages.
-- The Unreleased row reflects the current development tree and is subject to
-  change before the next tagged release.
+- Package counts exclude the `test/` and `benchmarks/` infrastructure packages
+  and the `.mooncakes/` dependency directory.
+- This is the only version; the project has not been formally released prior to 0.1.0.
 
 ---
 

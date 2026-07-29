@@ -11,26 +11,6 @@
 /// to the hash. Non-zero piece values must lie in [1, num_piece_types].
 let num_piece_types : Int = 256
 
-// xorshift64 PRNG for deterministic table initialisation.
-
-///|
-priv struct Rng {
-  mut state : Int64
-}
-
-///|
-fn make_rng(seed : Int64) -> () -> Int64 {
-  let r = { state: if seed == 0L { 0x9E3779B97F4A7C15L } else { seed } }
-  fn() {
-    let mut x = r.state
-    x = x ^ (x << 13)
-    x = x ^ (x >> 7)
-    x = x ^ (x << 17)
-    r.state = x
-    x
-  }
-}
-
 ///|
 /// The Zobrist hasher: a table of random Int64 keys indexed by
 /// [position][piece].
@@ -40,12 +20,13 @@ pub struct ZobristHasher {
 
 ///|
 /// Create a hasher for a board with `board_size` positions. The key table
-/// is filled with a fixed-seed xorshift64 PRNG so hashers are reproducible.
+/// is filled with a fixed-seed XorShift64 PRNG (via `@utils`) so hashers
+/// are reproducible.
 pub fn new(board_size : Int) -> ZobristHasher {
-  let rng = make_rng(0x9E3779B97F4A7C15L)
+  let rng = @utils.XorShift64::new(0x9E3779B97F4A7C15UL)
   let table = Array::makei(board_size, fn(_i) {
     Array::makei(num_piece_types, fn(_j) {
-      let mut k = rng()
+      let mut k = rng.next_u64().reinterpret_as_int64()
       if k == 0L {
         k = 1L // avoid zero keys (invisible under XOR)
       }

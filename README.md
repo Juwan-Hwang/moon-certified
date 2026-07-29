@@ -10,37 +10,33 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**v0.12.0** — 322 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3373 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 313 个包依赖测试验证。
+**0.1.0** — 273 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3373 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 264 个包依赖测试验证。
 
-### v0.12.0 变更亮点（生产级基础设施 + 缺失领域补齐）
+> 本项目尚处于开发阶段，从未正式发布。0.1.0 反映当前开发状态。
 
-- **新增 44 个算法包**，全面补齐商业级算法库的缺失领域：
+### 功能概览
+
+- **273 个算法包**，覆盖核心算法全领域：
   - **并发数据结构**：RingBuffer、BoundedQueue、SnapshotMap (COW 快照) — Michael-Scott/Vyukov/Treiber 等并发算法的单线程模拟 (MoonBit 编译至 Wasm/JS, 无原生 CAS; 自旋锁提供真实互斥)
   - **持久化/外部算法**：External Sort、LSM-Tree、B+Tree、Persistent Vector、HAMT
   - **字符串高级结构**：Suffix Tree、FM-Index、Wavelet Tree、Palindromic Tree、Lyndon 分解、Suffix Balanced Tree
   - **图高级算法**：Edmonds Blossom (一般图最大匹配)、Dominator Tree、Gomory-Hu Tree、Stoer-Wagner 全局最小割、HLPP 最大流、Hopcroft-Karp、Min Steiner Tree、HLD、重心分解、虚树、最大团 (Bron-Kerbosch)、图着色、下界限制流
   - **几何进阶**：3D 凸包、Voronoi 图、Delaunay 三角剖分、半平面交、动态凸包
-  - **数学/数值**：FFT (复数)、单纯形法 (LP)、LU/QR/SVD 分解、特征值、Newton 迭代、Berlekamp-Massey
+  - **数学/数值**：FFT (复数)、单纯形法 (LP)、LU/QR/SVD 分解、特征值、Newton 迭代、Berlekamp-Massey、共轭梯度法、GMRES、L-BFGS、自动微分
   - **概率/近似结构**：Count-Min Sketch、HyperLogLog、Cuckoo Filter、W-TinyLFU、TTL Cache
   - **数论进阶**：二次剩余、原根、Möbius 反演、有限域、Reed-Solomon 编码、多项式运算
   - **DP 进阶**：数位 DP、状压 DP、凸壳技巧 (CHT)、分治 DP、Knuth 优化、SOS DP
   - **搜索/ML 基础**：Ball-Tree、VP-Tree、LSH、Ternary Search
   - **其他**：Nim 博弈 (Sprague-Grundy)、水库采样、加权随机采样、CRC、Mo 算法、李超树、二维树状数组、Segment Tree Beats、External Sort
 
-- **Bug 修复 (3 个 P0/P1)**：
-  - Euler Path `total_edges` 统计越界顶点导致路径校验错误 (P0)
-  - Boyer-Moore `build_bad_char` 硬编码 256 仅支持 ASCII，CJK 字符越界崩溃 (P0)
-  - Convex Hull 使用 `cross()` (Int32) 而非 `cross64()` (Int64)，坐标差 >46340 溢出 (P1)
-
-- **生产级改进 (12 个模块)**：
-  - AVL/Segment Tree/Treap/BTree：递归栈保护、溢出检测、O(1) size()
-  - Segment Tree Lazy：point_get 从 O(log n) 优化为 O(1)
-  - Bloom Filter：泛型化 + get_bit 边界检查
-  - Suffix Array：递归归并排序改为迭代实现，防栈溢出
-  - Tree DP：森林处理代码去重 (~40 行)
-  - Matrix：负指数处理 + Bareiss 溢出文档
-  - NTT：清理死代码 + O(n) bit_reverse
-  - Int64 Utils：gcd64(Int64::MIN) 文档修正
+- **生产级设计**：
+  - 所有魔术值消除，使用 `Option`/`SPResult` 类型替代 `-1`/空数组等歧义返回值
+  - ~30 个公共函数从 `abort()` 迁移至 `Option` 返回
+  - 关键算法使用 Int64 溢出保护（dijkstra_heap、convex_hull、max_flow、dinic、min_cost_flow 等）
+  - 平衡树递归栈保护（AVL、红黑树、BTree、Treap）
+  - `swap` 集中在 `@utils`（消除 7 处重复）
+  - `SplitMix64`/`XorShift64` 集中在 `@utils/prng`（消除多包重复）
+  - 每实例随机种子 `@utils.fresh_seed()`（替代全局固定种子）
 
 - **测试/验证基础设施**：
   - **benchmarks/** 目录：性能基准测试，含排序/树/图/数论/字符串/几何的 wall-clock 时间测量与复杂度验证
@@ -50,66 +46,12 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
   - **test/test_utils/** 共享测试工具（消除 14 个文件的 str_cmp 重复）
   - **docs/API_STABILITY.md** API 稳定性策略
 
-- **算法升级**：
-  - 最小费用最大流：从纯 SPFA 升级为 **Successive Shortest Paths with Potentials**（首迭代 SPFA + 后续 Dijkstra），复杂度从 O(F·V·E) 降至 O(V·E + F·E log V)
-  - prim/segment_tree/fenwick/kruskal：新增 checked 变体 (Int64 溢出检测)
-
-- **文档/错误处理统一**：
-  - miller_rabin 文档修正：见证集从 {2,7,61} 更正为 12 见证集 {2,3,5,7,...,37}
-  - euler_sieve 错误处理：从 abort(panic) 改为返回 None，与全库 Option 策略一致
-  - andrew_hull cmp_point：Int32 减法改为 Int64，与 closest_pair 一致
-
-### v0.10.0 变更亮点（生产级扩展）
-
-- **新增 27 个算法包**，覆盖之前缺失的关键领域：
-  - **字符串**：Suffix Tree (Ukkonen)、Palindromic Tree (Eertree)、Rolling Hash (双模数)、Lyndon 分解
-  - **图论**：Hopcroft-Karp 二分匹配、Stoer-Wagner 全局最小割、Bron-Kerbosch 最大团
-  - **树结构**：Link-Cut Tree (Sleator-Tarjan)、Persistent Vector
-  - **几何**：3D 凸包 (随机增量法)、半平面交 (S&I 算法 + 双端队列)
-  - **数学**：Newton 迭代法、LU/QR/SVD 矩阵分解、Berlekamp-Massey 线性递推、FFT、单纯形法
-  - **容器**：W-TinyLFU 缓存 (Window+SLRU+Count-Min Sketch)、Cuckoo Filter、HyperLogLog、TTL Cache、Count-Min Sketch
-  - **DP**：数位 DP
-  - **其他**：Nim 博弈 (Sprague-Grundy)、水库采样、Int64 工具模块
-
-### v0.9.0 变更亮点（代码质量提升 + 消除重复）
-
-- **消除数论代码重复**：提取 `int64_utils` 共享模块（`mod64`、`gcd64`、`pow_mod64`、`is_prime64`），`bsgs`、`crt`、`pollard_rho`、`miller_rabin` 不再各自维护副本
-- **Splay 树重构**：引入 `mk_node` 辅助函数统一六种旋转情况的 size 更新，消除约 40 行重复的 `1 + node_size(…) + node_size(…)` 算术
-- **binary_heap 封装**：`Heap` 结构体改为包私有，外部只能通过方法 API 访问，防止直接修改底层数组破坏堆不变量
-- **skip_list 优化**：`search` 方法不分配 update 数组，直接遍历（O(1) 额外空间）
-
-### v0.6.0 变更亮点
-
-- **新增 8 个算法包**：Aho-Corasick 多模式匹配（字符串）；最小费用最大流 MCMF（图）；Splay 伸展树（树）；BSGS 离散对数、Pollard-Rho 整数分解（数论）；KD-Tree 空间索引、旋转卡壳（几何）；2-SAT（图）
-- **Rotating Calipers 修复**：添加 CCW/CW 方向检测，正确处理逆时针和顺时针凸多边形
-- **Dijkstra 溢出文档**：邻接矩阵版添加溢出说明，引导用户使用 dijkstra_heap 的 Int64 保护
-
-### v0.5.0 变更亮点
-
-- **新增 15 个算法包**：heap_sort、counting_sort、radix_sort（排序）；Z-function、Manacher 回文（字符串）；Miller-Rabin 素性检验、CRT 中国剩余定理（数论）；Johnson 全源最短路、双向 BFS、邻接表拓扑排序（图）；跳表、Treap（数据结构）；插值搜索、指数搜索（搜索）；Andrew 单调链凸包（几何）
-- **生产级修复**：13 个 P0 关键 bug 修复（fast_power_checked 溢出、gcd Int::MIN、LRU Cache O(1) 重写、A* 二叉堆、SCC 迭代化等），7 个 P1 健壮性修复，5 个 P2 代码质量改进
-- **溢出防护**：dijkstra_heap 使用 Int64 距离累积、convex_hull 使用 Int64 叉积、sieve/knapsack 添加 OOM 保护
-- **文档诚实化**：所有验证状态、复杂度声明、局限性均如实标注
-- **CHANGELOG.md**：遵循 Semantic Versioning 规范
-
-### v0.3.0 变更亮点
-
-- **红黑树完整删除**：实现 Kahrs 删除算法，含 "lost black" 跟踪和 bal_left/bal_right 修复，所有 RB 性质在删除后均得到保持（8 个新测试验证 is_valid_rb）
-- **魔术值全部消除**：bound_search 空数组返回 0（非 -1），dijkstra 返回 `FixedArray[Int?]`（None=不可达），mod_inverse 返回 `Int?`（None=无逆元），union_find find 返回 `Int?`（None=越界）
-- **验证诚实化**：移除误导性的 `proof_axiomatized` 引理（power_ge_one_lemma, gcd_divides_lemma, array_sum_correct_lemma），代码注释明确区分已验证性质与未验证性质
-- **数据结构封装**：新增 `Heap` 结构体封装二叉堆（自动维护 size），`StringHashTable` 封装哈希表（自动存储 hash_fn/eq_fn），`UnionFind` 声明为 `pub struct`
-- **Trie 功能增强**：新增 `size`、`enumerate`、`longest_prefix` 函数
-- **整数溢出防护**：新增 `fast_power_checked` 使用 Int64 检测溢出，`gcd` 安全处理负数输入，sieve 添加 n+1 溢出保护
-- **整数溢出文档**：所有涉及溢出的函数均添加明确文档说明
-
-### v0.2.0 变更亮点
-
-- **全库泛型化**：排序包（insertion_sort, selection_sort, merge_sort, quick_sort）全面转为 `FixedArray[T]` + 比较器模式，支持任意可比类型
-- **泛型搜索包**：已验证的 Int 版本保留，新增泛型伴随函数 `search_generic` / `max_element_generic` / `min_element_generic` / `is_sorted_generic`
-- **类型安全错误处理**：消除全部魔术值，使用 `SPResult` 枚举和 `Option` 类型替代 `-1`/空数组等歧义返回值
-- **红黑树**：使用 Okasaki 函数式插入算法重写
-- **新增 8 个包**：rabin_karp, hash_table, prim, scc, fenwick, trie, bound_search, red_black_tree
-- **MoonBit String 短词典序发现**：发现 MoonBit 的 `String` `Compare` trait 使用短词典序（先比长度），实现了正确的逐字节字典序比较器
+- **算法实现策略**：
+  - 最小费用最大流：**Successive Shortest Paths with Potentials**（首迭代 SPFA + 后续 Dijkstra），复杂度 O(V·E + F·E log V)
+  - prim/segment_tree/fenwick/kruskal：提供 checked 变体 (Int64 溢出检测)
+  - miller_rabin：确定性 12 见证集 {2,3,5,7,...,37}（覆盖全 Int64 范围，Sorenson & Webster 2015）
+  - euler_sieve：返回 None 而非 abort，与全库 Option 策略一致
+  - andrew_hull cmp_point：Int64 减法防溢出，与 closest_pair 一致
 
 ## 验证状态
 
@@ -686,6 +628,15 @@ moon-certified/
 │   ├── (utils)              🔒 共享工具 (swap/str_cmp/next_pow2/encoding)
 │   ├── prng/                🔒 PRNG (SplitMix64/XorShift64/LCG)
 │   └── itertools/           🔒 itertools (range/repeat/enumerate/window/chunk/fold)
+├── test/
+│   ├── property_test/       🔒 QuickCheck 风格属性测试框架 (随机输入生成 + 反例缩减)
+│   ├── fuzz/                🔒 Fuzz 测试 + 对抗性输入测试
+│   ├── stress/              🔒 压力测试 (排序置换验证, LIS 子序列验证)
+│   ├── test_utils/          🔒 共享测试工具 (消除 str_cmp 重复)
+│   └── coverage/            🔒 测试覆盖率报告
+├── docs/
+│   └── API_STABILITY.md     📋 API 稳定性策略与版本历史
+├── benchmarks/              🔒 性能基准测试 (wall-clock + 复杂度验证)
 ├── .github/workflows/
 │   ├── ci.yml                ✅ GitHub Actions CI (check + test + prove, Ubuntu/macOS/Windows)
 │   ├── codeql.yml            ✅ CodeQL 安全分析
@@ -815,9 +766,9 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3373** | **5 完整, 4 部分, 313 tested** | **17 generic** |
+| **Total** | **3373** | **5 完整, 4 部分, 264 tested** | **17 generic** |
 
-> 注：上表仅列出部分代表性包。完整 322 个包的测试统计请运行 `moon test` 查看。
+> 注：上表仅列出部分代表性包。完整 273 个包的测试统计请运行 `moon test` 查看。
 
 ## 参考资源
 

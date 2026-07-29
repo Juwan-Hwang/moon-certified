@@ -4,6 +4,8 @@ package "moon-certified/utils"
 // Values
 pub fn bytes_to_string(Bytes) -> String
 
+pub fn fresh_seed(Int) -> Int
+
 pub fn lcg_next(Int) -> Int
 
 pub fn next_pow2(Int) -> Int

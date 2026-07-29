@@ -108,14 +108,78 @@ jobs:
       - name: Type check
         run: moon check --deny-warn
 
-      - name: Run benchmarks (regression detection)
+      - name: Download baseline benchmark results
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: baseline/
+
+      - name: Run benchmarks
         run: |
           moon test 2>&1 | tee benchmark_output.txt
+
+      - name: Regression detection (compare against baseline)
+        run: |
+          if [ ! -f baseline/benchmark_output.txt ]; then
+            echo "::warning::No baseline benchmark found. This run establishes the baseline."
+            exit 0
+          fi
+          # Parse benchmark lines (format: "name: X ms" or "name: X µs")
+          # Extract benchmark name and numeric value, then compare.
+          python3 - <<'PYEOF'
+          import re, sys
+          THRESHOLD = 0.25  # 25% slower than baseline triggers failure
+          def parse(path):
+              results = {}
+              with open(path) as f:
+                  for line in f:
+                      m = re.match(r'^(.+?):\s+([\d.]+)\s+(ms|µs|us|s)\b', line.strip())
+                      if m:
+                          name = m.group(1).strip()
+                          val = float(m.group(2))
+                          unit = m.group(3)
+                          # Normalize to milliseconds
+                          if unit == 's':
+                              val *= 1000
+                          elif unit in ('µs', 'us'):
+                              val /= 1000
+                          results[name] = val
+              return results
+          baseline = parse('baseline/benchmark_output.txt')
+          current = parse('benchmark_output.txt')
+          regressions = []
+          for name, cur_val in sorted(current.items()):
+              if name in baseline:
+                  base_val = baseline[name]
+                  if base_val > 0:
+                      ratio = (cur_val - base_val) / base_val
+                      if ratio > THRESHOLD:
+                          regressions.append(
+                              f"  ❌ {name}: {cur_val:.3f}ms vs {base_val:.3f}ms ({ratio*100:.1f}% slower)"
+                          )
+                      elif ratio < -THRESHOLD:
+                          print(f"  ✅ {name}: {cur_val:.3f}ms vs {base_val:.3f}ms ({abs(ratio)*100:.1f}% faster)")
+          if regressions:
+              print("Performance regressions detected (>25% slower than baseline):")
+              for r in regressions:
+                  print(r)
+              sys.exit(1)
+          else:
+              print("No performance regressions detected (all within 25% of baseline).")
+          PYEOF
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
+          path: benchmark_output.txt
+
+      - name: Update baseline (on main branch only)
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
           path: benchmark_output.txt
 
   prove:
