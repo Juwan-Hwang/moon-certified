@@ -16,9 +16,9 @@
 ///
 /// ## Complexity
 ///
-/// - Time: O(n²) for the Delaunay triangulation (brute-force incremental)
-///   + O(n) for dual construction. For O(n log n) Delaunay, a divide-and-conquer
-///   or sweep-line implementation is needed.
+/// - Time: O(n log n) expected for the Delaunay triangulation (randomized
+///   incremental Bowyer–Watson with triangle walking) + O(n) for dual
+///   construction using an edge hash map.
 /// - Space: O(n) for the Voronoi diagram.
 ///
 /// ## Limitations
@@ -75,6 +75,18 @@ fn dbl_abs(x : Double) -> Double {
 }
 
 ///|
+/// Compute a canonical hash key for an undirected edge `(a, b)`.
+///
+/// The key is identical regardless of vertex order, so `edge_key(3, 7)` equals
+/// `edge_key(7, 3)`. Vertex indices are packed into a single `Int64` via
+/// `(min * 2³² + max)`, which is safe for any realistic input (vertex indices
+/// up to 2³¹ − 1).
+fn edge_key(a : Int, b : Int) -> Int64 {
+  let (lo, hi) = if a < b { (a, b) } else { (b, a) }
+  lo.to_int64() * 4294967296L + hi.to_int64()
+}
+
+///|
 /// Compute the Voronoi diagram of a set of 2D points.
 ///
 /// Internally computes the Delaunay triangulation and constructs its dual.
@@ -112,55 +124,62 @@ pub fn compute(points : Array[@delaunay.DPoint]) -> VoronoiDiagram {
     tri_to_vertex[i] = vertices.length()
     vertices.push(cc)
   }
-  // Step 3: Find adjacent triangles and create Voronoi edges.
+  // Step 3: Find adjacent triangles using an edge hash map — O(T) expected.
+  //
+  // Each Delaunay triangle has 3 edges. An edge shared by two triangles
+  // produces a bounded Voronoi edge (connecting their circumcenters).
+  // An edge appearing in only one triangle is on the convex hull boundary,
+  // producing an unbounded Voronoi edge.
+  //
+  // Single pass: for each edge, if it's already in the map we found a shared
+  // edge — create a bounded Voronoi edge and remove it from the map. After
+  // processing all triangles, remaining map entries are boundary edges.
   let edges : Array[VEdge] = []
-  // For each pair of triangles, check if they share an edge.
-  // This is O(T^2) which is acceptable for moderate-sized inputs.
-  // For large inputs, a hash map of edges would be better.
+  let edge_map : Map[Int64, (Int, Int, Int)] = Map([])
   for i = 0; i < delaunay_result.count; i = i + 1 {
     let i0 = delaunay_result.triangles[i * 3]
     let i1 = delaunay_result.triangles[i * 3 + 1]
     let i2 = delaunay_result.triangles[i * 3 + 2]
-    let edges_i = [(i0, i1), (i1, i2), (i2, i0)]
+    let tri_edges = [(i0, i1), (i1, i2), (i2, i0)]
     for ei = 0; ei < 3; ei = ei + 1 {
-      let (a, b) = edges_i[ei]
-      // Look for a triangle j > i that shares edge (a, b) or (b, a).
-      let mut found_j = -1
-      for j = i + 1; j < delaunay_result.count; j = j + 1 {
-        let j0 = delaunay_result.triangles[j * 3]
-        let j1 = delaunay_result.triangles[j * 3 + 1]
-        let j2 = delaunay_result.triangles[j * 3 + 2]
-        if (j0 == a && j1 == b) ||
-          (j0 == b && j1 == a) ||
-          (j1 == a && j2 == b) ||
-          (j1 == b && j2 == a) ||
-          (j2 == a && j0 == b) ||
-          (j2 == b && j0 == a) {
-          found_j = j
-          break
+      let (a, b) = tri_edges[ei]
+      let key = edge_key(a, b)
+      match edge_map.get(key) {
+        Some((prev_tri, _, _)) => {
+          // Shared edge: connect the two circumcenters.
+          edges.push({
+            v0: tri_to_vertex[prev_tri],
+            v1: tri_to_vertex[i],
+            is_bounded: true,
+            dx: 0.0,
+            dy: 0.0,
+          })
+          edge_map.remove(key)
         }
+        None => edge_map[key] = (i, a, b)
       }
-      if found_j >= 0 {
-        // Bounded edge: connect the two circumcenters.
-        edges.push({
-          v0: tri_to_vertex[i],
-          v1: tri_to_vertex[found_j],
-          is_bounded: true,
-          dx: 0.0,
-          dy: 0.0,
-        })
-      } else {
-        // Unbounded edge: this edge is on the convex hull boundary.
-        // The Voronoi edge extends to infinity perpendicular to the Delaunay
-        // edge, starting from the circumcenter of triangle i.
-        let cc = vertices[tri_to_vertex[i]]
+    }
+  }
+  // Remaining edges in edge_map are boundary edges (convex hull).
+  // Each produces an unbounded Voronoi edge extending to infinity.
+  for k in edge_map.keys() {
+    match edge_map.get(k) {
+      Some((tri_idx, a, b)) => {
+        let cc = vertices[tri_to_vertex[tri_idx]]
         let midx = (points[a].x + points[b].x).to_double() / 2.0
         let midy = (points[a].y + points[b].y).to_double() / 2.0
         // Direction: from midpoint to circumcenter, extended to infinity.
         let dx = cc.x - midx
         let dy = cc.y - midy
-        edges.push({ v0: tri_to_vertex[i], v1: -1, is_bounded: false, dx, dy })
+        edges.push({
+          v0: tri_to_vertex[tri_idx],
+          v1: -1,
+          is_bounded: false,
+          dx,
+          dy,
+        })
       }
+      None => continue
     }
   }
   { vertices, edges, num_sites: n }

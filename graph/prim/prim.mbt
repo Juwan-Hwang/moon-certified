@@ -10,12 +10,10 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 ///
-/// **Overflow**: `total_weight` is accumulated as 32-bit `Int`. If the sum
-/// of all MST edge weights exceeds `Int::max_value` (2³¹−1), the result will
-/// be incorrect due to integer overflow. The sentinel `inf = 10⁹` is chosen
-/// so that individual `key` values do not overflow, but the cumulative total
-/// is not checked. Callers should ensure the total MST weight fits in
-/// 32-bit `Int` range.
+/// **Overflow safety**: `total_weight` is accumulated as `Int64` to prevent
+/// overflow. Individual edge weights remain `Int` (bounded by `Int::max_value`),
+/// but their sum uses 64-bit arithmetic, safely supporting graphs with many
+/// high-weight edges.
 ///
 /// **Design limitation**: In the adjacency matrix convention, a weight of
 /// `0` means "no edge". This means zero-weight edges cannot be represented.
@@ -39,18 +37,18 @@ let inf : Int = 1000000000
 /// # Returns
 /// `(parent, total_weight)` where `parent[i]` is the parent of vertex `i` in
 /// the MST (`parent[0] = -1` as the root). Vertices unreachable from vertex 0
-/// keep `parent[i] = -1`. `total_weight` is the sum of all selected edges.
-/// Returns an empty array and weight `0` when `n <= 0` or the matrix is too
-/// small.
-pub fn prim_mst(graph : FixedArray[Int], n : Int) -> (FixedArray[Int], Int) {
+/// keep `parent[i] = -1`. `total_weight` is the sum of all selected edges,
+/// accumulated as `Int64` to prevent overflow. Returns an empty array and
+/// weight `0L` when `n <= 0` or the matrix is too small.
+pub fn prim_mst(graph : FixedArray[Int], n : Int) -> (FixedArray[Int], Int64) {
   if n <= 0 || graph.length() < n * n {
-    return (FixedArray::make(0, 0), 0)
+    return (FixedArray::make(0, 0), 0L)
   }
   let key = FixedArray::make(n, inf)
   let parent = FixedArray::make(n, -1)
   let in_mst = FixedArray::make(n, false)
   key[0] = 0
-  let mut total = 0
+  let mut total = 0L
   for step = 0; step < n; step = step + 1 {
     // Pick the unvisited vertex with the smallest connecting edge.
     let mut u = -1
@@ -67,7 +65,7 @@ pub fn prim_mst(graph : FixedArray[Int], n : Int) -> (FixedArray[Int], Int) {
     }
     in_mst[u] = true
     if u != 0 {
-      total = total + key[u]
+      total = total + key[u].to_int64()
     }
     // Relax every neighbour of u.
     for v = 0; v < n; v = v + 1 {
@@ -97,7 +95,7 @@ test "prim: basic triangle" {
   graph[0 * n + 2] = 3
   graph[2 * n + 0] = 3
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 3)
+  assert_eq(w, 3L)
   assert_eq(parent[0], -1)
   assert_eq(parent[1], 0)
   assert_eq(parent[2], 1)
@@ -109,7 +107,7 @@ test "prim: single node" {
   let (parent, w) = prim_mst(graph, 1)
   assert_eq(parent.length(), 1)
   assert_eq(parent[0], -1)
-  assert_eq(w, 0)
+  assert_eq(w, 0L)
 }
 
 ///|
@@ -122,7 +120,7 @@ test "prim: disconnected graph" {
   graph[2 * n + 3] = 2
   graph[3 * n + 2] = 2
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 5)
+  assert_eq(w, 5L)
   assert_eq(parent[0], -1)
   assert_eq(parent[1], 0)
   // Vertices 2 and 3 are unreachable from 0.
@@ -148,7 +146,7 @@ test "prim: complete graph K4" {
   graph[2 * n + 3] = 6
   graph[3 * n + 2] = 6
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 6)
+  assert_eq(w, 6L)
   assert_eq(parent[0], -1)
   // Every non-root vertex must connect directly to 0 (cheapest edges).
   assert_eq(parent[1], 0)
@@ -166,7 +164,7 @@ test "prim: star topology" {
     graph[i * n + 0] = i
   }
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 10) // 1 + 2 + 3 + 4
+  assert_eq(w, 10L) // 1 + 2 + 3 + 4
   assert_eq(parent[0], -1)
   for i = 1; i < n; i = i + 1 {
     assert_eq(parent[i], 0)
@@ -185,7 +183,7 @@ test "prim: line topology with heavy shortcut" {
   graph[0 * n + 4] = 100
   graph[4 * n + 0] = 100
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 10) // 1 + 2 + 3 + 4
+  assert_eq(w, 10L) // 1 + 2 + 3 + 4
   assert_eq(parent[0], -1)
   assert_eq(parent[1], 0)
   assert_eq(parent[2], 1)
@@ -207,7 +205,7 @@ test "prim: equal weights (unit square)" {
   graph[3 * n + 0] = 1
   graph[0 * n + 3] = 1
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 3)
+  assert_eq(w, 3L)
   assert_eq(parent[0], -1)
 }
 
@@ -216,10 +214,10 @@ test "prim: invalid n returns empty" {
   let graph = FixedArray::make(9, 0)
   let (parent, w) = prim_mst(graph, 0)
   assert_eq(parent.length(), 0)
-  assert_eq(w, 0)
+  assert_eq(w, 0L)
   let (parent2, w2) = prim_mst(graph, -3)
   assert_eq(parent2.length(), 0)
-  assert_eq(w2, 0)
+  assert_eq(w2, 0L)
 }
 
 ///|
@@ -228,7 +226,7 @@ test "prim: graph too small returns empty" {
   let graph = FixedArray::make(4, 0)
   let (parent, w) = prim_mst(graph, 3)
   assert_eq(parent.length(), 0)
-  assert_eq(w, 0)
+  assert_eq(w, 0L)
 }
 
 ///|
@@ -264,7 +262,7 @@ test "prim: large graph (10 nodes, line + chords)" {
     graph[b * n + a] = 100
   }
   let (parent, w) = prim_mst(graph, n)
-  assert_eq(w, 45) // 1 + 2 + ... + 9
+  assert_eq(w, 45L) // 1 + 2 + ... + 9
   assert_eq(parent[0], -1)
   // Each vertex i >= 1 connects to i - 1 (cheapest line edge).
   for i = 1; i < n; i = i + 1 {
@@ -297,100 +295,5 @@ test "prim: MST edges form a valid tree" {
     let p = parent[i]
     assert_true(p >= 0 && p < n)
     assert_true(p != i)
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Checked Prim's MST with Int64 overflow detection
-// ---------------------------------------------------------------------------
-
-///|
-/// Checked Prim's MST with `Int64` weight accumulation and overflow detection.
-///
-/// Returns `None` if the total MST weight would overflow `Int64`. Otherwise
-/// returns `(parent, total_weight)` where `total_weight` is `Int64`.
-pub fn prim_mst_checked(
-  graph : FixedArray[Int],
-  n : Int,
-) -> (FixedArray[Int], Int64)? {
-  if n <= 0 || graph.length() < n * n {
-    return Some((FixedArray::make(0, 0), 0L))
-  }
-  let key = FixedArray::make(n, 9223372036854775807L)
-  let parent = FixedArray::make(n, -1)
-  let in_mst = FixedArray::make(n, false)
-  key[0] = 0L
-  let mut total = 0L
-  for step = 0; step < n; step = step + 1 {
-    let mut u = -1
-    let mut best = 9223372036854775807L
-    for i = 0; i < n; i = i + 1 {
-      if !in_mst[i] && key[i] < best {
-        best = key[i]
-        u = i
-      }
-    }
-    if u == -1 {
-      break
-    }
-    in_mst[u] = true
-    if u != 0 {
-      if total > 9223372036854775807L - key[u] {
-        return None
-      }
-      total = total + key[u]
-    }
-    for v = 0; v < n; v = v + 1 {
-      let w = graph[u * n + v]
-      if w != 0 && !in_mst[v] {
-        let w64 = w.to_int64()
-        if w64 < key[v] {
-          key[v] = w64
-          parent[v] = u
-        }
-      }
-    }
-  }
-  Some((parent, total))
-}
-
-///|
-test "prim: checked basic" {
-  let n = 3
-  let graph = FixedArray::make(n * n, 0)
-  graph[0 * n + 1] = 1
-  graph[1 * n + 0] = 1
-  graph[1 * n + 2] = 2
-  graph[2 * n + 1] = 2
-  graph[0 * n + 2] = 3
-  graph[2 * n + 0] = 3
-  let result = prim_mst_checked(graph, n)
-  match result {
-    Some((parent, w)) => {
-      assert_eq(w, 3L)
-      assert_eq(parent[0], -1)
-    }
-    None => abort("expected Some")
-  }
-}
-
-///|
-test "prim: checked matches unchecked" {
-  let n = 10
-  let graph = FixedArray::make(n * n, 0)
-  for i = 0; i < n - 1; i = i + 1 {
-    graph[i * n + (i + 1)] = i + 1
-    graph[(i + 1) * n + i] = i + 1
-  }
-  let (parent1, w1) = prim_mst(graph, n)
-  let result = prim_mst_checked(graph, n)
-  match result {
-    Some((parent2, w2)) => {
-      assert_eq(w2, w1.to_int64())
-      for i = 0; i < n; i = i + 1 {
-        assert_eq(parent2[i], parent1[i])
-      }
-    }
-    None => abort("expected Some")
   }
 }

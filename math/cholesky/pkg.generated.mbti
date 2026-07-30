@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/cholesky"
+
+// Values
+pub fn decompose(FixedArray[Double], Int) -> Cholesky?
+
+pub fn determinant(Cholesky) -> Double
+
+pub fn diagonal(Cholesky, Int) -> Double
+
+pub fn dimension(Cholesky) -> Int
+
+pub fn factor(Cholesky) -> FixedArray[Double]
+
+pub fn inverse(Cholesky) -> FixedArray[Double]
+
+pub fn reconstruct(Cholesky) -> FixedArray[Double]
+
+pub fn solve(Cholesky, FixedArray[Double]) -> FixedArray[Double]
+
+// Errors
+
+// Types and methods
+pub struct Cholesky {
+  l : FixedArray[Double]
+  n : Int
+}
+
+// Type aliases
+
+// Traits
+

@@ -648,7 +648,7 @@ test "lz4: empty input" {
   let input = Bytes::make(0, b'\x00')
   let compressed = compress(input)
   let decompressed = match decompress(compressed, 0) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), 0)
@@ -659,7 +659,7 @@ test "lz4: short literal" {
   let input = Bytes::make(5, b'\x41')
   let compressed = compress(input)
   let decompressed = match decompress(compressed, 100) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -681,7 +681,7 @@ test "lz4: repetitive data" {
   let input_bytes = Bytes::from_array(input)
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())
@@ -695,7 +695,7 @@ test "lz4 frame: empty data round-trip" {
   let input = Bytes::make(0, b'\x00')
   let compressed = frame_compress(input)
   let decompressed = match frame_decompress(compressed) {
-    None => abort("frame decompression failed")
+    None => fail("frame decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), 0)
@@ -711,7 +711,7 @@ test "lz4 frame: short data round-trip" {
   assert_eq(compressed[2], b'\x4D')
   assert_eq(compressed[3], b'\x18')
   let decompressed = match frame_decompress(compressed) {
-    None => abort("frame decompression failed")
+    None => fail("frame decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -727,7 +727,7 @@ test "lz4 frame: repetitive data round-trip" {
   // Compressed should be smaller.
   assert_true(compressed.length() < input.length())
   let decompressed = match frame_decompress(compressed) {
-    None => abort("frame decompression failed")
+    None => fail("frame decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -748,7 +748,7 @@ test "lz4 frame: multi-block data round-trip" {
   let input = Bytes::from_array(arr)
   let compressed = frame_compress(input)
   let decompressed = match frame_decompress(compressed) {
-    None => abort("frame decompression failed")
+    None => fail("frame decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -802,7 +802,7 @@ test "lz4 frame: binary data round-trip" {
   let input = Bytes::from_array(arr)
   let compressed = frame_compress(input)
   let decompressed = match frame_decompress(compressed) {
-    None => abort("frame decompression failed")
+    None => fail("frame decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -816,7 +816,7 @@ test "lz4: long repeated sequence" {
   let input_bytes = Bytes::make(10000, b'\x42')
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())
@@ -845,7 +845,7 @@ test "lz4: mixed data" {
   let input_bytes = Bytes::from_array(input)
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())
@@ -874,7 +874,7 @@ test "lz4: incompressible data round-trips" {
   let input_bytes = Bytes::from_array(input)
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())
@@ -889,7 +889,7 @@ test "lz4: overlapping match (RLE-like)" {
   let input_bytes = Bytes::make(100, b'\x41')
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())
@@ -914,7 +914,7 @@ test "lz4: large data with extended lengths" {
   let input_bytes = Bytes::from_array(input)
   let compressed = compress(input_bytes)
   let decompressed = match decompress(compressed, input_bytes.length()) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input_bytes.length())

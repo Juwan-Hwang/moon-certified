@@ -2,9 +2,7 @@
 package "moon-certified/graph/prim"
 
 // Values
-pub fn prim_mst(FixedArray[Int], Int) -> (FixedArray[Int], Int)
-
-pub fn prim_mst_checked(FixedArray[Int], Int) -> (FixedArray[Int], Int64)?
+pub fn prim_mst(FixedArray[Int], Int) -> (FixedArray[Int], Int64)
 
 // Errors
 

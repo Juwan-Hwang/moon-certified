@@ -7,15 +7,12 @@
 /// Both height and size are cached in each node, making `height()` and
 /// `size()` O(1) operations.
 ///
-/// **Stack safety**: `insert`, `delete`, `search`, `find_min`, and `inorder`
-/// are recursive. Because the AVL invariant guarantees height <= 1.44*log2(n+2),
+/// **Stack safety**: `insert`, `delete`, `search`, and `find_min` are
+/// recursive. Because the AVL invariant guarantees height <= 1.44*log2(n+2),
 /// the recursion depth is always O(log n) -- at most ~44 for n = 2^32,
 /// well within MoonBit's default stack limit. No iterative conversion is
-/// needed; the AVL invariant itself is the stack-safety guarantee. As a
-/// defensive net against balancing bugs, `insert`/`delete`/`search`/`find_min`
-/// abort if the cached `height` exceeds `avl_max_depth` (1000); see
-/// `guard_depth`. (Note: `inorder` is unguarded but its depth is also bounded
-/// by the AVL height.)
+/// needed; the AVL invariant itself is the stack-safety guarantee.
+/// `inorder` uses an explicit stack to avoid any recursion.
 ///
 /// Not formally verified. Correctness ensured by comprehensive tests
 /// including balance verification and large random insertion checks.
@@ -45,14 +42,6 @@ fn max2(a : Int, b : Int) -> Int {
     b
   }
 }
-
-///|
-/// Defensive ceiling on recursion depth. The AVL invariant bounds the height
-/// (and thus the recursion depth of every operation) at ~1.44*log2(n+2), so
-/// this guard only fires if a balancing bug produces an illegally tall tree or
-/// `n` is astronomically large (n > 2^690). The check is O(1) because each node
-/// caches its `height`.
-let avl_max_depth : Int = 1000
 
 ///|
 /// Return the height of a node. Empty = -1, leaf = 0. O(1).
@@ -159,9 +148,6 @@ fn[T] rebalance(root : AvlNode[T]) -> AvlNode[T] {
 ///|
 /// Insert a value into the AVL tree. Duplicates are ignored.
 pub fn[T] insert(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
-  if height(root) >= avl_max_depth {
-    return root
-  }
   match root {
     Empty => Node(Empty, val, Empty, 0, 1)
     Node(l, v, r, _, _) => {
@@ -180,9 +166,6 @@ pub fn[T] insert(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] 
 ///|
 /// Search for a value in the AVL tree.
 pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
-  if height(root) >= avl_max_depth {
-    return false
-  }
   match root {
     Empty => false
     Node(l, v, r, _, _) => {
@@ -201,9 +184,6 @@ pub fn[T] search(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> Bool {
 ///|
 /// Find the minimum value in an AVL tree. Returns None if the tree is empty.
 pub fn[T] find_min(root : AvlNode[T]) -> T? {
-  if height(root) >= avl_max_depth {
-    return None
-  }
   match root {
     Empty => None
     Node(Empty, v, _, _, _) => Some(v)
@@ -214,9 +194,6 @@ pub fn[T] find_min(root : AvlNode[T]) -> T? {
 ///|
 /// Delete a value from the AVL tree.
 pub fn[T] delete(root : AvlNode[T], val : T, cmp : (T, T) -> Int) -> AvlNode[T] {
-  if height(root) >= avl_max_depth {
-    return root
-  }
   match root {
     Empty => Empty
     Node(l, v, r, _, _) => {
@@ -256,9 +233,7 @@ pub fn[T] inorder(root : AvlNode[T]) -> FixedArray[T] {
 ///|
 /// Fill the buffer array in-order using iterative traversal.
 ///
-/// Uses an explicit stack to avoid O(h) recursion depth. This is consistent
-/// with the stack-safety policy applied to `insert`, `delete`, and `search`
-/// via `guard_depth`.
+/// Uses an explicit stack to avoid O(h) recursion depth.
 fn[T] inorder_fill(root : AvlNode[T], buf : Array[T]) -> Unit {
   let stack : Array[AvlNode[T]] = []
   let mut cur : AvlNode[T] = root
@@ -277,12 +252,13 @@ fn[T] inorder_fill(root : AvlNode[T], buf : Array[T]) -> Unit {
     }
     // Pop the top node, visit it, then move to its right child.
     if stack.length() > 0 {
-      match stack.pop().unwrap() {
-        Node(_, v, r, _, _) => {
+      match stack.pop() {
+        Some(Node(_, v, r, _, _)) => {
           buf.push(v)
           cur = r
         }
-        Empty => ()
+        Some(Empty) => ()
+        None => done = true
       }
     } else {
       done = true

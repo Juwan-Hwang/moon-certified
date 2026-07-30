@@ -1,0 +1,61 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/naive_bayes"
+
+// Values
+pub fn accuracy(Array[Int], Array[Int]) -> Double
+
+pub fn bernoulli_fit(Array[Array[Double]], Array[Int], Double, Double) -> BernoulliNB
+
+pub fn bernoulli_predict(BernoulliNB, Array[Double]) -> Int
+
+pub fn bernoulli_predict_batch(BernoulliNB, Array[Array[Double]]) -> Array[Int]
+
+pub fn bernoulli_predict_log_proba(BernoulliNB, Array[Double]) -> (Int, Array[Double])
+
+pub fn gaussian_fit(Array[Array[Double]], Array[Int], Double) -> GaussianNB
+
+pub fn gaussian_predict(GaussianNB, Array[Double]) -> Int
+
+pub fn gaussian_predict_batch(GaussianNB, Array[Array[Double]]) -> Array[Int]
+
+pub fn gaussian_predict_log_proba(GaussianNB, Array[Double]) -> (Int, Array[Double])
+
+pub fn multinomial_fit(Array[Array[Double]], Array[Int], Double) -> MultinomialNB
+
+pub fn multinomial_predict(MultinomialNB, Array[Double]) -> Int
+
+pub fn multinomial_predict_batch(MultinomialNB, Array[Array[Double]]) -> Array[Int]
+
+pub fn multinomial_predict_log_proba(MultinomialNB, Array[Double]) -> (Int, Array[Double])
+
+// Errors
+
+// Types and methods
+pub struct BernoulliNB {
+  classes : Array[Int]
+  class_log_priors : Array[Double]
+  feature_log_probs : Array[Array[Double]]
+  feature_log_neg_probs : Array[Array[Double]]
+  n_features : Int
+  binarize : Double
+}
+
+pub struct GaussianNB {
+  classes : Array[Int]
+  class_priors : Array[Double]
+  means : Array[Array[Double]]
+  variances : Array[Array[Double]]
+  n_features : Int
+}
+
+pub struct MultinomialNB {
+  classes : Array[Int]
+  class_log_priors : Array[Double]
+  feature_log_probs : Array[Array[Double]]
+  n_features : Int
+}
+
+// Type aliases
+
+// Traits
+

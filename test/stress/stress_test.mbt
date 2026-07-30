@@ -429,7 +429,7 @@ test "stress: manacher on 1000-char palindrome" {
   // 500-char all-a string: longest palindrome is the whole string
   match @manacher.longest_palindrome(s) {
     Some(p) => assert_eq(p.length(), 500)
-    None => abort("expected palindrome")
+    None => fail("expected palindrome")
   }
   // Count should be n*(n+1)/2 for all-same string
   assert_eq(@manacher.count_palindromes(s), 500 * 501 / 2)
@@ -504,7 +504,7 @@ test "stress: topo_sort_adj 1000-node chain DAG" {
       assert_eq(order[0], 0)
       assert_eq(order[n - 1], n - 1)
     }
-    None => abort("expected topo sort to succeed")
+    None => fail("expected topo sort to succeed")
   }
   assert_false(@topological_sort_adj.has_cycle(graph, n))
 }
@@ -544,7 +544,7 @@ test "stress: interpolation_search 10000 uniform array" {
   let arr = FixedArray::makei(n, fn(i) { i * 2 })
   match @interpolation_search.interpolation_search(arr, 10000) {
     Some(idx) => assert_eq(arr[idx], 10000)
-    None => abort("expected to find target")
+    None => fail("expected to find target")
   }
 }
 
@@ -554,6 +554,6 @@ test "stress: exponential_search 10000 sorted array" {
   let arr = FixedArray::makei(n, fn(i) { i })
   match @exponential_search.exponential_search(arr, 7777) {
     Some(idx) => assert_eq(arr[idx], 7777)
-    None => abort("expected to find target")
+    None => fail("expected to find target")
   }
 }

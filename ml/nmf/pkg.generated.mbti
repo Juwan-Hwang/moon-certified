@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/nmf"
+
+// Values
+pub fn nmf(Array[Array[Double]], Int, Int, Double, Int) -> NMFResult
+
+pub fn nmf_reconstruct(NMFResult) -> Array[Array[Double]]
+
+pub fn nmf_transform(NMFResult, Array[Double], Int) -> Array[Double]
+
+// Errors
+
+// Types and methods
+pub struct NMFResult {
+  w : Array[Array[Double]]
+  h : Array[Array[Double]]
+  reconstruction_err : Double
+  n_iter : Int
+}
+
+// Type aliases
+
+// Traits
+

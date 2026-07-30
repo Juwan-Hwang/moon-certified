@@ -1,6 +1,12 @@
 ///|
 /// Sum all elements of a non-negative array.
 ///
+/// **Deprecated**: This function does not detect overflow. If the true
+/// mathematical sum exceeds 2³¹−1, the result silently wraps to a negative
+/// value, invalidating the non-negativity guarantee at runtime.
+///
+/// Use `array_sum_checked` instead, which returns `None` on overflow.
+///
 /// Verified by `moon prove`:
 /// - result >= 0 when all elements are non-negative (proven by Z3)
 ///
@@ -9,12 +15,9 @@
 ///
 /// Full correctness is tested exhaustively instead.
 ///
-/// **Overflow**: The sum is computed using 32-bit `Int` arithmetic.
-/// If the true mathematical sum exceeds 2³¹−1, the result silently
-/// wraps to a negative value, invalidating the non-negativity guarantee.
-/// The proof models `Int` as mathematical integers, so it is correct
-/// in the mathematical model but not at runtime when overflow occurs.
-/// Callers must ensure the sum fits in 32-bit `Int`.
+/// This function is retained for formal verification (Z3 proof of
+/// non-negativity under the mathematical integer model) and backward
+/// compatibility with code that can guarantee no overflow.
 pub fn array_sum(
   xs : FixedArray[Int],
 ) -> Int where {

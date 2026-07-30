@@ -39,10 +39,21 @@
 // Field parameters: GF(2^255 - 19)
 // ---------------------------------------------------------------------------
 
+/// Parse a BigInt from a decimal string, aborting with a descriptive
+/// message if the string is invalid. Used exclusively for fixed RFC
+/// curve constants that are guaranteed correct by construction.
+fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
+  match @bigint.from_string(s) {
+    Some(v) => v
+    None => abort("FATAL: invalid X25519 curve constant: " + name)
+  }
+}
+
 /// Prime p = 2^255 - 19
-let p : @bigint.BigInt = @bigint.from_string(
+let p : @bigint.BigInt = parse_curve_const(
   "57896044618658097711785492504343953926634992332820282019728792003956564819949",
-).unwrap()
+  "X25519 prime p",
+)
 
 /// a24 = (486662 - 2) / 4 = 121665
 let a24 : @bigint.BigInt = @bigint.from_int_value(121665)

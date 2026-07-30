@@ -416,7 +416,7 @@ test "kruskal: checked basic" {
       assert_eq(mst.length(), 2)
       assert_eq(w, 3L)
     }
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 
@@ -435,6 +435,6 @@ test "kruskal: checked matches unchecked" {
       assert_eq(w2, w1.to_int64())
       assert_eq(mst2.length(), mst1.length())
     }
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }

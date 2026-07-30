@@ -125,7 +125,7 @@ test "interpolation_search: all same values" {
   let found = interpolation_search(xs, 7)
   match found {
     Some(idx) => assert_eq(xs[idx], 7)
-    None => abort("should find 7")
+    None => assert_true(false) // should find 7
   }
   // Targets outside the uniform value are absent.
   assert_eq(interpolation_search(xs, 6), None)

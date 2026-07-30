@@ -1,19 +1,22 @@
 /// SHA-1 secure hash algorithm (FIPS 180-4).
 ///
+/// ⚠️ **WARNING: SHA-1 is CRYPTOGRAPHICALLY BROKEN. DO NOT USE FOR NEW APPLICATIONS.** ⚠️
+///
+/// SHA-1 is **broken for collision resistance** since the SHAttered attack (2017).
+/// It MUST NOT be used for:
+/// - Digital signatures or certificates
+/// - New security-sensitive applications
+/// - Any context where collision resistance is required
+///
+/// This implementation is provided **solely for backward compatibility** with
+/// legacy protocols (TLS 1.0/1.1, old Git objects, HMAC-SHA1 where collision
+/// resistance of the underlying hash is not required).
+///
+/// **For all new applications, use SHA-256 (`crypto/sha256`) or SHA-3.**
+///
 /// SHA-1 maps an arbitrarily long byte sequence to a fixed 160-bit (20-byte)
 /// digest. It is a Merkle-Damgard construction built from an 80-round Davies-
 /// Meyer compression function over a 160-bit state of five 32-bit words.
-///
-/// # Security Notice
-///
-/// SHA-1 is **cryptographically broken** for collision resistance since 2017
-/// (SHAttered attack). It should NOT be used for digital signatures, certificates,
-/// or any new security-sensitive application. This implementation is provided
-/// for backward compatibility with legacy protocols (TLS 1.0/1.1, old Git
-/// objects, HMAC-SHA1 where the collision resistance of the underlying hash
-/// is not required).
-///
-/// For new applications, use SHA-256 or SHA-3.
 ///
 /// # Algorithm outline
 ///

@@ -784,7 +784,7 @@ test "msgpack: positive fixint round-trip" {
     assert_eq(packed.length(), 1)
     match unpack(packed) {
       Ok(Int(v)) => assert_eq(v, i.to_int64())
-      _ => abort("expected Int")
+      _ => fail("expected Int")
     }
   }
 }
@@ -796,7 +796,7 @@ test "msgpack: negative fixint round-trip" {
     assert_eq(packed.length(), 1)
     match unpack(packed) {
       Ok(Int(v)) => assert_eq(v, i.to_int64())
-      _ => abort("expected Int")
+      _ => fail("expected Int")
     }
   }
 }
@@ -808,7 +808,7 @@ test "msgpack: uint8 round-trip" {
   assert_eq(packed[0], b'\xCC')
   match unpack(packed) {
     Ok(UInt(v)) => assert_eq(v, 200UL)
-    _ => abort("expected UInt")
+    _ => fail("expected UInt")
   }
 }
 
@@ -819,7 +819,7 @@ test "msgpack: uint16 round-trip" {
   assert_eq(packed[0], b'\xCD')
   match unpack(packed) {
     Ok(UInt(v)) => assert_eq(v, 300UL)
-    _ => abort("expected UInt")
+    _ => fail("expected UInt")
   }
 }
 
@@ -830,7 +830,7 @@ test "msgpack: int8 round-trip" {
   assert_eq(packed[0], b'\xD0')
   match unpack(packed) {
     Ok(Int(v)) => assert_eq(v, -100L)
-    _ => abort("expected Int")
+    _ => fail("expected Int")
   }
 }
 
@@ -841,7 +841,7 @@ test "msgpack: int16 round-trip" {
   assert_eq(packed[0], b'\xD1')
   match unpack(packed) {
     Ok(Int(v)) => assert_eq(v, -1000L)
-    _ => abort("expected Int")
+    _ => fail("expected Int")
   }
 }
 
@@ -852,7 +852,7 @@ test "msgpack: int32 round-trip" {
   assert_eq(packed[0], b'\xD2')
   match unpack(packed) {
     Ok(Int(v)) => assert_eq(v, -100000L)
-    _ => abort("expected Int")
+    _ => fail("expected Int")
   }
 }
 
@@ -863,7 +863,7 @@ test "msgpack: string round-trip" {
   assert_eq(packed[0].to_int(), 0xB3)
   match unpack(packed) {
     Ok(Str(v)) => assert_eq(v, s)
-    _ => abort("expected Str")
+    _ => fail("expected Str")
   }
 }
 
@@ -886,7 +886,7 @@ test "msgpack: long string uses str8" {
   assert_eq(packed[0], b'\xD9')
   match unpack(packed) {
     Ok(Str(v)) => assert_eq(v, s)
-    _ => abort("expected Str")
+    _ => fail("expected Str")
   }
 }
 
@@ -898,7 +898,7 @@ test "msgpack: binary round-trip" {
   assert_eq(packed[1].to_int(), 3)
   match unpack(packed) {
     Ok(Bin(v)) => assert_eq(v, data)
-    _ => abort("expected Bin")
+    _ => fail("expected Bin")
   }
 }
 
@@ -912,10 +912,10 @@ test "msgpack: array round-trip" {
       assert_eq(elements.length(), 3)
       match elements[0] {
         Int(v) => assert_eq(v, 1L)
-        _ => abort("expected Int")
+        _ => fail("expected Int")
       }
     }
-    _ => abort("expected Array")
+    _ => fail("expected Array")
   }
 }
 
@@ -935,10 +935,10 @@ test "msgpack: map round-trip" {
           assert_eq(k, "name")
           assert_eq(v, "Alice")
         }
-        _ => abort("expected Str key-value")
+        _ => fail("expected Str key-value")
       }
     }
-    _ => abort("expected Map")
+    _ => fail("expected Map")
   }
 }
 
@@ -948,7 +948,7 @@ test "msgpack: float64 round-trip" {
   assert_eq(packed[0], b'\xCB')
   match unpack(packed) {
     Ok(Float64(v)) => assert_true((v - 3.14159265358979).abs() < 0.000000000000001)
-    _ => abort("expected Float64")
+    _ => fail("expected Float64")
   }
 }
 
@@ -969,11 +969,11 @@ test "msgpack: nested structure round-trip" {
           assert_eq(k, "name")
           assert_eq(v, "test")
         }
-        _ => abort("expected Str key-value")
+        _ => fail("expected Str key-value")
       }
     }
-    Ok(_) => abort("expected Map")
-    Err(e) => abort("unpack failed: " + e)
+    Ok(_) => fail("expected Map")
+    Err(e) => fail("unpack failed: " + e)
   }
 }
 
@@ -1000,7 +1000,7 @@ test "msgpack: extension type round-trip" {
       assert_eq(tc, 5)
       assert_eq(d, data)
     }
-    _ => abort("expected Ext")
+    _ => fail("expected Ext")
   }
 }
 
@@ -1014,6 +1014,6 @@ test "msgpack: large array uses array16" {
   assert_eq(packed[0], b'\xDC')
   match unpack(packed) {
     Ok(Array(elements)) => assert_eq(elements.length(), 20)
-    _ => abort("expected Array")
+    _ => fail("expected Array")
   }
 }

@@ -356,11 +356,10 @@ fn approx_eq(a : Double, b : Double) -> Bool {
 }
 
 ///|
-/// Assert `a` and `b` are approximately equal, panicking with a message if
-/// not. The explicit message makes FFT round-off failures easy to diagnose.
-fn assert_approx(a : Double, b : Double) -> Unit {
+/// Assert `a` and `b` are approximately equal, failing the test if not.
+fn assert_approx(a : Double, b : Double) -> Unit raise {
   if !approx_eq(a, b) {
-    abort("assert_approx: " + a.to_string() + " != " + b.to_string())
+    assert_true(false)
   }
 }
 
@@ -456,7 +455,7 @@ test "fft: c_div_safe agrees with c_div for non-zero divisor" {
       assert_approx(re(z), re(raw))
       assert_approx(im(z), im(raw))
     }
-    None => abort("c_div_safe should not return None for a non-zero divisor")
+    None => fail("c_div_safe should not return None for a non-zero divisor")
   }
   // A small-but-non-zero divisor stays finite: |b|^2 = 1e-200 (representable,
   // not underflowed), so c_div_safe returns Some rather than None.

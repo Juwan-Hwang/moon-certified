@@ -85,7 +85,7 @@ test "linear_search: duplicates" {
   // Should return the first occurrence
   match result {
     Some(idx) => assert_eq(idx < 3, true)
-    None => abort("should find 1")
+    None => assert_true(false) // should find 1
   }
 }
 

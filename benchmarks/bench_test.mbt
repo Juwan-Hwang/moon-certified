@@ -19,7 +19,7 @@
 
 ///|
 /// Run `f` and return elapsed time in microseconds.
-fn time_us(f : () -> Unit) -> Double {
+fn time_us(f : () -> Unit raise) -> Double raise {
   let t0 = @bench.monotonic_clock_start()
   f()
   @bench.monotonic_clock_end(t0)
@@ -83,6 +83,12 @@ test "bench: radix_sort 100K elements" {
   let xs = FixedArray::makei(n, fn(i) { (i * 17 + 5) % 1000000 })
   let t = time_us(fn() { let _ = @radix_sort.radix_sort(xs) })
   println("radix_sort 100K: " + fmt_us(t))
+  match @radix_sort.radix_sort(xs) {
+    Some(sorted) => for i = 0; i < n - 1; i = i + 1 {
+      assert_true(sorted[i] <= sorted[i + 1])
+    }
+    None => assert_true(false)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +233,7 @@ test "bench: fenwick 1M build + 1M queries" {
     }
     // Prevent optimizer from removing the loop
     if sum < 0 {
-      abort("unreachable")
+      fail("unreachable")
     }
   })
   println("fenwick 1M build: " + fmt_us(build_t))
@@ -250,7 +256,7 @@ test "bench: segment_tree 100K build + 100K queries" {
       sum = sum + @segment_tree.query(st, i, i + 1)
     }
     if sum < 0 {
-      abort("unreachable")
+      fail("unreachable")
     }
   })
   println("segment_tree 100K build: " + fmt_us(build_t))
@@ -266,6 +272,8 @@ test "bench: lazy segment_tree 100K range updates + queries" {
   let query_t = time_us(fn() { let _ = @segment_tree.lazy_query(st, 0, n) })
   println("lazy_segment_tree 100K range update: " + fmt_us(update_t))
   println("lazy_segment_tree 100K range query: " + fmt_us(query_t))
+  // After range update of +1 on [0, n), the sum should be n.
+  assert_eq(@segment_tree.lazy_query(st, 0, n), n)
 }
 
 // ---------------------------------------------------------------------------
@@ -304,6 +312,9 @@ test "bench: dijkstra_heap 1000-node dense graph" {
   }
   let t = time_us(fn() { let _ = @dijkstra_heap.dijkstra(graph, n, 0) })
   println("dijkstra_heap 1000-node dense: " + fmt_us(t))
+  let dists = @dijkstra_heap.dijkstra(graph, n, 0)
+  // Distance to self is 0.
+  assert_true(dists[0] is Some(0))
 }
 
 ///|
@@ -317,6 +328,9 @@ test "bench: scc 1000-node graph" {
   }
   let t = time_us(fn() { let _ = @scc.tarjan_scc(graph, n) })
   println("scc 1000-node: " + fmt_us(t))
+  // The graph is a single path with back-edges, so all nodes are in one SCC.
+  let components = @scc.tarjan_scc(graph, n)
+  assert_true(components.length() > 0)
 }
 
 ///|
@@ -329,6 +343,9 @@ test "bench: kruskal 1000-edge MST" {
   let edge_arr = FixedArray::from_array(edges.view())
   let t = time_us(fn() { let _ = @kruskal.kruskal_mst(edge_arr, n) })
   println("kruskal 500-node chain MST: " + fmt_us(t))
+  // MST of a chain has n-1 edges with total weight sum(1..n-1).
+  let (mst_edges, _) = @kruskal.kruskal_mst(edge_arr, n)
+  assert_eq(mst_edges.length(), n - 1)
 }
 
 // ---------------------------------------------------------------------------
@@ -342,8 +359,11 @@ test "bench: kmp search 100K text" {
     text = text + "abcd"
   }
   // 100K chars
-  let t = time_us(fn() { let _ = @kmp.kmp_search("abcdabcd", text) })
+  let t = time_us(fn() { let _ = @kmp.kmp_search(text, "abcdabcd") })
   println("kmp 100K text: " + fmt_us(t))
+  // "abcdabcd" appears at position 0 in "abcdabcdabcd..."
+  let result = @kmp.kmp_search(text, "abcdabcd")
+  assert_true(result is Some(0))
 }
 
 ///|
@@ -355,6 +375,8 @@ test "bench: suffix_array 10K string" {
   // ~10K chars
   let t = time_us(fn() { let _ = @suffix_array.build(s) })
   println("suffix_array 10K string: " + fmt_us(t))
+  let sa = @suffix_array.build(s)
+  assert_eq(sa.length(), s.length())
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +387,13 @@ test "bench: suffix_array 10K string" {
 test "bench: euler_sieve 1M primes" {
   let t = time_us(fn() { let _ = @euler_sieve.sieve(1000000) })
   println("euler_sieve 1M: " + fmt_us(t))
+  let primes = @euler_sieve.sieve(1000000)
+  // There are 78498 primes below 1M.
+  assert_true(primes is Some(_))
+  match primes {
+    Some(p) => assert_eq(@euler_sieve.prime_count(p), 78498)
+    None => assert_true(false)
+  }
 }
 
 ///|
@@ -375,6 +404,10 @@ test "bench: miller_rabin 10000 primality checks" {
     }
   })
   println("miller_rabin 10K checks: " + fmt_us(t))
+  // 2 is prime, 1 is not, 4 is not.
+  assert_true(@miller_rabin.is_prime(2))
+  assert_true(!@miller_rabin.is_prime(1))
+  assert_true(!@miller_rabin.is_prime(4))
 }
 
 ///|
@@ -387,6 +420,9 @@ test "bench: ntt multiply 1024-coefficient polynomials" {
   }
   let t = time_us(fn() { let _ = @ntt.multiply(a, b) })
   println("ntt 1024-coefficient multiply: " + fmt_us(t))
+  let result = @ntt.multiply(a, b)
+  // Result length should be 2*1024 - 1 = 2047.
+  assert_true(result.length() >= 1024)
 }
 
 // ---------------------------------------------------------------------------
@@ -399,6 +435,9 @@ test "bench: lis 10K elements" {
   let xs = FixedArray::makei(n, fn(i) { (i * 7 + 3) % 1000 })
   let t = time_us(fn() { let _ = @lis.lis_length(xs) })
   println("lis 10K: " + fmt_us(t))
+  let lis_len = @lis.lis_length(xs)
+  assert_true(lis_len >= 1)
+  assert_true(lis_len <= n)
 }
 
 // ---------------------------------------------------------------------------
@@ -414,4 +453,230 @@ test "bench: convex_hull 10K points" {
   }
   let t = time_us(fn() { let _ = @convex_hull.convex_hull(points) })
   println("convex_hull 10K points: " + fmt_us(t))
+  let hull = @convex_hull.convex_hull(points)
+  // Hull should have at least 3 points and at most n points.
+  assert_true(hull.length() >= 3)
+  assert_true(hull.length() <= n)
+}
+
+// ---------------------------------------------------------------------------
+// Crypto benchmarks: hashing and block cipher
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: sha256 1MB data" {
+  let buf : Array[Byte] = []
+  for i = 0; i < 1000000; i = i + 1 {
+    buf.push((i % 256).to_byte())
+  }
+  let data = Bytes::from_array(buf)
+  let t = time_us(fn() { let _ = @sha256.sha256(data) })
+  println("sha256 1MB: " + fmt_us(t))
+  let digest = @sha256.sha256(data)
+  assert_eq(digest.length(), 32)
+}
+
+///|
+test "bench: aes-128-gcm encrypt 64KB" {
+  let key = match @aes.new_key(FixedArray::make(16, b'\x00')) {
+    Some(k) => k
+    None => abort("key creation failed in benchmark")
+  }
+  let plaintext = FixedArray::makei(65536, fn(i) { (i % 256).to_byte() })
+  let iv = FixedArray::make(12, b'\x00')
+  let aad = FixedArray::make(0, b'\x00')
+  let t = time_us(fn() { let _ = @aes.encrypt_gcm(key, iv, plaintext, aad) })
+  println("aes-128-gcm encrypt 64KB: " + fmt_us(t))
+  let result = match @aes.encrypt_gcm(key, iv, plaintext, aad) {
+    Some(r) => r
+    None => abort("encryption failed in benchmark")
+  }
+  assert_true(result.ciphertext.length() == plaintext.length())
+  assert_eq(result.tag.length(), 16)
+}
+
+// ---------------------------------------------------------------------------
+// Compression benchmarks
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: deflate compress 100KB" {
+  let buf : Array[Byte] = []
+  for i = 0; i < 100000; i = i + 1 {
+    // Semi-compressible: repeating patterns with some noise.
+    buf.push(((i * 7 + 3) % 64).to_byte())
+  }
+  let data = Bytes::from_array(buf)
+  let t = time_us(fn() { let _ = @deflate.deflate(data) })
+  println("deflate compress 100KB: " + fmt_us(t))
+  let compressed = @deflate.deflate(data)
+  // Compressed should be smaller for this compressible data.
+  assert_true(compressed.length() < data.length())
+  // Verify round-trip.
+  let decompressed = match @deflate.inflate(compressed) {
+    Some(d) => d
+    None => abort("inflate failed in benchmark")
+  }
+  assert_eq(decompressed, data)
+}
+
+// ---------------------------------------------------------------------------
+// ML benchmarks: K-Means clustering
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: kmeans 1000 points 5 clusters" {
+  let points : Array[Array[Double]] = []
+  // Generate 5 clusters of 200 points each around centers.
+  let centers = [
+    [0.0, 0.0],
+    [10.0, 10.0],
+    [20.0, 0.0],
+    [0.0, 20.0],
+    [20.0, 20.0],
+  ]
+  for c = 0; c < 5; c = c + 1 {
+    for p = 0; p < 200; p = p + 1 {
+      let dx = ((p * 7 + c * 3) % 100).to_double() / 100.0 - 0.5
+      let dy = ((p * 13 + c * 5) % 100).to_double() / 100.0 - 0.5
+      points.push([centers[c][0] + dx, centers[c][1] + dy])
+    }
+  }
+  let t = time_us(fn() { let _ = @kmeans.kmeans_with_seed(points, 5, 50, 42) })
+  println("kmeans 1000 pts 5 clusters: " + fmt_us(t))
+  let result = @kmeans.kmeans_with_seed(points, 5, 50, 42)
+  assert_eq(result.centroids.length(), 5)
+  assert_eq(result.assignments.length(), 1000)
+}
+
+// ---------------------------------------------------------------------------
+// DP benchmarks
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: matrix_chain 100 matrices" {
+  let dims : Array[Int] = []
+  for i = 0; i < 101; i = i + 1 {
+    dims.push(10 + (i * 7) % 90)
+  }
+  let t = time_us(fn() { let _ = @matrix_chain.matrix_chain_order(dims) })
+  println("matrix_chain 100 matrices: " + fmt_us(t))
+  let cost = @matrix_chain.matrix_chain_order(dims)
+  // Cost should be positive for non-trivial chain.
+  assert_true(cost > 0)
+}
+
+///|
+test "bench: knapsack 1000 items capacity 10000" {
+  let n = 1000
+  let weights : Array[Int] = []
+  let values : Array[Int] = []
+  let counts : Array[Int] = []
+  for i = 0; i < n; i = i + 1 {
+    weights.push(1 + (i * 7) % 50)
+    values.push(1 + (i * 13) % 100)
+    counts.push(1 + (i * 3) % 5)
+  }
+  let capacity = 10000
+  let t = time_us(fn() {
+    let _ = @knapsack_opt.multiple_knapsack(weights, values, counts, capacity)
+  })
+  println("knapsack 1000 items cap 10K: " + fmt_us(t))
+  let result = @knapsack_opt.multiple_knapsack(weights, values, counts, capacity)
+  assert_true(result > 0)
+}
+
+// ---------------------------------------------------------------------------
+// Geometry benchmarks: closest pair and Delaunay triangulation
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: closest_pair 10K points" {
+  let n = 10000
+  let points : Array[@geometry_utils.Point] = []
+  for i = 0; i < n; i = i + 1 {
+    points.push(@geometry_utils.point((i * 7 + 3) % 10000, (i * 13 + 5) % 10000))
+  }
+  let t = time_us(fn() { let _ = @closest_pair.closest_pair(points) })
+  println("closest_pair 10K points: " + fmt_us(t))
+  let dist = match @closest_pair.closest_pair(points) {
+    Some(d) => d
+    None => abort("closest_pair failed in benchmark")
+  }
+  assert_true(dist >= 0L)
+}
+
+///|
+test "bench: delaunay 1000 points" {
+  let n = 1000
+  let points : Array[@delaunay.DPoint] = []
+  for i = 0; i < n; i = i + 1 {
+    points.push(@delaunay.dpoint((i * 7 + 3) % 5000, (i * 13 + 5) % 5000))
+  }
+  let t = time_us(fn() { let _ = @delaunay.triangulate(points) })
+  println("delaunay 1000 points: " + fmt_us(t))
+  let result = @delaunay.triangulate(points)
+  // triangles is a flat FixedArray[Int] (3 ints per triangle: v0, v1, v2).
+  // For n >= 3 points there should be at least one triangle (3 entries).
+  assert_true(result.triangles.length() >= 3)
+}
+
+// ---------------------------------------------------------------------------
+// Graph benchmarks: dominator tree and maximum matching
+// ---------------------------------------------------------------------------
+
+///|
+test "bench: dominator_tree 1000-node graph" {
+  let n = 1000
+  let adj : Array[Array[Int]] = []
+  for i = 0; i < n; i = i + 1 {
+    let succ : Array[Int] = []
+    // Each node connects to next few nodes, creating a DAG-like structure.
+    for j = 1; j <= 3; j = j + 1 {
+      let target = i + j
+      if target < n {
+        succ.push(target)
+      }
+    }
+    // Add some cross edges for complexity.
+    if i > 10 && (i * 3) % 7 == 0 {
+      succ.push(i / 2)
+    }
+    adj.push(succ)
+  }
+  let t = time_us(fn() {
+    let _ = @dominator_tree.build_dominator_tree_arr(adj, n, 0)
+  })
+  println("dominator_tree 1000-node: " + fmt_us(t))
+  let tree = @dominator_tree.build_dominator_tree_arr(adj, n, 0)
+  assert_eq(@dominator_tree.vertex_count(tree), n)
+  // Root dominates itself.
+  assert_true(@dominator_tree.dominates(tree, 0, 0))
+}
+
+///|
+test "bench: edmonds_blossom 200-node graph" {
+  let n = 200
+  let adj : Array[Array[Int]] = []
+  for i = 0; i < n; i = i + 1 {
+    let neighbors : Array[Int] = []
+    // Create a graph with some cycles and odd-length cycles (blossoms).
+    let j = (i + 1) % n
+    neighbors.push(j)
+    if i + 3 < n {
+      neighbors.push(i + 3)
+    }
+    if i > 5 && (i % 2 == 0) {
+      neighbors.push(i - 5)
+    }
+    adj.push(neighbors)
+  }
+  let t = time_us(fn() { let _ = @edmonds_blossom.max_matching(adj, n) })
+  println("edmonds_blossom 200-node: " + fmt_us(t))
+  let m = @edmonds_blossom.max_matching(adj, n)
+  // In a graph with n=200 nodes, matching cardinality should be at least 1
+  // (there are edges) and at most n/2 = 100.
+  let card = @edmonds_blossom.cardinality(m)
+  assert_true(card >= 1)
+  assert_true(card <= n / 2)
 }

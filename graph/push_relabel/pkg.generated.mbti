@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/push_relabel"
+
+// Values
+pub fn new(Int) -> PushRelabel
+
+// Errors
+
+// Types and methods
+type PREdge
+
+pub struct PushRelabel {
+  n : Int
+  adj : Array[Array[PREdge]]
+  height : Array[Int]
+  excess : Array[Int64]
+  count : Array[Int]
+}
+pub fn PushRelabel::add_edge(Self, Int, Int, Int) -> Unit
+pub fn PushRelabel::max_flow(Self, Int, Int) -> Int64
+
+// Type aliases
+
+// Traits
+

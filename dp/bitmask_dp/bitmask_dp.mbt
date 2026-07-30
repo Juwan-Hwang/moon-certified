@@ -984,7 +984,7 @@ test "tsp: path reconstruction" {
         seen[tour[i]] = true
       }
     }
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 
@@ -1419,7 +1419,7 @@ test "hamiltonian: star graph has no Hamiltonian path for n > 3" {
 test "bitgraph: basic operations" {
   let g = match new_graph(5) {
     Some(g) => g
-    None => abort("new_graph failed")
+    None => fail("new_graph failed")
   }
   assert_false(has_edge(g, 0, 1))
   add_edge(g, 0, 1)

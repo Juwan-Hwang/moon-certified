@@ -37,6 +37,13 @@
 ///|
 /// A single heap entry: the value plus its index in the backing array
 /// (for reverse-lookup from the handle map).
+///
+/// **Reference semantics**: `PQEntry` is a `struct` (reference type in
+/// MoonBit). The same `PQEntry` object is shared between the `heap` and
+/// `entries` arrays, so modifying `heap_idx` through one array is immediately
+/// visible through the other. This is essential for O(1) handle → heap-position
+/// lookup. If MoonBit's struct semantics change to value types, this module
+/// must be rewritten to use explicit indices instead of shared references.
 struct PQEntry[T] {
   mut val : T
   mut heap_idx : Int // current position in the heap array
@@ -135,7 +142,20 @@ pub fn[T] PriorityQueue::peek(self : PriorityQueue[T]) -> T? {
 /// O(log n) amortised.
 pub fn[T] PriorityQueue::push(self : PriorityQueue[T], val : T) -> PQHandle {
   let entry_idx = if self.free_list.length() > 0 {
-    let idx = self.free_list.pop().unwrap()
+    let idx = match self.free_list.pop() {
+      Some(v) => v
+      None => {
+        // Unreachable: free_list was checked non-empty, but handle gracefully
+        let i = self.entries.length()
+        let entry0 : PQEntry[T] = {
+          val,
+          heap_idx: self.heap.length(),
+          entry_idx: i,
+        }
+        self.entries.push(entry0)
+        i
+      }
+    }
     self.entries[idx] = { val, heap_idx: self.heap.length(), entry_idx: idx }
     idx
   } else {

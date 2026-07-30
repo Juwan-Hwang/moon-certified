@@ -150,41 +150,68 @@ fn euler_phi(n : Int) -> Int {
 /// Polynomial coefficients mod n, represented as arrays.
 /// (x + a)^n mod (n, x^r - 1) check.
 /// We represent polynomials as arrays of coefficients mod n.
-fn poly_mul_mod(
+
+/// Multiply two polynomials modulo (n, x^r - 1), writing the result into the
+/// pre-allocated `out` buffer. This avoids allocating a new array per call,
+/// reducing GC pressure during the O(log n) repeated squaring in `poly_pow_mod`.
+///
+/// Skips zero coefficients in `a` for a practical speedup on sparse polynomials
+/// (common during early squaring steps where most coefficients are zero).
+fn poly_mul_mod_into(
   a : Array[Int],
   b : Array[Int],
   n : Int,
   r : Int,
-) -> Array[Int] {
-  let result : Array[Int] = Array::make(r, 0)
-  for i = 0; i < a.length(); i = i + 1 {
-    for j = 0; j < b.length(); j = j + 1 {
+  out : Array[Int],
+) -> Unit {
+  // Zero out the result buffer.
+  for i = 0; i < r; i = i + 1 {
+    out[i] = 0
+  }
+  let alen = a.length()
+  let blen = b.length()
+  for i = 0; i < alen; i = i + 1 {
+    let ai = a[i]
+    if ai == 0 {
+      continue
+    }
+    for j = 0; j < blen; j = j + 1 {
       let idx = (i + j) % r
-      result[idx] = (result[idx] + a[i] * b[j]) % n
+      out[idx] = (out[idx] + ai * b[j]) % n
     }
   }
-  result
 }
 
 ///|
 /// Compute (x + a)^n mod (n, x^r - 1) using repeated squaring.
+///
+/// Pre-allocates a single scratch buffer reused across all O(log n)
+/// multiplications, avoiding per-step allocation.
 fn poly_pow_mod(a : Int, n : Int, r : Int) -> Array[Int] {
   // Start with (x + a)
-  let mut base : Array[Int] = Array::make(r, 0)
+  let base : Array[Int] = Array::make(r, 0)
   base[0] = a % n
   if r > 1 {
     base[1] = 1
   }
-  let mut result : Array[Int] = Array::make(r, 0)
+  let result : Array[Int] = Array::make(r, 0)
   result[0] = 1 // 1
+  // Pre-allocated scratch buffer — reused for every multiplication.
+  let buf : Array[Int] = Array::make(r, 0)
   let mut e = n
   while e > 0 {
     if (e & 1) == 1 {
-      result = poly_mul_mod(result, base, n, r)
+      poly_mul_mod_into(result, base, n, r, buf)
+      for i = 0; i < r; i = i + 1 {
+        result[i] = buf[i]
+      }
     }
     e = e >> 1
     if e > 0 {
-      base = poly_mul_mod(base, base, n, r)
+      poly_mul_mod_into(base, base, n, r, buf)
+      for i = 0; i < r; i = i + 1 {
+        base[i] = buf[i]
+      }
     }
   }
   result

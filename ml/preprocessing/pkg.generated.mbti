@@ -1,0 +1,42 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/preprocessing"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct MinMaxScaler {
+  // private fields
+}
+pub fn MinMaxScaler::fit(Self, Array[Array[Double]]) -> Bool
+pub fn MinMaxScaler::fit_transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+pub fn MinMaxScaler::inverse_transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+pub fn MinMaxScaler::new() -> Self
+pub fn MinMaxScaler::transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+pub fn MinMaxScaler::with_range(Double, Double) -> Self
+
+pub struct OneHotEncoder {
+  // private fields
+}
+pub fn OneHotEncoder::decode(Self, Array[Double]) -> Int
+pub fn OneHotEncoder::encode(Self, Int) -> Array[Double]
+pub fn OneHotEncoder::n_classes(Self) -> Int
+pub fn OneHotEncoder::new(Int) -> Self
+pub fn OneHotEncoder::transform(Self, Array[Int]) -> Array[Array[Double]]
+
+pub struct StandardScaler {
+  // private fields
+}
+pub fn StandardScaler::fit(Self, Array[Array[Double]]) -> Bool
+pub fn StandardScaler::fit_transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+pub fn StandardScaler::inverse_transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+pub fn StandardScaler::means(Self) -> Array[Double]
+pub fn StandardScaler::new() -> Self
+pub fn StandardScaler::stds(Self) -> Array[Double]
+pub fn StandardScaler::transform(Self, Array[Array[Double]]) -> Array[Array[Double]]?
+
+// Type aliases
+
+// Traits
+

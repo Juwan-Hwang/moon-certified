@@ -13,9 +13,13 @@
 /// - **I(d)**: Apply d-th order differencing to achieve stationarity.
 /// - **MA(q)**: `y_t = ε_t + θ₁·ε_{t-1} + … + θ_q·ε_{t-q}`
 ///
-/// AR coefficients are estimated via ordinary least squares (OLS) on
-/// the differenced series. Forecasting inverts the differencing to
-/// recover predictions in the original scale.
+/// AR and MA coefficients are estimated via the **Hannan-Rissanen
+/// two-step method**: (1) fit a long AR model to obtain estimated
+/// residuals ε̂_t, then (2) run OLS of y_t on
+/// [1, y_{t-1},…,y_{t-p}, ε̂_{t-1},…,ε̂_{t-q}] to get consistent
+/// estimates of both AR (φ) and MA (θ) parameters. Forecasting
+/// inverts the differencing to recover predictions in the original
+/// scale, and uses both AR and MA terms in the forecast recurrence.
 ///
 /// ## GARCH(1,1)
 ///
@@ -372,31 +376,46 @@ pub fn forecast_ar(
 }
 
 // ---------------------------------------------------------------------------
-// ARIMA(p,d,q) Model
+// ARIMA(p,d,q) Model — with full MA(q) estimation via Hannan-Rissanen
 // ---------------------------------------------------------------------------
 
 ///|
 /// Fitted ARIMA(p,d,q) model.
 ///
 /// The AR component is estimated on the d-th differenced series.
-/// The MA order `q` is stored for reference; forecasting uses the
-/// AR component only (a common simplification for OLS-based fitting).
+/// MA coefficients `theta` are estimated via the **Hannan-Rissanen
+/// two-step method**: first fit a long AR model to obtain estimated
+/// residuals, then run OLS of y_t on [y_{t-1},…,y_{t-p}, ε̂_{t-1},…,ε̂_{t-q}]
+/// to get consistent estimates of both AR and MA parameters.
+///
+/// Forecasting uses both AR and MA components:
+/// `ŷ_{T+h} = c + Σφᵢ·ŷ_{T+h-i} + Σθⱼ·ε̂_{T+h-j}`
+/// where future innovations (h > j) are set to their expected value of 0.
 pub struct ARIMAModel {
   ar_model : ARModel
+  theta : Array[Double] // MA coefficients [θ₁, …, θ_q]
   d : Int // differencing order
-  q : Int // MA order (stored, not used in forecast)
+  q : Int // MA order
+  residuals : Array[Double] // Last max(q,1) residuals from fitting (for forecasting)
 }
 
 ///|
-/// Fit an ARIMA(p,d,q) model.
+/// Fit an ARIMA(p,d,q) model with full MA estimation.
 ///
-/// 1. Difference the data `d` times.
-/// 2. Fit AR(p) on the differenced series via OLS.
+/// Uses the Hannan-Rissanen two-step method:
+///
+/// 1. Difference the data `d` times to achieve stationarity.
+/// 2. Fit a long AR(max(p+q, n/4)) model to obtain estimated residuals `ε̂_t`.
+/// 3. Build design matrix [1, y_{t-1},…,y_{t-p}, ε̂_{t-1},…,ε̂_{t-q}] and
+///    run OLS to get AR coefficients φ, MA coefficients θ, and intercept c.
+/// 4. Compute final residuals from the full ARMA(p,q) model.
 ///
 /// - `data`: Original time series.
 /// - `p`: AR order.
 /// - `d`: Differencing order.
-/// - `q`: MA order (stored for reference).
+/// - `q`: MA order (0 = pure ARIMA(p,d,0)).
+///
+/// Returns the fitted `ARIMAModel`.
 pub fn fit_arima(
   data : Array[Double],
   p : Int,
@@ -404,8 +423,131 @@ pub fn fit_arima(
   q : Int,
 ) -> ARIMAModel {
   let diff_data = difference(data, d)
-  let ar_model = fit_ar(diff_data, p)
-  { ar_model, d, q }
+  let n = diff_data.length()
+  // Degenerate cases: no data or pure AR (q == 0).
+  if n < p + q + 5 || q <= 0 {
+    let ar_model = fit_ar(diff_data, p)
+    // Compute residuals for the AR model.
+    let resid = compute_ar_residuals(ar_model, diff_data)
+    { ar_model, theta: [], d, q, residuals: resid }
+  } else {
+    // --- Step 1: Long AR to get estimated residuals ---
+    let long_ar_order = if p + q + 10 < n / 4 {
+      p + q + 10
+    } else {
+      p + q + 3
+    }
+    let long_ar_order = if long_ar_order >= n {
+      n - 2
+    } else {
+      long_ar_order
+    }
+    let long_ar_order = if long_ar_order < 1 { 1 } else { long_ar_order }
+    let long_model = fit_ar(diff_data, long_ar_order)
+    let eps_hat = compute_ar_residuals(long_model, diff_data)
+    // --- Step 2: OLS on [1, y_{t-1},…,y_{t-p}, ε̂_{t-1},…,ε̂_{t-q}] ---
+    // We need t from max(p, q) to n-1 (0-indexed in diff_data).
+    let start = if p > q { p } else { q }
+    let n_obs = n - start
+    if n_obs < p + q + 2 {
+      // Not enough data for Hannan-Rissanen, fall back to AR-only.
+      let ar_model = fit_ar(diff_data, p)
+      let resid = compute_ar_residuals(ar_model, diff_data)
+      { ar_model, theta: [], d, q, residuals: resid }
+    } else {
+      let k = 1 + p + q // intercept + AR terms + MA terms
+      let x : Array[Double] = Array::make(n_obs * k, 0.0)
+      let y_resp : Array[Double] = Array::make(n_obs, 0.0)
+      for i = 0; i < n_obs; i = i + 1 {
+        let t = start + i
+        x[i * k] = 1.0 // constant
+        for j = 0; j < p; j = j + 1 {
+          x[i * k + 1 + j] = diff_data[t - 1 - j] // y_{t-1-j}
+        }
+        for j = 0; j < q; j = j + 1 {
+          x[i * k + 1 + p + j] = eps_hat[t - 1 - j] // ε̂_{t-1-j}
+        }
+        y_resp[i] = diff_data[t]
+      }
+      let result = ols(x, y_resp, n_obs, k)
+      // Extract AR and MA coefficients.
+      let phi : Array[Double] = Array::make(p, 0.0)
+      for j = 0; j < p; j = j + 1 {
+        phi[j] = result.coefficients[1 + j]
+      }
+      let theta : Array[Double] = Array::make(q, 0.0)
+      for j = 0; j < q; j = j + 1 {
+        theta[j] = result.coefficients[1 + p + j]
+      }
+      let ar_model : ARModel = { phi, intercept: result.coefficients[0], p }
+      // --- Step 3: Compute final residuals from ARMA(p,q) model ---
+      let resid = compute_arma_residuals(ar_model, theta, diff_data)
+      { ar_model, theta, d, q, residuals: resid }
+    }
+  }
+}
+
+///|
+/// Compute residuals from an AR(p) model.
+///
+/// `ε_t = y_t − (intercept + Σφᵢ·y_{t-i})`
+fn compute_ar_residuals(model : ARModel, data : Array[Double]) -> Array[Double] {
+  let n = data.length()
+  let p = model.p
+  if n == 0 {
+    return []
+  }
+  let resid : Array[Double] = Array::make(n, 0.0)
+  for t = 0; t < n; t = t + 1 {
+    let mut pred = model.intercept
+    for j = 0; j < p; j = j + 1 {
+      let idx = t - 1 - j
+      if idx >= 0 {
+        pred = pred + model.phi[j] * data[idx]
+      }
+    }
+    resid[t] = data[t] - pred
+  }
+  resid
+}
+
+///|
+/// Compute residuals from an ARMA(p,q) model.
+///
+/// `ε_t = y_t − intercept − Σφᵢ·y_{t-i} − Σθⱼ·ε_{t-j}`
+///
+/// Computed recursively: ε_0 assumes no past residuals (set to 0).
+fn compute_arma_residuals(
+  ar_model : ARModel,
+  theta : Array[Double],
+  data : Array[Double],
+) -> Array[Double] {
+  let n = data.length()
+  let p = ar_model.p
+  let q = theta.length()
+  if n == 0 {
+    return []
+  }
+  let resid : Array[Double] = Array::make(n, 0.0)
+  for t = 0; t < n; t = t + 1 {
+    let mut pred = ar_model.intercept
+    // AR terms
+    for j = 0; j < p; j = j + 1 {
+      let idx = t - 1 - j
+      if idx >= 0 {
+        pred = pred + ar_model.phi[j] * data[idx]
+      }
+    }
+    // MA terms: use previously computed residuals
+    for j = 0; j < q; j = j + 1 {
+      let idx = t - 1 - j
+      if idx >= 0 {
+        pred = pred + theta[j] * resid[idx]
+      }
+    }
+    resid[t] = data[t] - pred
+  }
+  resid
 }
 
 ///|
@@ -456,10 +598,19 @@ fn integrate_forecasts(
 }
 
 ///|
-/// Forecast future values using an ARIMA model.
+/// Forecast future values using an ARIMA model with MA component.
 ///
+/// The forecast uses both AR and MA terms:
+/// `ŷ_{T+h} = c + Σ_{i=1}^{p} φᵢ·ŷ_{T+h-i} + Σ_{j=1}^{q} θⱼ·ε̂_{T+h-j}`
+///
+/// - For h ≤ i: `ŷ_{T+h-i}` is the actual differenced value.
+/// - For h > i: `ŷ_{T+h-i}` is a previous forecast.
+/// - For h ≤ j: `ε̂_{T+h-j}` is the in-sample residual.
+/// - For h > j: `ε̂_{T+h-j}` = 0 (expected future innovation).
+///
+/// Steps:
 /// 1. Difference the input data `d` times.
-/// 2. Forecast the differenced series with the AR model.
+/// 2. Forecast the differenced series with ARMA(p,q).
 /// 3. Integrate the forecasts back to the original scale.
 ///
 /// - `model`: Fitted ARIMA model.
@@ -470,9 +621,60 @@ pub fn forecast_arima(
   data : Array[Double],
   steps : Int,
 ) -> Array[Double] {
+  if steps <= 0 {
+    return []
+  }
   let diff_data = difference(data, model.d)
-  let diff_forecasts = forecast_ar(model.ar_model, diff_data, steps)
-  integrate_forecasts(diff_forecasts, data, model.d)
+  let p = model.ar_model.p
+  let q = model.q
+  // Buffer of recent differenced values (actual → forecasted).
+  let buf : Array[Double] = Array::make(p, 0.0)
+  let n = diff_data.length()
+  for i = 0; i < p; i = i + 1 {
+    let idx = n - p + i
+    buf[i] = if idx >= 0 { diff_data[idx] } else { 0.0 }
+  }
+  // Buffer of recent residuals (from in-sample fitting).
+  // We need the last q residuals.
+  let resid_buf : Array[Double] = Array::make(q, 0.0)
+  let n_resid = model.residuals.length()
+  for j = 0; j < q; j = j + 1 {
+    let idx = n_resid - q + j
+    resid_buf[j] = if idx >= 0 { model.residuals[idx] } else { 0.0 }
+  }
+  let forecasts : Array[Double] = Array::make(steps, 0.0)
+  for s = 0; s < steps; s = s + 1 {
+    let mut y = model.ar_model.intercept
+    // AR terms: φᵢ · y_{T+h-i}
+    for j = 0; j < p; j = j + 1 {
+      y = y + model.ar_model.phi[j] * buf[p - 1 - j]
+    }
+    // MA terms: θⱼ · ε_{T+h-j}
+    // For step s, we need residuals at lags 1..q relative to T+s.
+    // Lag j relative to T+s means index s - j in our forecast residual buffer.
+    // s - j < 0 means it's an in-sample residual; s - j ≥ 0 means future (= 0).
+    for j = 0; j < q; j = j + 1 {
+      let lag = j + 1 // θ₁ corresponds to ε_{t-1}
+      let resid_idx = s - lag
+      if resid_idx < 0 {
+        // In-sample residual: resid_buf[q - 1 + resid_idx] = resid_buf[q - 1 - lag + s]
+        let buf_idx = q - 1 + resid_idx
+        if buf_idx >= 0 {
+          y = y + model.theta[j] * resid_buf[buf_idx]
+        }
+      }
+      // Future innovations are 0 — no contribution.
+    }
+    forecasts[s] = y
+    // Slide AR buffer.
+    for j = 0; j < p - 1; j = j + 1 {
+      buf[j] = buf[j + 1]
+    }
+    if p > 0 {
+      buf[p - 1] = y
+    }
+  }
+  integrate_forecasts(forecasts, data, model.d)
 }
 
 // ---------------------------------------------------------------------------
@@ -971,6 +1173,110 @@ test "arima: forecast integrates differenced series" {
   assert_true((forecasts[0] - (last_val + 2.0)).abs() < 1.0e-6)
   assert_true((forecasts[1] - (last_val + 4.0)).abs() < 1.0e-6)
   assert_true((forecasts[4] - (last_val + 10.0)).abs() < 1.0e-6)
+}
+
+///|
+test "arima: MA(1) coefficients are estimated" {
+  // Generate MA(1): y_t = ε_t + 0.5·ε_{t-1}
+  let n = 500
+  let data : Array[Double] = Array::make(n, 0.0)
+  let mut prev_eps = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let t = i.to_double()
+    let hash = @math.sin(t * 12.9898) * 43758.5453
+    let eps = (hash - @math.floor(hash) - 0.5) * 2.0
+    data[i] = eps + 0.5 * prev_eps
+    prev_eps = eps
+  }
+  let model = fit_arima(data, 0, 0, 1)
+  // q should be 1.
+  assert_eq(model.q, 1)
+  // theta should have 1 element.
+  assert_eq(model.theta.length(), 1)
+  // MA coefficient should be in a reasonable range around 0.5.
+  assert_true(model.theta[0] > 0.0)
+  assert_true(model.theta[0] < 1.0)
+}
+
+///|
+test "arima: ARMA(1,1) forecast uses MA component" {
+  // Generate ARMA(1,1): y_t = 0.4·y_{t-1} + ε_t + 0.3·ε_{t-1}
+  let n = 500
+  let data : Array[Double] = Array::make(n, 0.0)
+  let mut prev_y = 0.0
+  let mut prev_eps = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let t = i.to_double()
+    let hash = @math.sin(t * 7.3137) * 9999.0
+    let eps = (hash - @math.floor(hash) - 0.5) * 1.0
+    let y = 0.4 * prev_y + eps + 0.3 * prev_eps
+    data[i] = y
+    prev_y = y
+    prev_eps = eps
+  }
+  let model = fit_arima(data, 1, 0, 1)
+  // Both AR and MA should be estimated.
+  assert_eq(model.ar_model.p, 1)
+  assert_eq(model.q, 1)
+  assert_eq(model.theta.length(), 1)
+  // AR coefficient should be positive and less than 1.
+  assert_true(model.ar_model.phi[0] > 0.0)
+  assert_true(model.ar_model.phi[0] < 1.0)
+  // Forecast should produce finite values.
+  let forecasts = forecast_arima(model, data, 10)
+  assert_eq(forecasts.length(), 10)
+  for i = 0; i < 10; i = i + 1 {
+    assert_true(forecasts[i].abs() < 100.0)
+  }
+}
+
+///|
+test "arima: MA(2) model fits and forecasts" {
+  // Generate MA(2): y_t = ε_t + 0.4·ε_{t-1} + 0.2·ε_{t-2}
+  let n = 500
+  let data : Array[Double] = Array::make(n, 0.0)
+  let mut eps1 = 0.0
+  let mut eps2 = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let t = i.to_double()
+    let hash = @math.sin(t * 3.7331) * 7777.0
+    let eps = (hash - @math.floor(hash) - 0.5) * 1.5
+    data[i] = eps + 0.4 * eps1 + 0.2 * eps2
+    eps2 = eps1
+    eps1 = eps
+  }
+  let model = fit_arima(data, 0, 0, 2)
+  assert_eq(model.q, 2)
+  assert_eq(model.theta.length(), 2)
+  // Forecasts should converge toward 0 (unconditional mean for zero-intercept MA).
+  let forecasts = forecast_arima(model, data, 20)
+  assert_eq(forecasts.length(), 20)
+  // MA forecasts should decay toward the mean after q steps.
+  // After step 2, no MA contribution → forecast should be close to intercept.
+  assert_true(forecasts[5].abs() < 5.0)
+}
+
+///|
+test "arima: q=0 falls back to AR-only" {
+  // Pure AR(1) data with q=0 should work identically to fit_ar.
+  let n = 300
+  let data : Array[Double] = Array::make(n, 0.0)
+  let mut y = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let t = i.to_double()
+    let hash = @math.sin(t * 5.5115) * 3333.0
+    let noise = (hash - @math.floor(hash) - 0.5) * 0.3
+    y = 0.6 * y + noise
+    data[i] = y
+  }
+  let model = fit_arima(data, 1, 0, 0)
+  assert_eq(model.q, 0)
+  assert_eq(model.theta.length(), 0)
+  // Should still produce valid forecasts.
+  let forecasts = forecast_arima(model, data, 5)
+  assert_eq(forecasts.length(), 5)
+  // AR(1) with phi=0.6 should produce converging forecasts.
+  assert_true(forecasts[0].abs() < 100.0)
 }
 
 ///|

@@ -228,7 +228,7 @@ test "xchacha20: encrypt/decrypt round-trip" {
   let nonce = Bytes::make(24, b'\x37')
   let plaintext = @utils.string_to_bytes("Hello, XChaCha20!")
   let ciphertext = match xchacha20_encrypt(key, nonce, plaintext) {
-    None => abort("encryption failed")
+    None => fail("encryption failed")
     Some(c) => c
   }
   // Ciphertext should differ from plaintext.
@@ -242,7 +242,7 @@ test "xchacha20: encrypt/decrypt round-trip" {
   assert_false(same)
   // Decrypt and verify.
   let decrypted = match xchacha20_decrypt(key, nonce, ciphertext) {
-    None => abort("decryption failed")
+    None => fail("decryption failed")
     Some(d) => d
   }
   assert_eq(decrypted.length(), plaintext.length())
@@ -273,7 +273,7 @@ test "xchacha20: empty data" {
   let nonce = Bytes::make(24, b'\x37')
   let empty = Bytes::from_array([])
   let result = match xchacha20_encrypt(key, nonce, empty) {
-    None => abort("encryption failed")
+    None => fail("encryption failed")
     Some(r) => r
   }
   assert_eq(result.length(), 0)
@@ -286,11 +286,11 @@ test "xchacha20: different nonces produce different ciphertexts" {
   let nonce2 = Bytes::make(24, b'\x02')
   let plaintext = @utils.string_to_bytes("Same key, different nonce")
   let ct1 = match xchacha20_encrypt(key, nonce1, plaintext) {
-    None => abort("encryption 1 failed")
+    None => fail("encryption 1 failed")
     Some(c) => c
   }
   let ct2 = match xchacha20_encrypt(key, nonce2, plaintext) {
-    None => abort("encryption 2 failed")
+    None => fail("encryption 2 failed")
     Some(c) => c
   }
   // Ciphertexts must differ.
@@ -314,11 +314,11 @@ test "xchacha20: large data round-trip" {
   }
   let pt_bytes = Bytes::from_array(plaintext)
   let ct = match xchacha20_encrypt(key, nonce, pt_bytes) {
-    None => abort("encryption failed")
+    None => fail("encryption failed")
     Some(c) => c
   }
   let pt2 = match xchacha20_decrypt(key, nonce, ct) {
-    None => abort("decryption failed")
+    None => fail("decryption failed")
     Some(d) => d
   }
   assert_eq(pt2.length(), 256)
@@ -332,7 +332,7 @@ test "xchacha20: hchacha20 derive" {
   let key = Bytes::make(32, b'\x42')
   let input = Bytes::make(16, b'\x37')
   let subkey = match hchacha20_derive(key, input) {
-    None => abort("hchacha20 failed")
+    None => fail("hchacha20 failed")
     Some(s) => s
   }
   assert_eq(subkey.length(), 32)
@@ -346,7 +346,7 @@ test "xchacha20: hchacha20 derive" {
   assert_true(nonzero)
   // Same input should produce same output (deterministic).
   let subkey2 = match hchacha20_derive(key, input) {
-    None => abort("hchacha20 failed")
+    None => fail("hchacha20 failed")
     Some(s) => s
   }
   for i = 0; i < 32; i = i + 1 {
@@ -355,7 +355,7 @@ test "xchacha20: hchacha20 derive" {
   // Different key should produce different subkey.
   let key2 = Bytes::make(32, b'\x43')
   let subkey3 = match hchacha20_derive(key2, input) {
-    None => abort("hchacha20 failed")
+    None => fail("hchacha20 failed")
     Some(s) => s
   }
   let mut differ = false

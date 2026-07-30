@@ -77,21 +77,22 @@ pub struct Argon2Params {
 ///|
 /// Create Argon2id parameters with validation.
 ///
-/// Clamps values to RFC 9106 minimums:
-/// - `time_cost` ≥ 1
-/// - `memory_cost` ≥ 8 × `parallelism` (so each lane has ≥ 8 blocks)
-/// - `parallelism` ≥ 1
-/// - `hash_len` ≥ 4
+/// Clamps values to RFC 9106 minimums and enforces upper bounds:
+/// - `time_cost` ≥ 1, ≤ 100 (prevents excessive computation)
+/// - `memory_cost` ≥ 8 × `parallelism`, ≤ 4,194,304 KiB (4 GB, prevents OOM)
+/// - `parallelism` ≥ 1, ≤ 64
+/// - `hash_len` ≥ 4, ≤ 1024
 pub fn params(
   time_cost : Int,
   memory_cost : Int,
   parallelism : Int,
   hash_len : Int,
 ) -> Argon2Params {
-  let p = if parallelism < 1 { 1 } else { parallelism }
-  let tc = if time_cost < 1 { 1 } else { time_cost }
-  let mc = if memory_cost < 8 * p { 8 * p } else { memory_cost }
-  let hl = if hash_len < 4 { 4 } else { hash_len }
+  let p = if parallelism < 1 { 1 } else { if parallelism > 64 { 64 } else { parallelism } }
+  let tc = if time_cost < 1 { 1 } else { if time_cost > 100 { 100 } else { time_cost } }
+  let mc_min = 8 * p
+  let mc = if memory_cost < mc_min { mc_min } else { if memory_cost > 4194304 { 4194304 } else { memory_cost } }
+  let hl = if hash_len < 4 { 4 } else { if hash_len > 1024 { 1024 } else { hash_len } }
   { time_cost: tc, memory_cost: mc, parallelism: p, hash_len: hl, version: ARGON2_VERSION }
 }
 
@@ -290,11 +291,20 @@ fn copy_block(dst : FixedArray[UInt64], dst_off : Int, src : FixedArray[UInt64],
 ///
 /// Returns `(ref_lane, ref_index)`.
 ///
-/// RFC 9106 §3.4 (simplified for single-lane case):
+/// Implements RFC 9106 §3.4 index computation for **multi-lane** Argon2:
 /// - `prev_block` is the previous block in the current lane (B[i][j-1]).
-/// - `ref_lane` is determined by the second 32 bits of prev_block.
+/// - `ref_lane` is determined by the second 32 bits of prev_block, clamped
+///   to `[0, current_lane]` during pass 0 (a lane may only reference earlier
+///   or same lanes during the first pass).
 /// - `ref_index` is determined by the first 32 bits, mapped to the
-///   reference area [0, pseudo_rand_size).
+///   reference area `[0, pseudo_rand_size)` using the RFC 9106 §3.4
+///   index mapping function.
+///
+/// **Note**: Lanes are processed sequentially (lane 0 → lane p-1) rather
+/// than in parallel. This is correct per RFC 9106 (the spec defines memory
+/// access patterns, not execution parallelism) but does not provide the
+/// speedup that true multi-threaded execution would. On MoonBit's current
+/// Wasm/JS single-threaded target, parallel execution is not available.
 fn compute_ref_index(
   prev_block : FixedArray[UInt64],
   prev_off : Int,
@@ -393,6 +403,15 @@ fn generate_address(
 /// - `ad`: Optional associated data. Pass empty bytes for none.
 ///
 /// Returns the raw hash bytes of length `params.hash_len`.
+///
+/// ## Multi-lane processing
+///
+/// The `parallelism` parameter correctly affects memory layout (m' = 4*p*⌊m/(4p)⌋),
+/// lane initialization, and cross-lane reference index computation per RFC 9106 §3.4.
+/// Lanes are processed **sequentially** (lane 0 → p-1), which produces identical
+/// output to a parallel implementation — RFC 9106 defines the algorithm in terms
+/// of memory access patterns, not execution order. Actual parallel speedup requires
+/// platform-level threading, which MoonBit's Wasm/JS target does not currently support.
 ///
 /// ## Example
 ///
@@ -768,6 +787,35 @@ test "argon2: multi-lane produces correct length" {
   let p = params(1, 128, 2, 16)
   let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
   assert_eq(h.length(), 16)
+}
+
+///|
+test "argon2: multi-lane affects computation (not just memory)" {
+  // Same total memory (256 KiB) but different parallelism.
+  // p=1: 256 KiB / 1 lane = 256 blocks/lane
+  // p=2: 256 KiB / 2 lanes = 128 blocks/lane
+  // If multi-lane indexing is correctly implemented, the hashes differ.
+  let p1 = params(1, 256, 1, 32)
+  let p2 = params(1, 256, 2, 32)
+  let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p1, b"", b"")
+  let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p2, b"", b"")
+  let mut diff = false
+  for i = 0; i < 32; i = i + 1 {
+    if h1[i] != h2[i] {
+      diff = true
+      break
+    }
+  }
+  assert_true(diff)
+}
+
+///|
+test "argon2: multi-lane deterministic" {
+  // Multi-lane output must be deterministic across runs.
+  let p = params(2, 128, 4, 32)
+  let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  assert_eq(h1, h2)
 }
 
 ///|

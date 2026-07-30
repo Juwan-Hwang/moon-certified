@@ -54,8 +54,20 @@
 pub const PBKDF2_MIN_ITERATIONS : Int = 600_000
 
 ///|
+/// Maximum iterations to prevent accidental DoS (100M iterations ≈ minutes).
+pub const PBKDF2_MAX_ITERATIONS : Int = 100_000_000
+
+///|
 /// Minimum salt length in bytes (128 bits per NIST SP 800-132).
 pub const PBKDF2_MIN_SALT_LEN : Int = 16
+
+///|
+/// Maximum salt length in bytes (prevents excessive memory consumption).
+pub const PBKDF2_MAX_SALT_LEN : Int = 1024
+
+///|
+/// Default output length in bytes (256-bit key).
+pub const PBKDF2_DEFAULT_DKLEN : Int = 32
 
 ///|
 /// SHA-256 output length in bytes.
@@ -156,7 +168,9 @@ pub fn pbkdf2_sha256(
 /// Enforces the following security requirements:
 ///
 /// - `iterations ≥ PBKDF2_MIN_ITERATIONS` (600,000 per OWASP 2023)
+/// - `iterations ≤ PBKDF2_MAX_ITERATIONS` (100M, prevents DoS)
 /// - `salt.length() ≥ PBKDF2_MIN_SALT_LEN` (16 bytes / 128 bits per NIST)
+/// - `salt.length() ≤ PBKDF2_MAX_SALT_LEN` (1024 bytes, prevents memory waste)
 /// - `dklen ≥ 16` (minimum useful key length)
 /// - `dklen ≤ 4096` (prevent excessive memory consumption)
 ///
@@ -169,10 +183,10 @@ pub fn pbkdf2_sha256_checked(
   iterations : Int,
   dklen : Int,
 ) -> Bytes? {
-  if iterations < PBKDF2_MIN_ITERATIONS {
+  if iterations < PBKDF2_MIN_ITERATIONS || iterations > PBKDF2_MAX_ITERATIONS {
     return None
   }
-  if salt.length() < PBKDF2_MIN_SALT_LEN {
+  if salt.length() < PBKDF2_MIN_SALT_LEN || salt.length() > PBKDF2_MAX_SALT_LEN {
     return None
   }
   if dklen < 16 || dklen > 4096 {
@@ -189,13 +203,13 @@ pub fn pbkdf2_sha256_checked(
 test "pbkdf2: RFC 6070 basic vector (SHA-256 analog)" {
   // Verify basic properties: output length and determinism.
   let dk1 = match pbkdf2_sha256(b"password", b"salt", 1, 32) {
-    None => abort("pbkdf2 failed")
+    None => fail("pbkdf2 failed")
     Some(d) => d
   }
   assert_eq(dk1.length(), 32)
   // Same inputs → same output.
   let dk2 = match pbkdf2_sha256(b"password", b"salt", 1, 32) {
-    None => abort("pbkdf2 failed")
+    None => fail("pbkdf2 failed")
     Some(d) => d
   }
   assert_true(dk1 == dk2)
@@ -204,11 +218,11 @@ test "pbkdf2: RFC 6070 basic vector (SHA-256 analog)" {
 ///|
 test "pbkdf2: different iterations produce different keys" {
   let dk1 = match pbkdf2_sha256(b"password", b"salt", 1, 32) {
-    None => abort("pbkdf2 failed")
+    None => fail("pbkdf2 failed")
     Some(d) => d
   }
   let dk2 = match pbkdf2_sha256(b"password", b"salt", 100, 32) {
-    None => abort("pbkdf2 failed")
+    None => fail("pbkdf2 failed")
     Some(d) => d
   }
   assert_true(dk1 != dk2)
@@ -217,7 +231,7 @@ test "pbkdf2: different iterations produce different keys" {
 ///|
 test "pbkdf2: output length > hash length" {
   let dk = match pbkdf2_sha256(b"password", b"salt", 10, 64) {
-    None => abort("pbkdf2 failed")
+    None => fail("pbkdf2 failed")
     Some(d) => d
   }
   assert_eq(dk.length(), 64)

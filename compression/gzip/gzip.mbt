@@ -260,7 +260,7 @@ test "gzip: empty data round-trip" {
   let input = Bytes::make(0, b'\x00')
   let compressed = gzip_compress(input)
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), 0)
@@ -275,7 +275,7 @@ test "gzip: short text round-trip" {
   assert_eq(compressed[1], b'\x8b')
   assert_eq(compressed[2], b'\x08')
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -291,7 +291,7 @@ test "gzip: repetitive data round-trip" {
   // Compressed should be smaller for repetitive data.
   assert_true(compressed.length() < input.length())
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -309,7 +309,7 @@ test "gzip: binary data round-trip" {
   let input = Bytes::from_array(arr)
   let compressed = gzip_compress(input)
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -323,7 +323,7 @@ test "gzip: unicode text round-trip" {
   let input = @utils.string_to_bytes("日本語テスト αβγδ 🚀🎉")
   let compressed = gzip_compress(input)
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())
@@ -377,7 +377,7 @@ test "gzip: large data round-trip" {
   let compressed = gzip_compress(input)
   assert_true(compressed.length() < input.length())
   let decompressed = match gzip_decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), input.length())

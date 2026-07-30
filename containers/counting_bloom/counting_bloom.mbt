@@ -11,6 +11,24 @@
 /// - Supports add, remove, and contains operations
 /// - Space-efficient: O(m) where m is the filter size
 ///
+/// ## Counter overflow protection
+///
+/// Counters are 32-bit signed integers with **saturating increment**: once
+/// a counter reaches `COUNTER_MAX` (2^31 - 1), further increments are
+/// silently ignored. This prevents integer overflow that would corrupt the
+/// filter state. The trade-off is that if a counter saturates, the
+/// corresponding remove operation will not fully decrement it, potentially
+/// causing permanent false positives for affected buckets. In practice,
+/// with a well-sized filter (m/n ≥ 10), counter saturation is extremely
+/// unlikely.
+///
+/// ## Hash function
+///
+/// Uses double hashing (h_i = h1 + i*h2 mod m) with FNV-like polynomial
+/// string hashes. This is a simple hash function suitable for non-adversarial
+/// use. For adversarial environments, consider a keyed hash (e.g., SipHash)
+/// to prevent hash flooding attacks.
+///
 /// ## References
 ///
 /// - Fan, B., Andersen, O.G., Kaminsky, M., Mitzenmacher, M.D.
@@ -18,6 +36,9 @@
 /// - Bonomi, F. et al. "An Improved Construction for Counting Bloom Filters."
 ///
 /// `proof-enabled` is `false`.
+
+/// Maximum counter value (saturating). Prevents Int32 overflow.
+let counter_max : Int = 2147483647
 
 ///|
 /// A counting bloom filter with configurable number of hash functions
@@ -68,10 +89,15 @@ fn hash_fn(s : String, seed : Int) -> Int {
 
 ///|
 /// Add an element to the counting bloom filter.
+///
+/// Counters use saturating increment: once a counter reaches `counter_max`,
+/// further increments are ignored to prevent overflow.
 pub fn add(cbf : CountingBloomFilter, key : String) -> Unit {
   for i = 0; i < cbf.num_hashes; i = i + 1 {
     let idx = double_hash(key, i, cbf.num_bits)
-    cbf.counters[idx] = cbf.counters[idx] + 1
+    if cbf.counters[idx] < counter_max {
+      cbf.counters[idx] = cbf.counters[idx] + 1
+    }
   }
   cbf.count = cbf.count + 1
 }

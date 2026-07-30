@@ -293,7 +293,7 @@ test "poly1305: RFC 8439 test vector" {
   ])
   let msg = b"Cryptographic Forum Research Group"
   let tag = match poly1305(key, msg) {
-    None => abort("poly1305 failed")
+    None => fail("poly1305 failed")
     Some(t) => t
   }
   assert_eq(tag.length(), 16)
@@ -310,7 +310,7 @@ test "poly1305: RFC 8439 test vector" {
 test "poly1305: empty message" {
   let key = Bytes::make(32, b'\x00')
   let tag = match poly1305(key, b"") {
-    None => abort("poly1305 failed")
+    None => fail("poly1305 failed")
     Some(t) => t
   }
   assert_eq(tag.length(), 16)
@@ -326,11 +326,11 @@ test "poly1305: determinism" {
   let key = Bytes::makei(32, i => (i * 7 + 3).to_byte())
   let msg = b"hello world"
   let tag1 = match poly1305(key, msg) {
-    None => abort("poly1305 failed")
+    None => fail("poly1305 failed")
     Some(t) => t
   }
   let tag2 = match poly1305(key, msg) {
-    None => abort("poly1305 failed")
+    None => fail("poly1305 failed")
     Some(t) => t
   }
   assert_true(tag1 == tag2)

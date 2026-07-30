@@ -148,6 +148,6 @@ test "exponential_search: duplicates" {
   let r = exponential_search(xs, 2)
   match r {
     Some(idx) => assert_eq(xs[idx], 2)
-    None => abort("should find 2")
+    None => assert_true(false) // should find 2
   }
 }

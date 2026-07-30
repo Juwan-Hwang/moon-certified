@@ -310,7 +310,7 @@ test "base64: round-trip decode" {
           assert_eq(decoded[j].to_int(), inputs[i][j].to_int())
         }
       }
-      None => abort("decode failed for: " + inputs[i])
+      None => fail("decode failed for: " + inputs[i])
     }
   }
 }
@@ -333,7 +333,7 @@ test "base64: url-safe variant" {
       assert_eq(d[1], b'\xff')
       assert_eq(d[2], b'\xbf')
     }
-    None => abort("decode failed")
+    None => fail("decode failed")
   }
   match decode_url_safe(url_encoded) {
     Some(d) => {
@@ -342,7 +342,7 @@ test "base64: url-safe variant" {
       assert_eq(d[1], b'\xff')
       assert_eq(d[2], b'\xbf')
     }
-    None => abort("decode_url_safe failed")
+    None => fail("decode_url_safe failed")
   }
 }
 
@@ -353,7 +353,7 @@ test "base64: unpadded encoding" {
   assert_eq(encode_unpadded(str_to_bytes("foo")), "Zm9v")
   match decode("Zm9v") {
     Some(d) => assert_eq(d.length(), 3)
-    None => abort("decode unpadded failed")
+    None => fail("decode unpadded failed")
   }
 }
 
@@ -378,7 +378,7 @@ test "base64: binary data round-trip" {
         assert_eq(decoded[i], data[i])
       }
     }
-    None => abort("binary round-trip failed")
+    None => fail("binary round-trip failed")
   }
 }
 

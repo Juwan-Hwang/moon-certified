@@ -35,7 +35,12 @@
 /// - `Null` — the JSON literal `null`.
 /// - `Bool(Bool)` — `true` or `false`.
 /// - `Number(Double)` — a JSON number. Stored as `Double`; integers
-///   exceeding 2^53 may lose precision.
+///   exceeding 2^53 may lose precision. Pure integers exceeding 2^53 are
+///   automatically stored as `BigInt` to preserve full precision.
+/// - `BigInt(String)` — a large integer that exceeds `Double` precision
+///   (> 2^53). The original decimal string is preserved verbatim.
+///   This variant is produced automatically by `parse` for pure integers
+///   with more than 15 significant digits.
 /// - `Str(String)` — a JSON string. MoonBit's `String` is Unicode-aware,
 ///   so all valid JSON strings round-trip correctly.
 /// - `Arr(Array[JsonValue])` — a JSON array (ordered list).
@@ -46,6 +51,7 @@ pub enum JsonValue {
   Null
   Bool(Bool)
   Number(Double)
+  BigInt(String)
   Str(String)
   Arr(Array[JsonValue])
   Obj(Array[(String, JsonValue)])
@@ -62,6 +68,7 @@ impl Eq for JsonValue with equal(a, b) {
     (Null, Null) => true
     (Bool(x), Bool(y)) => x == y
     (Number(x), Number(y)) => x == y
+    (BigInt(x), BigInt(y)) => x == y
     (Str(x), Str(y)) => x == y
     (Arr(x), Arr(y)) =>
       if x.length() != y.length() {
@@ -124,6 +131,16 @@ pub fn json_int(n : Int) -> JsonValue {
 }
 
 ///|
+/// Construct a JSON BigInt value from a decimal string.
+///
+/// The string should contain only digits and an optional leading minus sign.
+/// No validation is performed — the string is stored verbatim and serialized
+/// as-is.
+pub fn json_bigint(s : String) -> JsonValue {
+  BigInt(s)
+}
+
+///|
 /// Construct a JSON string value.
 pub fn json_str(s : String) -> JsonValue {
   Str(s)
@@ -173,6 +190,15 @@ pub fn is_number(v : JsonValue) -> Bool {
 }
 
 ///|
+/// Returns `true` if `v` is a `BigInt`.
+pub fn is_bigint(v : JsonValue) -> Bool {
+  match v {
+    BigInt(_) => true
+    _ => false
+  }
+}
+
+///|
 /// Returns `true` if `v` is a `Str`.
 pub fn is_string(v : JsonValue) -> Bool {
   match v {
@@ -217,6 +243,15 @@ pub fn as_bool(v : JsonValue) -> Bool? {
 pub fn as_number(v : JsonValue) -> Double? {
   match v {
     Number(n) => Some(n)
+    _ => None
+  }
+}
+
+///|
+/// Extract the `BigInt` decimal string, or `None` if `v` is not a `BigInt`.
+pub fn as_bigint(v : JsonValue) -> String? {
+  match v {
+    BigInt(s) => Some(s)
     _ => None
   }
 }
@@ -302,6 +337,15 @@ pub fn get_num(v : JsonValue, key : String) -> Double? {
 }
 
 ///|
+/// Shorthand for `get(v, key)` then `as_bigint`.
+pub fn get_bigint(v : JsonValue, key : String) -> String? {
+  match get(v, key) {
+    Some(BigInt(s)) => Some(s)
+    _ => None
+  }
+}
+
+///|
 /// Shorthand for `get(v, key)` then `as_bool`.
 pub fn get_bool(v : JsonValue, key : String) -> Bool? {
   match get(v, key) {
@@ -314,11 +358,22 @@ pub fn get_bool(v : JsonValue, key : String) -> Bool? {
 // Parser
 // ---------------------------------------------------------------------------
 
+/// Maximum nesting depth for JSON parsing.
+///
+/// Prevents stack-overflow attacks via deeply nested `[[[...]]]` or
+/// `{"a":{"a":{"a":...}}}` structures. RFC 8259 §9 specifies that
+/// implementations may set an implementation-defined limit on nesting depth.
+/// Python uses 1000, Go's `encoding/json` uses 10000, Rust's `serde_json`
+/// uses 128 by default. We use 1000 as a conservative middle ground.
+let max_nesting_depth : Int = 1000
+
 ///|
-/// Internal parser state: the input string and current position.
+/// Internal parser state: the input string, current position, and
+/// current nesting depth (for stack-overflow protection).
 priv struct Parser {
   input : String
   mut pos : Int
+  mut depth : Int
 }
 
 ///|
@@ -327,7 +382,7 @@ priv struct Parser {
 /// Returns `Some(value)` on success, or `None` if the input is not valid
 /// JSON (including trailing garbage after the root value).
 pub fn parse(input : String) -> JsonValue? {
-  let p : Parser = { input, pos: 0 }
+  let p : Parser = { input, pos: 0, depth: 0 }
   Parser::skip_ws(p)
   match Parser::parse_value(p) {
     None => None
@@ -391,16 +446,26 @@ fn Parser::next_char(self : Parser) -> Int {
 ///|
 /// Parse any JSON value.
 fn Parser::parse_value(self : Parser) -> JsonValue? {
+  // Depth check: prevent stack overflow from deeply nested structures.
+  if self.depth >= max_nesting_depth {
+    return None
+  }
   self.skip_ws()
   match self.peek() {
     -1 => None
     c =>
       if c == 123 {
         // '{' — object
-        self.parse_object()
+        self.depth = self.depth + 1
+        let result = self.parse_object()
+        self.depth = self.depth - 1
+        result
       } else if c == 91 {
         // '[' — array
-        self.parse_array()
+        self.depth = self.depth + 1
+        let result = self.parse_array()
+        self.depth = self.depth - 1
+        result
       } else if c == 34 {
         // '"' — string
         match self.parse_string() {
@@ -579,8 +644,10 @@ fn Parser::parse_number(self : Parser) -> JsonValue? {
   } else {
     return None
   }
+  let mut has_fraction_or_exp = false
   // Fractional part.
   if self.peek() == 46 {
+    has_fraction_or_exp = true
     self.pos = self.pos + 1
     if self.peek() < 48 || self.peek() > 57 {
       return None // Must have at least one digit after '.'
@@ -592,6 +659,7 @@ fn Parser::parse_number(self : Parser) -> JsonValue? {
   // Exponent part.
   let c = self.peek()
   if c == 101 || c == 69 {
+    has_fraction_or_exp = true
     self.pos = self.pos + 1
     // Optional sign.
     let s = self.peek()
@@ -606,6 +674,21 @@ fn Parser::parse_number(self : Parser) -> JsonValue? {
     }
   }
   let num_str = self.input[start:self.pos]
+  // Pure integers with more than 15 significant digits exceed Double
+  // precision (2^53 ≈ 9.007e15). Store them as BigInt to preserve the
+  // original decimal string verbatim, avoiding silent precision loss.
+  if !has_fraction_or_exp {
+    // Count significant digits: skip optional leading '-' and leading zeros.
+    let digit_start = if num_str[0].to_int() == 45 { 1 } else { 0 }
+    let mut sig = digit_start
+    while sig < num_str.length() && num_str[sig].to_int() == 48 {
+      sig = sig + 1
+    }
+    let sig_digits = num_str.length() - sig
+    if sig_digits > 15 {
+      return Some(BigInt(num_str.to_owned()))
+    }
+  }
   // Parse the substring as a Double.
   try {
     let d = @string.parse_double(num_str)
@@ -748,6 +831,7 @@ fn write_value(
       } else {
         buf.write_string(n.to_string())
       }
+    BigInt(s) => buf.write_string(s)
     Str(s) => write_string(s, buf)
     Arr(items) => {
       if items.length() == 0 {
@@ -1122,4 +1206,205 @@ test "json: parse_or with default" {
   assert_eq(as_string(v), Some("fallback"))
   let v2 = parse_or("\"valid\"", json_str("fallback"))
   assert_eq(as_string(v2), Some("valid"))
+}
+
+///|
+test "json: depth limit rejects deeply nested arrays" {
+  // Build a string of 2000 nested arrays: [[[[...]]]]
+  let buf = StringBuilder()
+  for _ in 0..<2000 {
+    buf.write_char('[')
+  }
+  for _ in 0..<2000 {
+    buf.write_char(']')
+  }
+  let malicious = buf.to_string()
+  // Should be rejected (depth > max_nesting_depth)
+  assert_true(parse(malicious) is None)
+}
+
+///|
+test "json: depth limit rejects deeply nested objects" {
+  // Build deeply nested objects: {"a":{"a":{"a":...}}}
+  let buf = StringBuilder()
+  for _ in 0..<2000 {
+    buf.write_string("{\"a\":")
+  }
+  buf.write_string("1")
+  for _ in 0..<2000 {
+    buf.write_char('}')
+  }
+  let malicious = buf.to_string()
+  assert_true(parse(malicious) is None)
+}
+
+///|
+test "json: moderate nesting accepted" {
+  // 500 levels of nesting should be within the limit
+  let buf = StringBuilder()
+  for _ in 0..<500 {
+    buf.write_char('[')
+  }
+  for _ in 0..<500 {
+    buf.write_char(']')
+  }
+  let moderate = buf.to_string()
+  assert_true(parse(moderate) is Some(_))
+}
+
+test "json: big integer parsed as BigInt" {
+  // 20-digit number exceeds 2^53, should be BigInt not Number
+  let v = parse("12345678901234567890")
+  assert_true(v is Some(_))
+  match v {
+    Some(BigInt(s)) => assert_eq(s, "12345678901234567890")
+    _ => fail("expected BigInt for 20-digit integer")
+  }
+}
+
+test "json: negative big integer parsed as BigInt" {
+  let v = parse("-98765432109876543210")
+  assert_true(v is Some(_))
+  match v {
+    Some(BigInt(s)) => assert_eq(s, "-98765432109876543210")
+    _ => fail("expected BigInt for negative 20-digit integer")
+  }
+}
+
+test "json: small integer stays Number" {
+  // 15 significant digits = within Double precision
+  let v = parse("123456789012345")
+  match v {
+    Some(Number(n)) => assert_eq(n, 123456789012345.0)
+    _ => fail("expected Number for 15-digit integer")
+  }
+}
+
+test "json: 16-digit integer becomes BigInt" {
+  // 16 significant digits exceed safe Double range
+  let v = parse("1234567890123456")
+  match v {
+    Some(BigInt(s)) => assert_eq(s, "1234567890123456")
+    _ => fail("expected BigInt for 16-digit integer")
+  }
+}
+
+test "json: float with many digits stays Number" {
+  // Has a decimal point, so never BigInt even with many digits
+  let v = parse("12345678901234567890.0")
+  match v {
+    Some(Number(_)) => ()
+    _ => fail("expected Number for float, not BigInt")
+  }
+}
+
+test "json: exponent number stays Number" {
+  let v = parse("12345678901234567890e5")
+  match v {
+    Some(Number(_)) => ()
+    _ => fail("expected Number for exponent notation, not BigInt")
+  }
+}
+
+test "json: BigInt round-trips through stringify" {
+  let original = "9007199254740993" // 2^53 + 1
+  let v = parse(original)
+  match v {
+    Some(BigInt(s)) => {
+      assert_eq(s, original)
+      assert_eq(stringify(BigInt(s)), original)
+    }
+    _ => fail("expected BigInt for 2^53+1")
+  }
+}
+
+test "json: BigInt in object" {
+  let json = parse("{\"id\": 12345678901234567890, \"name\": \"test\"}")
+  assert_true(json is Some(_))
+  match json {
+    Some(obj) => {
+      let id = get_bigint(obj, "id")
+      match id {
+        Some(s) => assert_eq(s, "12345678901234567890")
+        None => fail("expected BigInt for id field")
+      }
+      let name = get_str(obj, "name")
+      match name {
+        Some(s) => assert_eq(s, "test")
+        None => fail("expected string for name field")
+      }
+    }
+    None => fail("expected Some for valid JSON")
+  }
+}
+
+test "json: BigInt in array" {
+  let json = parse("[12345678901234567890, 42, -99999999999999999999]")
+  assert_true(json is Some(_))
+  match json {
+    Some(arr) => {
+      let v0 = get_at(arr, 0)
+      match v0 {
+        Some(BigInt(s)) => assert_eq(s, "12345678901234567890")
+        _ => fail("expected BigInt at index 0")
+      }
+      let v1 = get_at(arr, 1)
+      match v1 {
+        Some(Number(n)) => assert_eq(n, 42.0)
+        _ => fail("expected Number at index 1")
+      }
+      let v2 = get_at(arr, 2)
+      match v2 {
+        Some(BigInt(s)) => assert_eq(s, "-99999999999999999999")
+        _ => fail("expected BigInt at index 2")
+      }
+    }
+    None => fail("expected Some for valid JSON array")
+  }
+}
+
+test "json: is_bigint predicate" {
+  assert_true(is_bigint(BigInt("12345678901234567890")))
+  assert_false(is_bigint(Number(42.0)))
+  assert_false(is_bigint(Null))
+}
+
+test "json: as_bigint accessor" {
+  let v = BigInt("99999999999999999999")
+  match as_bigint(v) {
+    Some(s) => assert_eq(s, "99999999999999999999")
+    None => fail("as_bigint should return Some for BigInt value")
+  }
+  // as_bigint on non-BigInt returns None
+  assert_true(as_bigint(Number(42.0)) is None)
+  assert_true(as_bigint(Str("hello")) is None)
+}
+
+test "json: json_bigint constructor and stringify" {
+  let v = json_bigint("123456789012345678901234567890")
+  assert_eq(stringify(v), "123456789012345678901234567890")
+}
+
+test "json: BigInt equality" {
+  assert_true(BigInt("12345678901234567890") == BigInt("12345678901234567890"))
+  assert_false(BigInt("12345678901234567890") == BigInt("12345678901234567891"))
+  assert_false(BigInt("12345678901234567890") == Number(1.2345678901234568e19))
+}
+
+test "json: leading zeros don't trigger BigInt" {
+  // "0" is a valid JSON number with only 1 significant digit
+  let v = parse("0")
+  match v {
+    Some(Number(n)) => assert_eq(n, 0.0)
+    _ => fail("expected Number for zero")
+  }
+  // "001234" is invalid JSON (leading zeros prohibited), should return None
+  assert_true(parse("001234") is None)
+}
+
+test "json: BigInt stringify in pretty mode" {
+  let v = json_obj([("balance", BigInt("999999999999999999999"))])
+  let s = stringify_pretty(v, 2)
+  // Should contain the BigInt string verbatim
+  assert_true(s.contains("999999999999999999999"))
 }

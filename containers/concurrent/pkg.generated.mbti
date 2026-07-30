@@ -43,6 +43,18 @@ pub fn[T] BoundedQueue::try_enqueue(Self[T], T) -> Bool
 pub fn[T] BoundedQueue::try_pop(Self[T]) -> T?
 pub fn[T] BoundedQueue::try_push(Self[T], T) -> Bool
 
+pub struct ConditionVariable {
+  // private fields
+}
+pub fn ConditionVariable::broadcast(Self) -> Unit
+pub fn ConditionVariable::consume_signal(Self) -> Bool
+pub fn ConditionVariable::new() -> Self
+pub fn ConditionVariable::pending(Self) -> Int
+pub fn ConditionVariable::reset(Self) -> Unit
+pub fn ConditionVariable::signal(Self) -> Unit
+pub fn ConditionVariable::total_broadcasts_sent(Self) -> Int
+pub fn ConditionVariable::total_signals_sent(Self) -> Int
+
 pub struct RingBuffer[T] {
   // private fields
 }
@@ -55,6 +67,31 @@ pub fn[T] RingBuffer::new(Int) -> Self[T]
 pub fn[T] RingBuffer::pop(Self[T]) -> T?
 pub fn[T] RingBuffer::push(Self[T], T) -> Bool
 pub fn[T] RingBuffer::size(Self[T]) -> Int
+
+pub struct RwLock[T] {
+  // private fields
+}
+pub fn[T] RwLock::is_write_locked(Self[T]) -> Bool
+pub fn[T] RwLock::new(T) -> Self[T]
+pub fn[T] RwLock::read(Self[T]) -> T
+pub fn[T] RwLock::read_unlock(Self[T]) -> Unit
+pub fn[T] RwLock::reader_count(Self[T]) -> Int
+pub fn[T] RwLock::set(Self[T], T) -> Unit
+pub fn[T] RwLock::try_write(Self[T]) -> Bool
+pub fn[T] RwLock::with_read(Self[T], (T) -> Unit) -> Unit
+pub fn[T] RwLock::with_write(Self[T], (T) -> T) -> Unit
+pub fn[T] RwLock::write_unlock(Self[T]) -> Unit
+
+pub struct Semaphore {
+  // private fields
+}
+pub fn Semaphore::available(Self) -> Int
+pub fn Semaphore::max_permits(Self) -> Int
+pub fn Semaphore::new(Int) -> Self
+pub fn Semaphore::release(Self) -> Unit
+pub fn Semaphore::release_n(Self, Int) -> Unit
+pub fn Semaphore::try_acquire(Self) -> Bool
+pub fn Semaphore::try_acquire_n(Self, Int) -> Bool
 
 pub struct SnapshotMap[K, V] {
   // private fields

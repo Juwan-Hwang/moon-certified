@@ -274,17 +274,32 @@ fn random_bigint_bits(bits : Int, rng : @chacha20.ChaCha20Rng) -> @bigint.BigInt
   Some(bytes_to_bigint(Bytes::from_array(arr)))
 }
 
-/// Generate a random prime of exactly `bits` bits.
-/// Tries up to `max_attempts` random candidates.
-fn random_prime(bits : Int, rng : @chacha20.ChaCha20Rng, max_attempts : Int) -> @bigint.BigInt? {
+/// Generate a random prime of exactly `bits` bits that is coprime to `e`.
+///
+/// Tries up to `max_attempts` random candidates. Each candidate must pass
+/// Miller-Rabin primality testing **and** satisfy `gcd(e, p−1) == 1` so that
+/// the private exponent `d = e⁻¹ mod φ(n)` is guaranteed to exist.
+fn random_prime(
+  bits : Int,
+  rng : @chacha20.ChaCha20Rng,
+  max_attempts : Int,
+  e : @bigint.BigInt,
+) -> @bigint.BigInt? {
   let mut attempts = 0
+  let one = @bigint.one()
   while attempts < max_attempts {
     let candidate = match random_bigint_bits(bits, rng) {
       None => return None
       Some(c) => c
     }
     if miller_rabin_bigint(candidate, 40, rng) {
-      return Some(candidate)
+      // Verify gcd(e, p-1) == 1 so that d = e^(-1) mod φ(n) exists.
+      let p_minus_1 = @bigint.sub(candidate, one)
+      let g = @bigint.gcd(e, p_minus_1)
+      if @bigint.equal(g, one) {
+        return Some(candidate)
+      }
+      // gcd(e, p-1) != 1: this prime is incompatible with e, try another.
     }
     attempts = attempts + 1
   }
@@ -304,13 +319,20 @@ pub struct RSAPublicKey {
 }
 
 ///|
-/// RSA private key: (n, e, d, p, q).
+/// RSA private key: (n, e, d, p, q, dp, dq, qinv).
+///
+/// Stores CRT pre-computed values (dp, dq, qinv) for ~4x faster
+/// decryption via the Chinese Remainder Theorem (RFC 8017 §1.2,
+/// PKCS#1 RSAPrivateKey ASN.1 format).
 pub struct RSAPrivateKey {
   priv n : @bigint.BigInt // Modulus
   priv _e : @bigint.BigInt // Public exponent
   priv d : @bigint.BigInt // Private exponent
-  priv _p : @bigint.BigInt // First prime factor
-  priv _q : @bigint.BigInt // Second prime factor
+  priv p : @bigint.BigInt // First prime factor
+  priv q : @bigint.BigInt // Second prime factor
+  priv dp : @bigint.BigInt // d mod (p-1) — CRT exponent
+  priv dq : @bigint.BigInt // d mod (q-1) — CRT exponent
+  priv qinv : @bigint.BigInt // q^(-1) mod p — CRT coefficient
   priv bit_len : Int // Key size in bits
 }
 
@@ -369,19 +391,21 @@ pub fn generate_keypair(
   let half_bits = bits / 2
   let e = @bigint.from_int_value(65537)
   let one = @bigint.one()
-  // Generate two distinct primes p, q such that gcd(e, p-1) = 1 and gcd(e, q-1) = 1
-  let p = match random_prime(half_bits, rng, 1000) {
+  // Generate two distinct primes p, q such that gcd(e, p-1) = 1 and
+  // gcd(e, q-1) = 1. random_prime enforces the coprimality constraint
+  // so that d = e^(-1) mod φ(n) always exists.
+  let p = match random_prime(half_bits, rng, 1000, e) {
     None => return None
     Some(p) => p
   }
-  let mut q = match random_prime(half_bits, rng, 1000) {
+  let mut q = match random_prime(half_bits, rng, 1000, e) {
     None => return None
     Some(q) => q
   }
   // Ensure p != q
   let mut attempts = 0
   while @bigint.equal(p, q) && attempts < 100 {
-    q = match random_prime(half_bits, rng, 1000) {
+    q = match random_prime(half_bits, rng, 1000, e) {
       None => return None
       Some(q) => q
     }
@@ -399,8 +423,26 @@ pub fn generate_keypair(
     None => return None
     Some(d) => d
   }
+  // CRT pre-computation (RFC 8017 §1.2):
+  //   dp = d mod (p-1)
+  //   dq = d mod (q-1)
+  //   qinv = q^(-1) mod p
+  let p_minus_1 = @bigint.sub(p, one)
+  let q_minus_1 = @bigint.sub(q, one)
+  let dp = match @bigint.rem(d, p_minus_1) {
+    None => return None
+    Some(v) => v
+  }
+  let dq = match @bigint.rem(d, q_minus_1) {
+    None => return None
+    Some(v) => v
+  }
+  let qinv = match mod_inverse(q, p) {
+    None => return None
+    Some(v) => v
+  }
   let pubkey : RSAPublicKey = { n, e, bit_len: bits }
-  let privkey : RSAPrivateKey = { n, _e: e, d, _p: p, _q: q, bit_len: bits }
+  let privkey : RSAPrivateKey = { n, _e: e, d, p, q, dp, dq, qinv, bit_len: bits }
   Some((pubkey, privkey))
 }
 
@@ -416,12 +458,57 @@ fn rsa_encrypt_raw(pubkey : RSAPublicKey, m : @bigint.BigInt) -> @bigint.BigInt 
   }
 }
 
-/// Raw RSA decryption: m = c^d mod n. No padding.
+/// Raw RSA decryption using CRT (Chinese Remainder Theorem).
+///
+/// Instead of computing c^d mod n (which operates on full-size n),
+/// CRT splits the computation into two half-size exponentiations:
+///   m1 = c^dp mod p
+///   m2 = c^dq mod q
+///   h  = qinv * (m1 - m2) mod p
+///   m  = m2 + h * q
+/// This gives the same result but is ~4x faster because modular
+/// exponentiation is O(k³) in the bit-length of the modulus.
+///
+/// Falls back to the non-CRT path (c^d mod n) if any CRT step fails.
 fn rsa_decrypt_raw(privkey : RSAPrivateKey, c : @bigint.BigInt) -> @bigint.BigInt {
-  match @bigint.mod_pow(c, privkey.d, privkey.n) {
-    None => @bigint.zero()
+  // Non-CRT fallback: c^d mod n
+  let fallback = fn() -> @bigint.BigInt {
+    match @bigint.mod_pow(c, privkey.d, privkey.n) {
+      None => @bigint.zero()
+      Some(v) => v
+    }
+  }
+  // CRT path (RFC 8017 §1.2):
+  //   m1 = c^dp mod p
+  //   m2 = c^dq mod q
+  //   h  = qinv * (m1 - m2) mod p
+  //   m  = m2 + h * q
+  let cp = match @bigint.rem(c, privkey.p) {
+    None => return fallback()
     Some(v) => v
   }
+  let cq = match @bigint.rem(c, privkey.q) {
+    None => return fallback()
+    Some(v) => v
+  }
+  let m1 = match @bigint.mod_pow(cp, privkey.dp, privkey.p) {
+    None => return fallback()
+    Some(v) => v
+  }
+  let m2 = match @bigint.mod_pow(cq, privkey.dq, privkey.q) {
+    None => return fallback()
+    Some(v) => v
+  }
+  // h = qinv * (m1 - m2) mod p
+  // Note: bigint.mul and bigint.sub return BigInt (not Option)
+  let diff = @bigint.sub(m1, m2)
+  let h = @bigint.mul(privkey.qinv, diff)
+  let h_mod = match @bigint.rem(h, privkey.p) {
+    None => return fallback()
+    Some(v) => v
+  }
+  // m = m2 + h * q
+  @bigint.add(m2, @bigint.mul(h_mod, privkey.q))
 }
 
 // ---------------------------------------------------------------------------
@@ -506,8 +593,13 @@ pub fn decrypt(privkey : RSAPrivateKey, ciphertext : Bytes) -> Bytes? {
     None => return None
     Some(b) => b
   }
-  // Verify PKCS#1 v1.5 padding: 0x00 || 0x02 || PS || 0x00 || M
-  // PS must be at least 8 non-zero bytes.
+  // Constant-time PKCS#1 v1.5 unpadding (mitigates Bleichenbacher attack).
+  //
+  // Instead of looping until we find 0x00 (which leaks PS length via timing),
+  // we scan the entire array in a fixed number of iterations, using a flag
+  // to track whether the separator has been found.
+  //
+  // Format: 0x00 || 0x02 || PS (>= 8 non-zero bytes) || 0x00 || M
   let mut valid = true
   if padded[0] != b'\x00' {
     valid = false
@@ -515,20 +607,27 @@ pub fn decrypt(privkey : RSAPrivateKey, ciphertext : Bytes) -> Bytes? {
   if padded[1] != b'\x02' {
     valid = false
   }
-  // Find the 0x00 separator after PS
-  let mut sep_idx = 2
+  // Scan the entire array from index 2 to end, always.
+  // Track separator position using a flag (no early exit).
+  let mut sep_found = false
+  let mut sep_idx = padded.length() // invalid position if not found
   let mut ps_len = 0
-  while sep_idx < padded.length() && padded[sep_idx] != b'\x00' {
-    if padded[sep_idx] == b'\x00' {
-      valid = false
+  for i = 2; i < padded.length(); i = i + 1 {
+    if !sep_found {
+      if padded[i] == b'\x00' {
+        sep_found = true
+        sep_idx = i
+      } else {
+        ps_len = ps_len + 1
+      }
     }
-    ps_len = ps_len + 1
-    sep_idx = sep_idx + 1
   }
+  // Validate PS length (must be >= 8).
   if ps_len < 8 {
     valid = false
   }
-  if sep_idx >= padded.length() {
+  // Separator must have been found and not at the last byte.
+  if !sep_found || sep_idx >= padded.length() - 1 {
     valid = false
   }
   if !valid {
@@ -825,15 +924,22 @@ pub fn decrypt_oaep(
   for i = 0; i < h_len; i = i + 1 {
     valid = valid | (db[i] ^ l_hash[i])
   }
-  // Find 0x01 separator after PS
+  // Find 0x01 separator after PS — constant-time scan.
+  // We always iterate the full range and use a found flag to avoid
+  // data-dependent early exit (mitigates Manger attack timing).
   let mut found_sep = false
-  let mut msg_start = 0
+  let mut msg_start = db_len // default: no message
   for i = h_len; i < db_len; i = i + 1 {
+    let is_zero = if db[i] == b'\x00' { 1 } else { 0 }
+    let is_one = if db[i] == b'\x01' { 1 } else { 0 }
+    // If not yet found separator:
+    //   - non-zero, non-one byte → invalid (set valid flag)
+    //   - one byte → found separator
     if !found_sep {
-      if db[i] == b'\x01' {
+      if is_one == 1 {
         found_sep = true
         msg_start = i + 1
-      } else if db[i] != b'\x00' {
+      } else if is_zero == 0 {
         // Non-zero before separator → invalid
         valid = valid | b'\x01'
       }
@@ -1073,7 +1179,7 @@ test "rsa: OAEP encrypt/decrypt round-trip" {
   let key = Bytes::make(32, b'\x0B')
   let nonce = Bytes::make(12, b'\x0C')
   let (pubkey, privkey) = match generate_keypair(768, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let plaintext = @utils.string_to_bytes("OAEP test message!")
@@ -1081,11 +1187,11 @@ test "rsa: OAEP encrypt/decrypt round-trip" {
   let enc_key = Bytes::make(32, b'\x0D')
   let enc_nonce = Bytes::make(12, b'\x0E')
   let ciphertext = match encrypt_oaep(pubkey, plaintext, label, enc_key, enc_nonce) {
-    None => abort("OAEP encryption failed")
+    None => fail("OAEP encryption failed")
     Some(c) => c
   }
   let decrypted = match decrypt_oaep(privkey, ciphertext, label) {
-    None => abort("OAEP decryption failed")
+    None => fail("OAEP decryption failed")
     Some(d) => d
   }
   assert_eq(decrypted.length(), plaintext.length())
@@ -1099,17 +1205,17 @@ test "rsa: OAEP with empty label" {
   let key = Bytes::make(32, b'\x0F')
   let nonce = Bytes::make(12, b'\x10')
   let (pubkey, privkey) = match generate_keypair(768, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let plaintext = @utils.string_to_bytes("Hello OAEP")
   let empty_label = Bytes::make(0, b'\x00')
   let ciphertext = match encrypt_oaep(pubkey, plaintext, empty_label, Bytes::make(32, b'\x11'), Bytes::make(12, b'\x12')) {
-    None => abort("OAEP encryption failed")
+    None => fail("OAEP encryption failed")
     Some(c) => c
   }
   let decrypted = match decrypt_oaep(privkey, ciphertext, empty_label) {
-    None => abort("OAEP decryption failed")
+    None => fail("OAEP decryption failed")
     Some(d) => d
   }
   assert_eq(decrypted.length(), plaintext.length())
@@ -1123,14 +1229,14 @@ test "rsa: OAEP wrong label fails" {
   let key = Bytes::make(32, b'\x17')
   let nonce = Bytes::make(12, b'\x18')
   let (pubkey, privkey) = match generate_keypair(768, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let plaintext = @utils.string_to_bytes("Secret")
   let label1 = @utils.string_to_bytes("correct")
   let label2 = @utils.string_to_bytes("wrong")
   let ciphertext = match encrypt_oaep(pubkey, plaintext, label1, Bytes::make(32, b'\x19'), Bytes::make(12, b'\x1A')) {
-    None => abort("OAEP encryption failed")
+    None => fail("OAEP encryption failed")
     Some(c) => c
   }
   // Decryption with wrong label should fail
@@ -1142,13 +1248,13 @@ test "rsa: PSS sign/verify round-trip" {
   let key = Bytes::make(32, b'\x1B')
   let nonce = Bytes::make(12, b'\x1C')
   let (pubkey, privkey) = match generate_keypair(768, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let message = @utils.string_to_bytes("PSS test message")
   let salt_len = 32
   let sig = match sign_pss(privkey, message, Bytes::make(32, b'\x1D'), Bytes::make(12, b'\x1E'), salt_len) {
-    None => abort("PSS signing failed")
+    None => fail("PSS signing failed")
     Some(s) => s
   }
   assert_true(verify_pss(pubkey, message, sig, salt_len))
@@ -1162,12 +1268,12 @@ test "rsa: PSS with zero salt length" {
   let key = Bytes::make(32, b'\x1F')
   let nonce = Bytes::make(12, b'\x20')
   let (pubkey, privkey) = match generate_keypair(768, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let message = @utils.string_to_bytes("PSS zero salt")
   let sig = match sign_pss(privkey, message, Bytes::make(32, b'\x21'), Bytes::make(12, b'\x22'), 0) {
-    None => abort("PSS signing failed")
+    None => fail("PSS signing failed")
     Some(s) => s
   }
   assert_true(verify_pss(pubkey, message, sig, 0))
@@ -1187,7 +1293,7 @@ test "rsa: miller_rabin_bigint on small primes" {
       b'\x08', b'\x09', b'\x0a', b'\x0b',
     ]),
   ) {
-    None => abort("Failed to create RNG for test")
+    None => fail("Failed to create RNG for test")
     Some(r) => r
   }
   let primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]
@@ -1211,7 +1317,7 @@ test "rsa: miller_rabin_bigint on composites" {
       b'\x08', b'\x09', b'\x0a', b'\x0b',
     ]),
   ) {
-    None => abort("Failed to create RNG for test")
+    None => fail("Failed to create RNG for test")
     Some(r) => r
   }
   let composites = [4, 6, 8, 9, 10, 15, 21, 25, 27, 33, 35, 49, 51, 55]
@@ -1235,7 +1341,7 @@ test "rsa: miller_rabin_bigint on larger primes" {
       b'\x08', b'\x09', b'\x0a', b'\x0b',
     ]),
   ) {
-    None => abort("Failed to create RNG for test")
+    None => fail("Failed to create RNG for test")
     Some(r) => r
   }
   // Known primes
@@ -1252,7 +1358,7 @@ test "rsa: mod_inverse basic" {
   let a = @bigint.from_int_value(3)
   let m = @bigint.from_int_value(20)
   let inv = match mod_inverse(a, m) {
-    None => abort("mod_inverse failed")
+    None => fail("mod_inverse failed")
     Some(v) => v
   }
   assert_eq(@bigint.to_string(inv), "7")
@@ -1273,13 +1379,13 @@ test "rsa: mod_inverse large" {
   let e = @bigint.from_int_value(65537)
   let phi = @bigint.from_int_value(3120)
   let d = match mod_inverse(e, phi) {
-    None => abort("mod_inverse failed")
+    None => fail("mod_inverse failed")
     Some(v) => v
   }
   // Verify: e * d mod phi = 1
   let product = @bigint.mul(e, d)
   let remainder = match @bigint.divmod(product, phi) {
-    None => abort("divmod failed")
+    None => fail("divmod failed")
     Some((_, r)) => r
   }
   assert_eq(@bigint.to_string(remainder), "1")
@@ -1291,18 +1397,18 @@ test "rsa: keypair generation and encrypt/decrypt" {
   let key = Bytes::make(32, b'\x01')
   let nonce = Bytes::make(12, b'\x02')
   let (pubkey, privkey) = match generate_keypair(512, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   assert_eq(key_size(pubkey), 512)
   // Encrypt and decrypt a short message
   let plaintext = @utils.string_to_bytes("Hello, RSA!")
   let ciphertext = match encrypt(pubkey, plaintext, Bytes::make(32, b'\x0A'), Bytes::make(12, b'\x0B')) {
-    None => abort("encryption failed")
+    None => fail("encryption failed")
     Some(c) => c
   }
   let decrypted = match decrypt(privkey, ciphertext) {
-    None => abort("decryption failed")
+    None => fail("decryption failed")
     Some(d) => d
   }
   assert_eq(decrypted.length(), plaintext.length())
@@ -1316,12 +1422,12 @@ test "rsa: sign and verify" {
   let key = Bytes::make(32, b'\x03')
   let nonce = Bytes::make(12, b'\x04')
   let (pubkey, privkey) = match generate_keypair(512, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let message = @utils.string_to_bytes("Sign this message")
   let signature = match sign(privkey, message) {
-    None => abort("signing failed")
+    None => fail("signing failed")
     Some(s) => s
   }
   assert_true(verify(pubkey, message, signature))
@@ -1335,12 +1441,12 @@ test "rsa: sign and verify empty message" {
   let key = Bytes::make(32, b'\x05')
   let nonce = Bytes::make(12, b'\x06')
   let (pubkey, privkey) = match generate_keypair(512, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   let message = Bytes::make(0, b'\x00')
   let signature = match sign(privkey, message) {
-    None => abort("signing failed")
+    None => fail("signing failed")
     Some(s) => s
   }
   assert_true(verify(pubkey, message, signature))
@@ -1351,7 +1457,7 @@ test "rsa: encrypt too long returns None" {
   let key = Bytes::make(32, b'\x07')
   let nonce = Bytes::make(12, b'\x08')
   let (pubkey, _) = match generate_keypair(512, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   // 512-bit key = 64 bytes, max plaintext = 64 - 11 = 53 bytes
@@ -1364,7 +1470,7 @@ test "rsa: invalid ciphertext returns None" {
   let key = Bytes::make(32, b'\x09')
   let nonce = Bytes::make(12, b'\x0A')
   let (_, privkey) = match generate_keypair(512, key, nonce) {
-    None => abort("key generation failed")
+    None => fail("key generation failed")
     Some(pair) => pair
   }
   // Wrong length ciphertext
@@ -1394,11 +1500,11 @@ test "rsa: extended_gcd coprime" {
 test "rsa: bytes_to_bigint round-trip" {
   let original = @bigint.from_string("12345678901234567890")
   let original = match original {
-    None => abort("parse failed")
+    None => fail("parse failed")
     Some(v) => v
   }
   let bytes = match bigint_to_bytes(original, 9) {
-    None => abort("to_bytes failed")
+    None => fail("to_bytes failed")
     Some(b) => b
   }
   let recovered = bytes_to_bigint(bytes)

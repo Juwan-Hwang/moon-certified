@@ -127,7 +127,10 @@ fn EventQueue::pop(self : EventQueue) -> Event? {
   let top = self.data[0]
   let last = self.data.pop()
   if self.data.length() > 0 {
-    self.data[0] = last.unwrap()
+    match last {
+      Some(v) => self.data[0] = v
+      None => ()
+    }
     let mut i = 0
     let mut done = false
     while !done {
@@ -595,7 +598,10 @@ pub fn find_intersections(
   let scheduled : Map[(Int, Int), (Double, Double)] = Map([])
   let cmp = fn(a : Int, b : Int) -> Int { ctx_cmp(ctx, a, b) }
   while !q.is_empty() {
-    let ev = q.pop().unwrap()
+    let ev = match q.pop() {
+      Some(e) => e
+      None => break
+    }
     if ev.kind == 0 {
       // Left endpoint: insert and test new neighbours.
       ctx.sweep_x = ev.x

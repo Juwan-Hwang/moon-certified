@@ -8,6 +8,8 @@ pub fn add(BigInt, BigInt) -> BigInt
 
 pub fn bit_and(BigInt, BigInt) -> BigInt
 
+pub fn bit_length(BigInt) -> Int
+
 pub fn bit_or(BigInt, BigInt) -> BigInt
 
 pub fn bit_xor(BigInt, BigInt) -> BigInt

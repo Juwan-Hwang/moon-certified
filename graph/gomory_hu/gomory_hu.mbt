@@ -74,6 +74,8 @@ pub struct GomoryHuTree {
 ///
 /// # Complexity
 /// O(n · V · E²) using Edmonds-Karp for each of the n-1 max-flow calls.
+/// Each max-flow is computed exactly once per iteration (residual graph
+/// is reused for reachable-set extraction).
 pub fn build(graph : FixedArray[Int], n : Int) -> GomoryHuTree? {
   if n <= 0 || graph.length() < n * n {
     return None
@@ -84,97 +86,76 @@ pub fn build(graph : FixedArray[Int], n : Int) -> GomoryHuTree? {
   parent[0] = -1
   // weight[v]: capacity of tree edge (v, parent[v]).
   let weight = FixedArray::make(n, 0L)
+  // Reusable scratch arrays for max-flow computation.
+  let parent_arr = FixedArray::make(n, -1)
+  let visited = FixedArray::make(n, false)
+  let queue = FixedArray::make(n, 0)
+  let reachable = FixedArray::make(n, false)
+  let int_max = 2147483647
   // For each s = 1 .. n-1, compute max-flow(s, parent[s]) and update the tree.
   for s = 1; s < n; s = s + 1 {
     let t = parent[s]
-    // Compute max flow from s to t. We use the original graph each time
-    // (Gomory-Hu requires the original capacities, not a contracted graph
-    // when using the Gusfield simplification, which avoids explicit graph
-    // contraction).
-    let flow = match @max_flow.max_flow(graph, n, s, t) {
-      Some(f) => f
-      None => 0L // Should not happen for valid s != t
+    // Compute max flow from s to t AND find the reachable set in a single
+    // pass. Previously this called @max_flow.max_flow() and then recomputed
+    // the entire flow inside find_reachable() — double computation.
+    // Now we run Edmonds-Karp once, reuse the residual for both purposes.
+    let residual = FixedArray::make(n * n, 0)
+    for i = 0; i < n * n; i = i + 1 {
+      residual[i] = graph[i]
+    }
+    let mut flow = 0L
+    while bfs_path(residual, n, s, t, parent_arr, visited, queue) {
+      // Find bottleneck.
+      let mut path_flow = int_max
+      let mut v = t
+      while v != s {
+        let u = parent_arr[v]
+        let cap = residual[u * n + v]
+        if cap < path_flow {
+          path_flow = cap
+        }
+        v = u
+      }
+      // Augment.
+      v = t
+      while v != s {
+        let u = parent_arr[v]
+        residual[u * n + v] = residual[u * n + v] - path_flow
+        residual[v * n + u] = residual[v * n + u] + path_flow
+        v = u
+      }
+      flow = flow + path_flow.to_int64()
     }
     weight[s] = flow
-    // Find the min-cut: S = vertices reachable from s in the residual graph.
-    // We need to re-run BFS on the residual to find S. Since max_flow doesn't
-    // expose the residual, we recompute it here.
-    // To avoid code duplication with max_flow, we re-derive the residual:
-    // run max_flow's internal BFS logic ourselves.
-    let s_side = find_reachable(graph, n, s, t)
+    // Extract the s-side of the min-cut from the SAME residual graph
+    // (no recomputation needed). S = vertices reachable from s in residual.
+    for i = 0; i < n; i = i + 1 {
+      reachable[i] = false
+    }
+    let mut head = 0
+    let mut tail = 0
+    queue[tail] = s
+    tail = tail + 1
+    reachable[s] = true
+    while head < tail {
+      let u = queue[head]
+      head = head + 1
+      for v = 0; v < n; v = v + 1 {
+        if !reachable[v] && residual[u * n + v] > 0 {
+          reachable[v] = true
+          queue[tail] = v
+          tail = tail + 1
+        }
+      }
+    }
     // Re-parent: for each v > s with parent[v] == t and v in S, set parent[v] = s.
     for v = s + 1; v < n; v = v + 1 {
-      if parent[v] == t && s_side[v] {
+      if parent[v] == t && reachable[v] {
         parent[v] = s
       }
     }
   }
   Some({ parent, weight, n })
-}
-
-///|
-/// After computing max-flow(s, t), find all vertices reachable from s in the
-/// residual graph. These vertices form the "s side" of the min-cut.
-///
-/// We recompute the residual by running max-flow internally and tracking
-/// the residual. To avoid modifying the caller's graph, we copy it.
-fn find_reachable(
-  graph : FixedArray[Int],
-  n : Int,
-  src : Int,
-  sink : Int,
-) -> FixedArray[Bool] {
-  // Build the residual graph by copying original capacities.
-  let residual = FixedArray::make(n * n, 0)
-  for i = 0; i < n * n; i = i + 1 {
-    residual[i] = graph[i]
-  }
-  // Run Edmonds-Karp to saturate the residual.
-  let parent_arr = FixedArray::make(n, -1)
-  let visited = FixedArray::make(n, false)
-  let queue = FixedArray::make(n, 0)
-  let int_max = 2147483647
-  while bfs_path(residual, n, src, sink, parent_arr, visited, queue) {
-    // Find bottleneck.
-    let mut path_flow = int_max
-    let mut v = sink
-    while v != src {
-      let u = parent_arr[v]
-      let cap = residual[u * n + v]
-      if cap < path_flow {
-        path_flow = cap
-      }
-      v = u
-    }
-    // Augment.
-    v = sink
-    while v != src {
-      let u = parent_arr[v]
-      residual[u * n + v] = residual[u * n + v] - path_flow
-      residual[v * n + u] = residual[v * n + u] + path_flow
-      v = u
-    }
-  }
-  // BFS from src in the residual to find reachable vertices.
-  let reachable = FixedArray::make(n, false)
-  let q2 = FixedArray::make(n, 0)
-  let mut head = 0
-  let mut tail = 0
-  q2[tail] = src
-  tail = tail + 1
-  reachable[src] = true
-  while head < tail {
-    let u = q2[head]
-    head = head + 1
-    for v = 0; v < n; v = v + 1 {
-      if !reachable[v] && residual[u * n + v] > 0 {
-        reachable[v] = true
-        q2[tail] = v
-        tail = tail + 1
-      }
-    }
-  }
-  reachable
 }
 
 ///|
@@ -335,7 +316,7 @@ test "gomory_hu: triangle graph" {
   graph[2 * n + 0] = 5
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // min-cut(0, 1) should be 3 (direct edge 0-1, or path 0-2-1 = min(5,4)=4)
   // Actually min-cut = min over all cuts. For triangle, min(0,1) cut = 3.
@@ -373,7 +354,7 @@ test "gomory_hu: path graph" {
   graph[3 * n + 2] = 10
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // On a path, min-cut(0, 3) = 10 (bottleneck edge)
   assert_eq(min_cut(tree, 0, 3), 10L)
@@ -400,7 +381,7 @@ test "gomory_hu: star graph" {
   }
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // min-cut between two leaves = 5 (cutting either edge to center suffices)
   assert_eq(min_cut(tree, 1, 2), 5L)
@@ -431,7 +412,7 @@ test "gomory_hu: complete graph K4" {
   }
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // In K4, min-cut(u, v) = 3 (isolating one vertex cuts 3 edges)
   for u = 0; u < n; u = u + 1 {
@@ -452,7 +433,7 @@ test "gomory_hu: disconnected graph" {
   graph[3 * n + 2] = 3
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // Within component: correct min-cut
   assert_eq(min_cut(tree, 0, 1), 5L)
@@ -467,7 +448,7 @@ test "gomory_hu: single vertex" {
   let graph = FixedArray::make(1, 0)
   let tree = match build(graph, 1) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   assert_eq(vertex_count(tree), 1)
   assert_eq(parent_of(tree, 0), -1)
@@ -481,7 +462,7 @@ test "gomory_hu: two vertices" {
   graph[1 * n + 0] = 7
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   assert_eq(min_cut(tree, 0, 1), 7L)
   assert_eq(parent_of(tree, 1), 0)
@@ -504,7 +485,7 @@ test "gomory_hu: cross-check with max_flow on random graph" {
   }
   let tree = match build(graph, n) {
     Some(t) => t
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
   // Verify all pairs against max_flow.
   for u = 0; u < n; u = u + 1 {

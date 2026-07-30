@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/sdp"
+
+// Values
+pub fn check_psd(Array[Array[Double]], Int) -> Bool
+
+pub fn max_eigenvalue(Array[Array[Double]], Int) -> Double
+
+pub fn project_to_psd(Array[Array[Double]], Int) -> Array[Array[Double]]
+
+pub fn solve(Array[Array[Double]], Array[Constraint], Int, Int, Double) -> SDPResult
+
+// Errors
+
+// Types and methods
+pub struct Constraint {
+  a : Array[Array[Double]]
+  b : Double
+}
+
+pub struct SDPResult {
+  x : Array[Array[Double]]
+  objective : Double
+  converged : Bool
+  iterations : Int
+}
+
+// Type aliases
+
+// Traits
+

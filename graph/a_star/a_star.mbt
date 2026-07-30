@@ -262,7 +262,7 @@ test "a_star_path: basic path reconstruction" {
       assert_eq(p[0], 0) // start at (0,0) = index 0
       assert_eq(p[4], 8) // goal at (2,2) = index 8
     }
-    None => abort("expected a path")
+    None => fail("expected a path")
   }
 }
 
@@ -284,6 +284,6 @@ test "a_star_path: start equals goal" {
       assert_eq(p.length(), 1)
       assert_eq(p[0], 4) // index of (1,1) in 3x3 grid
     }
-    None => abort("expected a path")
+    None => fail("expected a path")
   }
 }

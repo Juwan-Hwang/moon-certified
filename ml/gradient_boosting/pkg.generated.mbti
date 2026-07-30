@@ -1,0 +1,35 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/gradient_boosting"
+
+// Values
+pub fn fit(GradientBoosting, Array[Array[Double]], Array[Double]) -> Unit
+
+pub fn fit_classifier(GradientBoosting, Array[Array[Double]], Array[Int]) -> Unit
+
+pub fn is_classifier(GradientBoosting) -> Bool
+
+pub fn n_estimators_(GradientBoosting) -> Int
+
+pub fn n_features(GradientBoosting) -> Int
+
+pub fn new(Double, Int, Int, Int) -> GradientBoosting
+
+pub fn new_classifier(Double, Int, Int, Int) -> GradientBoosting
+
+pub fn predict(GradientBoosting, Array[Double]) -> Int
+
+pub fn predict_proba(GradientBoosting, Array[Double]) -> Double
+
+pub fn predict_regress(GradientBoosting, Array[Double]) -> Double
+
+// Errors
+
+// Types and methods
+pub struct GradientBoosting {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

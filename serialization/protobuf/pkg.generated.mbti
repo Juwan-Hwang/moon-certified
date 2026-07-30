@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/serialization/protobuf"
+
+// Values
+pub fn decode_message(Bytes) -> Array[ProtoField]?
+
+pub fn decode_tag(Bytes, Int) -> (Int, Int, Int)?
+
+pub fn decode_varint(Bytes, Int) -> (UInt64, Int)?
+
+pub fn encode_fixed32_field(Int, UInt) -> Bytes
+
+pub fn encode_fixed64_field(Int, UInt64) -> Bytes
+
+pub fn encode_length_delimited(Int, Bytes) -> Bytes
+
+pub fn encode_string_field(Int, String) -> Bytes
+
+pub fn encode_tag(Int, Int) -> Bytes
+
+pub fn encode_varint(UInt64) -> Bytes
+
+pub fn encode_varint_field(Int, UInt64) -> Bytes
+
+pub fn zigzag_decode32(UInt) -> Int
+
+pub fn zigzag_decode64(UInt64) -> Int64
+
+pub fn zigzag_encode32(Int) -> UInt
+
+pub fn zigzag_encode64(Int64) -> UInt64
+
+// Errors
+
+// Types and methods
+pub struct ProtoField {
+  field_number : Int
+  wire_type : Int
+  data : Bytes
+}
+
+// Type aliases
+
+// Traits
+

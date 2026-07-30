@@ -64,8 +64,14 @@ pub fn union(uf : UnionFind, x : Int, y : Int) -> Bool {
   if rx is None || ry is None {
     return false
   }
-  let rx_val = rx.unwrap()
-  let ry_val = ry.unwrap()
+  let rx_val = match rx {
+    Some(v) => v
+    None => return false
+  }
+  let ry_val = match ry {
+    Some(v) => v
+    None => return false
+  }
   if rx_val == ry_val {
     return false
   }
@@ -90,7 +96,10 @@ pub fn connected(uf : UnionFind, x : Int, y : Int) -> Bool {
   if rx is None || ry is None {
     return false
   }
-  rx.unwrap() == ry.unwrap()
+  match (rx, ry) {
+    (Some(a), Some(b)) => a == b
+    _ => false
+  }
 }
 
 ///|

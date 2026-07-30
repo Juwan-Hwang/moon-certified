@@ -57,25 +57,39 @@
 // Field parameters: GF(2^255 - 19)
 // ---------------------------------------------------------------------------
 
+/// Parse a BigInt from a decimal string, aborting with a descriptive
+/// message if the string is invalid. Used exclusively for fixed RFC
+/// curve constants that are guaranteed correct by construction.
+fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
+  match @bigint.from_string(s) {
+    Some(v) => v
+    None => abort("FATAL: invalid Ed25519 curve constant: " + name)
+  }
+}
+
 /// Prime p = 2^255 - 19
-let p : @bigint.BigInt = @bigint.from_string(
+let p : @bigint.BigInt = parse_curve_const(
   "57896044618658097711785492504343953926634992332820282019728792003956564819949",
-).unwrap()
+  "Ed25519 prime p",
+)
 
 /// Curve order L = 2^252 + 27742317777372353535851937790883648493
-let l_order : @bigint.BigInt = @bigint.from_string(
+let l_order : @bigint.BigInt = parse_curve_const(
   "7237005577332262213973186563042994240857116359379907606001950938285454250989",
-).unwrap()
+  "Ed25519 order L",
+)
 
 /// d = -121665 * inv(121666) mod p
-let d_param : @bigint.BigInt = @bigint.from_string(
+let d_param : @bigint.BigInt = parse_curve_const(
   "37095705934669439343138083508754565189542113879843219016388785533085940283555",
-).unwrap()
+  "Ed25519 parameter d",
+)
 
 /// I = sqrt(-1) mod p = 2^((p-1)/4) mod p
-let i_sqrt : @bigint.BigInt = @bigint.from_string(
+let i_sqrt : @bigint.BigInt = parse_curve_const(
   "19681161376707505956807079304988542015446066515923890162744021073123829784752",
-).unwrap()
+  "Ed25519 I = sqrt(-1)",
+)
 
 // ---------------------------------------------------------------------------
 // Modular arithmetic helpers
@@ -182,20 +196,58 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   { x: fe_mul(e, f), y: fe_mul(g, h), z: fe_mul(f, g), t: fe_mul(e, h) }
 }
 
-/// Scalar multiplication: k * P using double-and-add.
-fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
-  let mut result = identity()
-  let mut current = pt
-  let mut scalar = k
-  let zero = @bigint.zero()
-  while @bigint.greater_than(scalar, zero) {
-    if @bigint.is_odd(scalar) {
-      result = point_add(result, current)
-    }
-    current = point_add(current, current)
-    scalar = @bigint.shr(scalar, 1)
+/// Conditional swap: if `swap` is true, exchange r0 and r1.
+/// Used by the Montgomery ladder to avoid data-dependent branching on
+/// secret scalar bits. While the `if` itself is a branch, the critical
+/// property is that the same number of point_add and point_double calls
+/// are executed regardless of the scalar value, eliminating the Hamming
+/// weight timing leak present in double-and-add.
+fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
+  if swap {
+    (r1, r0)
+  } else {
+    (r0, r1)
   }
-  result
+}
+
+/// Scalar multiplication: k * P using the Montgomery ladder.
+///
+/// The Montgomery ladder processes each bit of the scalar with exactly
+/// one point addition and one point doubling, regardless of the bit
+/// value. This eliminates the Hamming-weight timing side channel present
+/// in double-and-add (where `point_add` is only called for set bits).
+///
+/// **Constant-time at the algorithm level**: the number and type of field
+/// operations is independent of the scalar. The underlying BigInt field
+/// arithmetic is NOT constant-time (data-dependent execution paths in
+/// multiplication and reduction), so this is not a complete constant-time
+/// implementation. For production-grade constant-time guarantees, use
+/// libsodium/OpenSSL/ring which use field-specific radix-2^26 arithmetic
+/// with branch-free modular reduction.
+///
+/// **Reference**: RFC 8032 §5.1.5 recommends this approach.
+fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
+  // Fixed 255-bit iteration count (Ed25519 scalars are 255 bits after
+  // clamping). Using a fixed count avoids leaking the scalar's bit length.
+  let n_bits = 255
+  let mut r0 = identity()
+  let mut r1 = pt
+  for i = n_bits - 1; i >= 0; i = i - 1 {
+    // Extract bit i of the scalar
+    let bit = @bigint.is_odd(@bigint.shr(k, i))
+    // Conditional swap based on the bit
+    let (tmp0, tmp1) = cswap(bit, r0, r1)
+    r0 = tmp0
+    r1 = tmp1
+    // Always perform both addition and doubling
+    r1 = point_add(r0, r1)
+    r0 = point_add(r0, r0) // doubling via self-addition
+    // Swap back
+    let (tmp0b, tmp1b) = cswap(bit, r0, r1)
+    r0 = tmp0b
+    r1 = tmp1b
+  }
+  r0
 }
 
 // ---------------------------------------------------------------------------
@@ -259,10 +311,13 @@ fn point_decode(data : Bytes) -> Point? {
   let v3 = fe_mul(v2, v)
   let v7 = fe_mul(fe_mul(v3, v3), v) // v^3 * v^3 * v = v^7
   let uv7 = fe_mul(u, v7)
-  let exp = @bigint.div(
+  let exp = match @bigint.div(
     @bigint.sub(p, @bigint.from_int_value(5)),
     @bigint.from_int_value(8),
-  ).unwrap()
+  ) {
+    Some(v) => v
+    None => return None
+  }
   let pow_result = match @bigint.mod_pow(uv7, exp, p) {
     Some(r) => r
     None => return None
@@ -364,10 +419,13 @@ fn compute_base_point() -> Point {
   let v3 = fe_mul(v2, v)
   let v7 = fe_mul(fe_mul(v3, v3), v) // v^3 * v^3 * v = v^7
   let uv7 = fe_mul(u, v7)
-  let exp = @bigint.div(
+  let exp = match @bigint.div(
     @bigint.sub(p, @bigint.from_int_value(5)),
     @bigint.from_int_value(8),
-  ).unwrap()
+  ) {
+    Some(v) => v
+    None => abort("FATAL: division by 8 in ed25519 compute_base_point")
+  }
   let pow_result = match @bigint.mod_pow(uv7, exp, p) {
     Some(r) => r
     None => @bigint.zero()
@@ -573,13 +631,16 @@ fn bytes_to_array(data : Bytes) -> Array[Byte] {
 }
 
 /// Constant-time byte array comparison.
+/// Always iterates over max(a.length, b.length) to avoid leaking length info.
 fn constant_time_eq(a : Bytes, b : Bytes) -> Bool {
-  if a.length() != b.length() {
-    return false
-  }
+  let max_len = if a.length() > b.length() { a.length() } else { b.length() }
   let mut diff = 0
-  for i = 0; i < a.length(); i = i + 1 {
-    diff = diff | (a[i].to_int() ^ b[i].to_int())
+  for i = 0; i < max_len; i = i + 1 {
+    let av = if i < a.length() { a[i].to_int() } else { 0 }
+    let bv = if i < b.length() { b[i].to_int() } else { 0 }
+    diff = diff | (av ^ bv)
   }
+  // Also check lengths match (folded into diff so no early return).
+  diff = diff | (a.length() ^ b.length())
   diff == 0
 }

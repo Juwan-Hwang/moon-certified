@@ -14,13 +14,29 @@
 /// The suffix array is constructed in O(n) using **SA-IS** (Nong, Zhang,
 /// Chan 2009), imported from the `@sa_is` package.
 ///
+/// ## Space efficiency
+///
+/// Uses **sampled Occ arrays**: instead of storing Occ[c][i] for every
+/// position i (O(n·|Σ|) space), we store samples every `SAMPLE_RATE`
+/// positions and keep the BWT for interpolation. This reduces space to
+/// O(n·|Σ|/k + n) while increasing query time to O(m·k) — still O(m)
+/// for constant k.
+///
+/// For σ=256 (ASCII) and k=32: space drops from 256n to ~9n (28× savings).
+/// For σ=4 (DNA) and k=32: space drops from 4n to ~1.1n (3.6× savings).
+///
 /// ## Complexity
 ///
-/// - Build: O(n) via SA-IS suffix array + O(n) for BWT and Occ.
-/// - Search: O(m) per pattern of length m.
-/// - Space: O(n * |Σ|) for the Occ array.
+/// - Build: O(n) via SA-IS suffix array + O(n) for BWT and sampled Occ.
+/// - Search: O(m · k) per pattern of length m, where k = SAMPLE_RATE.
+/// - Space: O(n · |Σ| / k + n) for sampled Occ + BWT.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
+
+///|
+/// Occ array sampling rate. Every k-th position stores a full Occ snapshot;
+/// intermediate positions are reconstructed by scanning the BWT.
+const SAMPLE_RATE : Int = 32
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,9 +44,30 @@
 
 pub struct FMIndex {
   priv c_table : Map[Int, Int] // C[c] = count of chars < c
-  priv occ : FixedArray[FixedArray[Int]] // Occ[c][i] = occurrences of c in BWT[0..i)
+  priv occ_samples : FixedArray[FixedArray[Int]] // Sampled Occ: occ[ci][sample_idx]
+  priv bwt : FixedArray[Int] // BWT character codes (for interpolation)
+  priv alphabet : FixedArray[Int] // alphabet[ci] = char code for index ci
   priv char_index : Map[Int, Int] // char → index in alphabet
   priv n : Int // text length (including sentinel)
+}
+
+///|
+/// Compute Occ(ci, pos) = occurrences of alphabet[ci] in BWT[0..pos).
+///
+/// Uses the sampled Occ array: find the nearest sample at or before
+/// position pos, then scan the BWT forward to adjust the count.
+/// Time: O(SAMPLE_RATE) per call.
+fn occ(index : FMIndex, ci : Int, pos : Int) -> Int {
+  let sample_idx = pos / SAMPLE_RATE
+  let mut count = index.occ_samples[ci][sample_idx]
+  let start = sample_idx * SAMPLE_RATE
+  let target = index.alphabet[ci]
+  for j = start; j < pos; j = j + 1 {
+    if index.bwt[j] == target {
+      count = count + 1
+    }
+  }
+  count
 }
 
 ///|
@@ -85,25 +122,46 @@ pub fn build(text : String) -> FMIndex {
     c_table[alphabet[i]] = cum
     cum = cum + counts[i]
   }
-  // Build Occ array: occ[ci][i] = occurrences of alphabet[ci] in BWT[0..i).
+  // Build sampled Occ array: occ_samples[ci][s] = Occ(ci, s * SAMPLE_RATE).
+  // Instead of storing Occ for every position (O(n·σ) space), we store
+  // snapshots every SAMPLE_RATE positions and scan the BWT for intermediate
+  // values. This reduces space to O(n·σ/k + n) while keeping O(m·k) query.
   let sigma = alphabet.length()
-  let occ = FixedArray::make(sigma, FixedArray::make(0, 0))
+  let bwt_len = n + 1 // BWT length including sentinel
+  let num_samples = bwt_len / SAMPLE_RATE + 1
+  let occ_samples = FixedArray::make(sigma, FixedArray::make(0, 0))
   for ci = 0; ci < sigma; ci = ci + 1 {
-    occ[ci] = FixedArray::make(n + 2, 0)
+    occ_samples[ci] = FixedArray::make(num_samples, 0)
   }
-  for i = 0; i <= n; i = i + 1 {
-    // Copy previous counts.
-    for ci = 0; ci < sigma; ci = ci + 1 {
-      occ[ci][i + 1] = occ[ci][i]
-    }
-    // Increment count for the character at position i.
+  // occ_samples[ci][0] = 0 (zero-initialized, represents Occ(ci, 0)).
+  // Scan BWT once, maintaining running counts. At each sample boundary
+  // (every SAMPLE_RATE positions), snapshot the running counts.
+  let running = FixedArray::make(sigma, 0)
+  for i = 0; i < bwt_len; i = i + 1 {
     let ch = bwt_codes[i]
     match char_index.get(ch) {
-      Some(idx) => occ[idx][i + 1] = occ[idx][i + 1] + 1
+      Some(idx) => running[idx] = running[idx] + 1
       None => ()
     }
+    // After processing BWT[i], running[ci] = Occ(ci, i+1).
+    // If (i+1) is a sample boundary, store the snapshot.
+    let next = i + 1
+    if next % SAMPLE_RATE == 0 {
+      let s = next / SAMPLE_RATE
+      for ci = 0; ci < sigma; ci = ci + 1 {
+        occ_samples[ci][s] = running[ci]
+      }
+    }
   }
-  { c_table, occ, char_index, n: n + 1 }
+  // If bwt_len is not a multiple of SAMPLE_RATE, the last partial segment
+  // relies on the nearest earlier sample + BWT scan in occ(). No extra
+  // storage needed — occ() handles it transparently.
+  // Convert alphabet Array to FixedArray for O(1) reverse lookup in occ().
+  let alphabet_fa = FixedArray::make(sigma, 0)
+  for i = 0; i < sigma; i = i + 1 {
+    alphabet_fa[i] = alphabet[i]
+  }
+  { c_table, occ_samples, bwt: bwt_codes, alphabet: alphabet_fa, char_index, n: bwt_len }
 }
 
 ///|
@@ -142,8 +200,8 @@ pub fn count(index : FMIndex, pattern : String) -> Int {
         match index.c_table.get(ch) {
           None => return 0
           Some(cv) => {
-            lo = cv + index.occ[ci][lo]
-            hi = cv + index.occ[ci][hi]
+            lo = cv + occ(index, ci, lo)
+            hi = cv + occ(index, ci, hi)
           }
         }
     }
@@ -226,4 +284,50 @@ test "fm_index: repeated pattern" {
 test "fm_index: text length" {
   let idx = build("banana")
   assert_eq(text_length(idx), 6)
+}
+
+///|
+test "fm_index: long text crossing sample boundary" {
+  // Text length 60 > SAMPLE_RATE (32), exercises one sample boundary.
+  let mut text = ""
+  for i = 0; i < 20; i = i + 1 {
+    text = text + "abc"
+  }
+  let idx = build(text)
+  assert_eq(count(idx, "abc"), 20)
+  assert_eq(count(idx, "bca"), 19)
+  assert_eq(count(idx, "cab"), 19)
+  assert_eq(count(idx, "abcabc"), 19)
+  assert_true(contains(idx, "abcabc"))
+  assert_false(contains(idx, "xyz"))
+}
+
+///|
+test "fm_index: long text crossing multiple sample boundaries" {
+  // Text length 90 > 2 * SAMPLE_RATE (64), exercises multiple boundaries.
+  let mut text = ""
+  for i = 0; i < 30; i = i + 1 {
+    text = text + "abc"
+  }
+  let idx = build(text)
+  assert_eq(count(idx, "abc"), 30)
+  assert_eq(count(idx, "bca"), 29)
+  assert_eq(count(idx, "cab"), 29)
+  assert_eq(text_length(idx), 90)
+}
+
+///|
+test "fm_index: large alphabet long text" {
+  // 26 distinct characters, text length 78 > 2 * SAMPLE_RATE.
+  let mut text = ""
+  for i = 0; i < 3; i = i + 1 {
+    text = text + "abcdefghijklmnopqrstuvwxyz"
+  }
+  let idx = build(text)
+  assert_eq(count(idx, "a"), 3)
+  assert_eq(count(idx, "z"), 3)
+  assert_eq(count(idx, "abc"), 3)
+  assert_eq(count(idx, "xyz"), 3)
+  assert_eq(count(idx, "abcdefghijklmnopqrstuvwxyz"), 3)
+  assert_eq(count(idx, "zabc"), 2)
 }

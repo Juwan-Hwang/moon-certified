@@ -6,15 +6,31 @@ pub fn beta_pdf(Double, Double, Double) -> Double
 
 pub fn binomial_pmf(Int, Int, Double) -> Double
 
+pub fn chi_square_cdf(Double, Double) -> Double
+
+pub fn chi_square_pdf(Double, Double) -> Double
+
 pub fn exponential_cdf(Double, Double) -> Double
 
 pub fn exponential_pdf(Double, Double) -> Double
+
+pub fn f_cdf(Double, Double, Double) -> Double
+
+pub fn f_pdf(Double, Double, Double) -> Double
+
+pub fn gamma_cdf(Double, Double, Double) -> Double
+
+pub fn gamma_pdf(Double, Double, Double) -> Double
 
 pub fn normal_cdf(Double, Double, Double) -> Double
 
 pub fn normal_pdf(Double, Double, Double) -> Double
 
 pub fn poisson_pmf(Int, Double) -> Double
+
+pub fn student_t_cdf(Double, Double) -> Double
+
+pub fn student_t_pdf(Double, Double) -> Double
 
 // Errors
 

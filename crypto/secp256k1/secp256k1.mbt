@@ -30,15 +30,27 @@
 // Curve parameters: secp256k1
 // ---------------------------------------------------------------------------
 
+/// Parse a BigInt from a decimal string, aborting with a descriptive
+/// message if the string is invalid. Used exclusively for fixed RFC
+/// curve constants that are guaranteed correct by construction.
+fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
+  match @bigint.from_string(s) {
+    Some(v) => v
+    None => abort("FATAL: invalid secp256k1 curve constant: " + name)
+  }
+}
+
 /// Prime p = 2^256 - 2^32 - 977
-let p : @bigint.BigInt = @bigint.from_string(
+let p : @bigint.BigInt = parse_curve_const(
   "115792089237316195423570985008687907853269984665640564039457584007908834671663",
-).unwrap()
+  "secp256k1 prime p",
+)
 
 /// Curve order n
-let n_order : @bigint.BigInt = @bigint.from_string(
+let n_order : @bigint.BigInt = parse_curve_const(
   "115792089237316195423570985008687907852837564279074904382605163141518161494337",
-).unwrap()
+  "secp256k1 order n",
+)
 
 /// Curve coefficient a = 0
 
@@ -46,14 +58,16 @@ let n_order : @bigint.BigInt = @bigint.from_string(
 let b_coeff : @bigint.BigInt = @bigint.from_int_value(7)
 
 /// Generator x-coordinate
-let gx : @bigint.BigInt = @bigint.from_string(
+let gx : @bigint.BigInt = parse_curve_const(
   "55066263022277343669578718895168534326250603453777594175500187360389116729240",
-).unwrap()
+  "secp256k1 generator Gx",
+)
 
 /// Generator y-coordinate
-let gy : @bigint.BigInt = @bigint.from_string(
+let gy : @bigint.BigInt = parse_curve_const(
   "32670510020758816978083085130507043184471273380659243275938904335757337482424",
-).unwrap()
+  "secp256k1 generator Gy",
+)
 
 // ---------------------------------------------------------------------------
 // Modular arithmetic helpers
@@ -260,20 +274,39 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   { x: x3, y: y3, z: z3 }
 }
 
-/// Scalar multiplication: k * P using double-and-add.
-fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
-  let mut result = point_infinity()
-  let mut current = pt
-  let mut scalar = k
-  let zero = @bigint.zero()
-  while @bigint.greater_than(scalar, zero) {
-    if @bigint.is_odd(scalar) {
-      result = point_add(result, current)
-    }
-    current = point_double(current)
-    scalar = @bigint.shr(scalar, 1)
+/// Conditional swap for Montgomery ladder.
+fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
+  if swap {
+    (r1, r0)
+  } else {
+    (r0, r1)
   }
-  result
+}
+
+/// Scalar multiplication: k * P using the Montgomery ladder.
+///
+/// Constant-time at the algorithm level: always performs one point_add
+/// and one point_double per bit, eliminating the Hamming-weight timing
+/// leak of double-and-add. The underlying BigInt arithmetic is NOT
+/// constant-time; for production use OpenSSL/ring.
+///
+/// secp256k1 curve order is 256 bits.
+fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
+  let n_bits = 256
+  let mut r0 = point_infinity()
+  let mut r1 = pt
+  for i = n_bits - 1; i >= 0; i = i - 1 {
+    let bit = @bigint.is_odd(@bigint.shr(k, i))
+    let (tmp0, tmp1) = cswap(bit, r0, r1)
+    r0 = tmp0
+    r1 = tmp1
+    r1 = point_add(r0, r1)
+    r0 = point_double(r0)
+    let (tmp0b, tmp1b) = cswap(bit, r0, r1)
+    r0 = tmp0b
+    r1 = tmp1b
+  }
+  r0
 }
 
 /// Convert a Jacobian point to affine coordinates.
@@ -391,9 +424,12 @@ fn point_decode_compressed(data : Bytes) -> Point? {
   let x3 = fe_mul(fe_mul(x, x), x)
   let y2 = fe_add(x3, b_coeff)
   // Compute y = y2^((p+1)/4) mod p (since p ≡ 3 mod 4)
-  let exp = @bigint.from_string(
+  let exp = match @bigint.from_string(
     "28948022309329048855892746252171976963317496166410141009864396001977208667916",
-  ).unwrap()
+  ) {
+    Some(v) => v
+    None => return None
+  }
   match @bigint.mod_pow(y2, exp, p) {
     Some(y) => {
       // Check y^2 == y2
@@ -537,7 +573,10 @@ pub fn sign(private_key : Bytes, message : Bytes) -> Bytes {
   let e = bytes_to_bigint_be(hash)
   let k = rfc6979_generate_k(d, hash)
   let kg = scalar_mult(k, generator)
-  let kg_affine = to_affine(kg).unwrap()
+  let kg_affine = match to_affine(kg) {
+    Some(v) => v
+    None => abort("FATAL: k*G is point at infinity in secp256k1 sign")
+  }
   let r = match @bigint.divmod(kg_affine.0, n_order) {
     Some((_, rem)) => rem
     None => kg_affine.0

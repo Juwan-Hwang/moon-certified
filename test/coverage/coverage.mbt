@@ -146,7 +146,7 @@ pub fn smoke_test() -> Unit {
     ),
   )
   ignore(
-    @network_simplex.min_cost_flow(
+    @min_cost_flow.min_cost_flow(
       2,
       FixedArray::make(1, 0),
       FixedArray::make(1, 1),

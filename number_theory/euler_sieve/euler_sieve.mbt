@@ -35,7 +35,7 @@ pub struct EulerSieve {
 ///
 /// **Memory safety**: The sieve allocates arrays of size `n + 1` and an
 /// estimated prime buffer. To prevent out-of-memory panics on unreasonably
-/// large inputs, `n` is capped at `100_000_000` (100M). For `n` exceeding
+/// large inputs, `n` is capped at `10_000_000` (10⁷). For `n` exceeding
 /// this limit, `None` is returned — callers should use a segmented sieve
 /// for larger ranges.
 pub fn sieve(n : Int) -> EulerSieve? {
@@ -47,10 +47,11 @@ pub fn sieve(n : Int) -> EulerSieve? {
     })
   }
   // OOM protection: the sieve allocates an spf array of size n+1 and a prime
-  // buffer of size ~n/3+8. For n > 100M this exceeds typical available memory
-  // (>400 MB for Int32 arrays). Return None instead of panicking, consistent
-  // with the library's "Option over magic values" error-handling policy.
-  if n > 100_000_000 {
+  // buffer of size ~n/3+8. For n > 10⁷ this can exceed ~40 MB for Int32 arrays
+  // and may cause OOM on memory-constrained Wasm/JS targets. Return None
+  // instead of panicking, consistent with the library's "Option over magic
+  // values" error-handling policy. Threshold aligns with API_STABILITY.md.
+  if n > 10_000_000 {
     return None
   }
   let spf = FixedArray::make(n + 1, 0)
@@ -259,7 +260,7 @@ test "euler_sieve: sieve(2) returns single prime" {
 
 ///|
 test "euler_sieve: rejects oversized input" {
-  assert_true(sieve(100_000_001) is None)
+  assert_true(sieve(10_000_001) is None)
 }
 
 ///|

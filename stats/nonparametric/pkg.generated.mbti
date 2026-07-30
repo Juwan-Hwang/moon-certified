@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/stats/nonparametric"
+
+// Values
+pub fn kruskal_wallis_test(Array[Array[Double]]) -> KruskalWallisResult
+
+pub fn mann_whitney_u_test(Array[Double], Array[Double]) -> MannWhitneyResult
+
+pub fn wilcoxon_signed_rank_test(Array[Double], Array[Double]) -> WilcoxonResult
+
+// Errors
+
+// Types and methods
+pub struct KruskalWallisResult {
+  h : Double
+  df : Int
+  z : Double
+  p_value : Double
+}
+
+pub struct MannWhitneyResult {
+  u1 : Double
+  u2 : Double
+  u : Double
+  z : Double
+  p_value : Double
+}
+
+pub struct WilcoxonResult {
+  w_plus : Double
+  w_minus : Double
+  n : Int
+  z : Double
+  p_value : Double
+}
+
+// Type aliases
+
+// Traits
+

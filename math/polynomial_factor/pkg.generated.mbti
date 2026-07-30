@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/math/polynomial_factor"
+
+// Values
+pub fn poly_derivative(Array[Double]) -> Array[Double]
+
+pub fn poly_divmod(Array[Double], Array[Double]) -> (Array[Double], Array[Double])
+
+pub fn poly_gcd(Array[Double], Array[Double]) -> Array[Double]
+
+pub fn square_free_factorization(Array[Double]) -> Array[(Array[Double], Int)]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

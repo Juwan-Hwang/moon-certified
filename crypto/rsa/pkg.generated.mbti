@@ -8,7 +8,11 @@ import {
 // Values
 pub fn decrypt(RSAPrivateKey, Bytes) -> Bytes?
 
+pub fn decrypt_oaep(RSAPrivateKey, Bytes, Bytes) -> Bytes?
+
 pub fn encrypt(RSAPublicKey, Bytes, Bytes, Bytes) -> Bytes?
+
+pub fn encrypt_oaep(RSAPublicKey, Bytes, Bytes, Bytes, Bytes) -> Bytes?
 
 pub fn generate_keypair(Int, Bytes, Bytes) -> (RSAPublicKey, RSAPrivateKey)?
 
@@ -22,7 +26,11 @@ pub fn public_modulus(RSAPublicKey) -> @bigint.BigInt
 
 pub fn sign(RSAPrivateKey, Bytes) -> Bytes?
 
+pub fn sign_pss(RSAPrivateKey, Bytes, Bytes, Bytes, Int) -> Bytes?
+
 pub fn verify(RSAPublicKey, Bytes, Bytes) -> Bool
+
+pub fn verify_pss(RSAPublicKey, Bytes, Bytes, Int) -> Bool
 
 // Errors
 

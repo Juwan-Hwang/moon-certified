@@ -359,3 +359,102 @@ test "stats: confidence interval contains mean" {
   let m = mean(data)
   assert_true(lo < m && m < hi)
 }
+
+///|
+test "stats: normal_pdf properties" {
+  // PDF at 0 should be 1/sqrt(2*pi) ≈ 0.3989
+  let pdf0 = normal_pdf(0.0)
+  assert_true((pdf0 - 0.3989).abs() < 0.001)
+  // PDF is symmetric
+  let pdf_pos = normal_pdf(1.5)
+  let pdf_neg = normal_pdf(-1.5)
+  assert_true((pdf_pos - pdf_neg).abs() < 1.0e-10)
+  // PDF is always non-negative
+  assert_true(pdf0 > 0.0)
+  assert_true(normal_pdf(5.0) > 0.0)
+}
+
+///|
+test "stats: normal_inv_cdf roundtrip" {
+  // inv_cdf(cdf(z)) ≈ z
+  for z in [-2.0, -1.0, 0.0, 1.0, 2.0] {
+    let p = normal_cdf(z)
+    let z_back = normal_inv_cdf(p)
+    assert_true((z - z_back).abs() < 0.01)
+  }
+}
+
+///|
+test "stats: t_cdf known values" {
+  // t_cdf(0, df) = 0.5 for any df
+  for df in [1, 5, 10, 30, 100] {
+    let p = t_cdf(0.0, df)
+    assert_true((p - 0.5).abs() < 0.001)
+  }
+  // For large df, t_cdf approaches normal_cdf
+  let t_p = t_cdf(1.96, 1000)
+  let z_p = normal_cdf(1.96)
+  assert_true((t_p - z_p).abs() < 0.05)
+}
+
+///|
+test "stats: one-sample t-test (fail to reject H0)" {
+  // Mean is close to the hypothesized value
+  let data = [4.8, 5.0, 5.1, 4.9, 5.2, 5.0]
+  let (_, p) = one_sample_t_test(data, 5.0)
+  assert_true(p > 0.05) // Should not reject H0: mean = 5.0
+}
+
+///|
+test "stats: two-sample t-test (reject H0)" {
+  // Clearly different means
+  let d1 = [10.0, 11.0, 12.0, 13.0, 14.0, 15.0]
+  let d2 = [20.0, 21.0, 22.0, 23.0, 24.0, 25.0]
+  let (t, p) = two_sample_t_test(d1, d2)
+  assert_true(t < 0.0) // d1 mean < d2 mean
+  assert_true(p < 0.05) // Should reject H0
+}
+
+///|
+test "stats: pearson correlation negative" {
+  let x = [1.0, 2.0, 3.0, 4.0, 5.0]
+  let y = [5.0, 4.0, 3.0, 2.0, 1.0]
+  let r = pearson_correlation(x, y)
+  assert_true((r - (-1.0)).abs() < 0.001)
+}
+
+///|
+test "stats: pearson correlation zero correlation" {
+  let x = [1.0, 2.0, 3.0, 4.0, 5.0]
+  let y = [1.0, 1.0, 1.0, 1.0, 1.0]
+  let r = pearson_correlation(x, y)
+  // Constant y → undefined correlation, should return 0 or NaN
+  assert_true(r.is_nan() || r == 0.0)
+}
+
+///|
+test "stats: std_dev basic" {
+  let data = [2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0]
+  let sd = std_dev(data)
+  // Sample std_dev (n-1 denominator) ≈ 2.138
+  assert_true((sd - 2.138).abs() < 0.01)
+}
+
+///|
+test "stats: empty data edge cases" {
+  let empty : Array[Double] = []
+  // mean returns 0.0 for empty data (by implementation convention)
+  assert_eq(mean(empty), 0.0)
+  // variance returns 0.0 for n < 2
+  assert_eq(variance(empty), 0.0)
+  assert_eq(std_dev(empty), 0.0)
+}
+
+///|
+test "stats: single element edge cases" {
+  let single = [42.0]
+  assert_eq(mean(single), 42.0)
+  // variance returns 0.0 for n < 2 (no variability)
+  assert_eq(variance(single), 0.0)
+  assert_eq(std_dev(single), 0.0)
+}

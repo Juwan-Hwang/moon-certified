@@ -214,7 +214,10 @@ fn enumerate_into(
   }
   for i = 0; i < node.children.length(); i = i + 1 {
     let (byte_val, child) = node.children[i]
-    path.push(byte_val.to_char().unwrap())
+    match byte_val.to_char() {
+      Some(c) => path.push(c)
+      None => ()
+    }
     enumerate_into(child, path, out)
     let _ = path.pop()
   }
@@ -299,7 +302,10 @@ fn collect_words_iter(
     if out.length() >= limit {
       break
     }
-    let (node, depth) = stack.pop().unwrap()
+    let (node, depth) = match stack.pop() {
+      Some(v) => v
+      None => break
+    }
     if node.is_end {
       out.push(String::from_array(prefix.view()))
     }
@@ -309,7 +315,10 @@ fn collect_words_iter(
     while i > 0 {
       i = i - 1
       let (byte_val, child) = node.children[i]
-      prefix.push(byte_val.to_char().unwrap())
+      match byte_val.to_char() {
+        Some(c) => prefix.push(c)
+        None => ()
+      }
       stack.push((child, depth + 1))
       let _ = prefix.pop()
     }
@@ -338,7 +347,10 @@ pub fn autocomplete(
       let path : Array[Char] = []
       // Prepend prefix bytes into the path.
       for i = 0; i < prefix.length(); i = i + 1 {
-        path.push(prefix[i].to_char().unwrap())
+        match prefix[i].to_char() {
+          Some(c) => path.push(c)
+          None => ()
+        }
       }
       collect_words_iter(
         node,
@@ -377,7 +389,10 @@ pub fn wildcard_search(root : TrieNode, pattern : String) -> FixedArray[String] 
   // Stack entry: (node, depth) where depth is the pattern index to match next.
   let stack : Array[(TrieNode, Int)] = [(root, 0)]
   while stack.length() > 0 {
-    let (node, depth) = stack.pop().unwrap()
+    let (node, depth) = match stack.pop() {
+      Some(v) => v
+      None => break
+    }
     if depth == pattern.length() {
       if node.is_end {
         out.push(String::from_array(path.view()))
@@ -393,7 +408,10 @@ pub fn wildcard_search(root : TrieNode, pattern : String) -> FixedArray[String] 
       i = i - 1
       let (byte_val, child) = node.children[i]
       if match_byte(pat_byte, byte_val) {
-        path.push(byte_val.to_char().unwrap())
+        match byte_val.to_char() {
+          Some(c) => path.push(c)
+          None => ()
+        }
         stack.push((child, depth + 1))
         let _ = path.pop()
       }

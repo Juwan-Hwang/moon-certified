@@ -1,0 +1,62 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/finance/time_series"
+
+// Values
+pub fn adf_test(Array[Double], Int) -> ADFResult
+
+pub fn cointegration_test(Array[Double], Array[Double]) -> CointegrationResult
+
+pub fn difference(Array[Double], Int) -> Array[Double]
+
+pub fn fit_ar(Array[Double], Int) -> ARModel
+
+pub fn fit_arima(Array[Double], Int, Int, Int) -> ARIMAModel
+
+pub fn fit_garch(Array[Double], Int) -> GARCHModel
+
+pub fn forecast_ar(ARModel, Array[Double], Int) -> Array[Double]
+
+pub fn forecast_arima(ARIMAModel, Array[Double], Int) -> Array[Double]
+
+pub fn garch_forecast(GARCHModel, Double, Double, Int) -> Array[Double]
+
+// Errors
+
+// Types and methods
+pub struct ADFResult {
+  test_statistic : Double
+  critical_value_5pct : Double
+  is_stationary : Bool
+  lag_order : Int
+}
+
+pub struct ARIMAModel {
+  ar_model : ARModel
+  d : Int
+  q : Int
+}
+
+pub struct ARModel {
+  phi : Array[Double]
+  intercept : Double
+  p : Int
+}
+
+pub struct CointegrationResult {
+  test_statistic : Double
+  critical_value_5pct : Double
+  is_cointegrated : Bool
+  hedge_ratio : Double
+}
+
+pub struct GARCHModel {
+  omega : Double
+  alpha : Double
+  beta : Double
+  long_run_variance : Double
+}
+
+// Type aliases
+
+// Traits
+

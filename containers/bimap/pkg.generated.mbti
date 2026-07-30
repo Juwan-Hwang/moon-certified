@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/bimap"
+
+// Values
+pub fn contains_key(BiMap, String) -> Bool
+
+pub fn contains_value(BiMap, String) -> Bool
+
+pub fn get_by_key(BiMap, String) -> String?
+
+pub fn get_by_value(BiMap, String) -> String?
+
+pub fn insert(BiMap, String, String) -> Unit
+
+pub fn keys(BiMap) -> Array[String]
+
+pub fn new() -> BiMap
+
+pub fn remove_by_key(BiMap, String) -> Unit
+
+pub fn remove_by_value(BiMap, String) -> Unit
+
+pub fn size(BiMap) -> Int
+
+pub fn values(BiMap) -> Array[String]
+
+// Errors
+
+// Types and methods
+pub struct BiMap {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

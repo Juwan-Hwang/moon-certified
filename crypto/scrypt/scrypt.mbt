@@ -394,6 +394,13 @@ pub fn scrypt(
 /// - Total memory ≤ 1 GB (prevents accidental OOM)
 ///
 /// Returns `None` if any parameter fails validation.
+///
+/// Upper bounds prevent accidental OOM/DoS:
+/// - `n ≤ 2^22` (4M, ~4 GB max memory with r=8)
+/// - `r ≤ 64`
+/// - `p ≤ 64`
+/// - `dklen ≤ 1024`
+/// - Total memory ≤ 1 GB
 pub fn scrypt_checked(
   password : Bytes,
   salt : Bytes,
@@ -408,12 +415,17 @@ pub fn scrypt_checked(
   if salt.length() < 16 {
     return None
   }
-  if dklen < 16 {
+  if dklen < 16 || dklen > 1024 {
+    return None
+  }
+  // Individual parameter upper bounds.
+  if n > 4194304 || r > 64 || p > 64 {
     return None
   }
   // Memory limit: 128 * r * N ≤ 1 GB (1073741824 bytes)
-  let mem_estimate = 128 * r * n
-  if mem_estimate < 0 || mem_estimate > 1073741824 {
+  // Use Int64 to avoid overflow when r*n is large.
+  let mem_estimate = 128L * r.to_int64() * n.to_int64()
+  if mem_estimate > 1073741824L {
     return None
   }
   scrypt(password, salt, n, r, p, dklen)

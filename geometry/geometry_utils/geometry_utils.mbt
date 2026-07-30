@@ -55,11 +55,20 @@ pub fn cross64(o : Point, a : Point, b : Point) -> Int64 {
 ///|
 /// 2D cross product clamped to `Int` range.
 ///
-/// Returns 1 when the true cross product overflows positively (definitely
-/// counterclockwise), -1 when it overflows negatively (definitely clockwise),
-/// and the exact `Int` result otherwise. This is the version needed by
-/// sorting comparators that require an `Int` sign, not the full `Int64`
-/// magnitude.
+/// **Intentional clamping** — not a silent failure:
+/// - Returns `1` when the true cross product overflows positively
+///   (the orientation is definitely counterclockwise).
+/// - Returns `-1` when it overflows negatively
+///   (the orientation is definitely clockwise).
+/// - Returns the exact `Int` result when it fits in 32-bit range.
+///
+/// This sign-preserving clamp is designed for sorting comparators that only
+/// need the **sign** of the cross product (CCW/CW/collinear). The magnitude
+/// is lost on overflow, but the sign — which is all that matters for
+/// orientation tests — is always correct.
+///
+/// **When you need the exact magnitude**, use [`cross64`] instead, which
+/// returns `Int64` and never clamps.
 pub fn cross(o : Point, a : Point, b : Point) -> Int {
   let result = cross64(o, a, b)
   if result > 2147483647L {

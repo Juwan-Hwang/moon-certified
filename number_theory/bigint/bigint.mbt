@@ -1198,9 +1198,90 @@ pub fn bit_length(b : BigInt) -> Int {
   (n - 1) * 32 + bits
 }
 
+// ---------------------------------------------------------------------------
+// Barrett reduction for fast modular exponentiation
+// ---------------------------------------------------------------------------
+
+///|
+/// Barrett reduction context: precomputes μ = ⌊b^(2k) / m⌋ where b = 2^32
+/// and k = limb count of modulus m. This replaces O(n²) long division in
+/// each mod_pow step with two multiplications and shifts (~O(n^1.585) with
+/// Karatsuba).
+priv struct BarrettCtx {
+  modulus : BigInt
+  mu : BigInt
+  k : Int // limb count of modulus (effective)
+}
+
+///|
+/// Create a Barrett context for the given modulus.
+/// Precomputes μ = ⌊2^(64k) / m⌋ where k = effective_len(m.limbs).
+fn barrett_new(modulus : BigInt) -> BarrettCtx {
+  let k = effective_len(modulus.limbs)
+  // b^(2k) = 2^(32 * 2k) = 2^(64k)
+  let b2k = shl(one(), 64 * k)
+  let mu = match div(b2k, modulus) {
+    Some(q) => q
+    None => one() // unreachable: modulus != 0 checked by caller
+  }
+  { modulus: copy(modulus), mu, k }
+}
+
+///|
+/// Barrett reduction: compute x mod m using precomputed μ.
+/// Requires 0 ≤ x < m² (guaranteed in mod_pow where both operands < m).
+fn barrett_reduce(ctx : BarrettCtx, x : BigInt) -> BigInt {
+  let m = ctx.modulus
+  let k = ctx.k
+  // Step 1: q1 = ⌊x / b^(k-1)⌋  (right-shift by (k-1)*32 bits)
+  let q1 = shr(x, 32 * (k - 1))
+  // Step 2: q2 = q1 * μ
+  let q2 = mul(q1, ctx.mu)
+  // Step 3: q3 = ⌊q2 / b^(k+1)⌋  (right-shift by (k+1)*32 bits)
+  let q3 = shr(q2, 32 * (k + 1))
+  // Step 4: r1 = x mod b^(k+1)  (keep low k+1 limbs)
+  let r1 = mask_limbs(x, k + 1)
+  // Step 5: r2 = (q3 * m) mod b^(k+1)
+  let q3m = mul(q3, m)
+  let r2 = mask_limbs(q3m, k + 1)
+  // Step 6: r = r1 - r2
+  let mut r = sub(r1, r2)
+  // Step 7: if r < 0, add b^(k+1)
+  if r.is_negative {
+    let b_k1 = shl(one(), 32 * (k + 1))
+    r = add(r, b_k1)
+  }
+  // Step 8: while r ≥ m, r -= m (at most 2 corrections)
+  while compare(r, m) >= 0 {
+    r = sub(r, m)
+  }
+  r
+}
+
+///|
+/// Keep only the low `n` limbs of a BigInt (equivalent to mod b^n where b=2^32).
+fn mask_limbs(b : BigInt, n : Int) -> BigInt {
+  let len = b.limbs.length()
+  if len <= n {
+    return copy(b)
+  }
+  let result : Array[UInt] = []
+  for i = 0; i < n; i = i + 1 {
+    result.push(b.limbs[i])
+  }
+  // Trim in case the masked-out high limbs were the only nonzero part
+  let r : BigInt = { limbs: result, is_negative: false }
+  trim(r)
+  r
+}
+
 ///|
 /// Modular exponentiation: base^exp mod modulus.
 /// Returns None if modulus is zero.
+///
+/// Uses Barrett reduction for modular multiplication, replacing O(n²) long
+/// division per step with two multiplications and shifts (~O(n^1.585) with
+/// Karatsuba). The Barrett context is precomputed once per call.
 pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
   if is_zero(modulus) {
     return None
@@ -1216,6 +1297,8 @@ pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
     Some(r) => r
     None => return None
   }
+  // Precompute Barrett context for fast modular reduction.
+  let ctx = barrett_new(modulus)
   let mut result = one()
   let mut current = b
   let mut e = copy(exp)
@@ -1223,16 +1306,10 @@ pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
   while !is_zero(e) {
     if is_odd(e) {
       let product = mul(result, current)
-      match rem(product, modulus) {
-        Some(r) => result = r
-        None => return None
-      }
+      result = barrett_reduce(ctx, product)
     }
     let product = mul(current, current)
-    match rem(product, modulus) {
-      Some(r) => current = r
-      None => return None
-    }
+    current = barrett_reduce(ctx, product)
     match div(e, two) {
       Some(q) => e = q
       None => return None

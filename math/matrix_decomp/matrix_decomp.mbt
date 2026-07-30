@@ -351,13 +351,19 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Compute the eigenvalues of a real square matrix using the unshifted QR
-/// iteration algorithm.
+/// Compute the eigenvalues of a real square matrix using the **Wilkinson-shifted**
+/// QR iteration algorithm.
 ///
 /// The algorithm repeatedly computes `A = QR` (via Householder QR) and sets
-/// `A ← R·Q`.  Under mild conditions (e.g., symmetric matrices, or matrices
-/// with simple eigenvalues) the sequence converges to a quasi-upper-triangular
-/// matrix whose diagonal entries are the eigenvalues.  For real matrices with
+/// `A ← R·Q`.  Before each sweep, a Wilkinson shift μ is computed from the
+/// trailing 2×2 submatrix: μ is the eigenvalue of that submatrix closest to
+/// the bottom-right entry.  The shift is applied as `A ← A − μI`, then
+/// `A ← RQ + μI`, which accelerates convergence from linear (unshifted) to
+/// cubic for symmetric matrices.
+///
+/// Under mild conditions (e.g., symmetric matrices, or matrices with simple
+/// eigenvalues) the sequence converges to a quasi-upper-triangular matrix
+/// whose diagonal entries are the eigenvalues.  For real matrices with
 /// complex eigenvalues the 2×2 diagonal blocks encode complex conjugate pairs;
 /// this function returns only the real parts of diagonal entries as an
 /// approximation.
@@ -376,13 +382,14 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
 /// or `n ≤ 0`.
 ///
 /// # Complexity
-/// O(n³ · max_iters) — each QR sweep is O(n³).
+/// O(n³ · max_iters) — each QR sweep is O(n³).  Wilkinson shift typically
+/// reduces the number of sweeps by an order of magnitude vs. unshifted QR.
 ///
 /// # Limitations
 /// - For non-symmetric matrices with complex eigenvalues, only real parts are
 ///   returned.  Use `SVD` for singular values of rectangular matrices.
 /// - Convergence is not guaranteed for all matrices (defective matrices may
-///   require shifted iterations).  The `max_iters` cap prevents infinite loops.
+///   still fail).  The `max_iters` cap prevents infinite loops.
 pub fn eigenvalues(
   a : FixedArray[Double],
   n : Int,
@@ -401,7 +408,7 @@ pub fn eigenvalues(
   let epsilon = if tol > 0.0 { tol } else { 1.0e-12 }
   // Reduce to Hessenberg form first to speed up QR iteration.
   hessenberg(work, n)
-  // Main QR iteration loop.
+  // Main QR iteration loop with Wilkinson shift.
   let mut converged = false
   for _iter = 0; _iter < iters && !converged; _iter = _iter + 1 {
     // Compute sum of absolute sub-diagonal entries.
@@ -413,12 +420,50 @@ pub fn eigenvalues(
       converged = true
       break
     }
-    // Perform one QR sweep: A ← R·Q where A = QR.
-    let qr = qr_decompose(work, n, n)
-    // R·Q (R is n×n upper-triangular, Q is n×n orthogonal)
-    let rq = matmul(qr.r, n, n, qr.q, n)
-    for i = 0; i < n * n; i = i + 1 {
-      work[i] = rq[i]
+    // Compute Wilkinson shift from the trailing 2×2 submatrix:
+    //   | a  b |
+    //   | c  d |
+    // eigenvalues: λ = (a+d)/2 ± √((a-d)²/4 + bc)
+    // Wilkinson shift = eigenvalue closest to d.
+    if n >= 2 {
+      let a_ = work[(n - 2) * n + (n - 2)]
+      let b_ = work[(n - 2) * n + (n - 1)]
+      let c_ = work[(n - 1) * n + (n - 2)]
+      let d_ = work[(n - 1) * n + (n - 1)]
+      let tr = a_ + d_
+      let det = a_ * d_ - b_ * c_
+      let disc = tr * tr / 4.0 - det
+      let mu = if disc >= 0.0 {
+        let sqrt_disc = @newton_method.sqrt(disc)
+        let l1 = tr / 2.0 + sqrt_disc
+        let l2 = tr / 2.0 - sqrt_disc
+        // Choose eigenvalue closest to d_.
+        if (l1 - d_).abs() < (l2 - d_).abs() {
+          l1
+        } else {
+          l2
+        }
+      } else {
+        // Complex eigenvalues: use real part as shift.
+        tr / 2.0
+      }
+      // Apply shift: A ← A − μI
+      for i = 0; i < n; i = i + 1 {
+        work[i * n + i] = work[i * n + i] - mu
+      }
+      // QR sweep: A ← R·Q where A = QR.
+      let qr = qr_decompose(work, n, n)
+      let rq = matmul(qr.r, n, n, qr.q, n)
+      for i = 0; i < n * n; i = i + 1 {
+        work[i] = rq[i]
+      }
+      // Undo shift: A ← A + μI
+      for i = 0; i < n; i = i + 1 {
+        work[i * n + i] = work[i * n + i] + mu
+      }
+    } else {
+      // n == 1: already converged.
+      break
     }
   }
   // Extract diagonal entries as eigenvalue approximations.
@@ -844,7 +889,7 @@ test "eigenvalues: 2x2 diagonal matrix" {
       assert_true(has3)
       assert_true(has5)
     }
-    None => abort("eigenvalues returned None")
+    None => fail("eigenvalues returned None")
   }
 }
 
@@ -865,7 +910,7 @@ test "eigenvalues: 2x2 symmetric matrix" {
       assert_true(abs(trace - 7.0) < 1.0e-6)
       assert_true(abs(det - 11.0) < 1.0e-6)
     }
-    None => abort("eigenvalues returned None")
+    None => fail("eigenvalues returned None")
   }
 }
 
@@ -898,7 +943,7 @@ test "eigenvalues: 3x3 diagonal" {
       assert_true(has2)
       assert_true(has3)
     }
-    None => abort("eigenvalues returned None")
+    None => fail("eigenvalues returned None")
   }
 }
 
@@ -920,7 +965,7 @@ test "eigenvalues: 3x3 symmetric" {
       let trace = eigs[0] + eigs[1] + eigs[2]
       assert_true(abs(trace - 6.0) < 1.0e-5)
     }
-    None => abort("eigenvalues returned None")
+    None => fail("eigenvalues returned None")
   }
 }
 

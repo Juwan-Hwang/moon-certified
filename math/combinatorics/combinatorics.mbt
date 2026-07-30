@@ -276,7 +276,7 @@ test "binomial: Pascal's triangle identity" {
       match (lhs, rhs) {
         (Some(a), Some(b)) => assert_eq(a, b)
         (None, None) => ()
-        (_, _) => abort("binomial mismatch")
+        (_, _) => fail("binomial mismatch")
       }
     }
   }
@@ -310,7 +310,7 @@ test "catalan: recurrence C(n) = C(2n,n)/(n+1)" {
     match (binomial(2 * n, n), cat) {
       (Some(b), Some(c)) => assert_eq(b / (n + 1), c)
       (None, None) => ()
-      (_, _) => abort("catalan mismatch")
+      (_, _) => fail("catalan mismatch")
     }
   }
 }
@@ -346,7 +346,7 @@ test "stirling2: recurrence S(n,k) = k*S(n-1,k) + S(n-1,k-1)" {
       match (lhs, rhs) {
         (Some(a), Some(b)) => assert_eq(a, b)
         (None, None) => ()
-        (_, _) => abort("stirling2 mismatch")
+        (_, _) => fail("stirling2 mismatch")
       }
     }
   }

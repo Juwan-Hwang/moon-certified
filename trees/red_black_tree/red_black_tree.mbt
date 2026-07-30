@@ -51,7 +51,10 @@ pub fn[T] height(root : RBNode[T]) -> Int {
       let stack : Array[(RBNode[T], Int)] = [(root, 1)]
       let mut max_h = 0
       while stack.length() > 0 {
-        let (node, depth) = stack.pop().unwrap()
+        let (node, depth) = match stack.pop() {
+          Some(v) => v
+          None => break
+        }
         if depth > max_h {
           max_h = depth
         }
@@ -151,15 +154,9 @@ fn[T] balance(
 }
 
 ///|
-/// Defensive ceiling on recursion depth. The RB invariant bounds the height
-/// at ≤ 2*log₂(n+1), so for n = 2⁶⁴ the depth is at most ~128. A limit of 200
-/// provides generous headroom while catching invariant violations.
-let rb_max_depth : Int = 200
-
-///|
 /// Insert a value. Duplicates are ignored.
 pub fn[T] insert(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
-  match ins(root, val, cmp, 0) {
+  match ins(root, val, cmp) {
     Node(l, v, r, _, _) => mk_node(l, v, r, Black)
     other => other
   }
@@ -170,22 +167,15 @@ fn[T] ins(
   root : RBNode[T],
   val : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> RBNode[T] {
-  if depth > rb_max_depth {
-    // Depth guard: return original tree instead of aborting.
-    // This is a safety net against invariant violations; in practice
-    // the RB property bounds the height at ≤ 2*log₂(n+1).
-    return root
-  }
   match root {
     Empty => mk_node(Empty, val, Empty, Red)
     Node(l, v, r, color, _) => {
       let order = cmp(val, v)
       if order < 0 {
-        balance(color, ins(l, val, cmp, depth + 1), v, r)
+        balance(color, ins(l, val, cmp), v, r)
       } else if order > 0 {
-        balance(color, l, v, ins(r, val, cmp, depth + 1))
+        balance(color, l, v, ins(r, val, cmp))
       } else {
         root
       }
@@ -232,7 +222,7 @@ pub fn[T] find_min(root : RBNode[T]) -> T? {
 ///|
 /// Delete a value. Maintains all RB properties.
 pub fn[T] delete(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
-  let (tree, _lost) = del(root, val, cmp, 0)
+  let (tree, _lost) = del(root, val, cmp)
   match tree {
     Node(l, v, r, _, _) => mk_node(l, v, r, Black)
     other => other
@@ -245,25 +235,20 @@ fn[T] del(
   root : RBNode[T],
   val : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> (RBNode[T], Bool) {
-  if depth > rb_max_depth {
-    // Depth guard: return original tree instead of aborting.
-    return (root, false)
-  }
   match root {
     Empty => (Empty, false)
     Node(l, v, r, c, _) => {
       let order = cmp(val, v)
       if order < 0 {
-        let (new_l, lost) = del(l, val, cmp, depth + 1)
+        let (new_l, lost) = del(l, val, cmp)
         if lost {
           bal_left(c, new_l, v, r)
         } else {
           (mk_node(new_l, v, r, c), false)
         }
       } else if order > 0 {
-        let (new_r, lost) = del(r, val, cmp, depth + 1)
+        let (new_r, lost) = del(r, val, cmp)
         if lost {
           bal_right(c, l, v, new_r)
         } else {
@@ -281,7 +266,7 @@ fn[T] del(
           (Node(ll, lv, lr, Red, _), Empty) =>
             (mk_node(ll, lv, lr, Black), false)
           (_, _) => {
-            let (min_val_opt, new_r, lost) = del_min(r, depth + 1)
+            let (min_val_opt, new_r, lost) = del_min(r)
             match min_val_opt {
               Some(min_val) =>
                 if lost {
@@ -290,8 +275,8 @@ fn[T] del(
                   (mk_node(l, min_val, new_r, c), false)
                 }
               None =>
-                // Graceful fallback: del_min returned None (depth guard or
-                // Empty). Return original node unchanged.
+                // Graceful fallback: del_min returned None (Empty tree).
+                // Return original node unchanged.
                 (root, false)
             }
           }
@@ -304,13 +289,9 @@ fn[T] del(
 ///|
 /// Delete the minimum node from a subtree.
 /// Returns (min_value, new_subtree, lost_black).
-/// The min_value is wrapped in Option so that depth-guard / Empty fallbacks
+/// The min_value is wrapped in Option so that Empty fallbacks
 /// can return None instead of aborting.
-fn[T] del_min(root : RBNode[T], depth : Int) -> (T?, RBNode[T], Bool) {
-  if depth > rb_max_depth {
-    // Depth guard: return original tree instead of aborting.
-    return (None, root, false)
-  }
+fn[T] del_min(root : RBNode[T]) -> (T?, RBNode[T], Bool) {
   match root {
     Node(Empty, v, r, c, _) =>
       match c {
@@ -323,7 +304,7 @@ fn[T] del_min(root : RBNode[T], depth : Int) -> (T?, RBNode[T], Bool) {
           }
       }
     Node(l, v, r, c, _) => {
-      let (min_val, new_l, lost) = del_min(l, depth + 1)
+      let (min_val, new_l, lost) = del_min(l)
       if lost {
         let (new_tree, still_lost) = bal_left(c, new_l, v, r)
         (min_val, new_tree, still_lost)
@@ -554,12 +535,13 @@ pub fn[T] inorder(root : RBNode[T], f : (T) -> Unit) -> Unit {
     }
     // Pop the top node, visit it, then move to its right child.
     if stack.length() > 0 {
-      match stack.pop().unwrap() {
-        Node(_, v, r, _, _) => {
+      match stack.pop() {
+        Some(Node(_, v, r, _, _)) => {
           f(v)
           cur = r
         }
-        Empty => ()
+        Some(Empty) => ()
+        None => done = true
       }
     } else {
       done = true
@@ -577,9 +559,9 @@ fn[T] check_no_red_red(root : RBNode[T]) -> Bool {
   }
   stack.push(root)
   while stack.length() > 0 {
-    match stack.pop().unwrap() {
-      Empty => continue
-      Node(l, _, r, color, _) => {
+    match stack.pop() {
+      Some(Empty) => continue
+      Some(Node(l, _, r, color, _)) => {
         match color {
           Red => if is_red(l) || is_red(r) { return false }
           Black => ()
@@ -587,6 +569,7 @@ fn[T] check_no_red_red(root : RBNode[T]) -> Bool {
         stack.push(l)
         stack.push(r)
       }
+      None => break
     }
   }
   true

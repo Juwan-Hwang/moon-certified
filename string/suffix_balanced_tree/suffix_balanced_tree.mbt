@@ -466,7 +466,7 @@ test "suffix_balanced_tree: random stress test 50" {
         break
       }
       if c1 > c2 {
-        abort("order violation k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}")
+        fail("order violation k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}")
       }
       i = i + 1
     }
@@ -511,7 +511,7 @@ test "suffix_balanced_tree: stress 100 chars" {
         break
       }
       if c1 > c2 {
-        abort(
+        fail(
           "100-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}",
         )
       }
@@ -555,7 +555,7 @@ test "suffix_balanced_tree: stress 200 chars" {
         break
       }
       if c1 > c2 {
-        abort(
+        fail(
           "200-char order violation at k=\{k}: p1=\{p1} p2=\{p2} offset=\{i}",
         )
       }

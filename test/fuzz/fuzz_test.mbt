@@ -193,7 +193,7 @@ test "fuzz: counting_sort non-negative" {
       }
       assert_multiset_eq(original, s)
     }
-    None => abort("counting_sort returned None for non-negative input")
+    None => fail("counting_sort returned None for non-negative input")
   }
 }
 
@@ -211,7 +211,7 @@ test "fuzz: radix_sort random" {
       }
       assert_multiset_eq(original, s)
     }
-    None => abort("radix_sort returned None")
+    None => fail("radix_sort returned None")
   }
 }
 
@@ -385,7 +385,7 @@ test "fuzz: dinic chain no cycles" {
   for i = 0; i < n - 1; i = i + 1 {
     edges.push((i, i + 1, 1L))
   }
-  assert_eq(@dinic.max_flow(n, 0, n - 1, edges), Some(1L))
+  assert_eq(@dinic.dinic_max_flow(n, 0, n - 1, edges), Some(1L))
 }
 
 ///|
@@ -415,7 +415,7 @@ test "fuzz: gomory_hu trivial graph" {
       assert_eq(@gomory_hu.min_cut(tree, 0, 1), 7L)
       assert_eq(@gomory_hu.min_cut(tree, 1, 0), 7L)
     }
-    None => abort("expected tree")
+    None => fail("expected tree")
   }
 }
 
@@ -443,7 +443,7 @@ test "fuzz: boyer_moore unicode safety" {
   let pat = "世界"
   match @boyer_moore.search(text, pat) {
     Some(idx) => assert_true(idx >= 0)
-    None => abort("should find pattern")
+    None => fail("should find pattern")
   }
 }
 
@@ -501,12 +501,12 @@ test "fuzz: euler_sieve small" {
   let s2 = @euler_sieve.sieve(2)
   match s2 {
     Some(s) => assert_eq(@euler_sieve.primes(s).length(), 1)
-    None => abort("sieve(2) failed")
+    None => fail("sieve(2) failed")
   }
   let s10 = @euler_sieve.sieve(10)
   match s10 {
     Some(s) => assert_eq(@euler_sieve.primes(s).length(), 4)
-    None => abort("sieve(10) failed")
+    None => fail("sieve(10) failed")
   }
 }
 
@@ -520,7 +520,7 @@ test "fuzz: reed_solomon no errors roundtrip" {
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    None => abort("decode failed on clean codeword")
+    None => fail("decode failed on clean codeword")
   }
 }
 
@@ -537,7 +537,7 @@ test "fuzz: reed_solomon corrects 2 errors" {
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    None => abort("failed to correct 2 errors")
+    None => fail("failed to correct 2 errors")
   }
 }
 

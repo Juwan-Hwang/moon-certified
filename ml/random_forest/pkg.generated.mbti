@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/random_forest"
+
+// Values
+pub fn fit(RandomForest, Array[Array[Double]], Array[Int]) -> Unit
+
+pub fn fit_regress(RandomForest, Array[Array[Double]], Array[Double]) -> Unit
+
+pub fn is_regressor(RandomForest) -> Bool
+
+pub fn n_features(RandomForest) -> Int
+
+pub fn new_classifier(Int, Int, Int, Int) -> RandomForest
+
+pub fn new_regressor(Int, Int, Int, Int) -> RandomForest
+
+pub fn num_trees(RandomForest) -> Int
+
+pub fn oob_error(RandomForest) -> Double
+
+pub fn predict(RandomForest, Array[Double]) -> Int
+
+pub fn predict_regress(RandomForest, Array[Double]) -> Double
+
+pub fn set_seed(RandomForest, Int) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct RandomForest {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

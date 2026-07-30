@@ -41,12 +41,15 @@ fn ensure_ccw(poly : Array[Point]) -> Array[Point] {
     return poly
   }
   // Compute signed area: positive = CCW, negative = CW.
-  let mut area = 0
+  // Int64 prevents overflow for large coordinates.
+  let mut area = 0L
   for i = 0; i < n; i = i + 1 {
     let j = (i + 1) % n
-    area = area + poly[i].x * poly[j].y - poly[j].x * poly[i].y
+    area = area +
+      poly[i].x.to_int64() * poly[j].y.to_int64() -
+      poly[j].x.to_int64() * poly[i].y.to_int64()
   }
-  if area < 0 {
+  if area < 0L {
     let result : Array[Point] = []
     for i = n - 1; i >= 0; i = i - 1 {
       result.push(poly[i])
@@ -137,10 +140,10 @@ pub fn minkowski_sum(
       let next_b = b_ccw[(ib + j + 1) % nb]
       { x: next_b.x - pb.x, y: next_b.y - pb.y }
     }
-    let c = ea.x * eb.y - ea.y * eb.x
-    if c > 0 {
+    let c = ea.x.to_int64() * eb.y.to_int64() - ea.y.to_int64() * eb.x.to_int64()
+    if c > 0L {
       i = i + 1
-    } else if c < 0 {
+    } else if c < 0L {
       j = j + 1
     } else {
       i = i + 1

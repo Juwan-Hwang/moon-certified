@@ -267,51 +267,76 @@ pub fn finish(dawg : DAWG) -> Unit {
 /// Minimize the DAWG by replacing equivalent states with their canonical
 /// representatives. This should be called after all words have been added
 /// when using batch (out-of-order) mode.
-/// Uses a post-order DFS to register states from the leaves up.
+/// Uses an iterative post-order DFS with an explicit stack to avoid
+/// O(n) recursion depth on degenerate (chain-shaped) DAWGs.
 pub fn minimize(dawg : DAWG) -> Unit {
   dawg.register = []
   dawg.unchecked_suffix = []
+  // Phase 1: Collect states in post-order using an explicit stack.
+  // Stack entries: (state, is_exit_phase).
+  // is_exit_phase=false → first visit, push children then re-push as exit.
+  // is_exit_phase=true  → all children processed, add to post_order.
   let visited : Array[Int] = []
-  ignore(minimize_state(dawg, dawg.root, visited))
-}
-
-///|
-/// Recursively minimize a state's subtree, then register it.
-/// Returns the canonical representative of this state.
-fn minimize_state(
-  dawg : DAWG,
-  state : DAWGState,
-  visited : Array[Int],
-) -> DAWGState {
-  // Check if already visited (cycle detection — shouldn't happen in a DAWG,
-  // but safety).
-  for i = 0; i < visited.length(); i = i + 1 {
-    if visited[i] == state.id {
-      return state
+  let post_order : Array[DAWGState] = []
+  let stack : Array[(DAWGState, Bool)] = []
+  stack.push((dawg.root, false))
+  while stack.length() > 0 {
+    let top_idx = stack.length() - 1
+    let (state, is_exit) = stack[top_idx]
+    stack.pop() |> ignore
+    if is_exit {
+      post_order.push(state)
+      continue
     }
-  }
-  visited.push(state.id)
-  // Minimize all children first (post-order).
-  let keys : Array[Int] = []
-  for k, _ in state.transitions {
-    keys.push(k)
-  }
-  for i = 0; i < keys.length(); i = i + 1 {
-    let k = keys[i]
-    match state.transitions.get(k) {
-      Some(child) => {
-        let canonical = minimize_state(dawg, child, visited)
-        if canonical.id != child.id {
-          // Replace child with canonical equivalent.
-          state.transitions[k] = canonical
-        }
+    // Skip if already visited (cycle detection).
+    let mut already = false
+    for i = 0; i < visited.length(); i = i + 1 {
+      if visited[i] == state.id {
+        already = true
+        break
       }
-      None => ()
+    }
+    if already {
+      continue
+    }
+    visited.push(state.id)
+    // Push exit-phase entry (will be processed after all children).
+    stack.push((state, true))
+    // Push children for processing.
+    for _, child in state.transitions {
+      stack.push((child, false))
     }
   }
-  // Register this state (find or add canonical equivalent).
-  let canonical = register_or_find(dawg, state)
-  canonical
+  // Phase 2: Process states in post-order (children before parents).
+  // Map from original state.id → canonical representative.
+  let canonical_map : Map[Int, DAWGState] = Map([])
+  for idx = 0; idx < post_order.length(); idx = idx + 1 {
+    let state = post_order[idx]
+    // Update transitions to point to canonical children.
+    let keys : Array[Int] = []
+    for k, _ in state.transitions {
+      keys.push(k)
+    }
+    for key_idx = 0; key_idx < keys.length(); key_idx = key_idx + 1 {
+      let k = keys[key_idx]
+      match state.transitions.get(k) {
+        Some(child) => {
+          match canonical_map.get(child.id) {
+            Some(canonical) => {
+              if canonical.id != child.id {
+                state.transitions[k] = canonical
+              }
+            }
+            None => ()
+          }
+        }
+        None => ()
+      }
+    }
+    // Register this state and record the canonical mapping.
+    let canonical = register_or_find(dawg, state)
+    canonical_map[state.id] = canonical
+  }
 }
 
 ///|
@@ -350,44 +375,64 @@ pub fn has_prefix(dawg : DAWG, prefix : String) -> Bool {
 
 ///|
 /// Count the total number of states in the DAWG (for space analysis).
+/// Uses an iterative DFS with an explicit stack to avoid recursion depth
+/// issues on chain-shaped DAWGs.
 pub fn state_count(dawg : DAWG) -> Int {
   let visited : Array[Int] = []
-  count_states(dawg.root, visited)
-}
-
-///|
-fn count_states(state : DAWGState, visited : Array[Int]) -> Int {
-  for i = 0; i < visited.length(); i = i + 1 {
-    if visited[i] == state.id {
-      return 0
+  let stack : Array[DAWGState] = []
+  stack.push(dawg.root)
+  let mut count = 0
+  while stack.length() > 0 {
+    let top_idx = stack.length() - 1
+    let state = stack[top_idx]
+    stack.pop() |> ignore
+    let mut found = false
+    for i = 0; i < visited.length(); i = i + 1 {
+      if visited[i] == state.id {
+        found = true
+        break
+      }
     }
-  }
-  visited.push(state.id)
-  let mut count = 1
-  for _, dest in state.transitions {
-    count = count + count_states(dest, visited)
+    if found {
+      continue
+    }
+    visited.push(state.id)
+    count = count + 1
+    for _, child in state.transitions {
+      stack.push(child)
+    }
   }
   count
 }
 
 ///|
 /// Count the number of transitions (edges) in the DAWG.
+/// Uses an iterative DFS with an explicit stack to avoid recursion depth
+/// issues on chain-shaped DAWGs.
 pub fn transition_count(dawg : DAWG) -> Int {
   let visited : Array[Int] = []
-  count_transitions(dawg.root, visited)
-}
-
-///|
-fn count_transitions(state : DAWGState, visited : Array[Int]) -> Int {
-  for i = 0; i < visited.length(); i = i + 1 {
-    if visited[i] == state.id {
-      return 0
-    }
-  }
-  visited.push(state.id)
+  let stack : Array[DAWGState] = []
+  stack.push(dawg.root)
   let mut count = 0
-  for _, dest in state.transitions {
-    count = count + 1 + count_transitions(dest, visited)
+  while stack.length() > 0 {
+    let top_idx = stack.length() - 1
+    let state = stack[top_idx]
+    stack.pop() |> ignore
+    let mut found = false
+    for i = 0; i < visited.length(); i = i + 1 {
+      if visited[i] == state.id {
+        found = true
+        break
+      }
+    }
+    if found {
+      continue
+    }
+    visited.push(state.id)
+    for _, child in state.transitions {
+      count = count + 1
+      stack.push(child)
+    }
   }
   count
 }

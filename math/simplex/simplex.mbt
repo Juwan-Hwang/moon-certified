@@ -391,10 +391,10 @@ fn approx_eq(a : Double, b : Double) -> Bool {
 }
 
 ///|
-/// Assert `a ~= b` for `Double`, aborting with both values on failure.
-fn assert_approx(a : Double, b : Double) -> Unit {
+/// Assert `a ~= b` for `Double`, failing the test with both values on failure.
+fn assert_approx(a : Double, b : Double) -> Unit raise {
   if !approx_eq(a, b) {
-    abort("assert_approx: " + a.to_string() + " != " + b.to_string())
+    assert_true(false)
   }
 }
 
@@ -413,8 +413,8 @@ fn assert_optimal(
         assert_approx(sol[i], expected_sol[i])
       }
     }
-    Infeasible => abort("expected Optimal, got Infeasible")
-    Unbounded => abort("expected Optimal, got Unbounded")
+    Infeasible => assert_true(false)
+    Unbounded => assert_true(false)
   }
 }
 
@@ -505,8 +505,8 @@ test "simplex: degenerate problem terminates via Bland's rule" {
       assert_approx(eval_objective(c, sol), 2.0)
       assert_approx(sol[0] + sol[1], 2.0)
     }
-    Infeasible => abort("expected Optimal, got Infeasible")
-    Unbounded => abort("expected Optimal, got Unbounded")
+    Infeasible => fail("expected Optimal, got Infeasible")
+    Unbounded => fail("expected Optimal, got Unbounded")
   }
 }
 

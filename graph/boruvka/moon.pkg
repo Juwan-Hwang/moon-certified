@@ -1,0 +1,8 @@
+import {
+  "moon-certified/containers/union_find",
+  "moon-certified/graph/kruskal",
+}
+
+options(
+  "proof-enabled": false,
+)

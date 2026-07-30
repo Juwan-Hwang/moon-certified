@@ -246,6 +246,98 @@ pub fn zero_commission() -> (Double, Double) -> Double {
 }
 
 // ---------------------------------------------------------------------------
+// Slippage Models
+// ---------------------------------------------------------------------------
+
+/// Slippage model function type: given (quantity, price, ADV), returns
+/// the fill price adjusted for market impact and friction.
+///
+/// Production backtests must account for slippage — the difference between
+/// the expected fill price (e.g. close price) and the actual execution
+/// price. Without slippage, backtests systematically overestimate returns.
+
+///|
+/// Zero slippage — fills at the exact reference price.
+///
+/// Equivalent to the original behaviour. Use only for sanity checks.
+pub fn zero_slippage() -> (Double, Double, Double) -> Double {
+  fn(_qty : Double, price : Double, _adv : Double) -> Double { price }
+}
+
+///|
+/// Fixed basis-point slippage.
+///
+/// Applies a constant spread cost in basis points. For buys, the fill
+/// price is inflated by `bps / 1e4`; for sells, it's deflated.
+///
+/// - `bps`: Slippage in basis points (e.g. 5.0 = 5 bps = 0.05%).
+pub fn fixed_bps_slippage(bps : Double) -> (Double, Double, Double) -> Double {
+  fn(qty : Double, price : Double, _adv : Double) -> Double {
+    let frac = bps / 1.0e4
+    if qty > 0.0 {
+      price * (1.0 + frac)
+    } else if qty < 0.0 {
+      price * (1.0 - frac)
+    } else {
+      price
+    }
+  }
+}
+
+///|
+/// Square-root market impact slippage (Almgren-Chriss / Kissell model).
+///
+/// Empirical studies show that price impact scales with the square root
+/// of participation rate. This model is used by many buy-side desks.
+///
+/// `impact_bps = coefficient · √(|qty| / ADV) · 1e4`
+///
+/// For buys, fill price is inflated; for sells, deflated.
+///
+/// - `coefficient`: Impact coefficient (e.g. 0.5 for liquid stocks).
+/// - `adv`: Average daily volume (passed per-fill via the slippage callback).
+pub fn sqrt_impact_slippage(coefficient : Double) -> (Double, Double, Double) -> Double {
+  fn(qty : Double, price : Double, adv : Double) -> Double {
+    if adv <= 0.0 || qty == 0.0 {
+      return price
+    }
+    let participation = qty.abs() / adv
+    if participation <= 0.0 {
+      return price
+    }
+    let impact_bps = coefficient * participation.sqrt() * 1.0e4
+    let frac = impact_bps / 1.0e4
+    if qty > 0.0 {
+      price * (1.0 + frac)
+    } else {
+      price * (1.0 - frac)
+    }
+  }
+}
+
+///|
+/// Linear market impact slippage.
+///
+/// `impact_bps = coefficient · (|qty| / ADV) · 1e4`
+///
+/// Simpler than square-root but overestimates impact for large orders.
+pub fn linear_impact_slippage(coefficient : Double) -> (Double, Double, Double) -> Double {
+  fn(qty : Double, price : Double, adv : Double) -> Double {
+    if adv <= 0.0 || qty == 0.0 {
+      return price
+    }
+    let participation = qty.abs() / adv
+    let impact_bps = coefficient * participation * 1.0e4
+    let frac = impact_bps / 1.0e4
+    if qty > 0.0 {
+      price * (1.0 + frac)
+    } else {
+      price * (1.0 - frac)
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Backtest Engine
 // ---------------------------------------------------------------------------
 
@@ -288,32 +380,79 @@ pub fn run_backtest(
   commission : (Double, Double) -> Double,
   strategy : (Int, Array[(String, Double)], Portfolio) -> Array[Order],
 ) -> BacktestResult {
+  run_backtest_with_slippage(
+    market_data,
+    initial_capital,
+    periods_per_year,
+    commission,
+    zero_slippage(),
+    0.0, // ADV = 0 → slippage disabled
+    strategy,
+  )
+}
+
+///|
+/// Run a backtest with slippage and market impact modelling.
+///
+/// This is the production-grade backtest function. Unlike `run_backtest`
+/// (which fills at the exact close price), this function applies a
+/// slippage model to each fill, simulating the friction between the
+/// reference price and the actual execution price.
+///
+/// ## Slippage
+///
+/// The `slippage` callback receives `(quantity, reference_price, adv)`
+/// and returns the adjusted fill price. For buys, the fill price is
+/// typically higher than the reference; for sells, lower.
+///
+/// ## Abnormal Market Handling
+///
+/// - **Missing price**: If a symbol has no price in the current step,
+///   the order for that symbol is skipped (not filled).
+/// - **Zero or negative price**: Treated as a trading halt; the order
+///   is skipped.
+/// - **Zero quantity**: Silently skipped.
+///
+/// - `adv`: Average daily volume used by the slippage model. Pass 0.0
+///   to disable volume-based impact (fixed-bps slippage still works).
+pub fn run_backtest_with_slippage(
+  market_data : Array[Array[(String, Double)]],
+  initial_capital : Double,
+  periods_per_year : Int,
+  commission : (Double, Double) -> Double,
+  slippage : (Double, Double, Double) -> Double,
+  adv : Double,
+  strategy : (Int, Array[(String, Double)], Portfolio) -> Array[Order],
+) -> BacktestResult {
   let portfolio = new_portfolio(initial_capital)
   let n = market_data.length()
   for step = 0; step < n; step = step + 1 {
     let prices = market_data[step]
     // Strategy generates orders based on current state.
     let orders = strategy(step, prices, portfolio)
-    // Fill each order at the current close price.
+    // Fill each order at the current close price with slippage.
     for i = 0; i < orders.length(); i = i + 1 {
       let order = orders[i]
-      let mut fill_price = 0.0
+      let mut ref_price = 0.0
       for j = 0; j < prices.length(); j = j + 1 {
         let (s, p) = prices[j]
         if s == order.symbol {
-          fill_price = p
+          ref_price = p
           break
         }
       }
-      if fill_price > 0.0 && order.quantity != 0.0 {
-        let comm = commission(order.quantity, fill_price)
-        apply_fill(portfolio, {
-          symbol: order.symbol,
-          quantity: order.quantity,
-          price: fill_price,
-          commission: comm,
-        })
+      // Skip if no price found (missing data) or price <= 0 (trading halt).
+      if ref_price <= 0.0 || order.quantity == 0.0 {
+        continue
       }
+      let fill_price = slippage(order.quantity, ref_price, adv)
+      let comm = commission(order.quantity, fill_price)
+      apply_fill(portfolio, {
+        symbol: order.symbol,
+        quantity: order.quantity,
+        price: fill_price,
+        commission: comm,
+      })
     }
     // Record equity at end of step.
     portfolio.equity_history.push(portfolio_equity(portfolio, prices))
@@ -663,4 +802,165 @@ test "portfolio: average cost updates on add" {
       assert_true((pos.quantity - 200.0).abs() < 1.0e-10)
     }
   }
+}
+
+///|
+test "slippage: zero slippage fills at reference price" {
+  let market_data : Array[Array[(String, Double)]] = [
+    [("AAPL", 100.0)],
+    [("AAPL", 110.0)],
+  ]
+  let result = run_backtest_with_slippage(
+    market_data,
+    10000.0,
+    252,
+    zero_commission(),
+    zero_slippage(),
+    0.0,
+    fn(step, _prices, portfolio) {
+      if step == 0 {
+        let qty = (portfolio.cash / 100.0).floor()
+        [{ symbol: "AAPL", quantity: qty }]
+      } else {
+        []
+      }
+    },
+  )
+  // Same as run_backtest with zero slippage
+  assert_true((result.final_equity - 11000.0).abs() < 1.0)
+}
+
+///|
+test "slippage: fixed bps increases buy cost" {
+  let market_data : Array[Array[(String, Double)]] = [
+    [("AAPL", 100.0)],
+    [("AAPL", 110.0)],
+  ]
+  let result_no_slip = run_backtest_with_slippage(
+    market_data,
+    10000.0,
+    252,
+    zero_commission(),
+    zero_slippage(),
+    0.0,
+    fn(step, _prices, portfolio) {
+      if step == 0 {
+        let qty = (portfolio.cash / 100.0).floor()
+        [{ symbol: "AAPL", quantity: qty }]
+      } else {
+        []
+      }
+    },
+  )
+  let result_with_slip = run_backtest_with_slippage(
+    market_data,
+    10000.0,
+    252,
+    zero_commission(),
+    fixed_bps_slippage(10.0), // 10 bps = 0.1%
+    0.0,
+    fn(step, _prices, portfolio) {
+      if step == 0 {
+        let qty = (portfolio.cash / 100.0).floor()
+        [{ symbol: "AAPL", quantity: qty }]
+      } else {
+        []
+      }
+    },
+  )
+  // With slippage, buy price is higher → fewer shares bought → lower final equity
+  assert_true(result_with_slip.final_equity < result_no_slip.final_equity)
+}
+
+///|
+test "slippage: sqrt impact scales with order size" {
+  let market_data : Array[Array[(String, Double)]] = [
+    [("AAPL", 100.0)],
+    [("AAPL", 100.0)],
+  ]
+  // Small order: 10 shares
+  let result_small = run_backtest_with_slippage(
+    market_data,
+    100000.0,
+    252,
+    zero_commission(),
+    sqrt_impact_slippage(0.5),
+    10000.0, // ADV
+    fn(_step, _prices, _portfolio) {
+      [{ symbol: "AAPL", quantity: 10.0 }]
+    },
+  )
+  // Large order: 1000 shares (10% of ADV)
+  let result_large = run_backtest_with_slippage(
+    market_data,
+    100000.0,
+    252,
+    zero_commission(),
+    sqrt_impact_slippage(0.5),
+    10000.0, // ADV
+    fn(_step, _prices, _portfolio) {
+      [{ symbol: "AAPL", quantity: 1000.0 }]
+    },
+  )
+  // Both buy at step 0, price stays at 100, so equity = cash - cost of buying
+  // Large order has more impact → higher fill price → more cost → lower equity
+  let small_impact_cost = 100000.0 - result_small.final_equity
+  let large_impact_cost = 100000.0 - result_large.final_equity
+  // Per-share impact cost should be higher for the large order
+  assert_true(large_impact_cost / 1000.0 > small_impact_cost / 10.0)
+}
+
+///|
+test "slippage: missing price skips order" {
+  let market_data : Array[Array[(String, Double)]] = [
+    [("AAPL", 100.0)],
+    [("GOOG", 200.0)], // No AAPL price in step 1
+    [("AAPL", 110.0)],
+  ]
+  let result = run_backtest_with_slippage(
+    market_data,
+    10000.0,
+    252,
+    zero_commission(),
+    zero_slippage(),
+    0.0,
+    fn(step, _prices, portfolio) {
+      if step == 0 {
+        let qty = (portfolio.cash / 100.0).floor()
+        [{ symbol: "AAPL", quantity: qty }]
+      } else {
+        []
+      }
+    },
+  )
+  // Order at step 0 fills normally, no orders at steps 1-2
+  assert_eq(result.num_fills, 1)
+}
+
+///|
+test "slippage: zero/negative price treated as halt" {
+  let market_data : Array[Array[(String, Double)]] = [
+    [("AAPL", 0.0)],  // Trading halt
+    [("AAPL", 100.0)],
+  ]
+  let result = run_backtest_with_slippage(
+    market_data,
+    10000.0,
+    252,
+    zero_commission(),
+    zero_slippage(),
+    0.0,
+    fn(step, _prices, portfolio) {
+      if step == 0 {
+        let qty = (portfolio.cash / 100.0).floor()
+        [{ symbol: "AAPL", quantity: qty }]
+      } else {
+        []
+      }
+    },
+  )
+  // Order at step 0 should be skipped (price = 0, trading halt)
+  assert_eq(result.num_fills, 0)
+  // All cash preserved
+  assert_true((result.final_equity - 10000.0).abs() < 1.0)
 }

@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/math",
+  "moon-certified/utils",
+  "moon-certified/ml/kmeans",
+}
+
+options(
+  "proof-enabled": false,
+  "alert": "experimental",
+)

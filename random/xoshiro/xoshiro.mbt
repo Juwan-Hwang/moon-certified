@@ -71,12 +71,32 @@ pub fn next(x : Xoshiro256) -> UInt64 {
 
 ///|
 /// Generate a random Int in [0, n).
+///
+/// Uses **rejection sampling** on the lower 32 bits of the 64-bit output
+/// to eliminate the modulo bias present in `v % n`. When `n` does not
+/// divide 2³² evenly, values in the incomplete final block are rejected
+/// and a new sample is drawn.
 pub fn next_int(x : Xoshiro256, n : Int) -> Int {
   if n <= 0 {
     return 0
   }
-  let v = next(x)
-  (v % n.to_uint64()).to_int()
+  if n == 1 {
+    return 0
+  }
+  // Rejection sampling: threshold = largest multiple of n ≤ 2³².
+  let nu = n.to_uint64()
+  let range = 4294967296UL // 2³²
+  let threshold = (range / nu) * nu
+  let mut ok = false
+  let mut result = 0
+  while !ok {
+    let r = next(x) & 0xFFFFFFFFUL // lower 32 bits
+    if r < threshold {
+      result = (r % nu).to_int()
+      ok = true
+    }
+  }
+  result
 }
 
 ///|

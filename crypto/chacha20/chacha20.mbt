@@ -483,19 +483,19 @@ test "chacha20: cipher encrypt/decrypt round-trip" {
   let nonce = Bytes::makei(12, fn(i) { (i * 11 + 5).to_byte() })
   let plaintext = Bytes::makei(100, fn(i) { i.to_byte() })
   let cipher1 = match create_cipher(key, nonce) {
-    None => abort("failed to create cipher")
+    None => fail("failed to create cipher")
     Some(c) => c
   }
   let ciphertext = match cipher_apply(cipher1, plaintext) {
-    None => abort("encryption failed")
+    None => fail("encryption failed")
     Some(c) => c
   }
   let cipher2 = match create_cipher(key, nonce) {
-    None => abort("failed to create cipher")
+    None => fail("failed to create cipher")
     Some(c) => c
   }
   let decrypted = match cipher_apply(cipher2, ciphertext) {
-    None => abort("decryption failed")
+    None => fail("decryption failed")
     Some(c) => c
   }
   assert_true(plaintext.length() == decrypted.length())
@@ -509,15 +509,15 @@ test "chacha20: rng produces different values" {
   let key = Bytes::make(32, b'\x42')
   let nonce = Bytes::make(12, b'\x00')
   let rng = match create_rng(key, nonce) {
-    None => abort("failed to create rng")
+    None => fail("failed to create rng")
     Some(r) => r
   }
   let v1 = match next_uint32(rng) {
-    None => abort("exhausted")
+    None => fail("exhausted")
     Some(v) => v
   }
   let v2 = match next_uint32(rng) {
-    None => abort("exhausted")
+    None => fail("exhausted")
     Some(v) => v
   }
   assert_true(v1 != v2)
@@ -528,20 +528,20 @@ test "chacha20: rng is deterministic with same seed" {
   let key = Bytes::makei(32, fn(i) { i.to_byte() })
   let nonce = Bytes::makei(12, fn(i) { (i + 1).to_byte() })
   let rng1 = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   let rng2 = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   for _i = 0; _i < 100; _i = _i + 1 {
     let v1 = match next_uint32(rng1) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(v) => v
     }
     let v2 = match next_uint32(rng2) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(v) => v
     }
     assert_eq(v1, v2)
@@ -553,12 +553,12 @@ test "chacha20: rng next_bytes produces correct length" {
   let key = Bytes::make(32, b'\x01')
   let nonce = Bytes::make(12, b'\x02')
   let rng = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   for size in [1, 7, 63, 64, 65, 128, 200] {
     let result = match next_bytes(rng, size) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(b) => b
     }
     assert_eq(result.length(), size)
@@ -570,11 +570,11 @@ test "chacha20: rng next_uint64 works" {
   let key = Bytes::makei(32, fn(i) { (i * 3 + 1).to_byte() })
   let nonce = Bytes::makei(12, fn(i) { (i * 5 + 2).to_byte() })
   let rng = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   let v = match next_uint64(rng) {
-    None => abort("exhausted")
+    None => fail("exhausted")
     Some(v) => v
   }
   let _ = v
@@ -585,12 +585,12 @@ test "chacha20: rng next_int_in_range" {
   let key = Bytes::make(32, b'\x37')
   let nonce = Bytes::make(12, b'\x13')
   let rng = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   for _i = 0; _i < 1000; _i = _i + 1 {
     let v = match next_int_in_range(rng, 100) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(v) => v
     }
     assert_true(v >= 0)
@@ -604,21 +604,21 @@ test "chacha20: different seeds produce different streams" {
   let key2 = Bytes::make(32, b'\x02')
   let nonce = Bytes::make(12, b'\x00')
   let rng1 = match create_rng(key1, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   let rng2 = match create_rng(key2, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   let mut different = false
   for _i = 0; _i < 10; _i = _i + 1 {
     let v1 = match next_uint32(rng1) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(v) => v
     }
     let v2 = match next_uint32(rng2) {
-      None => abort("exhausted")
+      None => fail("exhausted")
       Some(v) => v
     }
     if v1 != v2 {
@@ -641,19 +641,19 @@ test "chacha20: keystream consistency between cipher and rng" {
   let key = Bytes::makei(32, fn(i) { i.to_byte() })
   let nonce = Bytes::makei(12, fn(i) { (i + 100).to_byte() })
   let cipher = match create_cipher(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(c) => c
   }
   let block1 = match cipher_next_block(cipher) {
-    None => abort("failed")
+    None => fail("failed")
     Some(b) => b
   }
   let rng = match create_rng(key, nonce) {
-    None => abort("failed")
+    None => fail("failed")
     Some(r) => r
   }
   let block2 = match next_bytes(rng, 64) {
-    None => abort("failed")
+    None => fail("failed")
     Some(b) => b
   }
   for i = 0; i < 64; i = i + 1 {

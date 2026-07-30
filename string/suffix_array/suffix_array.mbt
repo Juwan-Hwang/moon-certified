@@ -3,22 +3,63 @@
 /// Builds the suffix array of a string in O(n log^2 n) time using a
 /// comparison-based merge sort. The suffix array `sa` is a permutation of
 /// [0, n) such that `s[sa[0]..] < s[sa[1]..] < ... < s[sa[n-1]..]`
-/// lexicographically (Unicode codepoint-level comparison).
+/// lexicographically (byte-level comparison on the UTF-8 encoding).
+///
+/// The string is first converted to its UTF-8 byte representation. This
+/// ensures correct handling of all Unicode characters, including those
+/// outside the BMP (e.g. emoji, CJK Extension B). UTF-8 was designed so
+/// that byte-level lexicographic comparison yields the same ordering as
+/// codepoint-level comparison, so the resulting suffix array is correct
+/// at both the byte and codepoint levels.
 ///
 /// Algorithm:
-/// 1. Initialise ranks to individual character code values (`s[i].to_int()`).
-/// 2. For k = 1, 2, 4, ...: sort suffixes by the rank pair
+/// 1. Convert the input string to UTF-8 bytes.
+/// 2. Initialise ranks to individual byte values (0–255).
+/// 3. For k = 1, 2, 4, ...: sort suffixes by the rank pair
 ///    (rank[i], rank[i+k]), then recompute ranks from the sorted order.
-/// 3. Stop when all suffixes have distinct ranks (max rank == n - 1).
+/// 4. Stop when all suffixes have distinct ranks (max rank == n - 1).
 ///
-/// IMPORTANT: MoonBit's `String[i]` returns a `Char` (a UTF-16 code unit,
-/// i.e. a Unicode codepoint for BMP characters), not a raw byte. Suffixes
-/// are therefore compared at the Unicode codepoint level, not the byte
-/// level. `String::length()` likewise counts code units, so `n` here is the
-/// number of code units, not a byte count.
+/// All indices in the returned suffix array are **byte offsets** into the
+/// UTF-8 encoding of the string. For ASCII inputs, byte offsets coincide
+/// with character positions.
 ///
 /// Not formally verified (String operations not supported by moon prove).
 /// Correctness ensured by comprehensive tests.
+
+///|
+/// Convert a MoonBit `String` to a `FixedArray[Int]` of UTF-8 byte values
+/// (each in the range 0–255).
+///
+/// MoonBit's `String` is internally UTF-16; `String[i]` returns a UTF-16
+/// code unit, not a raw byte. For non-BMP characters (e.g. emoji), a single
+/// codepoint spans two UTF-16 code units (a surrogate pair), making
+/// code-unit-level indexing incorrect for suffix comparison. By converting
+/// to UTF-8 bytes we obtain a representation where:
+/// - Each element is a single byte (0–255).
+/// - Byte-level lexicographic order equals codepoint-level order (a design
+///   property of UTF-8 per RFC 3629).
+fn str_to_utf8_bytes(s : String) -> FixedArray[Int] {
+  let buf : Array[Int] = []
+  for c in s.iter() {
+    let cp = c.to_uint()
+    if cp <= 0x7FU {
+      buf.push(cp.reinterpret_as_int())
+    } else if cp <= 0x7FFU {
+      buf.push((0xC0U | (cp >> 6)).reinterpret_as_int())
+      buf.push((0x80U | (cp & 0x3FU)).reinterpret_as_int())
+    } else if cp <= 0xFFFFU {
+      buf.push((0xE0U | (cp >> 12)).reinterpret_as_int())
+      buf.push((0x80U | ((cp >> 6) & 0x3FU)).reinterpret_as_int())
+      buf.push((0x80U | (cp & 0x3FU)).reinterpret_as_int())
+    } else {
+      buf.push((0xF0U | (cp >> 18)).reinterpret_as_int())
+      buf.push((0x80U | ((cp >> 12) & 0x3FU)).reinterpret_as_int())
+      buf.push((0x80U | ((cp >> 6) & 0x3FU)).reinterpret_as_int())
+      buf.push((0x80U | (cp & 0x3FU)).reinterpret_as_int())
+    }
+  }
+  FixedArray::from_array(buf)
+}
 
 ///|
 /// Stable bottom-up (iterative) merge sort of `arr[lo, hi)` by comparator.
@@ -70,9 +111,12 @@ fn msort_int(
 
 ///|
 /// Build the suffix array of `s`.
-/// Returns a `FixedArray[Int]` of sorted suffix start indices.
+///
+/// Returns a `FixedArray[Int]` of sorted suffix start indices (byte offsets
+/// into the UTF-8 encoding of `s`).
 pub fn build(s : String) -> FixedArray[Int] {
-  let n = s.length()
+  let bytes = str_to_utf8_bytes(s)
+  let n = bytes.length()
   if n == 0 {
     return FixedArray::make(0, 0)
   }
@@ -81,8 +125,8 @@ pub fn build(s : String) -> FixedArray[Int] {
   }
   // sa[i] = i-th smallest suffix start index.
   let sa = FixedArray::makei(n, fn(i) { i })
-  // rank[i] = current rank of the suffix starting at position i.
-  let rank = FixedArray::makei(n, fn(i) { s[i].to_int() })
+  // rank[i] = current rank of the suffix starting at byte position i.
+  let rank = FixedArray::makei(n, fn(i) { bytes[i] })
   // tmp holds new ranks during recomputation.
   let tmp = FixedArray::make(n, 0)
   // Scratch array for merge sort.
@@ -137,19 +181,23 @@ pub fn build(s : String) -> FixedArray[Int] {
 }
 
 ///|
-/// Compare `pattern` with the suffix of `s` starting at `pos`.
+/// Compare `pattern_bytes` with the suffix of `text_bytes` starting at `pos`.
 /// Returns < 0 if the suffix is lexicographically smaller than `pattern`,
 /// 0 if the suffix starts with `pattern`, > 0 if the suffix is greater.
-fn compare_suffix_pattern(s : String, pos : Int, pattern : String) -> Int {
-  let n = s.length()
-  let m = pattern.length()
+fn compare_suffix_pattern_bytes(
+  text_bytes : FixedArray[Int],
+  pos : Int,
+  pattern_bytes : FixedArray[Int],
+) -> Int {
+  let n = text_bytes.length()
+  let m = pattern_bytes.length()
   for i = 0; i < m; i = i + 1 {
     if pos + i >= n {
       // Suffix exhausted before pattern: suffix < pattern.
       return -1
     }
-    let sc = s[pos + i].to_int()
-    let pc = pattern[i].to_int()
+    let sc = text_bytes[pos + i]
+    let pc = pattern_bytes[i]
     if sc != pc {
       return sc - pc
     }
@@ -161,12 +209,14 @@ fn compare_suffix_pattern(s : String, pos : Int, pattern : String) -> Int {
 ///|
 /// Binary search for `pattern` in the suffix array of `s`.
 ///
-/// Returns `Some(pos)` where `pos` is the starting index in `s` of the
-/// lexicographically smallest suffix that begins with `pattern`, or `None`
-/// if no suffix starts with `pattern`.
+/// Returns `Some(pos)` where `pos` is the starting byte offset in the UTF-8
+/// encoding of `s` of the lexicographically smallest suffix that begins with
+/// `pattern`, or `None` if no suffix starts with `pattern`.
 pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
-  let n = s.length()
-  let m = pattern.length()
+  let text_bytes = str_to_utf8_bytes(s)
+  let pattern_bytes = str_to_utf8_bytes(pattern)
+  let n = text_bytes.length()
+  let m = pattern_bytes.length()
   if m == 0 {
     return None
   }
@@ -175,7 +225,7 @@ pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
   let mut hi = n
   while lo < hi {
     let mid = (lo + hi) / 2
-    let cmp = compare_suffix_pattern(s, sa[mid], pattern)
+    let cmp = compare_suffix_pattern_bytes(text_bytes, sa[mid], pattern_bytes)
     if cmp < 0 {
       lo = mid + 1
     } else {
@@ -184,7 +234,7 @@ pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
   }
   // Check whether the found suffix actually starts with pattern.
   if lo < n {
-    if compare_suffix_pattern(s, sa[lo], pattern) == 0 {
+    if compare_suffix_pattern_bytes(text_bytes, sa[lo], pattern_bytes) == 0 {
       return Some(sa[lo])
     }
   }
@@ -196,14 +246,14 @@ pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Compare two suffixes of `s` starting at `a` and `b` lexicographically.
+/// Compare two suffixes of `text_bytes` starting at `a` and `b` lexicographically.
 /// Returns < 0, 0, or > 0.
-fn compare_suffixes(s : String, a : Int, b : Int) -> Int {
-  let n = s.length()
+fn compare_suffixes_bytes(text_bytes : FixedArray[Int], a : Int, b : Int) -> Int {
+  let n = text_bytes.length()
   let mut i = 0
   while a + i < n && b + i < n {
-    let ca = s[a + i].to_int()
-    let cb = s[b + i].to_int()
+    let ca = text_bytes[a + i]
+    let cb = text_bytes[b + i]
     if ca != cb {
       return ca - cb
     }
@@ -221,12 +271,13 @@ fn compare_suffixes(s : String, a : Int, b : Int) -> Int {
 ///|
 /// Check that the suffix array produces lexicographically sorted suffixes.
 fn is_sorted_suffixes(sa : FixedArray[Int], s : String) -> Bool {
+  let text_bytes = str_to_utf8_bytes(s)
   let n = sa.length()
   if n <= 1 {
     return true
   }
   for i = 0; i < n - 1; i = i + 1 {
-    if compare_suffixes(s, sa[i], sa[i + 1]) >= 0 {
+    if compare_suffixes_bytes(text_bytes, sa[i], sa[i + 1]) >= 0 {
       return false
     }
   }
@@ -316,7 +367,7 @@ test "build: large string 100 chars" {
   for i = 0; i < 50; i = i + 1 {
     s = s + "ab"
   }
-  // s = "ababab...ab" (100 chars)
+  // s = "ababab...ab" (100 chars, 100 UTF-8 bytes since all ASCII)
   assert_eq(s.length(), 100)
   let sa = build(s)
   assert_eq(sa.length(), 100)
@@ -373,8 +424,9 @@ test "search: multiple matches returns valid position" {
   assert_true(result is Some(_))
   let pos = result.unwrap()
   // Verify the pattern actually occurs at the returned position.
-  assert_eq(s[pos].to_int(), 97) // 'a'
-  assert_eq(s[pos + 1].to_int(), 98) // 'b'
+  let bytes = str_to_utf8_bytes(s)
+  assert_eq(bytes[pos], 97) // 'a'
+  assert_eq(bytes[pos + 1], 98) // 'b'
 }
 
 ///|
@@ -388,4 +440,56 @@ test "search: pattern at end of string" {
 test "search: pattern longer than string" {
   let sa = build("abc")
   assert_true(search(sa, "abc", "abcd") is None)
+}
+
+///|
+test "build: non-ASCII (UTF-8 multi-byte)" {
+  // "café" = c(1) a(1) f(1) é(2 bytes in UTF-8) = 5 bytes total
+  let sa = build("café")
+  // UTF-8 bytes: 99 97 102 195 169
+  assert_eq(sa.length(), 5)
+  assert_true(is_sorted_suffixes(sa, "café"))
+  // Suffixes (byte-level), sorted by first byte value:
+  // 1: 97  102 195 169  ("afé")
+  // 0: 99  97  102 195 169  ("café")
+  // 2: 102 195 169  ("fé")
+  // 4: 169 (continuation byte of é, sorts before lead byte)
+  // 3: 195 169  ("é" lead byte)
+  assert_eq(sa[0], 1) // "afé" — 'a' = 97
+  assert_eq(sa[1], 0) // "café" — 'c' = 99
+  assert_eq(sa[2], 2) // "fé" — 'f' = 102
+  assert_eq(sa[3], 4) // continuation byte 0xA9 = 169
+  assert_eq(sa[4], 3) // "é" lead byte 0xC3 = 195
+}
+
+///|
+test "build: emoji (non-BMP codepoint)" {
+  // "a😀b" — 😀 is U+1F600, 4 UTF-8 bytes: F0 9F 98 80
+  // Total: 1 + 4 + 1 = 6 bytes
+  let sa = build("a😀b")
+  assert_eq(sa.length(), 6)
+  assert_true(is_sorted_suffixes(sa, "a😀b"))
+  // Byte values: 97 240 159 152 128 98
+  // Suffixes sorted by first byte:
+  // 0: 97  240 159 152 128 98  ("a😀b")
+  // 5: 98                        ("b")
+  // 4: 128 98                    (continuation byte + "b")
+  // 3: 152 128 98                (continuation byte + ...)
+  // 2: 159 152 128 98            (continuation byte + ...)
+  // 1: 240 159 152 128 98        ("😀b")
+  assert_eq(sa[0], 0) // 'a' = 97
+  assert_eq(sa[1], 5) // 'b' = 98
+  assert_eq(sa[2], 4) // continuation byte 0x80 = 128
+  assert_eq(sa[3], 3) // continuation byte 0x98 = 152
+  assert_eq(sa[4], 2) // continuation byte 0x9F = 159
+  assert_eq(sa[5], 1) // lead byte 0xF0 = 240
+}
+
+///|
+test "search: non-ASCII pattern" {
+  let sa = build("café")
+  // Search for "é" — its UTF-8 bytes are C3 A9, at byte offset 3
+  assert_eq(search(sa, "café", "é"), Some(3))
+  // Search for "af" — at byte offset 1
+  assert_eq(search(sa, "café", "af"), Some(1))
 }

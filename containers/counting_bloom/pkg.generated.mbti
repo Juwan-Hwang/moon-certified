@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/counting_bloom"
+
+// Values
+pub fn add(CountingBloomFilter, String) -> Unit
+
+pub fn clear(CountingBloomFilter) -> Unit
+
+pub fn contains(CountingBloomFilter, String) -> Bool
+
+pub fn count(CountingBloomFilter) -> Int
+
+pub fn new(Int, Double) -> CountingBloomFilter
+
+pub fn remove(CountingBloomFilter, String) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct CountingBloomFilter {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

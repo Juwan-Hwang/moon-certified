@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/sha1"
+
+// Values
+pub fn sha1(Bytes) -> Bytes
+
+pub fn sha1_hex(Bytes) -> String
+
+pub fn sha1_string(String) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

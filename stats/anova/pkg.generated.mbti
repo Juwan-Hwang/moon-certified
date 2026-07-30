@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/stats/anova"
+
+// Values
+pub fn one_way_anova(Array[Array[Double]]) -> OneWayAnovaResult
+
+pub fn two_way_anova_no_replication(Array[Array[Double]]) -> TwoWayAnovaResult
+
+// Errors
+
+// Types and methods
+pub struct OneWayAnovaResult {
+  ssb : Double
+  ssw : Double
+  sst : Double
+  df_between : Int
+  df_within : Int
+  msb : Double
+  msw : Double
+  f_statistic : Double
+  p_value : Double
+}
+
+pub struct TwoWayAnovaResult {
+  ss_a : Double
+  ss_b : Double
+  ss_error : Double
+  ss_total : Double
+  df_a : Int
+  df_b : Int
+  df_error : Int
+  ms_a : Double
+  ms_b : Double
+  ms_error : Double
+  f_a : Double
+  f_b : Double
+  p_a : Double
+  p_b : Double
+}
+
+// Type aliases
+
+// Traits
+

@@ -87,7 +87,7 @@ test "hkdf: RFC 5869 test case 1" {
   let okm = expand(prk, info, 42)
   match okm {
     Some(o) => assert_eq(o.length(), 42)
-    None => abort("expand should not return None for valid input")
+    None => fail("expand should not return None for valid input")
   }
 }
 
@@ -97,7 +97,7 @@ test "hkdf: combined extract-expand" {
   let okm = hkdf(b"", ikm, b"", 64)
   match okm {
     Some(o) => assert_eq(o.length(), 64)
-    None => abort("hkdf should succeed")
+    None => fail("hkdf should succeed")
   }
 }
 

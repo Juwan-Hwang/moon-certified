@@ -40,9 +40,19 @@
 const MIN_MERGE : Int = 32
 
 ///|
-/// Galloping threshold: after this many consecutive wins from one side,
-/// the merge switches to galloping (binary search) mode.
+/// Initial galloping threshold (matches CPython's MIN_GALLOP).
+/// After this many consecutive wins from one side, the merge enters
+/// galloping mode. The threshold is then adapted at runtime: it
+/// decreases when galloping is effective and increases when it is not,
+/// matching CPython's `listobject.c` self-tuning behaviour.
 const GALLOP_THRESHOLD : Int = 7
+
+///|
+/// Sort state carrying the self-tuning `min_gallop` parameter across
+/// merge operations, exactly as CPython's `MergeState` does.
+priv struct TimsortState {
+  mut min_gallop : Int
+}
 
 ///|
 /// Compute the minimum run length for an array of size `n`.
@@ -157,10 +167,13 @@ fn[T] binary_insertion_sort(
 /// run1 = xs[base1..base1+len1), run2 = xs[base1+len1..base1+len1+len2)
 /// Both runs must be sorted. Result overwrites xs[base1..base1+len1+len2).
 ///
-/// Implements **galloping mode**: when one side consistently wins (7+
-/// consecutive wins), the merge switches to binary search to find the
-/// next insertion point, dramatically reducing comparisons for
-/// partially-ordered data.
+/// Implements **CPython-style adaptive galloping**: once galloping mode
+/// is entered (consecutive wins ≥ `min_gallop`), the merge stays in
+/// galloping mode — alternately galloping in run1 and run2 — until both
+/// gallop counts drop below `GALLOP_THRESHOLD`, at which point it exits
+/// and raises `min_gallop` by 1.  When gallop counts are large, it
+/// lowers `min_gallop` (min 1), making re-entry easier.  This
+/// self-tuning behaviour matches CPython's `listobject.c`.
 fn[T] merge_runs(
   xs : FixedArray[T],
   base1 : Int,
@@ -168,6 +181,7 @@ fn[T] merge_runs(
   base2 : Int,
   len2 : Int,
   cmp : (T, T) -> Int,
+  state : TimsortState,
 ) -> Unit {
   if len1 <= len2 {
     // Copy run1 to buffer, merge from buffer into array (left to right).
@@ -188,30 +202,49 @@ fn[T] merge_runs(
         out = out + 1
         win1 = win1 + 1
         win2 = 0
-        if win1 >= GALLOP_THRESHOLD {
-          let gc = gallop_right(buf, p1, len1, xs[p2], cmp)
-          for g = 0; g < gc; g = g + 1 {
-            xs[out] = buf[p1]
-            p1 = p1 + 1
-            out = out + 1
-          }
-          win1 = 0
-        }
       } else {
         xs[out] = xs[p2]
         p2 = p2 + 1
         out = out + 1
         win2 = win2 + 1
         win1 = 0
-        if win2 >= GALLOP_THRESHOLD {
-          let gc = gallop_left(xs, p2, end2, buf[p1], cmp)
-          for g = 0; g < gc; g = g + 1 {
+      }
+      // Enter galloping mode when consecutive wins exceed threshold.
+      if win1 >= state.min_gallop || win2 >= state.min_gallop {
+        // Galloping mode: repeatedly gallop in both directions.
+        while p1 < len1 && p2 < end2 {
+          // Gallop right in run1: copy all elements <= xs[p2].
+          let gc1 = gallop_right(buf, p1, len1, xs[p2], cmp)
+          for g = 0; g < gc1; g = g + 1 {
+            xs[out] = buf[p1]
+            p1 = p1 + 1
+            out = out + 1
+          }
+          if p1 >= len1 {
+            break
+          }
+          // Gallop left in run2: copy all elements < buf[p1].
+          let gc2 = gallop_left(xs, p2, end2, buf[p1], cmp)
+          for g = 0; g < gc2; g = g + 1 {
             xs[out] = xs[p2]
             p2 = p2 + 1
             out = out + 1
           }
-          win2 = 0
+          if p2 >= end2 {
+            break
+          }
+          // Adapt min_gallop: if gallop counts are small, exit galloping.
+          if gc1 < GALLOP_THRESHOLD && gc2 < GALLOP_THRESHOLD {
+            if state.min_gallop < 2147483647 {
+              state.min_gallop = state.min_gallop + 1
+            }
+            break
+          } else if state.min_gallop > 1 {
+            state.min_gallop = state.min_gallop - 1
+          }
         }
+        win1 = 0
+        win2 = 0
       }
     }
     // Copy remaining from buf.
@@ -239,30 +272,49 @@ fn[T] merge_runs(
         out = out - 1
         win1 = win1 + 1
         win2 = 0
-        if win1 >= GALLOP_THRESHOLD {
-          let gc = gallop_left_from_right(xs, base1, p1 + 1, buf[p2], cmp)
-          for g = 0; g < gc; g = g + 1 {
-            xs[out] = xs[p1]
-            p1 = p1 - 1
-            out = out - 1
-          }
-          win1 = 0
-        }
       } else {
         xs[out] = buf[p2]
         p2 = p2 - 1
         out = out - 1
         win2 = win2 + 1
         win1 = 0
-        if win2 >= GALLOP_THRESHOLD {
-          let gc = gallop_right_from_right(buf, 0, p2 + 1, xs[p1], cmp)
-          for g = 0; g < gc; g = g + 1 {
+      }
+      // Enter galloping mode when consecutive wins exceed threshold.
+      if win1 >= state.min_gallop || win2 >= state.min_gallop {
+        // Galloping mode: repeatedly gallop in both directions (right-to-left).
+        while p1 >= base1 && p2 >= 0 {
+          // Gallop from right in run1: copy all elements > buf[p2].
+          let gc1 = gallop_left_from_right(xs, base1, p1 + 1, buf[p2], cmp)
+          for g = 0; g < gc1; g = g + 1 {
+            xs[out] = xs[p1]
+            p1 = p1 - 1
+            out = out - 1
+          }
+          if p1 < base1 {
+            break
+          }
+          // Gallop from right in run2: copy all elements >= xs[p1].
+          let gc2 = gallop_right_from_right(buf, 0, p2 + 1, xs[p1], cmp)
+          for g = 0; g < gc2; g = g + 1 {
             xs[out] = buf[p2]
             p2 = p2 - 1
             out = out - 1
           }
-          win2 = 0
+          if p2 < 0 {
+            break
+          }
+          // Adapt min_gallop.
+          if gc1 < GALLOP_THRESHOLD && gc2 < GALLOP_THRESHOLD {
+            if state.min_gallop < 2147483647 {
+              state.min_gallop = state.min_gallop + 1
+            }
+            break
+          } else if state.min_gallop > 1 {
+            state.min_gallop = state.min_gallop - 1
+          }
         }
+        win1 = 0
+        win2 = 0
       }
     }
     // Copy remaining from buf.
@@ -460,6 +512,8 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
     return
   }
   let mrl = min_run_length(n)
+  // Self-tuning galloping state, shared across all merges (like CPython).
+  let state : TimsortState = { min_gallop: GALLOP_THRESHOLD }
   // Merge stack.
   let stack_base : Array[Int] = []
   let stack_len : Array[Int] = []
@@ -494,6 +548,7 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
           stack_base[i - 1],
           stack_len[i - 1],
           cmp,
+          state,
         )
         stack_len[i - 2] = stack_len[i - 2] + stack_len[i - 1]
         ignore(stack_base.remove(i - 1))
@@ -507,6 +562,7 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
           stack_base[i],
           stack_len[i],
           cmp,
+          state,
         )
         stack_len[i - 1] = stack_len[i - 1] + stack_len[i]
         ignore(stack_base.remove(i))
@@ -528,6 +584,7 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
       stack_base[i],
       stack_len[i],
       cmp,
+      state,
     )
     stack_len[i - 1] = stack_len[i - 1] + stack_len[i]
     ignore(stack_base.remove(i))

@@ -1,0 +1,21 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/lda"
+
+// Values
+pub fn lda(Array[Array[Double]], Array[Int], Int, Double) -> LDAResult
+
+pub fn lda_transform(LDAResult, Array[Double]) -> Array[Double]
+
+// Errors
+
+// Types and methods
+pub struct LDAResult {
+  scalings : Array[Array[Double]]
+  mean : Array[Double]
+  explained_variance : Array[Double]
+}
+
+// Type aliases
+
+// Traits
+

@@ -1,7 +1,13 @@
 /// Concurrent Data Structures for MoonBit.
 ///
-/// MoonBit currently targets WebAssembly and JavaScript, which are
-/// single-threaded execution environments. These data structures are
+/// **⚠️ WARNING: NOT thread-safe.** Despite the "Concurrent" name, all
+/// structures in this module are single-threaded simulations. MoonBit
+/// currently targets WebAssembly and JavaScript, which are single-threaded
+/// execution environments. There are no atomic operations, no CAS, no memory
+/// barriers — the "concurrent" algorithms (Treiber stack, Michael-Scott queue,
+/// Chase-Lev deque) run with CAS that always succeeds. **Do not use these
+/// structures from multiple threads or Web Workers** — concurrent access will
+/// break invariants and corrupt data. These data structures are
 /// designed with two goals:
 ///
 /// 1. **Immediate utility**: they provide useful abstractions (bounded

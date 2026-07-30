@@ -1,0 +1,33 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/serialization/csv"
+
+// Values
+pub fn default_config() -> CsvConfig
+
+pub fn parse(String, CsvConfig) -> Array[Array[String]]
+
+pub fn tsv_config() -> CsvConfig
+
+pub fn with_header() -> CsvConfig
+
+pub fn write(Array[Array[String]], CsvConfig) -> String
+
+pub fn write_row(Array[String], CsvConfig) -> String
+
+pub fn write_with_header(Array[String], Array[Array[String]], CsvConfig) -> String
+
+// Errors
+
+// Types and methods
+pub struct CsvConfig {
+  delimiter : Char
+  quote : Char
+  line_terminator : String
+  has_header : Bool
+}
+
+// Type aliases
+pub type CsvRow = Array[String]
+
+// Traits
+

@@ -145,7 +145,10 @@ pub fn bfs_distances(g : Graph, src : Int) -> FixedArray[Int?]? {
   while head < tail {
     let u = queue[head]
     head = head + 1
-    let du = result[u].unwrap()
+    let du = match result[u] {
+      Some(d) => d
+      None => continue
+    }
     for i = 0; i < g.adj[u].length(); i = i + 1 {
       let v = g.adj[u][i].to
       if result[v] is None {

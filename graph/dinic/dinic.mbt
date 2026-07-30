@@ -265,7 +265,7 @@ fn find_and_push_paths(
 ///
 /// **Stack safety**: the DFS uses iterative path tracing (no recursion), so
 /// it is safe for adversarial inputs that create deep level graphs.
-pub fn max_flow(
+pub fn dinic_max_flow(
   n : Int,
   src : Int,
   sink : Int,
@@ -300,31 +300,31 @@ pub fn max_flow(
 ///|
 test "dinic: simple chain" {
   let edges = [(0, 1, 10L), (1, 2, 10L), (2, 3, 10L)]
-  assert_eq(max_flow(4, 0, 3, edges), Some(10L))
+  assert_eq(dinic_max_flow(4, 0, 3, edges), Some(10L))
 }
 
 ///|
 test "dinic: two parallel paths" {
   let edges = [(0, 1, 10L), (0, 2, 5L), (1, 3, 5L), (2, 3, 10L)]
-  assert_eq(max_flow(4, 0, 3, edges), Some(10L))
+  assert_eq(dinic_max_flow(4, 0, 3, edges), Some(10L))
 }
 
 ///|
 test "dinic: bottleneck" {
   let edges = [(0, 1, 20L), (1, 2, 5L), (2, 3, 20L)]
-  assert_eq(max_flow(4, 0, 3, edges), Some(5L))
+  assert_eq(dinic_max_flow(4, 0, 3, edges), Some(5L))
 }
 
 ///|
 test "dinic: no path" {
   let edges = [(0, 1, 10L), (2, 3, 10L)]
-  assert_eq(max_flow(4, 0, 3, edges), Some(0L))
+  assert_eq(dinic_max_flow(4, 0, 3, edges), Some(0L))
 }
 
 ///|
 test "dinic: single edge" {
   let edges = [(0, 1, 7L)]
-  assert_eq(max_flow(2, 0, 1, edges), Some(7L))
+  assert_eq(dinic_max_flow(2, 0, 1, edges), Some(7L))
 }
 
 ///|
@@ -340,36 +340,36 @@ test "dinic: classic CLRS example" {
     (4, 3, 7L),
     (4, 5, 4L),
   ]
-  assert_eq(max_flow(6, 0, 5, edges), Some(23L))
+  assert_eq(dinic_max_flow(6, 0, 5, edges), Some(23L))
 }
 
 ///|
 test "dinic: undirected graph (bidirectional edges)" {
   let edges = [(0, 1, 10L), (1, 0, 10L), (1, 2, 10L), (2, 1, 10L)]
-  assert_eq(max_flow(3, 0, 2, edges), Some(10L))
+  assert_eq(dinic_max_flow(3, 0, 2, edges), Some(10L))
 }
 
 ///|
 test "dinic: self-loop ignored" {
   let edges = [(0, 0, 100L), (0, 1, 10L), (1, 2, 10L)]
-  assert_eq(max_flow(3, 0, 2, edges), Some(10L))
+  assert_eq(dinic_max_flow(3, 0, 2, edges), Some(10L))
 }
 
 ///|
 test "dinic: parallel edges" {
   let edges = [(0, 1, 3L), (0, 1, 7L), (1, 2, 10L)]
-  assert_eq(max_flow(3, 0, 2, edges), Some(10L))
+  assert_eq(dinic_max_flow(3, 0, 2, edges), Some(10L))
 }
 
 ///|
 test "dinic: invalid inputs return None" {
   let edges = [(0, 1, 10L)]
-  assert_true(max_flow(0, 0, 1, edges) is None)
-  assert_true(max_flow(3, -1, 1, edges) is None)
-  assert_true(max_flow(3, 3, 1, edges) is None)
-  assert_true(max_flow(3, 0, -1, edges) is None)
-  assert_true(max_flow(3, 0, 3, edges) is None)
-  assert_true(max_flow(3, 1, 1, edges) is None)
+  assert_true(dinic_max_flow(0, 0, 1, edges) is None)
+  assert_true(dinic_max_flow(3, -1, 1, edges) is None)
+  assert_true(dinic_max_flow(3, 3, 1, edges) is None)
+  assert_true(dinic_max_flow(3, 0, -1, edges) is None)
+  assert_true(dinic_max_flow(3, 0, 3, edges) is None)
+  assert_true(dinic_max_flow(3, 1, 1, edges) is None)
 }
 
 ///|
@@ -393,13 +393,13 @@ test "dinic: large layered graph" {
   for i = 0; i < w; i = i + 1 {
     edges.push((1 + 2 * w + i, n - 1, 1L))
   }
-  assert_eq(max_flow(n, 0, n - 1, edges), Some(40L))
+  assert_eq(dinic_max_flow(n, 0, n - 1, edges), Some(40L))
 }
 
 ///|
 test "dinic: int64 large capacity" {
   let edges = [(0, 1, 3000000000L), (1, 2, 3000000000L)]
-  assert_eq(max_flow(3, 0, 2, edges), Some(3000000000L))
+  assert_eq(dinic_max_flow(3, 0, 2, edges), Some(3000000000L))
 }
 
 ///|
@@ -411,5 +411,5 @@ test "dinic: deep chain 2000 nodes (stack safety)" {
   for i = 0; i < n - 1; i = i + 1 {
     edges.push((i, i + 1, 1L))
   }
-  assert_eq(max_flow(n, 0, n - 1, edges), Some(1L))
+  assert_eq(dinic_max_flow(n, 0, n - 1, edges), Some(1L))
 }

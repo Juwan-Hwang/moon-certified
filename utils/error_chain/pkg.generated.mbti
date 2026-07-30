@@ -1,0 +1,37 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/utils/error_chain"
+
+// Values
+pub fn contains_message(ChainError, String) -> Bool
+
+pub fn depth(ChainError) -> Int
+
+pub fn find_context(ChainError, String) -> String?
+
+pub fn format_chain(ChainError) -> String
+
+pub fn messages(ChainError) -> Array[String]
+
+pub fn new(String) -> ChainError
+
+pub fn root_error(ChainError) -> ChainError
+
+pub fn root_message(ChainError) -> String
+
+pub fn with_context(ChainError, String, String) -> ChainError
+
+pub fn wrap(ChainError, String) -> ChainError
+
+// Errors
+
+// Types and methods
+pub struct ChainError {
+  message : String
+  context : Array[(String, String)]
+  source : ChainError?
+}
+
+// Type aliases
+
+// Traits
+

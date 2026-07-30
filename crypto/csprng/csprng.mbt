@@ -59,7 +59,8 @@ let sha256_len : Int = 32
 
 ///|
 /// Maximum bytes per generate request (NIST SP 800-90A §10.1.2.5).
-let _max_bytes_per_request : Int = 65536
+/// NIST mandates 2^19 bytes (524288); we use a conservative 65536.
+let max_bytes_per_request : Int = 65536
 
 ///|
 /// Maximum generate requests before mandatory reseed (2^48, per NIST).
@@ -213,6 +214,10 @@ pub fn generate(
   if num_bytes <= 0 {
     return Some(Bytes::from_array([]))
   }
+  // Enforce NIST SP 800-90A §10.1.2.5 maximum request size.
+  if num_bytes > max_bytes_per_request {
+    return None
+  }
   if state.reseed_counter > reseed_interval {
     return None // Mandatory reseed required.
   }
@@ -259,11 +264,14 @@ pub fn generate_below(state : DrbgState, n : Int) -> Int? {
   // Use 31-bit range [0, 2^31).
   // 2^31 = 2147483648, but Int max is 2147483647.
   // Compute threshold using Int64 to avoid overflow.
+  // When n is a power of 2, range % n64 == 0, so threshold64 == range == 2^31,
+  // which overflows Int. Handle power-of-2 as a special case.
   let range = 2147483648L
   let n64 = n.to_int64()
   let threshold64 = range - (range % n64)
-  let threshold = threshold64.to_int()
+  // Use Int64 comparison to avoid Int overflow when threshold64 == 2^31.
   let mut r = 0
+  let mut r64 = 0L
   let mut ok = false
   while !ok {
     let bytes = match generate(state, 4, Bytes::from_array([])) {
@@ -275,7 +283,8 @@ pub fn generate_below(state : DrbgState, n : Int) -> Int? {
       ((bytes[1].to_int() & 0xFF) << 16) |
       ((bytes[2].to_int() & 0xFF) << 8) |
       (bytes[3].to_int() & 0xFF)
-    if r < threshold {
+    r64 = r.to_int64()
+    if r64 < threshold64 {
       ok = true
     }
   }

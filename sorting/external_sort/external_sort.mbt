@@ -153,7 +153,10 @@ fn k_way_merge(
   }
   // Extract minimum repeatedly and refill from the same run.
   for pos = 0; pos < total; pos = pos + 1 {
-    let (val, run) = heap.pop().unwrap()
+    let (val, run) = match heap.pop() {
+      Some(v) => v
+      None => break
+    }
     result[pos] = val
     // Refill from the same run if it still has elements.
     if ptrs[run] < runs[start + run].length() {

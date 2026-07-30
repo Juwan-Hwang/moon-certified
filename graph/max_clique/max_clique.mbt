@@ -111,6 +111,31 @@ fn lowest_bit(x : Int) -> Int {
 }
 
 ///|
+/// Choose the pivot vertex u from P ∪ X that maximizes |P ∩ N(u)|.
+///
+/// This is the standard Bron-Kerbosch pivot heuristic: by picking the vertex
+/// whose neighborhood covers the most of P, we minimize |P \ N(u)| and thus
+/// the number of recursive branches.
+///
+/// Returns -1 if `union` is 0 (both P and X empty — shouldn't happen at call
+/// site since that case is handled earlier).
+fn choose_pivot(adj : Array[Int], p : Int, union : Int) -> Int {
+  let mut best_u = -1
+  let mut best_count = -1
+  let mut bits = union
+  while bits != 0 {
+    let u = lowest_bit(bits)
+    bits = bits & (bits - 1) // remove u
+    let count = popcount(p & adj[u])
+    if count > best_count {
+      best_count = count
+      best_u = u
+    }
+  }
+  best_u
+}
+
+///|
 /// Bron-Kerbosch recursive search with pivoting.
 ///
 /// Parameters:
@@ -136,12 +161,16 @@ fn bron_kerbosch(state : SearchState, r_size : Int, p : Int, x : Int) -> Unit {
   if r_size + popcount(p) <= state.best_size {
     return
   }
-  // Choose pivot u from P ∪ X (the vertex with max degree in P).
+  // Choose pivot u from P ∪ X: the vertex with max |P ∩ N(u)|.
   let union = p | x
-  let pivot = lowest_bit(union)
+  let pivot = choose_pivot(state.adj, p, union)
   // Candidates: P \ N(pivot) = P & ~N(pivot)
-  // In MoonBit, ~ is not available, so we use: A & ~B == A ^ (A & B)
-  let p_candidates = p ^ (p & state.adj[pivot])
+  // If pivot is -1 (P ∪ X empty), candidates = P (shouldn't happen here).
+  let p_candidates = if pivot == -1 {
+    p
+  } else {
+    p ^ (p & state.adj[pivot])
+  }
   // Iterate over candidates.
   let mut v_list = p_candidates
   while v_list != 0 {

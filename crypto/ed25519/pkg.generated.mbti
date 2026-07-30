@@ -1,0 +1,18 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/ed25519"
+
+// Values
+pub fn derive_public_key(Bytes) -> Bytes
+
+pub fn sign(Bytes, Bytes) -> Bytes
+
+pub fn verify(Bytes, Bytes, Bytes) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

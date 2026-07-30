@@ -181,7 +181,10 @@ test "sparse_table: power-of-two length" {
     for r = l; r < 8; r = r + 1 {
       let expected = match query(st, l, r) {
         Some(v) => v
-        None => abort("expected Some")
+        None => {
+          assert_true(false) // expected Some
+          0
+        }
       }
       // Brute force check
       let mut brute = arr[l]

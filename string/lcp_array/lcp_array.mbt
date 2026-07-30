@@ -368,7 +368,7 @@ test "lcp: longest repeated substring" {
       assert_eq(s[start + 1].to_int(), 110) // 'n'
       assert_eq(s[start + 2].to_int(), 97) // 'a'
     }
-    None => abort("should find a repeated substring")
+    None => fail("should find a repeated substring")
   }
 }
 

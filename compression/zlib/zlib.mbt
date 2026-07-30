@@ -183,7 +183,7 @@ test "zlib: adler32 known vectors" {
 test "zlib: compress and decompress round-trip" {
   let data = @utils.string_to_bytes("Hello, ZLIB! This is a test of zlib compression.")
   let compressed = match compress(data) {
-    None => abort("compression failed")
+    None => fail("compression failed")
     Some(c) => c
   }
   // Compressed should have 2-byte header + DEFLATE + 4-byte Adler-32
@@ -191,7 +191,7 @@ test "zlib: compress and decompress round-trip" {
   assert_eq(compressed[0], ZLIB_CMF)
   assert_eq(compressed[1], ZLIB_FLG)
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), data.length())
@@ -204,11 +204,11 @@ test "zlib: compress and decompress round-trip" {
 test "zlib: round-trip empty data" {
   let data = Bytes::make(0, b'\x00')
   let compressed = match compress(data) {
-    None => abort("compression failed")
+    None => fail("compression failed")
     Some(c) => c
   }
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), 0)
@@ -219,12 +219,12 @@ test "zlib: round-trip large repetitive data" {
   // 10KB of repetitive data — should compress well
   let data = Bytes::make(10000, b'\x41')
   let compressed = match compress(data) {
-    None => abort("compression failed")
+    None => fail("compression failed")
     Some(c) => c
   }
   assert_true(compressed.length() < data.length())
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), data.length())

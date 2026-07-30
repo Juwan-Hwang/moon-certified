@@ -1,5 +1,9 @@
 /// Treiber Stack — Lock-Free LIFO Stack (Single-Threaded Simulation).
 ///
+/// **⚠️ WARNING: NOT thread-safe.** Despite the "Lock-Free" name, this is a
+/// single-threaded simulation. MoonBit compiles to Wasm/JS without atomic
+/// primitives, so CAS always succeeds. **Do not use from multiple threads.**
+///
 /// The Treiber stack is the foundational lock-free concurrent stack
 /// algorithm: a singly-linked list where push and pop are done via
 /// compare-and-swap (CAS) on the head pointer.

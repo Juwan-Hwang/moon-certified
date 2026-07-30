@@ -1,23 +1,24 @@
-/// Zstandard (Zstd) compression — simplified implementation.
+/// Zstd-inspired LZ77 compression — custom format (NOT RFC 8478 compatible).
 ///
-/// Implements a Zstd-compatible frame format with LZ77 match finding
-/// and Huffman entropy coding. This implementation provides correct
-/// round-trip compression/decompression with a format inspired by the
-/// Zstd specification (RFC 8478).
+/// **WARNING**: This is NOT a standard Zstd implementation. It does NOT produce
+/// `.zst` files that can be decompressed by the zstd command-line tool or any
+/// RFC 8478 compliant decoder. The format uses a custom magic number and a
+/// simplified LZ77+token-stream encoding without FSE, Huffman, or multi-block
+/// types. Use this only for internal round-trip compression within MoonBit.
 ///
-/// ## Frame format
+/// For production Zstd compression, use the official `zstd` library via FFI.
+///
+/// ## Custom frame format
 ///
 /// ```text
 /// +--------+--------+--------+--------+
-/// | Magic number 0xFD2FB528           |
+/// | Custom magic 0x5A4C424D ("MBLZ")  |
 /// +--------+--------+--------+--------+
-/// | Frame header (4 bytes)            |
+/// | Frame header (5 bytes)            |
 /// |  - Content size (4 bytes, LE)     |
 /// |  - Flags (1 byte)                 |
 /// +--------+--------+--------+--------+
 /// | Blocks...                         |
-/// +--------+--------+--------+--------+
-/// | Checksum (4 bytes, optional)      |
 /// +--------+--------+--------+--------+
 /// ```
 ///
@@ -27,12 +28,14 @@
 /// - Block data
 ///
 /// Compressed blocks use LZ77 with a 4-byte minimum match and a 16-bit
-/// offset, followed by Huffman coding of the literal/match stream.
+/// offset, encoded as a simple token stream (not FSE/Huffman).
 ///
-/// ## References
+/// ## Why not RFC 8478?
 ///
-/// - Collet, Y. and Kucherawy, M. "Zstandard Compression and the application/zstd
-///   Media Type." RFC 8478, 2018.
+/// A full RFC 8478 implementation requires FSE (Finite State Entropy) encoding,
+/// Huffman tree descriptions, multi-block frame descriptors, dictionary
+/// support, and content checksums. This simplified format only provides
+/// LZ77 match finding with a token-stream serialization.
 ///
 /// `proof-enabled` is `false`; correctness is backed by round-trip tests.
 
@@ -41,9 +44,10 @@
 // ---------------------------------------------------------------------------
 
 ///|
-/// Zstd magic number (little-endian): 0xFD2FB528.
+/// Custom magic number: "MBLZ" (MoonBit LZ). Intentionally NOT 0xFD2FB528
+/// to avoid being mistaken for standard Zstd.
 fn magic_bytes() -> Bytes {
-  Bytes::from_array([b'\x28', b'\xB5', b'\x2F', b'\xFD'])
+  Bytes::from_array([b'\x4D', b'\x42', b'\x4C', b'\x5A'])
 }
 
 ///|
@@ -130,12 +134,14 @@ fn lz77_compress(data : Bytes) -> Array[Token] {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Compress data using Zstd-style LZ77 compression.
+/// Compress data using Zstd-inspired LZ77 compression.
 ///
-/// Returns a compressed byte stream with the Zstd magic number.
+/// **WARNING**: Output uses a custom magic number and is NOT compatible with
+/// the standard Zstd format (RFC 8478). Do not write the output to `.zst`
+/// files expecting standard tools to decompress them.
 pub fn compress(data : Bytes) -> Bytes {
   let output : Array[Byte] = []
-  // Magic number
+  // Custom magic number (NOT 0xFD2FB528)
   for i = 0; i < 4; i = i + 1 {
     output.push(magic_bytes()[i])
   }
@@ -200,7 +206,10 @@ pub fn compress(data : Bytes) -> Bytes {
 }
 
 ///|
-/// Decompress a Zstd-style compressed stream.
+/// Decompress a custom-format compressed stream.
+///
+/// **WARNING**: This only decompresses data produced by `compress()` in this
+/// module. It cannot decompress standard Zstd (.zst) files.
 pub fn decompress(data : Bytes) -> Bytes? {
   if data.length() < 9 {
     return None
@@ -222,9 +231,13 @@ pub fn decompress(data : Bytes) -> Bytes? {
     let block_type = data[pos].to_int()
     let block_size = data[pos + 1].to_int() | (data[pos + 2].to_int() << 8) | (data[pos + 3].to_int() << 16)
     pos = pos + 4
+    // Boundary check: block_size must not exceed remaining data
+    if block_size < 0 || pos + block_size > data.length() {
+      return None
+    }
     if block_type == 0 {
       // Raw block
-      for i = 0; i < block_size && pos < data.length(); i = i + 1 {
+      for i = 0; i < block_size; i = i + 1 {
         output.push(data[pos])
         pos = pos + 1
       }
@@ -232,31 +245,52 @@ pub fn decompress(data : Bytes) -> Bytes? {
       // Compressed block: symbol stream
       let block_end = pos + block_size
       while pos < block_end {
+        if pos >= data.length() {
+          return None
+        }
         let token_type = data[pos]
         pos = pos + 1
         if token_type == b'\x00' {
           // Literal
-          if pos < block_end {
-            output.push(data[pos])
-            pos = pos + 1
+          if pos >= block_end {
+            return None
           }
+          output.push(data[pos])
+          pos = pos + 1
         } else if token_type == b'\x01' {
           // Match
           if pos + 3 > block_end {
-            break
+            return None
           }
           let offset = data[pos].to_int() | (data[pos + 1].to_int() << 8)
           let length = data[pos + 2].to_int() + MIN_MATCH
           pos = pos + 3
-          let start = output.length() - offset
-          if start < 0 {
+          // Boundary check: offset must be valid
+          if offset <= 0 || offset > output.length() {
             return None
           }
-          for i = 0; i < length; i = i + 1 {
-            output.push(output[start + i])
+          // Boundary check: length must be reasonable
+          if length <= 0 || length > 255 + MIN_MATCH {
+            return None
           }
+          let start = output.length() - offset
+          for i = 0; i < length; i = i + 1 {
+            // In overlapping LZ77, start+i may reference bytes we just pushed,
+            // which is valid. But we must ensure start+i is within bounds.
+            let src_idx = start + i
+            if src_idx < 0 || src_idx >= output.length() {
+              return None
+            }
+            output.push(output[src_idx])
+          }
+        } else {
+          // Unknown token type
+          return None
         }
       }
+    } else {
+      // Unknown block type
+      return None
     }
   }
   Some(Bytes::from_array(output))
@@ -338,6 +372,14 @@ test "zstd: invalid magic" {
 }
 
 ///|
+test "zstd: does not use standard zstd magic" {
+  let data = @utils.string_to_bytes("test")
+  let compressed = compress(data)
+  // Verify we do NOT use the standard Zstd magic 0xFD2FB528 (LE: 28 B5 2F FD)
+  assert_true(!(compressed[0] == b'\x28' && compressed[1] == b'\xB5' && compressed[2] == b'\x2F' && compressed[3] == b'\xFD'))
+}
+
+///|
 test "zstd: single byte" {
   let data = Bytes::from_array([b'\x42'])
   let compressed = compress(data)
@@ -355,5 +397,16 @@ test "zstd: all same byte" {
   match decompress(compressed) {
     Some(decompressed) => assert_eq(decompressed, data)
     None => assert_true(false)
+  }
+}
+
+///|
+test "zstd: malformed compressed data returns None" {
+  // Valid magic but truncated block
+  let mb = magic_bytes()
+  let bad = Bytes::from_array([mb[0], mb[1], mb[2], mb[3], b'\x10', b'\x00', b'\x00', b'\x00', b'\x00', b'\x02', b'\xFF', b'\xFF', b'\xFF'])
+  match decompress(bad) {
+    Some(_) => assert_true(false)
+    None => assert_true(true)
   }
 }

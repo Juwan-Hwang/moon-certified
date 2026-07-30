@@ -31,9 +31,8 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 - **生产级设计**：
   - 所有魔术值消除，使用 `Option`/`SPResult` 类型替代 `-1`/空数组等歧义返回值
-  - ~30 个公共函数从 `abort()` 迁移至 `Option` 返回
   - 关键算法使用 Int64 溢出保护（dijkstra_heap、convex_hull、max_flow、dinic、min_cost_flow 等）
-  - 平衡树递归栈保护（AVL、红黑树、BTree、Treap）
+  - 自平衡树（AVL、红黑树、BTree、Treap）依赖结构不变量保证 O(log n) 递归深度，无需人为深度限制
   - `swap` 集中在 `@utils`（消除 7 处重复）
   - `SplitMix64`/`XorShift64` 集中在 `@utils/prng`（消除多包重复）
   - 每实例随机种子 `@utils.fresh_seed()`（替代全局固定种子）
@@ -94,7 +93,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | `edit_distance` | n × m > 10⁷ 时返回 `None` | 返回 `Int?`，滚动数组优化 O(min(n,m)) 空间 |
 | `counting_sort` | 负值或 k > 10⁷ 时返回 `None` | 返回 `FixedArray[Int]?` |
 | `pollard_rho` | 失败（素数或无法分解）时返回 `None` | 返回 `Int?`，与素数结果可区分 |
-| `prim` | `total_weight` 可能溢出 Int32 | 文档已标注；`prim_mst_checked` 返回 `(FixedArray[Int], Int64)?` |
+| `prim` | `total_weight` 累加使用 `Int64` 防溢出 | `prim_mst` 返回 `(FixedArray[Int], Int64)` |
 | `segment_tree` | 区间和可能溢出 Int32 | 文档已标注；`SegmentTree64` 提供 checked 变体返回 `Int?` |
 | `fenwick` | 前缀和可能溢出 Int32 | 文档已标注；`Fenwick64` 提供 checked 变体返回 `Int?` |
 | `kruskal` | `total_weight` 可能溢出 Int32 | 文档已标注；`kruskal_mst_checked` 返回 `(FixedArray[Edge], Int64)?` |
@@ -118,11 +117,11 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | selection_sort | ✅ `FixedArray[T]` + cmp | 完全泛型，支持任意类型 |
 | merge_sort | ✅ `FixedArray[T]` + cmp | 完全泛型，支持任意类型 |
 | quick_sort | ✅ `FixedArray[T]` + cmp | 完全泛型，三取中 pivot |
-| binary_search | ✅ verified + generic | 保留已验证 Int 版本 + `search_generic[T]` |
-| linear_search | ✅ verified + generic | 保留已验证 Int 版本 + `search_generic[T]` |
-| max_element | ✅ verified + generic | 保留已验证 Int 版本 + `max_element_generic[T]` |
-| min_element | ✅ verified + generic | 保留已验证 Int 版本 + `min_element_generic[T]` |
-| is_sorted | ✅ verified + generic | 保留已验证 Int 版本 + `is_sorted_generic[T]` |
+| binary_search | ✅ verified (Int) + generic (unverified) | 保留已验证 Int 版本 + `search_generic[T]` |
+| linear_search | ✅ verified (Int) + generic (unverified) | 保留已验证 Int 版本 + `search_generic[T]` |
+| max_element | ✅ verified (Int) + generic (unverified) | 保留已验证 Int 版本 + `max_element_generic[T]` |
+| min_element | ✅ verified (Int) + generic (unverified) | 保留已验证 Int 版本 + `min_element_generic[T]` |
+| is_sorted | ✅ verified (Int) + generic (unverified) | 保留已验证 Int 版本 + `is_sorted_generic[T]` |
 | bound_search | ✅ `FixedArray[T]` + cmp | lower_bound, upper_bound, binary_search_generic |
 | red_black_tree | ✅ `RBNode[T]` + cmp | Okasaki 插入 + Kahrs 删除 |
 | binary_heap | ✅ comparator + Heap 封装 | min-heap/max-heap 通过 should_swap 统一 |
@@ -327,11 +326,11 @@ let str_cmp = fn(a : String, b : String) -> Int {
 ```
 moon-certified/
 ├── search/
-│   ├── binary_search/        ✅ 二分查找 (verified) + generic
+│   ├── binary_search/        ✅ 二分查找 (verified Int) + generic (unverified)
 │   ├── bound_search/         🔒 lower_bound/upper_bound (generic)
-│   ├── linear_search/        ✅ 线性查找 (verified) + generic
-│   ├── max_element/          ✅ 最大元素 (verified) + generic
-│   ├── min_element/          ✅ 最小元素 (verified) + generic
+│   ├── linear_search/        ✅ 线性查找 (verified Int) + generic (unverified)
+│   ├── max_element/          ✅ 最大元素 (verified Int) + generic (unverified)
+│   ├── min_element/          ✅ 最小元素 (verified Int) + generic (unverified)
 │   ├── interpolation_search/🔒 插值搜索 (Int64 防溢出)
 │   └── exponential_search/   🔒 指数搜索 (galloping search)
 │   ├── fibonacci_search/    🔒 斐波那契搜索 (8 tests)
@@ -350,7 +349,7 @@ moon-certified/
 │   ├── heap_sort/            🔒 堆排序 (generic, 12 tests)
 │   ├── counting_sort/        🔒 计数排序 (OOM 防护, 12 tests)
 │   ├── radix_sort/           🔒 基数排序 LSD (stable, 11 tests)
-│   └── is_sorted/            ✅ 有序性检查 (verified) + generic
+│   └── is_sorted/            ✅ 有序性检查 (verified Int) + generic (unverified)
 │   ├── external_sort/      🔒 外部排序 (k 路归并, binary_heap 复用, 8 tests)
 ├── containers/
 │   ├── binary_heap/          🔒 二叉堆 (Heap 封装 + HeapG[T] + decrease_key, 17 tests)
@@ -404,7 +403,7 @@ moon-certified/
 │   ├── kruskal/              🔒 最小生成树 (14 tests)
 │   ├── prim/                 🔒 Prim MST (11 tests)
 │   ├── scc/                  🔒 Tarjan SCC 迭代版 (12 tests)
-│   ├── dijkstra/             ⚠️ Dijkstra (partial verified, FixedArray[Int?])
+│   ├── dijkstra/             ⚠️ Dijkstra (partial verified: array bounds only, FixedArray[Int?])
 │   ├── dijkstra_heap/        🔒 堆优化 Dijkstra (Int64 溢出防护, 11 tests)
 │   ├── johnson/              🔒 Johnson 全源最短路 (负权+负环检测, 11 tests)
 │   ├── bidirectional_bfs/    🔒 双向 BFS (13 tests)
@@ -449,6 +448,9 @@ moon-certified/
 │   ├── fm_index/            🔒 FM-Index (计数/定位, 8 tests)
 │   ├── wavelet_tree/        🔒 Wavelet Tree (rank/select, 8 tests)
 │   └── regex/               🔒 正则表达式引擎 (Thompson NFA, 10 tests)
+│   /// **字符串算法缺失声明**：当前 22 个字符串包覆盖了核心模式匹配和后缀结构，
+│   /// 但以下算法尚未实现：de Bruijn 序列、Lyndon suffix array 构造 (LA factor)、
+│   /// runs (Lempel-Ziv 解析)、Suffix Array ↔ Tree 互转工具函数。
 ├── number_theory/
 │   ├── gcd/                  ⚠️ GCD (partial verified, handles Int::MIN)
 │   ├── fast_power/           ⚠️ 快速幂 (partial verified + checked variant)
@@ -496,12 +498,12 @@ moon-certified/
 │   ├── kd_tree/            🔒 KD-Tree 2D 空间索引 (NN + range search, 13 tests)
 │   ├── rotating_calipers/  🔒 旋转卡壳 (凸包直径+宽度, CCW/CW, 14 tests)
 │   ├── closest_pair/       🔒 最近点对 (分治 O(n log n), 9 tests)
-│   └── segment_ops/       🔒 线段相交+点在多边形内 (精确整数叉积, 33 tests)
+│   ├── segment_ops/       🔒 线段相交+点在多边形内 (精确整数叉积, 33 tests)
 │   ├── delaunay/          🔒 Delaunay 三角剖分 (增量法, 8 tests)
 │   ├── voronoi/           🔒 Voronoi 图 (Delaunay 对偶, 7 tests)
 │   ├── dynamic_hull/      🔒 动态凸包 (在线插入, 8 tests)
 │   ├── min_enclosing_circle/ 🔒 最小包围圆 (随机增量, 7 tests)
-│   ├── minkowski_sum/     🔒 Minkowski 和 (凸多边形, 8 tests) [见下方重复]
+│   ├── minkowski_sum/     🔒 Minkowski 和 (凸多边形, 8 tests)
 │   └── polygon_boolean/   🔒 多边形布尔运算 (并/交/差, 8 tests)
 ├── game_theory/
 │   ├── nim_sg/               🔒 Nim 博弈 (Sprague-Grundy 定理, 13 tests)
@@ -547,7 +549,7 @@ moon-certified/
 ├── graph/
 │   ├── chu_liu/              🔒 Chu-Liu 最小树形图 (Edmonds, 8 tests)
 │   ├── k_shortest_paths/     🔒 K 最短路 (Yen 算法, 8 tests)
-│   ├── network_simplex/      🔒 最小费用流 (SSP+SPFA, 9 tests)
+│   ├── min_cost_flow/        🔒 最小费用流 (SSP+SPFA, 9 tests)
 │   └── tree_isomorphism/     🔒 树同构 (AHU 算法, 7 tests)
 │   ├── push_relabel/       🔒 Push-Relabel 最大流 (5 tests)
 │   ├── planar_test/        🔒 平面图判定 (5 tests)
@@ -560,7 +562,6 @@ moon-certified/
 │   ├── unicode_normalization/ 🔒 Unicode 规范化 (NFC/NFD/NFKC/NFKD, 6 tests)
 │   └── encoding_conversion/  🔒 编码转换 (UTF-8/UTF-16/GBK, 6 tests)
 ├── geometry/
-│   ├── minkowski_sum/        🔒 Minkowski 和 (凸多边形, 8 tests)
 │   ├── segment_intersection/🔒 通用线段求交 (Bentley-Ottmann, 10 tests)
 │   ├── point_in_polygon/     🔒 点在多边形内 (射线法, 8 tests)
 │   ├── polygon_ops/          🔒 多边形操作 (面积/重心/裁剪, 10 tests)

@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/model_selection"
+
+// Values
+pub fn train_test_split(Int, Double, Bool, Int) -> (Array[Int], Array[Int])
+
+pub fn train_test_split_default(Int) -> (Array[Int], Array[Int])
+
+// Errors
+
+// Types and methods
+pub struct KFold {
+  // private fields
+}
+pub fn KFold::all_folds(Self) -> Array[(Array[Int], Array[Int])]
+pub fn KFold::n_folds(Self) -> Int
+pub fn KFold::n_samples(Self) -> Int
+pub fn KFold::new(Int, Int) -> Self?
+pub fn KFold::next(Self) -> (Array[Int], Array[Int])?
+
+// Type aliases
+
+// Traits
+

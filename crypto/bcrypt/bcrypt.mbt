@@ -665,7 +665,7 @@ test "bcrypt: hash and verify round-trip" {
   ])
   let h = match hash(password, 4, salt) {
     Some(s) => s
-    None => abort("hash failed")
+    None => fail("hash failed")
   }
   // Verify correct password.
   assert_true(verify(password, h))
@@ -687,11 +687,11 @@ test "bcrypt: different salts produce different hashes" {
   ])
   let h1 = match hash(password, 4, salt1) {
     Some(s) => s
-    None => abort("hash1 failed")
+    None => fail("hash1 failed")
   }
   let h2 = match hash(password, 4, salt2) {
     Some(s) => s
-    None => abort("hash2 failed")
+    None => fail("hash2 failed")
   }
   assert_true(h1 != h2)
 }
@@ -705,7 +705,7 @@ test "bcrypt: output format validation" {
   ])
   let h = match hash(password, 4, salt) {
     Some(s) => s
-    None => abort("hash failed")
+    None => fail("hash failed")
   }
   // Must be exactly 60 characters.
   assert_eq(h.length(), 60)
@@ -748,7 +748,7 @@ test "bcrypt: base64 round-trip" {
         assert_eq(decoded[i], data[i])
       }
     }
-    None => abort("base64 decode failed")
+    None => fail("base64 decode failed")
   }
 }
 
@@ -761,7 +761,7 @@ test "bcrypt: empty password" {
   ])
   let h = match hash(password, 4, salt) {
     Some(s) => s
-    None => abort("hash failed")
+    None => fail("hash failed")
   }
   assert_true(verify(password, h))
   assert_false(verify(Bytes::from_array(str_to_bytes("x")), h))
@@ -781,7 +781,7 @@ test "bcrypt: long password pre-hashing" {
   ])
   let h = match hash(password, 4, salt) {
     Some(s) => s
-    None => abort("hash failed")
+    None => fail("hash failed")
   }
   assert_true(verify(password, h))
   // A password that differs only after byte 72 should NOT verify,

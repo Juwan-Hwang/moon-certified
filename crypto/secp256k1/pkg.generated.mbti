@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/secp256k1"
+
+// Values
+pub fn derive_public_key(Bytes) -> Bytes
+
+pub fn derive_public_key_compressed(Bytes) -> Bytes
+
+pub fn sign(Bytes, Bytes) -> Bytes
+
+pub fn verify(Bytes, Bytes, Bytes) -> Bool
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

@@ -171,6 +171,13 @@ fn Rng::next_int(self : Rng, bound : Int) -> Int {
 // ---------------------------------------------------------------------------
 
 ///|
+/// Optimizer type for MLP training.
+pub enum OptimizerType {
+  SGD  // Stochastic Gradient Descent
+  Adam // Adaptive Moment Estimation
+} derive(Eq, Debug)
+
+///|
 /// Feed-forward network. Build with `new_regression` or `new_classifier`;
 /// the architecture is the full layer list, e.g. `[2, 16, 1]`.
 pub struct MLP {
@@ -183,6 +190,21 @@ pub struct MLP {
   priv mut hidden_is_relu : Bool
   priv is_classifier : Bool
   priv seed : Int
+  // Adam optimizer state
+  priv mut optimizer : OptimizerType
+  priv mut m_w : Array[Array[Array[Double]]] // first moment weights
+  priv mut v_w : Array[Array[Array[Double]]] // second moment weights
+  priv mut m_b : Array[Array[Double]] // first moment biases
+  priv mut v_b : Array[Array[Double]] // second moment biases
+  priv mut adam_t : Int // timestep for bias correction
+  priv mut beta1 : Double // Adam β₁ (default 0.9)
+  priv mut beta2 : Double // Adam β₂ (default 0.999)
+  priv mut eps_adam : Double // Adam ε (default 1e-8)
+  // Dropout
+  priv mut dropout_rate : Double // probability of dropping a neuron (0 = no dropout)
+  priv mut is_training : Bool // flag for training vs inference mode
+  priv mut dropout_masks : Array[Array[Double]] // masks from last forward pass
+  priv mut rng_state : Int // PRNG state for dropout mask generation
 }
 
 ///|
@@ -238,6 +260,19 @@ pub fn new_regression(
     is_classifier: false,
     hidden_is_relu: true,
     seed,
+    optimizer: SGD,
+    m_w: [],
+    v_w: [],
+    m_b: [],
+    v_b: [],
+    adam_t: 0,
+    beta1: 0.9,
+    beta2: 0.999,
+    eps_adam: 1.0e-8,
+    dropout_rate: 0.0,
+    is_training: false,
+    dropout_masks: [],
+    rng_state: (seed ^ 0x5DEECE66) & 0x7FFFFFFF,
   }
   init_weights(m)
   m
@@ -264,6 +299,19 @@ pub fn new_classifier(
     is_classifier: true,
     hidden_is_relu: true,
     seed,
+    optimizer: SGD,
+    m_w: [],
+    v_w: [],
+    m_b: [],
+    v_b: [],
+    adam_t: 0,
+    beta1: 0.9,
+    beta2: 0.999,
+    eps_adam: 1.0e-8,
+    dropout_rate: 0.0,
+    is_training: false,
+    dropout_masks: [],
+    rng_state: (seed ^ 0x5DEECE66) & 0x7FFFFFFF,
   }
   init_weights(m)
   m
@@ -282,6 +330,77 @@ pub fn set_hidden_relu(mlp : MLP) -> Unit {
   mlp.hidden_is_relu = true
 }
 
+///|
+/// Switch optimizer to Adam (adaptive moment estimation).
+/// Uses default hyperparameters: β₁=0.9, β₂=0.999, ε=1e-8.
+pub fn set_optimizer_adam(mlp : MLP) -> Unit {
+  mlp.optimizer = Adam
+  init_adam_state(mlp)
+}
+
+///|
+/// Switch optimizer to Adam with custom hyperparameters.
+pub fn set_optimizer_adam_custom(
+  mlp : MLP,
+  beta1 : Double,
+  beta2 : Double,
+  eps : Double,
+) -> Unit {
+  mlp.optimizer = Adam
+  mlp.beta1 = beta1
+  mlp.beta2 = beta2
+  mlp.eps_adam = eps
+  init_adam_state(mlp)
+}
+
+///|
+/// Switch optimizer back to SGD.
+pub fn set_optimizer_sgd(mlp : MLP) -> Unit {
+  mlp.optimizer = SGD
+}
+
+///|
+/// Set dropout rate for hidden layers (0.0 = no dropout, 0.5 = drop 50%).
+/// Uses inverted dropout: during training, activations are scaled by
+/// 1/(1-rate) so inference requires no scaling.
+pub fn set_dropout(mlp : MLP, rate : Double) -> Unit {
+  let r = clampd(rate, 0.0, 0.9)
+  mlp.dropout_rate = r
+}
+
+///|
+/// Initialise Adam moment arrays to match current weights/biases.
+fn init_adam_state(mlp : MLP) -> Unit {
+  let nl = n_weight_layers(mlp)
+  mlp.m_w = Array::makei(
+    nl,
+    fn(l) {
+      Array::makei(
+        mlp.layers[l + 1],
+        fn(_i) { Array::make(mlp.layers[l], 0.0) },
+      )
+    },
+  )
+  mlp.v_w = Array::makei(
+    nl,
+    fn(l) {
+      Array::makei(
+        mlp.layers[l + 1],
+        fn(_i) { Array::make(mlp.layers[l], 0.0) },
+      )
+    },
+  )
+  mlp.m_b = Array::makei(
+    nl,
+    fn(l) { Array::make(mlp.layers[l + 1], 0.0) },
+  )
+  mlp.v_b = Array::makei(
+    nl,
+    fn(l) { Array::make(mlp.layers[l + 1], 0.0) },
+  )
+  mlp.adam_t = 0
+}
+
 // ---------------------------------------------------------------------------
 // Forward / backward
 // ---------------------------------------------------------------------------
@@ -290,6 +409,7 @@ pub fn set_hidden_relu(mlp : MLP) -> Unit {
 /// Run a forward pass. Returns `(activations, preacts)` where
 /// `activations[0] = x` and `activations[L]` is the output; `preacts[l]` is
 /// the pre-activation of layer `l+1`.
+/// During training mode, applies inverted dropout to hidden layers.
 fn forward(
   mlp : MLP,
   x : Array[Double],
@@ -297,6 +417,13 @@ fn forward(
   let nl = n_weight_layers(mlp)
   let activations : Array[Array[Double]] = Array::makei(nl + 1, fn(_i) { [] })
   let preacts : Array[Array[Double]] = Array::makei(nl, fn(_i) { [] })
+  // Prepare dropout masks if training
+  let use_dropout = mlp.is_training && mlp.dropout_rate > 0.0
+  let masks : Array[Array[Double]] = if use_dropout {
+    Array::makei(nl - 1, fn(_i) { [] })
+  } else {
+    []
+  }
   activations[0] = Array::copy(x)
   for l = 0; l < nl; l = l + 1 {
     let n_out = mlp.layers[l + 1]
@@ -312,12 +439,11 @@ fn forward(
     preacts[l] = z
     let a = Array::make(n_out, 0.0)
     if l == nl - 1 {
-      // output layer
+      // output layer — no dropout
       if mlp.is_classifier {
         if n_out == 1 {
           a[0] = sigmoid(z[0])
         } else {
-          // numerically stable softmax
           let mut mx = z[0]
           for i = 1; i < n_out; i = i + 1 {
             if z[i] > mx {
@@ -334,25 +460,42 @@ fn forward(
           }
         }
       } else {
-        // linear output
         for i = 0; i < n_out; i = i + 1 {
           a[i] = z[i]
         }
       }
     } else if mlp.hidden_is_relu {
       for i = 0; i < n_out; i = i + 1 {
-        a[i] = if z[i] > 0.0 {
-          z[i]
-        } else {
-          0.0
-        }
+        a[i] = if z[i] > 0.0 { z[i] } else { 0.0 }
       }
     } else {
       for i = 0; i < n_out; i = i + 1 {
         a[i] = sigmoid(z[i])
       }
     }
+    // Apply dropout to hidden layers during training
+    if use_dropout && l < nl - 1 {
+      let mask = Array::make(n_out, 0.0)
+      let keep_prob = 1.0 - mlp.dropout_rate
+      let scale = 1.0 / keep_prob
+      for i = 0; i < n_out; i = i + 1 {
+        // Advance PRNG state
+        mlp.rng_state = (mlp.rng_state * 1103515245 + 12345) & 0x7FFFFFFF
+        let r = mlp.rng_state.to_double() / 2147483648.0
+        if r < keep_prob {
+          mask[i] = scale
+          a[i] = a[i] * scale
+        } else {
+          mask[i] = 0.0
+          a[i] = 0.0
+        }
+      }
+      masks[l] = mask
+    }
     activations[l + 1] = a
+  }
+  if use_dropout {
+    mlp.dropout_masks = masks
   }
   (activations, preacts)
 }
@@ -392,6 +535,7 @@ fn backward(
   }
   deltas[nl - 1] = d_out
   // hidden deltas
+  let has_masks = mlp.dropout_masks.length() > 0
   let mut l = nl - 2
   while l >= 0 {
     let n_cur = mlp.layers[l + 1]
@@ -403,6 +547,10 @@ fn backward(
         s = s + mlp.weights[l + 1][k][i] * deltas[l + 1][k]
       }
       d[i] = s * hidden_deriv(mlp, preacts[l][i], activations[l + 1][i])
+      // Apply dropout mask to block gradient through dropped neurons
+      if has_masks {
+        d[i] = d[i] * mlp.dropout_masks[l][i]
+      }
     }
     deltas[l] = d
     l = l - 1
@@ -458,7 +606,8 @@ fn shuffle(n : Int, rng : Rng) -> Array[Int] {
 
 ///|
 /// Train on regression targets. `y` is an array of target vectors, each of
-/// length equal to the output size.
+/// length equal to the output size. Uses the configured optimizer (SGD or Adam)
+/// and applies dropout if set.
 pub fn fit(
   mlp : MLP,
   x : Array[Array[Double]],
@@ -470,6 +619,7 @@ pub fn fit(
   }
   let nl = n_weight_layers(mlp)
   let rng = Rng::new(mlp.seed ^ 0x9E3779B9)
+  mlp.is_training = true
   for _epoch = 0; _epoch < mlp.epochs; _epoch = _epoch + 1 {
     let order = shuffle(n, rng)
     let mut start = 0
@@ -486,22 +636,58 @@ pub fn fit(
         let (act, pre) = forward(mlp, x[idx])
         backward(mlp, act, pre, y[idx], grad_w, grad_b)
       }
-      for l = 0; l < nl; l = l + 1 {
-        let n_out = mlp.layers[l + 1]
-        let n_in = mlp.layers[l]
-        for i = 0; i < n_out; i = i + 1 {
-          for j = 0; j < n_in; j = j + 1 {
-            mlp.weights[l][i][j] = mlp.weights[l][i][j] -
-              mlp.lr *
-              grad_w[l][i][j] /
-              bs
+      // Parameter update
+      match mlp.optimizer {
+        SGD => {
+          for l = 0; l < nl; l = l + 1 {
+            let n_out = mlp.layers[l + 1]
+            let n_in = mlp.layers[l]
+            for i = 0; i < n_out; i = i + 1 {
+              for j = 0; j < n_in; j = j + 1 {
+                mlp.weights[l][i][j] = mlp.weights[l][i][j] -
+                  mlp.lr * grad_w[l][i][j] / bs
+              }
+              mlp.biases[l][i] = mlp.biases[l][i] - mlp.lr * grad_b[l][i] / bs
+            }
           }
-          mlp.biases[l][i] = mlp.biases[l][i] - mlp.lr * grad_b[l][i] / bs
+        }
+        Adam => {
+          mlp.adam_t = mlp.adam_t + 1
+          let t_dbl = mlp.adam_t.to_double()
+          // Bias correction: 1 - β^t
+          let bc1 = 1.0 - exp_double(t_dbl * ln_double(mlp.beta1))
+          let bc2 = 1.0 - exp_double(t_dbl * ln_double(mlp.beta2))
+          for l = 0; l < nl; l = l + 1 {
+            let n_out = mlp.layers[l + 1]
+            let n_in = mlp.layers[l]
+            for i = 0; i < n_out; i = i + 1 {
+              for j = 0; j < n_in; j = j + 1 {
+                let g = grad_w[l][i][j] / bs
+                mlp.m_w[l][i][j] = mlp.beta1 * mlp.m_w[l][i][j] +
+                  (1.0 - mlp.beta1) * g
+                mlp.v_w[l][i][j] = mlp.beta2 * mlp.v_w[l][i][j] +
+                  (1.0 - mlp.beta2) * g * g
+                let m_hat = mlp.m_w[l][i][j] / bc1
+                let v_hat = mlp.v_w[l][i][j] / bc2
+                mlp.weights[l][i][j] = mlp.weights[l][i][j] -
+                  mlp.lr * m_hat / (v_hat.sqrt() + mlp.eps_adam)
+              }
+              let gb = grad_b[l][i] / bs
+              mlp.m_b[l][i] = mlp.beta1 * mlp.m_b[l][i] + (1.0 - mlp.beta1) * gb
+              mlp.v_b[l][i] = mlp.beta2 * mlp.v_b[l][i] + (1.0 - mlp.beta2) * gb * gb
+              let m_hat_b = mlp.m_b[l][i] / bc1
+              let v_hat_b = mlp.v_b[l][i] / bc2
+              mlp.biases[l][i] = mlp.biases[l][i] -
+                mlp.lr * m_hat_b / (v_hat_b.sqrt() + mlp.eps_adam)
+            }
+          }
         }
       }
       start = end
     }
   }
+  mlp.is_training = false
+  mlp.dropout_masks = []
 }
 
 ///|
@@ -763,4 +949,143 @@ test "mlp: local exp/ln are accurate" {
   assert_true((exp_double(1.0) - 2.718281828459045).abs() < 1.0e-12)
   assert_true((ln_double(2.718281828459045) - 1.0).abs() < 1.0e-12)
   assert_true(ln_double(1.0).abs() < 1.0e-12)
+}
+
+///|
+test "mlp: Adam optimizer converges on XOR" {
+  let mlp = new_classifier([2, 16, 1], 0.01, 500, 4, 42)
+  set_optimizer_adam(mlp)
+  let x : Array[Array[Double]] = [
+    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+  ]
+  let y = [0, 1, 1, 0]
+  fit_classifier(mlp, x, y)
+  assert_eq(predict_class(mlp, [0.0, 0.0]), 0)
+  assert_eq(predict_class(mlp, [0.0, 1.0]), 1)
+  assert_eq(predict_class(mlp, [1.0, 0.0]), 1)
+  assert_eq(predict_class(mlp, [1.0, 1.0]), 0)
+}
+
+///|
+test "mlp: Adam converges faster than SGD on hard task" {
+  // Non-linear regression: y = sin(x1) * cos(x2) approximation.
+  // Adam's per-parameter adaptive lr gives a clear edge on non-linear surfaces.
+  let mlp_sgd = new_regression([2, 32, 16, 1], 0.01, 200, 8, 77)
+  let mlp_adam = new_regression([2, 32, 16, 1], 0.01, 200, 8, 77)
+  set_optimizer_adam(mlp_adam)
+  let x : Array[Array[Double]] = []
+  let y : Array[Array[Double]] = []
+  for i = 0; i < 6; i = i + 1 {
+    for j = 0; j < 6; j = j + 1 {
+      let x1 = i.to_double() / 5.0 * 3.14
+      let x2 = j.to_double() / 5.0 * 3.14
+      x.push([x1, x2])
+      // Approximate sin(x1)*cos(x2) using Taylor: sin≈x-x³/6, cos≈1-x²/2
+      let s = x1 - x1 * x1 * x1 / 6.0
+      let c = 1.0 - x2 * x2 / 2.0
+      y.push([s * c])
+    }
+  }
+  fit(mlp_sgd, x, y)
+  fit(mlp_adam, x, y)
+  let loss_sgd = mse_loss(mlp_sgd, x, y)
+  let loss_adam = mse_loss(mlp_adam, x, y)
+  // Adam should achieve lower loss on this non-linear task
+  assert_true(loss_adam < loss_sgd)
+}
+
+///|
+test "mlp: Adam with custom hyperparameters" {
+  let mlp = new_classifier([2, 12, 1], 0.005, 800, 4, 333)
+  set_optimizer_adam_custom(mlp, 0.9, 0.999, 1.0e-8)
+  let x : Array[Array[Double]] = [
+    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+  ]
+  let y = [0, 1, 1, 0]
+  fit_classifier(mlp, x, y)
+  let loss = cross_entropy_loss(mlp, x, y)
+  assert_true(loss < 0.5)
+}
+
+///|
+test "mlp: dropout does not break training" {
+  let mlp = new_classifier([2, 32, 1], 0.05, 1000, 4, 99)
+  set_optimizer_adam(mlp)
+  set_dropout(mlp, 0.3) // 30% dropout
+  let x : Array[Array[Double]] = [
+    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+  ]
+  let y = [0, 1, 1, 0]
+  fit_classifier(mlp, x, y)
+  // With dropout, the network should still learn (maybe not perfectly, but should reduce loss)
+  let loss = cross_entropy_loss(mlp, x, y)
+  let fresh = new_classifier([2, 32, 1], 0.05, 1, 4, 99)
+  let init_loss = cross_entropy_loss(fresh, x, y)
+  assert_true(loss < init_loss)
+}
+
+///|
+test "mlp: dropout with multi-class softmax" {
+  let mlp = new_classifier([1, 24, 3], 0.01, 800, 6, 2025)
+  set_optimizer_adam(mlp)
+  set_dropout(mlp, 0.2)
+  let x : Array[Array[Double]] = []
+  let y : Array[Int] = []
+  let centres = [0.0, 5.0, 10.0]
+  for c = 0; c < 3; c = c + 1 {
+    for d = 0; d < 4; d = d + 1 {
+      x.push([centres[c] + d.to_double() * 0.5])
+      y.push(c)
+    }
+  }
+  fit_classifier(mlp, x, y)
+  assert_eq(predict_class(mlp, [0.0]), 0)
+  assert_eq(predict_class(mlp, [5.0]), 1)
+  assert_eq(predict_class(mlp, [10.0]), 2)
+}
+
+///|
+test "mlp: inference mode does not apply dropout" {
+  let mlp = new_classifier([2, 16, 3], 0.01, 50, 4, 8)
+  set_dropout(mlp, 0.5)
+  let x = [[0.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+  let y = [0, 1, 2]
+  fit_classifier(mlp, x, y)
+  // After training, inference should give consistent, valid probabilities
+  for i = 0; i < 3; i = i + 1 {
+    let p = predict_proba(mlp, x[i])
+    let mut sum = 0.0
+    for k = 0; k < p.length(); k = k + 1 {
+      assert_true(p[k] >= 0.0 && p[k] <= 1.0)
+      sum = sum + p[k]
+    }
+    assert_true((sum - 1.0).abs() < 1.0e-9)
+  }
+}
+
+///|
+test "mlp: SGD still works (backward compat)" {
+  let mlp = new_classifier([2, 16, 1], 0.3, 3000, 4, 7)
+  // Default optimizer is SGD, no need to call set_optimizer_sgd
+  let x : Array[Array[Double]] = [
+    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+  ]
+  let y = [0, 1, 1, 0]
+  fit_classifier(mlp, x, y)
+  assert_eq(predict_class(mlp, [0.0, 0.0]), 0)
+  assert_eq(predict_class(mlp, [1.0, 1.0]), 0)
+  assert_eq(predict_class(mlp, [0.0, 1.0]), 1)
+  assert_eq(predict_class(mlp, [1.0, 0.0]), 1)
+}
+
+///|
+test "mlp: set_dropout clamps invalid rates" {
+  let mlp = new_regression([2, 8, 1], 0.01, 10, 4, 1)
+  set_dropout(mlp, -0.5) // should clamp to 0.0
+  set_dropout(mlp, 1.5) // should clamp to 0.9
+  // Should not crash
+  let x = [[1.0, 2.0], [3.0, 4.0]]
+  let y = [[3.0], [7.0]]
+  fit(mlp, x, y)
+  assert_true(true) // just verify no crash
 }

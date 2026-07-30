@@ -1,0 +1,44 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/game_theory/transposition_table"
+
+// Values
+pub fn clear(TranspositionTable) -> Unit
+
+pub fn hit_rate(TranspositionTable) -> Double
+
+pub fn hits(TranspositionTable) -> Int
+
+pub fn lookup(TranspositionTable, Int) -> TTEntry?
+
+pub fn misses(TranspositionTable) -> Int
+
+pub fn new() -> TranspositionTable
+
+pub fn size(TranspositionTable) -> Int
+
+pub fn store(TranspositionTable, Int, Int, Double, NodeType, Int?) -> Unit
+
+// Errors
+
+// Types and methods
+pub enum NodeType {
+  Exact
+  LowerBound
+  UpperBound
+}
+
+pub struct TTEntry {
+  depth : Int
+  score : Double
+  node_type : NodeType
+  best_move : Int?
+}
+
+pub struct TranspositionTable {
+  // private fields
+}
+
+// Type aliases
+
+// Traits
+

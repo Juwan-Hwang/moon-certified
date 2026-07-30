@@ -240,7 +240,9 @@ pub fn max_flow(
           height_count[min_h] = height_count[min_h] + 1
         }
         cur_edge[u] = g.head[u] // reset current edge
-        // If height >= n+1, vertex can't push further.
+        // If height >= n+1, vertex can't push further (no path to sink).
+        // Break out of the push loop; the re-bucket check below will skip
+        // this vertex since height[u] >= n+1 fails the < n+1 guard.
         if height[u] >= n + 1 {
           break
         }
@@ -319,7 +321,7 @@ test "hlpp: reverse edges used" {
   let result = max_flow(4, 0, 3, edges)
   match result {
     Some(f) => assert_true(f >= 15L && f <= 15L)
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 
@@ -346,7 +348,7 @@ test "hlpp: large capacity no overflow" {
   let result = max_flow(5, 0, 4, edges)
   match result {
     Some(f) => assert_eq(f, big_cap * 3L)
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 
@@ -381,7 +383,7 @@ test "hlpp: medium graph known answer" {
   let result = max_flow(6, 0, 5, edges)
   match result {
     Some(f) => assert_eq(f, 25L)
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 
@@ -401,7 +403,7 @@ test "hlpp: dense graph stress" {
   let result = max_flow(n, 0, n - 1, edges)
   match result {
     Some(f) => assert_eq(f, 45L)
-    None => abort("expected Some")
+    None => fail("expected Some")
   }
 }
 

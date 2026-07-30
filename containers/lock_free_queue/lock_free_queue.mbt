@@ -1,6 +1,14 @@
 /// Lock-Free Queue — Michael-Scott Algorithm (Single-Threaded Simulation)
 /// ========================================================================
 ///
+/// **⚠️ WARNING: NOT thread-safe.** Despite the name "Lock-Free", this is a
+/// single-threaded simulation. MoonBit compiles to Wasm/JS which does not
+/// provide CAS (compare-and-swap) or other atomic primitives. The CAS
+/// operations in this implementation always succeed because there is only
+/// one thread. **Do not use this in a multi-threaded context** — concurrent
+/// access will corrupt the queue. This module is useful for understanding
+/// the algorithm and for single-threaded async/callback code.
+///
 /// This module implements the **Michael-Scott lock-free queue**, the
 /// de-facto industry-standard non-blocking MPMC (multi-producer
 /// multi-consumer) queue algorithm:

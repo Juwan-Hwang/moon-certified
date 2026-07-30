@@ -428,7 +428,7 @@ test "lbfgs: minimize quadratic (2D)" {
       assert_true((x[1] + 1.0).abs() < 1.0e-6)
       assert_true(fval.abs() < 1.0e-12)
     }
-    _ => abort("lbfgs should converge on simple quadratic")
+    _ => fail("lbfgs should converge on simple quadratic")
   }
 }
 
@@ -452,7 +452,7 @@ test "lbfgs: minimize Rosenbrock function" {
       assert_true((x[1] - 1.0).abs() < 1.0e-4)
       assert_true(fval < 1.0e-10)
     }
-    _ => abort("lbfgs should converge on Rosenbrock")
+    _ => fail("lbfgs should converge on Rosenbrock")
   }
 }
 
@@ -476,7 +476,7 @@ test "lbfgs: minimize Booth function" {
       assert_true((x[1] - 3.0).abs() < 1.0e-6)
       assert_true(fval < 1.0e-12)
     }
-    _ => abort("lbfgs should converge on Booth function")
+    _ => fail("lbfgs should converge on Booth function")
   }
 }
 
@@ -494,7 +494,7 @@ test "lbfgs: already at minimum" {
       assert_true(x[0].abs() < 1.0e-15)
       assert_true(x[1].abs() < 1.0e-15)
     }
-    _ => abort("should converge immediately at minimum")
+    _ => fail("should converge immediately at minimum")
   }
 }
 
@@ -523,7 +523,7 @@ test "lbfgs: 5D diagonal quadratic" {
       }
       assert_true(fval < 1.0e-12)
     }
-    _ => abort("lbfgs should converge on 5D quadratic")
+    _ => fail("lbfgs should converge on 5D quadratic")
   }
 }
 
@@ -533,7 +533,7 @@ test "lbfgs: invalid input returns InvalidInput" {
   let grad = fn(_x : Array[Double]) -> Array[Double] { [] }
   match minimize(f, grad, []) {
     InvalidInput => ()
-    _ => abort("empty x0 should return InvalidInput")
+    _ => fail("empty x0 should return InvalidInput")
   }
 }
 
@@ -543,7 +543,7 @@ test "lbfgs: gradient dimension mismatch" {
   let grad = fn(_x : Array[Double]) -> Array[Double] { [0.0, 0.0] } // wrong size
   match minimize(f, grad, [1.0]) {
     InvalidInput => ()
-    _ => abort("dimension mismatch should return InvalidInput")
+    _ => fail("dimension mismatch should return InvalidInput")
   }
 }
 
@@ -561,7 +561,7 @@ test "lbfgs: small history size m=1" {
       assert_true((x[1] - 3.0).abs() < 1.0e-5)
       assert_true(fval < 1.0e-10)
     }
-    _ => abort("lbfgs should converge with m=1")
+    _ => fail("lbfgs should converge with m=1")
   }
 }
 
@@ -581,6 +581,6 @@ test "lbfgs: Matyas function" {
       assert_true(x[1].abs() < 1.0e-6)
       assert_true(fval.abs() < 1.0e-12)
     }
-    _ => abort("lbfgs should converge on Matyas function")
+    _ => fail("lbfgs should converge on Matyas function")
   }
 }

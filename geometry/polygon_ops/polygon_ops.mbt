@@ -1,13 +1,18 @@
 ///|
 /// Polygon operations: clipping, triangulation, area, point-in-polygon.
 /// All coordinates are integers. No abort() — errors return empty arrays.
-fn signed_area2(poly : Array[(Int, Int)]) -> Int {
+///
+/// **Overflow safety.** All cross-product computations use `Int64` internally
+/// to prevent overflow when coordinates exceed ~46340 (where products exceed
+/// `Int32::max`). The sign of the cross product — which is all that matters
+/// for orientation tests — is always correct.
+fn signed_area2(poly : Array[(Int, Int)]) -> Int64 {
   let n = poly.length()
-  let mut s = 0
+  let mut s = 0L
   for i = 0; i < n; i = i + 1 {
     let (xi, yi) = poly[i]
     let (xj, yj) = poly[(i + 1) % n]
-    s = s + xi * yj - xj * yi
+    s = s + xi.to_int64() * yj.to_int64() - xj.to_int64() * yi.to_int64()
   }
   s
 }
@@ -23,15 +28,20 @@ fn in_triangle(
   cx : Int,
   cy : Int,
 ) -> Bool {
-  let d1 = (px - bx) * (ay - by) - (ax - bx) * (py - by)
-  let d2 = (px - cx) * (by - cy) - (bx - cx) * (py - cy)
-  let d3 = (px - ax) * (cy - ay) - (cx - ax) * (py - ay)
-  (d1 >= 0 && d2 >= 0 && d3 >= 0) || (d1 <= 0 && d2 <= 0 && d3 <= 0)
+  let d1 = (px.to_int64() - bx.to_int64()) * (ay.to_int64() - by.to_int64()) -
+    (ax.to_int64() - bx.to_int64()) * (py.to_int64() - by.to_int64())
+  let d2 = (px.to_int64() - cx.to_int64()) * (by.to_int64() - cy.to_int64()) -
+    (bx.to_int64() - cx.to_int64()) * (py.to_int64() - cy.to_int64())
+  let d3 = (px.to_int64() - ax.to_int64()) * (cy.to_int64() - ay.to_int64()) -
+    (cx.to_int64() - ax.to_int64()) * (py.to_int64() - ay.to_int64())
+  (d1 >= 0L && d2 >= 0L && d3 >= 0L) || (d1 <= 0L && d2 <= 0L && d3 <= 0L)
 }
 
 ///|
 fn is_left(px : Int, py : Int, ax : Int, ay : Int, bx : Int, by : Int) -> Bool {
-  (bx - ax) * (py - ay) - (by - ay) * (px - ax) >= 0
+  (bx.to_int64() - ax.to_int64()) * (py.to_int64() - ay.to_int64()) -
+  (by.to_int64() - ay.to_int64()) * (px.to_int64() - ax.to_int64()) >=
+  0L
 }
 
 ///|
@@ -45,10 +55,16 @@ fn line_intersect(
   bx : Int,
   by : Int,
 ) -> (Int, Int) {
-  let ds = (bx - ax) * (sy - ay) - (by - ay) * (sx - ax)
-  let de = (bx - ax) * (ey - ay) - (by - ay) * (ex - ax)
+  // Compute cross products in Int64 to prevent overflow with large coordinates.
+  let ds = (bx.to_int64() - ax.to_int64()) * (sy.to_int64() - ay.to_int64()) -
+    (by.to_int64() - ay.to_int64()) * (sx.to_int64() - ax.to_int64())
+  let de = (bx.to_int64() - ax.to_int64()) * (ey.to_int64() - ay.to_int64()) -
+    (by.to_int64() - ay.to_int64()) * (ex.to_int64() - ax.to_int64())
   let d = ds - de
-  ((ds * ex - de * sx) / d, (ds * ey - de * sy) / d)
+  // Results are integer intersection points; Int64 division then truncate to Int.
+  let ix = (ds * ex.to_int64() - de * sx.to_int64()) / d
+  let iy = (ds * ey.to_int64() - de * sy.to_int64()) / d
+  (ix.to_int(), iy.to_int())
 }
 
 ///|
@@ -112,7 +128,7 @@ pub fn ear_clipping_triangulate(
     prev.push((i - 1 + n) % n)
     next.push((i + 1) % n)
   }
-  if signed_area2(polygon) < 0 {
+  if signed_area2(polygon) < 0L {
     for i = 0; i < n; i = i + 1 {
       let t = prev[i]
       prev[i] = next[i]
@@ -168,16 +184,19 @@ pub fn ear_clipping_triangulate(
 
 ///|
 /// Compute the absolute area of a polygon using the shoelace formula.
+///
+/// Uses `Int64` accumulation to prevent overflow for large coordinates
+/// (Int32 would overflow when coordinate products exceed ~2.1×10⁹).
 pub fn polygon_area(polygon : Array[(Int, Int)]) -> Double {
   let n = polygon.length()
   if n < 3 {
     return 0.0
   }
-  let mut s = 0
+  let mut s = 0L
   for i = 0; i < n; i = i + 1 {
     let (xi, yi) = polygon[i]
     let (xj, yj) = polygon[(i + 1) % n]
-    s = s + xi * yj - xj * yi
+    s = s + xi.to_int64() * yj.to_int64() - xj.to_int64() * yi.to_int64()
   }
   let a = s.to_double() / 2.0
   if a < 0.0 {

@@ -2,7 +2,7 @@
 package "moon-certified/compression/bwt_compress"
 
 // Values
-pub fn compress(Bytes) -> Bytes?
+pub fn compress(Bytes) -> Bytes
 
 pub fn decompress(Bytes) -> Bytes?
 

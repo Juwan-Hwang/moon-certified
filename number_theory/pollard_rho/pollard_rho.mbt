@@ -4,8 +4,8 @@
 /// a primality test (Miller-Rabin via `@int64_utils.is_prime64`), it provides
 /// a complete integer factorization routine.
 ///
-/// **Algorithm.** Uses Brent's cycle detection on the polynomial sequence
-///   x₀ = 2, x_{i+1} = (xᵢ² + c) mod n.
+/// **Algorithm.** Uses Brent's cycle detection with **batched GCD** on the
+/// polynomial sequence x₀ = 2, x_{i+1} = (xᵢ² + c) mod n.
 ///
 /// Brent's improvement over Floyd's classic tortoise-and-hare: only the hare
 /// (fast pointer) advances each step; the tortoise is teleported to the hare's
@@ -13,22 +13,36 @@
 /// evaluations by ~25% compared to Floyd's, where both pointers advance every
 /// step.
 ///
-/// At each step, compute d = gcd(|x − y|, n). If 1 < d < n, d is a factor.
-/// If d == n, the attempt failed; retry with a different constant c. If
-/// `diff == 0` (the sequence entered a cycle without finding a factor), the
-/// attempt fails and a new constant `c` is tried.
+/// **Batched GCD optimization.** Instead of computing gcd(|x−y|, n) at every
+/// step (each GCD is O(log n)), the product of differences is accumulated over
+/// a batch of `BATCH_SIZE` (128) steps and a single GCD is computed per batch.
+/// This reduces the number of GCD calls by a factor of ~128, with the trade-off
+/// that if the batch GCD yields `n`, a short backtracking scan of the last
+/// batch is needed to pinpoint the exact factor.
 ///
-/// **Complexity.** Expected O(√p) iterations where p is the smallest prime
-/// factor of n, i.e. O(n^{1/4}) in the worst case.
+/// If the batch GCD `g` satisfies `1 < g < n`, `g` is a factor. If `g == n`,
+/// backtrack step-by-step through the last batch. If `diff == 0` (the sequence
+/// entered a cycle without finding a factor), the attempt fails and a new
+/// constant `c` is tried.
+///
+/// **Complexity.** Expected O(√p) function evaluations where p is the smallest
+/// prime factor of n, i.e. O(n^{1/4}) in the worst case. GCD calls are reduced
+/// to O(√p / BATCH_SIZE).
 ///
 /// **Overflow safety.** All arithmetic is in `Int64`. Since n < 2^31,
-/// x² < 2^62 < 2^63, so no `Int64` overflow can occur.
+/// x² < 2^62 < 2^63, so no `Int64` overflow can occur. The accumulated product
+/// `q` is reduced mod n after each multiplication, so q < n < 2^31 and
+/// q × diff < 2^62, well within Int64 range.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite below.
 
 // ---------------------------------------------------------------------------
 // Pollard-Rho core
 // ---------------------------------------------------------------------------
+
+/// Batch size for GCD accumulation. 128 is the standard choice balancing GCD
+/// call reduction against backtracking cost.
+let prho_batch_size : Int = 128
 
 ///|
 /// One iteration of the Pollard-Rho sequence: f(x) = (x² + c) mod n.
@@ -38,7 +52,7 @@ fn prho_f(x : Int64, c : Int64, n : Int64) -> Int64 {
 
 ///|
 /// Attempt to find a non-trivial factor of n using Pollard-Rho with Brent's
-/// cycle detection.
+/// cycle detection and batched GCD.
 ///
 /// Parameters:
 /// - `n`: the number to factor (must be composite, > 1).
@@ -48,36 +62,54 @@ fn prho_f(x : Int64, c : Int64, n : Int64) -> Int64 {
 /// Returns a factor `d` with `1 < d < n`, or `n` if the attempt failed
 /// (cycle found without a factor, or gcd yielded n).
 fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
-  let mut tortoise = x0
-  let mut hare = x0
-  // Brent's: track the step count within the current power-of-2 window.
-  let mut power = 1L
-  let mut lam = 1L
-  hare = prho_f(hare, c, n)
+  let mut y = x0
+  let mut r = 1 // Power-of-2 window size.
   while true {
-    // Teleport the tortoise to the hare at power-of-2 boundaries.
-    if lam == power {
-      tortoise = hare
-      power = power * 2L
-      lam = 0L
+    // Save tortoise position; advance hare by r steps.
+    let x = y
+    for i = 0; i < r; i = i + 1 {
+      y = prho_f(y, c, n)
     }
-    hare = prho_f(hare, c, n)
-    lam = lam + 1L
-    let diff = if tortoise > hare { tortoise - hare } else { hare - tortoise }
-    if diff == 0L {
-      // Cycle found without a factor; this attempt failed.
-      return n
+    let mut k = 0
+    let mut g = 1L
+    let mut ys = y // Save hare position at batch start for backtracking.
+    // Process the window in batches of prho_batch_size.
+    while k < r && g == 1L {
+      ys = y
+      let limit = if r - k < prho_batch_size { r - k } else { prho_batch_size }
+      let mut q = 1L
+      for i = 0; i < limit; i = i + 1 {
+        y = prho_f(y, c, n)
+        let diff = if x > y { x - y } else { y - x }
+        if diff == 0L {
+          // Cycle found without a factor; this attempt failed.
+          return n
+        }
+        q = (q * diff) % n
+      }
+      g = @int64_utils.gcd64(q, n)
+      k = k + limit
     }
-    let d = @int64_utils.gcd64(diff, n)
-    if d > 1L && d < n {
-      return d
+    if g == n {
+      // Batch GCD yielded n: backtrack through the last batch to find
+      // the exact step that produces a non-trivial factor.
+      y = ys
+      g = 1L
+      while g == 1L {
+        y = prho_f(y, c, n)
+        let diff = if x > y { x - y } else { y - x }
+        if diff == 0L {
+          return n
+        }
+        g = @int64_utils.gcd64(diff, n)
+      }
     }
-    // d == 1: continue; d == n: retry with a different c (caller handles).
-    if d == n {
-      return n
+    if g > 1L && g < n {
+      return g
     }
+    // g == 1: no factor in this window; double the window and continue.
+    r = r * 2
   }
-  // Unreachable, but MoonBit needs a return.
   n
 }
 

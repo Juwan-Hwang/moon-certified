@@ -1,0 +1,47 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/mean_shift"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn estimate_bandwidth(Array[Array[Double]]) -> Double
+
+pub fn mean_shift(Array[Array[Double]], MeanShiftConfig) -> MeanShiftResult
+
+pub fn mean_shift_config(Double) -> MeanShiftConfig
+
+pub fn mean_shift_default(Array[Array[Double]]) -> MeanShiftResult
+
+pub fn mean_shift_predict(MeanShiftResult, Array[Double], Array[Array[Double]], MeanShiftConfig) -> Int
+
+// Errors
+
+// Types and methods
+pub enum KernelType {
+  Gaussian
+  Flat
+} derive(Eq, @debug.Debug)
+
+pub struct MeanShiftConfig {
+  bandwidth : Double
+  kernel : KernelType
+  max_iter : Int
+  tol : Double
+  cluster_tol : Double
+  seed : Int
+}
+pub fn MeanShiftConfig::default() -> Self
+
+pub struct MeanShiftResult {
+  cluster_centers : Array[Array[Double]]
+  labels : Array[Int]
+  n_clusters : Int
+  bandwidth : Double
+}
+
+// Type aliases
+
+// Traits
+

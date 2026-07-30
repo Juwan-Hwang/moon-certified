@@ -1,0 +1,29 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/gmm"
+
+// Values
+pub fn fit(Array[Array[Double]], Int, Int, Double, Int) -> GMMResult
+
+pub fn predict(GMMResult, Array[Array[Double]]) -> Array[Int]
+
+pub fn predict_proba(GMMResult, Array[Array[Double]]) -> Array[Array[Double]]
+
+// Errors
+
+// Types and methods
+pub struct GMMComponent {
+  mean : Array[Double]
+  variance : Array[Double]
+  mut weight : Double
+}
+
+pub struct GMMResult {
+  components : Array[GMMComponent]
+  log_likelihood : Double
+  iterations : Int
+}
+
+// Type aliases
+
+// Traits
+

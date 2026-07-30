@@ -14,6 +14,8 @@ import {
   "moon-certified/graph/dijkstra_heap",
   "moon-certified/graph/scc",
   "moon-certified/graph/kruskal",
+  "moon-certified/graph/dominator_tree",
+  "moon-certified/graph/edmonds_blossom",
   "moon-certified/string/kmp",
   "moon-certified/string/suffix_array",
   "moon-certified/number_theory/miller_rabin",
@@ -21,8 +23,16 @@ import {
   "moon-certified/number_theory/ntt",
   "moon-certified/containers/union_find",
   "moon-certified/dp/lis",
+  "moon-certified/dp/matrix_chain",
+  "moon-certified/dp/knapsack_opt",
   "moon-certified/geometry/geometry_utils",
   "moon-certified/geometry/convex_hull",
+  "moon-certified/geometry/closest_pair",
+  "moon-certified/geometry/delaunay",
+  "moon-certified/crypto/sha256",
+  "moon-certified/crypto/aes",
+  "moon-certified/compression/deflate",
+  "moon-certified/ml/kmeans",
 } for "test"
 
 options(

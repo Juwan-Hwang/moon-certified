@@ -1,0 +1,34 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/finance/portfolio_optimization"
+
+// Values
+pub fn black_litterman_portfolio(Array[Double], Array[Double], Double, Double, Array[Double], Array[Double], Array[Double], Int, Int, Double) -> Array[Double]
+
+pub fn black_litterman_returns(Array[Double], Array[Double], Double, Double, Array[Double], Array[Double], Array[Double], Int, Int) -> Array[Double]
+
+pub fn covariance_matrix(Array[Array[Double]], Int) -> Array[Double]
+
+pub fn efficient_frontier(Array[Double], Array[Double], Int, Int) -> Array[(Double, Double)]
+
+pub fn efficient_frontier_portfolio(Array[Double], Array[Double], Int, Double) -> Array[Double]
+
+pub fn max_sharpe_portfolio(Array[Double], Array[Double], Int, Double) -> Array[Double]
+
+pub fn mean_returns(Array[Array[Double]]) -> Array[Double]
+
+pub fn min_variance_portfolio(Array[Double], Int) -> Array[Double]
+
+pub fn portfolio_return(Array[Double], Array[Double]) -> Double
+
+pub fn portfolio_variance(Array[Double], Array[Double], Int) -> Double
+
+pub fn project_to_simplex(Array[Double]) -> Array[Double]
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

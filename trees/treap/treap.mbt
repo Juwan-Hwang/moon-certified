@@ -45,15 +45,12 @@
 ///   random BST), the recursion depth is O(log n) with high probability —
 ///   for n = 10^6 the expected depth is ~40, well within MoonBit's default
 ///   stack limit. The worst case O(n) depth only arises from adversarial
-///   priority sequences, which the fixed LCG prevents. As a defensive net,
-///   every recursive helper aborts if its descent exceeds `treap_max_depth`
-///   (1000) rather than risking a stack overflow.
+///   priority sequences, which the fixed LCG prevents.
 /// - **split/merge are NOT tail-recursive**: each performs work (`mknode`)
 ///   after the recursive call returns, so they cannot be turned into a simple
 ///   loop. Making them iterative would require an explicit parent stack or
 ///   the priority-infinity dummy-node trick (which itself recurses); neither
-///   is a surgical change, so the depth guard above is the pragmatic safety
-///   measure.
+///   is a surgical change.
 ///
 /// Not formally verified. Correctness is ensured by the comprehensive test
 /// suite below, which checks the BST and heap invariants, size consistency,
@@ -134,14 +131,6 @@ fn next_priority(state : Int) -> Int {
   @utils.lcg_next(state)
 }
 
-///|
-/// Defensive ceiling on recursion depth. A treap's expected height is O(log n)
-/// (~40 for n = 10^6), but the worst case is O(n) under adversarial priorities.
-/// The fixed LCG prevents adversarial sequences, so this guard is a safety net
-/// against RNG pathologies or bugs: if a descent exceeds this depth it returns
-/// a safe fallback value instead of overflowing the stack.
-let treap_max_depth : Int = 1000
-
 // ---------------------------------------------------------------------------
 // Cached metadata
 // ---------------------------------------------------------------------------
@@ -177,7 +166,10 @@ fn[T] height_node(root : TreapNode[T]) -> Int {
     _ => stack.push((root, 0))
   }
   while stack.length() > 0 {
-    let (node, depth) = stack.pop().unwrap()
+    let (node, depth) = match stack.pop() {
+      Some(v) => v
+      None => break
+    }
     if depth > max_h {
       max_h = depth
     }
@@ -219,7 +211,7 @@ fn[T] mknode(
 /// inserted and whose `rng` is advanced one step. Expected O(log n).
 pub fn[T] insert(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
   let p = next_priority(t.rng)
-  { root: insert_node(t.root, key, p, cmp, 0), rng: p }
+  { root: insert_node(t.root, key, p, cmp), rng: p }
 }
 
 ///|
@@ -231,20 +223,13 @@ fn[T] insert_node(
   key : T,
   p : Int,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> TreapNode[T] {
-  if depth > treap_max_depth {
-    // Depth guard: return original tree instead of aborting.
-    // This is a safety net against RNG pathologies; in practice the
-    // fixed LCG prevents adversarial priority sequences.
-    return root
-  }
   match root {
     Empty => Node(Empty, key, p, Empty, 1)
     Node(l, k, cp, r, _) => {
       let c = cmp(key, k)
       if c < 0 {
-        let new_l = insert_node(l, key, p, cmp, depth + 1)
+        let new_l = insert_node(l, key, p, cmp)
         match new_l {
           Node(ll, lk, lp, lr, _) =>
             if lp > cp {
@@ -259,7 +244,7 @@ fn[T] insert_node(
           Empty => root
         }
       } else if c > 0 {
-        let new_r = insert_node(r, key, p, cmp, depth + 1)
+        let new_r = insert_node(r, key, p, cmp)
         match new_r {
           Node(rl, rk, rp, rr, _) =>
             if rp > cp {
@@ -287,7 +272,7 @@ fn[T] insert_node(
 ///|
 /// Return `true` if `key` is present in the treap. Expected O(log n).
 pub fn[T] search(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Bool {
-  search_node(t.root, key, cmp, 0)
+  search_node(t.root, key, cmp)
 }
 
 ///|
@@ -295,19 +280,15 @@ fn[T] search_node(
   root : TreapNode[T],
   key : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> Bool {
-  if depth > treap_max_depth {
-    return false
-  }
   match root {
     Empty => false
     Node(l, k, _, r, _) => {
       let c = cmp(key, k)
       if c < 0 {
-        search_node(l, key, cmp, depth + 1)
+        search_node(l, key, cmp)
       } else if c > 0 {
-        search_node(r, key, cmp, depth + 1)
+        search_node(r, key, cmp)
       } else {
         true
       }
@@ -329,7 +310,7 @@ fn[T] search_node(
 /// can be removed. Each recursive step sinks the target by one level, so the
 /// recursion always terminates.
 pub fn[T] delete(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
-  { root: delete_node(t.root, key, cmp, 0), rng: t.rng }
+  { root: delete_node(t.root, key, cmp), rng: t.rng }
 }
 
 ///|
@@ -337,19 +318,15 @@ fn[T] delete_node(
   root : TreapNode[T],
   key : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> TreapNode[T] {
-  if depth > treap_max_depth {
-    return root
-  }
   match root {
     Empty => Empty
     Node(l, k, p, r, _) => {
       let c = cmp(key, k)
       if c < 0 {
-        mknode(delete_node(l, key, cmp, depth + 1), k, p, r)
+        mknode(delete_node(l, key, cmp), k, p, r)
       } else if c > 0 {
-        mknode(l, k, p, delete_node(r, key, cmp, depth + 1))
+        mknode(l, k, p, delete_node(r, key, cmp))
       } else {
         // Found the node to delete.
         match (l, r) {
@@ -359,12 +336,12 @@ fn[T] delete_node(
             if lp > rp {
               // Left child outranks right: right rotation lifts `lk`.
               // `k` descends into the right subtree; delete it from there.
-              let new_r = delete_node(mknode(lr, k, p, r), key, cmp, depth + 1)
+              let new_r = delete_node(mknode(lr, k, p, r), key, cmp)
               mknode(ll, lk, lp, new_r)
             } else {
               // Right child outranks (or ties): left rotation lifts `rk`.
               // `k` descends into the left subtree; delete it from there.
-              let new_l = delete_node(mknode(l, k, p, rl), key, cmp, depth + 1)
+              let new_l = delete_node(mknode(l, k, p, rl), key, cmp)
               mknode(new_l, rk, rp, rr)
             }
         }
@@ -387,7 +364,7 @@ pub fn[T] split(
   key : T,
   cmp : (T, T) -> Int,
 ) -> (Treap[T], Treap[T]) {
-  let (l, r) = split_node(t.root, key, cmp, 0)
+  let (l, r) = split_node(t.root, key, cmp)
   // Advance RNG for the right treap to prevent both treaps from
   // drawing the same priority sequence on subsequent inserts.
   let right_rng = next_priority(t.rng)
@@ -401,21 +378,17 @@ fn[T] split_node(
   root : TreapNode[T],
   key : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> (TreapNode[T], TreapNode[T]) {
-  if depth > treap_max_depth {
-    return (root, Empty)
-  }
   match root {
     Empty => (Empty, Empty)
     Node(l, k, p, r, _) =>
       if cmp(k, key) < 0 {
         // Root and left subtree all < key. Split the right subtree.
-        let (rl, rr) = split_node(r, key, cmp, depth + 1)
+        let (rl, rr) = split_node(r, key, cmp)
         (mknode(l, k, p, rl), rr)
       } else {
         // Root >= key. Split the left subtree.
-        let (ll, lr) = split_node(l, key, cmp, depth + 1)
+        let (ll, lr) = split_node(l, key, cmp)
         (ll, mknode(lr, k, p, r))
       }
   }
@@ -428,30 +401,23 @@ fn[T] split_node(
 ///
 /// `merge` only consults priorities (not keys), so no comparator is needed.
 pub fn[T] merge(left : Treap[T], right : Treap[T]) -> Treap[T] {
-  { root: merge_node(left.root, right.root, 0), rng: left.rng }
+  { root: merge_node(left.root, right.root), rng: left.rng }
 }
 
 ///|
 /// Recursive merge: all keys in `a` < all keys in `b`.
 /// Uses priorities to decide which root stays on top.
-fn[T] merge_node(
-  a : TreapNode[T],
-  b : TreapNode[T],
-  depth : Int,
-) -> TreapNode[T] {
-  if depth > treap_max_depth {
-    return a
-  }
+fn[T] merge_node(a : TreapNode[T], b : TreapNode[T]) -> TreapNode[T] {
   match (a, b) {
     (Empty, _) => b
     (_, Empty) => a
     (Node(la, ka, pa, ra, _), Node(lb, kb, pb, rb, _)) =>
       if pa > pb {
         // `a`'s root stays on top. Merge `a`'s right with `b`.
-        mknode(la, ka, pa, merge_node(ra, b, depth + 1))
+        mknode(la, ka, pa, merge_node(ra, b))
       } else {
         // `b`'s root stays on top. Merge `a` with `b`'s left.
-        mknode(merge_node(a, lb, depth + 1), kb, pb, rb)
+        mknode(merge_node(a, lb), kb, pb, rb)
       }
   }
 }
@@ -464,24 +430,21 @@ fn[T] merge_node(
 /// Find the `k`-th smallest key (0-indexed). Returns `None` if `k` is out of
 /// range or the tree is empty. O(log n) expected.
 pub fn[T] kth(t : Treap[T], k : Int) -> T? {
-  kth_node(t.root, k, 0)
+  kth_node(t.root, k)
 }
 
 ///|
-fn[T] kth_node(root : TreapNode[T], k : Int, depth : Int) -> T? {
-  if depth > treap_max_depth {
-    return None
-  }
+fn[T] kth_node(root : TreapNode[T], k : Int) -> T? {
   match root {
     Empty => None
     Node(l, key, _, r, _) => {
       let left_sz = size_node(l)
       if k < left_sz {
-        kth_node(l, k, depth + 1)
+        kth_node(l, k)
       } else if k == left_sz {
         Some(key)
       } else {
-        kth_node(r, k - left_sz - 1, depth + 1)
+        kth_node(r, k - left_sz - 1)
       }
     }
   }
@@ -490,7 +453,7 @@ fn[T] kth_node(root : TreapNode[T], k : Int, depth : Int) -> T? {
 ///|
 /// Count the number of keys strictly less than `key`. O(log n) expected.
 pub fn[T] rank(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Int {
-  rank_node(t.root, key, cmp, 0)
+  rank_node(t.root, key, cmp)
 }
 
 ///|
@@ -498,18 +461,14 @@ fn[T] rank_node(
   root : TreapNode[T],
   key : T,
   cmp : (T, T) -> Int,
-  depth : Int,
 ) -> Int {
-  if depth > treap_max_depth {
-    return -1
-  }
   match root {
     Empty => 0
     Node(l, k, _, r, _) =>
       if cmp(key, k) <= 0 {
-        rank_node(l, key, cmp, depth + 1)
+        rank_node(l, key, cmp)
       } else {
-        size_node(l) + 1 + rank_node(r, key, cmp, depth + 1)
+        size_node(l) + 1 + rank_node(r, key, cmp)
       }
   }
 }

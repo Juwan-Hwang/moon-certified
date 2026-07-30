@@ -46,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `two_sat`, `dinic`, `lca`, `bridge_articulation`, `euler_path`, `hungarian`, `hopcroft_karp`, `stoer_wagner`
 - `max_clique`, `edmonds_blossom`, `dominator_tree`, `gomory_hu`, `hlpp`, `hld`, `centroid_decomposition`
 - `virtual_tree`, `min_steiner_tree`, `graph_coloring`, `flow_with_bounds`, `pagerank`, `chu_liu`
-- `k_shortest_paths`, `network_simplex`, `tree_isomorphism`, `graph_utils` (shared graph utilities)
+- `k_shortest_paths`, `min_cost_flow`, `tree_isomorphism`, `graph_utils` (shared graph utilities)
 - `push_relabel` (max flow via push-relabel), `planar_test` (planarity testing), `isomorphism` (VF2 graph isomorphism)
 
 #### String (22 packages)

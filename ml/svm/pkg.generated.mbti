@@ -1,24 +1,53 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "moon-certified/ml/svm"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub fn decision_function(SVMModel, Array[Double]) -> Double
 
 pub fn default_config() -> SVMConfig
 
+pub fn kernel_type(SVMModel) -> KernelType
+
 pub fn make_config(Double, Int, Double, Double) -> SVMConfig
+
+pub fn make_kernel_config(Double, Int, Double, Double, KernelType, Double, Int, Double) -> SVMConfig
 
 pub fn n_features(SVMModel) -> Int
 
+pub fn num_classes(MultiClassModel) -> Int
+
 pub fn num_support_vectors(SVMModel) -> Int
+
+pub fn poly_config(Double, Double, Int, Double) -> SVMConfig
 
 pub fn predict(SVMModel, Array[Double]) -> Double
 
+pub fn predict_multiclass(MultiClassModel, Array[Double]) -> Double
+
+pub fn rbf_config(Double, Double) -> SVMConfig
+
 pub fn train(Array[Array[Double]], Array[Double], SVMConfig) -> SVMModel?
+
+pub fn train_multiclass(Array[Array[Double]], Array[Double], SVMConfig) -> MultiClassModel?
 
 // Errors
 
 // Types and methods
+pub enum KernelType {
+  Linear
+  RBF
+  Polynomial
+  Sigmoid
+} derive(Eq, @debug.Debug)
+
+pub struct MultiClassModel {
+  // private fields
+}
+
 pub struct SVMConfig {
   // private fields
 }

@@ -238,20 +238,44 @@ pub fn build(s : String) -> SuffixTree {
 }
 
 ///|
-/// Recursively compute the number of leaves in each subtree.
-fn compute_leaf_counts(st : SuffixTree, node_idx : Int) -> Int {
-  let node = st.nodes[node_idx]
-  if node.children.length() == 0 {
-    node.leaf_count = 1
-    return 1
+/// Iteratively compute the number of leaves in each subtree.
+///
+/// Uses an explicit stack for post-order traversal to avoid O(n) recursion
+/// depth on degenerate trees (e.g., "aaaa...a" produces a chain).
+fn compute_leaf_counts(st : SuffixTree, root_idx : Int) -> Int {
+  // Stack entries: (node_idx, visited_flag).
+  // First pass: push (node, false). When popped with false, re-push as
+  // (node, true) then push all children as (child, false).
+  // When popped with true, all children have been processed; compute sum.
+  let stack : Array[(Int, Bool)] = [(root_idx, false)]
+  while stack.length() > 0 {
+    let (idx, visited) = match stack.pop() {
+      Some(v) => v
+      None => break
+    }
+    let node = st.nodes[idx]
+    if visited {
+      // All children processed; sum their leaf counts.
+      if node.children.length() == 0 {
+        node.leaf_count = 1
+      } else {
+        let mut total = 0
+        for i = 0; i < node.children.length(); i = i + 1 {
+          let (_, child, _, _) = node.children[i]
+          total = total + st.nodes[child].leaf_count
+        }
+        node.leaf_count = total
+      }
+    } else {
+      // First visit: push self as visited, then push all children.
+      stack.push((idx, true))
+      for i = 0; i < node.children.length(); i = i + 1 {
+        let (_, child, _, _) = node.children[i]
+        stack.push((child, false))
+      }
+    }
   }
-  let mut total = 0
-  for i = 0; i < node.children.length(); i = i + 1 {
-    let (_, child, _, _) = node.children[i]
-    total = total + compute_leaf_counts(st, child)
-  }
-  node.leaf_count = total
-  total
+  st.nodes[root_idx].leaf_count
 }
 
 // ---------------------------------------------------------------------------
@@ -365,28 +389,37 @@ pub fn longest_repeated_substring_length(st : SuffixTree) -> Int? {
 }
 
 ///|
-/// Recursively find the deepest internal node.
+/// Iteratively find the deepest internal node.
 ///
-/// Returns `(depth, node_index)`. A depth of 0 means no internal node below
-/// the given starting depth was found (only leaves or root).
+/// Uses an explicit stack for DFS to avoid O(n) recursion depth on degenerate
+/// trees. Returns `(depth, node_index)`. A depth of 0 means no internal node
+/// below the given starting depth was found (only leaves or root).
 fn find_deepest_internal(
   st : SuffixTree,
-  node : Int,
-  depth : Int,
+  root : Int,
+  start_depth : Int,
 ) -> (Int, Int) {
-  let children = st.nodes[node].children
-  if children.length() == 0 {
-    // Leaf node: not an internal node.
-    return (0, -1)
-  }
-  // This is an internal node; track it as a candidate.
-  let mut best = (depth, node)
-  for i = 0; i < children.length(); i = i + 1 {
-    let (_, child, start, end) = children[i]
-    let elen = edge_len(st, start, end)
-    let (child_depth, _) = find_deepest_internal(st, child, depth + elen)
-    if child_depth > best.0 {
-      best = (child_depth, child)
+  let stack : Array[(Int, Int)] = [(root, start_depth)]
+  let mut best = (0, -1)
+  while stack.length() > 0 {
+    let (node, depth) = match stack.pop() {
+      Some(v) => v
+      None => break
+    }
+    let children = st.nodes[node].children
+    if children.length() == 0 {
+      // Leaf node: not an internal node, skip.
+      continue
+    }
+    // This is an internal node; track it as a candidate.
+    if depth > best.0 {
+      best = (depth, node)
+    }
+    // Push all children with accumulated depth.
+    for i = 0; i < children.length(); i = i + 1 {
+      let (_, child, start, end) = children[i]
+      let elen = edge_len(st, start, end)
+      stack.push((child, depth + elen))
     }
   }
   best
@@ -570,4 +603,38 @@ test "suffix_tree: occurrences edge cases" {
   assert_eq(count_occurrences(st, "ababa"), 1)
   assert_eq(count_occurrences(st, "xyz"), 0)
   assert_eq(count_occurrences(st, "ababaa"), 0)
+}
+
+///|
+test "suffix_tree: stress long repeated string" {
+  // Build a string of 500 'a' characters — worst case for tree depth.
+  let mut s = ""
+  for i = 0; i < 500; i = i + 1 {
+    s = s + "a"
+  }
+  let st = build(s)
+  assert_eq(text_length(st), 500)
+  assert_true(contains(st, s))
+  assert_eq(count_occurrences(st, "a"), 500)
+  assert_eq(count_occurrences(st, "aa"), 499)
+  // Longest repeated substring is the whole string minus 1 char.
+  assert_eq(longest_repeated_substring_length(st), Some(499))
+  // n*(n+1)/2 distinct substrings for all-same string.
+  assert_eq(count_distinct_substrings(st), 500)
+}
+
+///|
+test "suffix_tree: stress long pattern string" {
+  // Build "ababab...ab" of length 200 to test iterative traversal.
+  let mut s = ""
+  for i = 0; i < 100; i = i + 1 {
+    s = s + "ab"
+  }
+  let st = build(s)
+  assert_eq(text_length(st), 200)
+  assert_true(contains(st, s))
+  assert_eq(count_occurrences(st, "ab"), 100)
+  assert_eq(count_occurrences(st, "abab"), 99)
+  // Longest repeated substring: "ab" * 99 = length 198.
+  assert_eq(longest_repeated_substring_length(st), Some(198))
 }

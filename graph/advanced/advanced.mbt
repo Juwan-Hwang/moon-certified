@@ -215,7 +215,7 @@ test "bellman_ford: basic path graph" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(1))
@@ -233,7 +233,7 @@ test "bellman_ford: negative weights, no cycle" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(4))
@@ -249,7 +249,7 @@ test "bellman_ford: unreachable vertices" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(5))
@@ -280,7 +280,7 @@ test "bellman_ford: negative cycle unreachable from src is not reported" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(2))
@@ -294,7 +294,7 @@ test "bellman_ford: single node" {
   let result = bellman_ford(graph, 1, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
 }
@@ -312,7 +312,7 @@ test "bellman_ford: shorter path through intermediate" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[2], Some(2)) // 0 -> 1 -> 2 = 2 < direct 5
 }
@@ -326,7 +326,7 @@ test "bellman_ford: directed graph" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(2))
@@ -334,7 +334,7 @@ test "bellman_ford: directed graph" {
   let result1 = bellman_ford(graph, n, 1)
   let dist1 = match result1 {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_true(dist1[0] is None)
   assert_eq(dist1[2], Some(3))
@@ -352,7 +352,7 @@ test "bellman_ford: disconnected graph" {
   let result = bellman_ford(graph, n, 0)
   let dist = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(dist[0], Some(0))
   assert_eq(dist[1], Some(2))
@@ -387,7 +387,7 @@ test "floyd_warshall: basic path graph" {
   let result = floyd_warshall(graph, n)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(d[0 * n + 0], Some(0))
   assert_eq(d[0 * n + 1], Some(1))
@@ -407,7 +407,7 @@ test "floyd_warshall: with negative edges" {
   let result = floyd_warshall(graph, n)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(d[0 * n + 0], Some(0))
   assert_eq(d[0 * n + 1], Some(4))
@@ -435,7 +435,7 @@ test "floyd_warshall: single node" {
   let result = floyd_warshall(graph, 1)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(d[0], Some(0))
 }
@@ -450,7 +450,7 @@ test "floyd_warshall: disconnected graph" {
   let result = floyd_warshall(graph, n)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(d[0 * n + 1], Some(2))
   assert_eq(d[1 * n + 0], Some(2))
@@ -474,7 +474,7 @@ test "floyd_warshall: complete graph K3" {
   let result = floyd_warshall(graph, n)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   // All pairs reachable; shortest 0->2 and 2->0 go via 1 (cost 2).
   assert_eq(d[0 * n + 2], Some(2))
@@ -494,7 +494,7 @@ test "floyd_warshall: directed graph" {
   let result = floyd_warshall(graph, n)
   let d = match result {
     Some(Distances(d)) => d
-    _ => abort("expected distances")
+    _ => fail("expected distances")
   }
   assert_eq(d[0 * n + 1], Some(2))
   assert_eq(d[1 * n + 2], Some(3))
@@ -525,11 +525,11 @@ test "bellman_ford and floyd_warshall agree" {
   let fw = floyd_warshall(graph, n)
   let bf_dist = match bf {
     Some(Distances(d)) => d
-    _ => abort("expected bf distances")
+    _ => fail("expected bf distances")
   }
   let fw_dist = match fw {
     Some(Distances(d)) => d
-    _ => abort("expected fw distances")
+    _ => fail("expected fw distances")
   }
   for j = 0; j < n; j = j + 1 {
     assert_eq(bf_dist[j], fw_dist[0 * n + j])

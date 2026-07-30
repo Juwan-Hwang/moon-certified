@@ -47,35 +47,51 @@
 // Curve parameters: NIST P-256 (secp256r1)
 // ---------------------------------------------------------------------------
 
+/// Parse a BigInt from a decimal string, aborting with a descriptive
+/// message if the string is invalid. Used exclusively for fixed RFC
+/// curve constants that are guaranteed correct by construction.
+fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
+  match @bigint.from_string(s) {
+    Some(v) => v
+    None => abort("FATAL: invalid ECDSA curve constant: " + name)
+  }
+}
+
 /// Prime p = 2^256 - 2^224 + 2^192 + 2^96 - 1
-let p : @bigint.BigInt = @bigint.from_string(
+let p : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573530086143415290314195533631308867097853951",
-).unwrap()
+  "P-256 prime p",
+)
 
 /// Curve order n
-let n_order : @bigint.BigInt = @bigint.from_string(
+let n_order : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573529996955224135760342422259061068512044369",
-).unwrap()
+  "P-256 order n",
+)
 
 /// Curve coefficient a = -3 mod p
-let a_coeff : @bigint.BigInt = @bigint.from_string(
+let a_coeff : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573530086143415290314195533631308867097853948",
-).unwrap()
+  "P-256 coefficient a",
+)
 
 /// Curve coefficient b
-let b_coeff : @bigint.BigInt = @bigint.from_string(
+let b_coeff : @bigint.BigInt = parse_curve_const(
   "41058363725152142129326129780047268409114441015993725554835256314039467401291",
-).unwrap()
+  "P-256 coefficient b",
+)
 
 /// Generator x-coordinate
-let gx : @bigint.BigInt = @bigint.from_string(
+let gx : @bigint.BigInt = parse_curve_const(
   "48439561293906451759052585252797914202762949526041747995844080717082404635286",
-).unwrap()
+  "P-256 generator Gx",
+)
 
 /// Generator y-coordinate
-let gy : @bigint.BigInt = @bigint.from_string(
+let gy : @bigint.BigInt = parse_curve_const(
   "36134250956749795798585127919587881956611106672985015071877198253568414405109",
-).unwrap()
+  "P-256 generator Gy",
+)
 
 // ---------------------------------------------------------------------------
 // Modular arithmetic helpers
@@ -108,7 +124,13 @@ fn mod_mul(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
-/// a^(-1) mod m using Fermat's little theorem (for prime m)
+/// a^(-1) mod m using Fermat's little theorem (for prime m).
+///
+/// **Note**: This uses `mod_pow` which internally uses binary square-and-
+/// multiply. While the exponent is fixed (m-2), the multiplication chain
+/// is not guaranteed constant-time. For a non-audited library this is
+/// acceptable; for side-channel-hardened deployments, use a hardware
+/// security module or a constant-time modular inversion implementation.
 fn mod_inv(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
   let exp = @bigint.sub(m, @bigint.from_int_value(2))
   match @bigint.mod_pow(a, exp, m) {
@@ -294,20 +316,47 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   { x: x3, y: y3, z: z3 }
 }
 
-/// Scalar multiplication: k * P using double-and-add.
-fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
-  let mut result = point_infinity()
-  let mut current = pt
-  let mut scalar = k
-  let zero = @bigint.zero()
-  while @bigint.greater_than(scalar, zero) {
-    if @bigint.is_odd(scalar) {
-      result = point_add(result, current)
-    }
-    current = point_double(current)
-    scalar = @bigint.shr(scalar, 1)
+/// Conditional swap: if `swap` is true, exchange r0 and r1.
+/// Used by the Montgomery ladder to eliminate the Hamming-weight timing
+/// leak present in double-and-add.
+fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
+  if swap {
+    (r1, r0)
+  } else {
+    (r0, r1)
   }
-  result
+}
+
+/// Scalar multiplication: k * P using the Montgomery ladder.
+///
+/// The Montgomery ladder processes each bit of the scalar with exactly
+/// one point addition and one point doubling, regardless of the bit
+/// value. This eliminates the Hamming-weight timing side channel present
+/// in double-and-add.
+///
+/// **Constant-time at the algorithm level**: the number and type of field
+/// operations is independent of the scalar. The underlying BigInt field
+/// arithmetic is NOT constant-time, so this is not a complete constant-time
+/// implementation. For production use, use OpenSSL/ring with field-specific
+/// arithmetic.
+///
+/// P-256 curve order is 256 bits, so we iterate over 256 bits.
+fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
+  let n_bits = 256
+  let mut r0 = point_infinity()
+  let mut r1 = pt
+  for i = n_bits - 1; i >= 0; i = i - 1 {
+    let bit = @bigint.is_odd(@bigint.shr(k, i))
+    let (tmp0, tmp1) = cswap(bit, r0, r1)
+    r0 = tmp0
+    r1 = tmp1
+    r1 = point_add(r0, r1)
+    r0 = point_double(r0)
+    let (tmp0b, tmp1b) = cswap(bit, r0, r1)
+    r0 = tmp0b
+    r1 = tmp1b
+  }
+  r0
 }
 
 /// Convert a Jacobian point to affine coordinates.
@@ -518,16 +567,32 @@ pub fn sign(private_key : Bytes, message : Bytes) -> Bytes {
   let k = rfc6979_generate_k(d, hash)
   // Compute r = (k * G).x mod n
   let kg = scalar_mult(k, generator)
-  let kg_affine = to_affine(kg).unwrap()
+  // Defensive check: k*G must not be the point at infinity.
+  // If it is (k==0 mod n, probability ~2^-256), the signature is invalid.
+  let kg_affine = match to_affine(kg) {
+    Some(pt) => pt
+    None => {
+      // k*G is point at infinity — return a deterministic invalid signature.
+      return Bytes::make(64, b'\x00')
+    }
+  }
   let r = match @bigint.divmod(kg_affine.0, n_order) {
     Some((_, rem)) => rem
     None => kg_affine.0
+  }
+  // Check r != 0 (FIPS 186-4 §6.4 requires this).
+  if @bigint.equal(r, @bigint.zero()) {
+    return Bytes::make(64, b'\x00')
   }
   // Compute s = k^(-1) * (e + r * d) mod n
   let k_inv = mod_inv(k, n_order)
   let rd = mod_mul(r, d, n_order)
   let e_rd = mod_add(e, rd, n_order)
   let s = mod_mul(k_inv, e_rd, n_order)
+  // Check s != 0 (FIPS 186-4 §6.4 requires this).
+  if @bigint.equal(s, @bigint.zero()) {
+    return Bytes::make(64, b'\x00')
+  }
   // Encode signature as r || s (64 bytes, big-endian)
   let r_bytes = bigint_to_bytes_be(r, 32)
   let s_bytes = bigint_to_bytes_be(s, 32)

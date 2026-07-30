@@ -1,426 +1,258 @@
-/// Minimum-cost maximum-flow using **Successive Shortest Paths with Potentials**.
+/// Minimum Cost Flow — Successive Shortest Path (SSP) algorithm.
 ///
-/// Given a directed flow network with capacities and per-unit costs on edges,
-/// finds the maximum flow from `src` to `sink` that has the minimum total cost
-/// among all maximum flows.
+/// The SSP algorithm solves the minimum cost flow (MCF) problem on a
+/// directed graph by iteratively augmenting flow along the shortest path
+/// from a supply node to a demand node in the residual graph.
+///
+/// ## Problem
+/// Given a directed graph with:
+/// - Per-arc cost `c` and capacity `cap`
+/// - Per-node supply `b` (positive = source, negative = sink)
+///
+/// Find a flow `f` that satisfies:
+/// - `0 ≤ f[e] ≤ cap[e]` for each arc
+/// - `Σ outflow - Σ inflow = b[v]` for each node
+/// - Minimises `Σ f[e] * c[e]`
 ///
 /// ## Algorithm
+/// 1. Build a residual graph: each arc (u,v,cost,cap) generates a forward
+///    edge and a reverse edge with negated cost.
+/// 2. Initialise excess[v] = supply[v] for each node.
+/// 3. While there exists a node s with excess > 0:
+///    a. Run SPFA (Shortest Path Faster Algorithm) from s to find the
+///       shortest paths to all nodes in the residual graph.
+///    b. Find a reachable node t with excess < 0.
+///    c. Compute the bottleneck = min(excess[s], -excess[t], min residual
+///       capacity along the path).
+///    d. Augment flow along the path and update excesses.
+/// 4. If all excesses are zero, the flow is feasible and optimal.
+///    Otherwise, the problem is infeasible.
 ///
-/// Uses the **Johnson's potentials** technique to achieve O(F · E log V) instead
-/// of the O(F · V · E) worst-case of pure SPFA:
-///
-///   1. Build the graph using a linked-forward-star (chain-based edge list).
-///      Each edge `(u, v, cap, cost)` adds a forward edge with residual
-///      capacity `cap` and cost `cost`, plus a reverse edge with capacity 0
-///      and cost `-cost`.
-///   2. **First iteration**: Run SPFA (Bellman-Ford variant) from `src` to
-///      compute initial shortest-path distances. These distances become the
-///      initial **potentials** `h[v]`. SPFA also detects **negative-cost
-///      cycles**: if any vertex is relaxed more than `n` times, the function
-///      returns `None`.
-///   3. **Subsequent iterations**: Run **Dijkstra** with **reduced costs**
-///      `c'(u,v) = cost(u,v) + h[u] - h[v]`. By the triangle inequality of
-///      shortest paths, all reduced costs are non-negative, so Dijkstra is
-///      correct. After each Dijkstra, update potentials: `h[v] += dist[v]`.
-///   4. Augment along the shortest path by the bottleneck residual capacity.
-///      Repeat until no augmenting path exists.
-///
-/// The potential update guarantees that reverse edges created by augmentation
-/// also have non-negative reduced costs (specifically, exactly 0 for edges on
-/// the augmenting path), so Dijkstra remains valid across all iterations.
+/// SPFA handles negative-cost arcs correctly and is the method of choice
+/// when the graph may contain negative costs.
 ///
 /// ## Complexity
+/// - Time: O(S × n × m) where S is total supply, n is nodes, m is arcs.
+///   Pseudo-polynomial but very efficient for moderate supply values.
+/// - Space: O(n + m)
 ///
-/// - First SPFA: O(V · E) — one-time cost.
-/// - Each Dijkstra: O(E log V) with a binary heap.
-/// - Number of augmenting iterations: at most the max flow value F.
-/// - Total: O(V · E + F · E log V). For unit-capacity networks: O(E log V).
-///   This is significantly better than pure SPFA's O(F · V · E).
+/// ## Overflow safety
+/// All costs and flows use `Int64` to prevent overflow on large networks.
 ///
-/// ## Overflow protection
-///
-/// `total_flow` and `total_cost` are accumulated as `Int64`. The product
-/// `bottleneck * cost` is also computed in `Int64`. This prevents overflow
-/// for all practical inputs where capacities and costs fit in 32-bit `Int`.
-///
-/// `proof-enabled` is `false`; correctness is backed by the test suite below.
-
-///|
-/// A directed edge in the residual graph (linked-forward-star representation).
-///
-/// `next` links to the next edge originating from the same vertex, forming
-/// a singly-linked list. Edges are stored in pairs: edge `i` (forward) and
-/// edge `i^1` (reverse), so toggling the lowest bit gives the partner.
-priv struct Edge {
-  to : Int
-  mut cap : Int64 // residual capacity on this edge (Int64 to prevent overflow)
-  cost : Int // per-unit cost
-  next : Int // index of next edge from the same `from` vertex, -1 = none
-}
-
-///|
-/// The flow network, built from an edge list.
-priv struct MCMFGraph {
-  n : Int
-  head : Array[Int] // head[v] = first edge index from v, -1 = none
-  edges : Array[Edge] // all edges (forward + reverse interleaved)
-  mut edge_count : Int // total edges added so far
-}
-
-///|
-fn build_graph(n : Int, edge_list : Array[(Int, Int, Int, Int)]) -> MCMFGraph {
-  let g : MCMFGraph = { n, head: Array::make(n, -1), edges: [], edge_count: 0 }
-  for k = 0; k < edge_list.length(); k = k + 1 {
-    let (u, v, cap, cost) = edge_list[k]
-    if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0 {
-      continue
-    }
-    // Forward edge
-    g.edges.push({ to: v, cap: cap.to_int64(), cost, next: g.head[u] })
-    g.head[u] = g.edge_count
-    g.edge_count = g.edge_count + 1
-    // Reverse edge (capacity 0, cost negated)
-    g.edges.push({ to: u, cap: 0L, cost: -cost, next: g.head[v] })
-    g.head[v] = g.edge_count
-    g.edge_count = g.edge_count + 1
-  }
-  g
-}
+/// `proof-enabled` is `false`; correctness is backed by the test suite.
 
 // ---------------------------------------------------------------------------
-// Binary min-heap for Dijkstra
+// Public types
 // ---------------------------------------------------------------------------
 
 ///|
-/// A simple binary min-heap of `(distance, vertex)` pairs for Dijkstra.
-///
-/// Supports `push` and `pop_min` in O(log n). Duplicate entries for the same
-/// vertex (stale entries) are filtered by comparing the stored distance
-/// against the current `dist[]` value during `pop_min`.
-///
-/// The heap uses MoonBit's dynamic `Array` directly — `Array::length()`
-/// serves as the logical size, and `Array::pop()` removes the last element.
-/// This avoids the classic bug where a separate `size` field diverges from
-/// the array's actual length after push/pop cycles.
-priv struct MinHeap {
-  heap_dist : Array[Int64]
-  heap_vtx : Array[Int]
-}
-
-///|
-/// Create a new empty min-heap. Uses dynamic arrays that grow as needed,
-/// eliminating any risk of buffer overflow on heap_push.
-fn new_heap(_cap : Int) -> MinHeap {
-  { heap_dist: [], heap_vtx: [] }
-}
-
-///|
-/// Push a `(distance, vertex)` pair onto the heap. Uses `Array::push` for
-/// automatic growth — no fixed-capacity overflow is possible.
-fn heap_push(h : MinHeap, d : Int64, v : Int) -> Unit {
-  h.heap_dist.push(d)
-  h.heap_vtx.push(v)
-  // Sift up.
-  let mut idx = h.heap_dist.length() - 1
-  while idx > 0 {
-    let parent = (idx - 1) / 2
-    if h.heap_dist[idx] < h.heap_dist[parent] {
-      let td = h.heap_dist[idx]
-      h.heap_dist[idx] = h.heap_dist[parent]
-      h.heap_dist[parent] = td
-      let tv = h.heap_vtx[idx]
-      h.heap_vtx[idx] = h.heap_vtx[parent]
-      h.heap_vtx[parent] = tv
-      idx = parent
-    } else {
-      break
-    }
-  }
-}
-
-///|
-/// Pop the minimum-distance entry. Returns `Some((dist, vtx))` or `None`
-/// if the heap is empty. Stale entries (where `dist > cur_dist[vtx]`) are
-/// automatically skipped.
-fn heap_pop(h : MinHeap, cur_dist : Array[Int64]) -> (Int64, Int)? {
-  while h.heap_dist.length() > 0 {
-    let d = h.heap_dist[0]
-    let v = h.heap_vtx[0]
-    // Move last element to root, then shrink the array.
-    let last = h.heap_dist.length() - 1
-    if last > 0 {
-      h.heap_dist[0] = h.heap_dist[last]
-      h.heap_vtx[0] = h.heap_vtx[last]
-    }
-    ignore(h.heap_dist.pop())
-    ignore(h.heap_vtx.pop())
-    // Sift down from root.
-    let len = h.heap_dist.length()
-    if len > 0 {
-      let mut idx = 0
-      while true {
-        let left = 2 * idx + 1
-        let right = 2 * idx + 2
-        let mut smallest = idx
-        if left < len && h.heap_dist[left] < h.heap_dist[smallest] {
-          smallest = left
-        }
-        if right < len && h.heap_dist[right] < h.heap_dist[smallest] {
-          smallest = right
-        }
-        if smallest != idx {
-          let td = h.heap_dist[idx]
-          h.heap_dist[idx] = h.heap_dist[smallest]
-          h.heap_dist[smallest] = td
-          let tv = h.heap_vtx[idx]
-          h.heap_vtx[idx] = h.heap_vtx[smallest]
-          h.heap_vtx[smallest] = tv
-          idx = smallest
-        } else {
-          break
-        }
-      }
-    }
-    // Skip stale entries.
-    if d <= cur_dist[v] {
-      return Some((d, v))
-    }
-  }
-  None
+/// Result of a minimum cost flow computation.
+pub struct MCFResult {
+  /// Total cost of the minimum cost flow.
+  total_cost : Int64
+  /// Flow on each arc (same order as the input arcs).
+  flows : FixedArray[Int64]
 }
 
 // ---------------------------------------------------------------------------
-// SPFA (Bellman-Ford variant) — first iteration only
+// Main algorithm
 // ---------------------------------------------------------------------------
 
 ///|
-/// SPFA to find the shortest (min-cost) path from `src` to all vertices.
-///
-/// Returns:
-/// - `Some(())` if no negative cycle exists (distances filled in `dist`).
-/// - `None` if a negative-cost cycle is detected in the residual graph.
-///
-/// Fills `dist` and `prev_edge`. Uses `Int64` for distances to prevent
-/// overflow when accumulating costs.
-///
-/// **Negative cycle detection**: tracks the number of times each vertex is
-/// enqueued. If any vertex is enqueued more than `n` times, a negative cycle
-/// exists (since the shortest path in a graph with `n` vertices has at most
-/// `n-1` edges).
-fn spfa_init(
-  g : MCMFGraph,
-  src : Int,
-  dist : Array[Int64],
-  prev_edge : Array[Int],
-) -> Unit? {
-  let n = g.n
-  for i = 0; i < n; i = i + 1 {
-    dist[i] = 9223372036854775807L // Int64::MAX as infinity
-    prev_edge[i] = -1
-  }
-  let in_queue = Array::make(n, false)
-  let enqueue_count = Array::make(n, 0)
-  dist[src] = 0L
-  let queue : Array[Int] = [src]
-  let mut head = 0
-  in_queue[src] = true
-  enqueue_count[src] = 1
-  while head < queue.length() {
-    let u = queue[head]
-    head = head + 1
-    in_queue[u] = false
-    let mut e_idx = g.head[u]
-    while e_idx != -1 {
-      let e = g.edges[e_idx]
-      if e.cap > 0L && dist[u] + e.cost.to_int64() < dist[e.to] {
-        dist[e.to] = dist[u] + e.cost.to_int64()
-        prev_edge[e.to] = e_idx
-        if !in_queue[e.to] {
-          enqueue_count[e.to] = enqueue_count[e.to] + 1
-          if enqueue_count[e.to] > n {
-            return None // Negative cycle detected
-          }
-          in_queue[e.to] = true
-          queue.push(e.to)
-        }
-      }
-      e_idx = e.next
-    }
-  }
-  Some(())
-}
-
-// ---------------------------------------------------------------------------
-// Dijkstra with reduced costs — subsequent iterations
-// ---------------------------------------------------------------------------
-
-///|
-/// Dijkstra using reduced costs `c'(u,v) = cost + h[u] - h[v]`.
-///
-/// All reduced costs are guaranteed non-negative (by the potential invariant),
-/// so Dijkstra produces correct shortest paths. After the call, the caller
-/// must update potentials: `h[v] += dist[v]` for all reachable v.
-///
-/// Fills `dist` (using reduced costs) and `prev_edge`. The `h` array holds
-/// the current potentials.
-fn dijkstra(
-  g : MCMFGraph,
-  src : Int,
-  sink : Int,
-  h : Array[Int64],
-  dist : Array[Int64],
-  prev_edge : Array[Int],
-) -> Bool {
-  let n = g.n
-  let inf = 9223372036854775807L
-  for i = 0; i < n; i = i + 1 {
-    dist[i] = inf
-    prev_edge[i] = -1
-  }
-  dist[src] = 0L
-  let heap = new_heap(g.edge_count + 2)
-  heap_push(heap, 0L, src)
-  while true {
-    match heap_pop(heap, dist) {
-      None => break
-      Some((d, u)) => {
-        if d > dist[u] {
-          continue
-        }
-        if u == sink {
-          // We could break early, but we need full dist for potential update.
-          // Continue to exhaust the heap for all reachable vertices.
-        }
-        let mut e_idx = g.head[u]
-        while e_idx != -1 {
-          let e = g.edges[e_idx]
-          if e.cap > 0L {
-            // Reduced cost: c'(u,v) = cost + h[u] - h[v]
-            let rc = e.cost.to_int64() + h[u] - h[e.to]
-            let nd = dist[u] + rc
-            if nd < dist[e.to] {
-              dist[e.to] = nd
-              prev_edge[e.to] = e_idx
-              heap_push(heap, nd, e.to)
-            }
-          }
-          e_idx = e.next
-        }
-      }
-    }
-  }
-  dist[sink] < inf
-}
-
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-///|
-/// Compute the maximum flow and its minimum cost.
+/// Compute the minimum cost flow.
 ///
 /// # Parameters
-/// - `n`: number of vertices, indexed `0 .. n - 1`.
-/// - `src`: source vertex.
-/// - `sink`: sink vertex.
-/// - `edges`: list of `(from, to, capacity, cost)` tuples. Each edge is
-///   directed. For undirected flow, add edges in both directions.
+/// - `n`: number of nodes (0-indexed: 0 .. n-1).
+/// - `arcs_u`: from-node of each arc.
+/// - `arcs_v`: to-node of each arc.
+/// - `arcs_cost`: per-unit cost of each arc.
+/// - `arcs_cap`: capacity of each arc (upper bound).
+/// - `supply`: supply/demand for each node. Positive = source, negative = sink.
+///   Must sum to 0 for feasibility.
 ///
 /// # Returns
-/// `Some((max_flow, min_cost))` as `Int64` values. Returns `None` for
-/// invalid inputs (n <= 0, out-of-bounds vertices, src == sink) or when
-/// a negative-cost cycle is detected in the residual graph.
-///
-/// **Algorithm**: Successive Shortest Paths with Johnson's Potentials.
-/// The first iteration uses SPFA (Bellman-Ford) to compute initial
-/// potentials and detect negative cycles. Subsequent iterations use
-/// Dijkstra with reduced costs, giving O(E log V) per iteration instead
-/// of O(V · E).
-///
-/// **Overflow**: both `max_flow` and `min_cost` are accumulated as `Int64`.
-/// The product `bottleneck * cost` is also computed in `Int64`, preventing
-/// overflow for all practical 32-bit inputs.
-pub fn min_cost_max_flow(
+/// `Some(MCFResult)` with total cost and per-arc flows, or `None` if
+/// infeasible (supply imbalance or no feasible flow exists).
+pub fn min_cost_flow(
   n : Int,
-  src : Int,
-  sink : Int,
-  edges : Array[(Int, Int, Int, Int)],
-) -> (Int64, Int64)? {
-  if n <= 0 || src < 0 || src >= n || sink < 0 || sink >= n || src == sink {
+  arcs_u : FixedArray[Int],
+  arcs_v : FixedArray[Int],
+  arcs_cost : FixedArray[Int],
+  arcs_cap : FixedArray[Int],
+  supply : FixedArray[Int],
+) -> MCFResult? {
+  if n <= 0 {
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
+  }
+  // Check supply balance.
+  let mut total_supply = 0L
+  for i = 0; i < n; i = i + 1 {
+    total_supply = total_supply + supply[i].to_int64()
+  }
+  if total_supply != 0L {
     return None
   }
-  let g = build_graph(n, edges)
-  let dist = Array::make(n, 0L)
-  let prev_edge = Array::make(n, 0)
-  // Potentials: h[v] is the shortest distance from src to v in the
-  // original costs. After each Dijkstra, h[v] += dist[v] (reduced-cost
-  // distances), maintaining the invariant that all reduced costs are
-  // non-negative.
-  let h = Array::make(n, 0L)
-  let mut total_flow = 0L
-  let mut total_cost = 0L
-  let mut first_iter = true
-  let mut found = false
-  while true {
-    if first_iter {
-      // First iteration: SPFA to handle negative costs and detect cycles.
-      match spfa_init(g, src, dist, prev_edge) {
-        None => return None // Negative cycle detected
-        Some(_) => {
-          found = dist[sink] < 9223372036854775807L
-          // Copy distances to potentials.
-          for i = 0; i < n; i = i + 1 {
-            if dist[i] < 9223372036854775807L {
-              h[i] = dist[i]
-            } else {
-              // Unreachable vertices: keep potential at 0 (or any value,
-              // since they won't be on any augmenting path).
-              h[i] = 0L
+  let m = arcs_u.length()
+  if m == 0 {
+    // No arcs: feasible only if all supplies are zero.
+    for i = 0; i < n; i = i + 1 {
+      if supply[i] != 0 {
+        return None
+      }
+    }
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
+  }
+  // Build residual graph.
+  // Each arc i generates:
+  //   forward edge 2*i:   u → v, cost = c, cap = cap
+  //   reverse edge 2*i+1: v → u, cost = -c, cap = 0
+  // Paired edges are accessed via XOR: e ^ 1.
+  let num_edges = 2 * m
+  let edge_to = FixedArray::make(num_edges, 0)
+  let edge_cost = FixedArray::make(num_edges, 0L)
+  let edge_cap = FixedArray::make(num_edges, 0L)
+  let edge_flow = FixedArray::make(num_edges, 0L)
+  // Adjacency list: adj[u] = list of edge indices leaving u.
+  let adj : Array[Array[Int]] = Array::makei(n, fn(_i) { [] })
+  for i = 0; i < m; i = i + 1 {
+    let u = arcs_u[i]
+    let v = arcs_v[i]
+    let c = arcs_cost[i].to_int64()
+    let cap = arcs_cap[i].to_int64()
+    let fwd = 2 * i
+    let rev = 2 * i + 1
+    edge_to[fwd] = v
+    edge_cost[fwd] = c
+    edge_cap[fwd] = cap
+    edge_to[rev] = u
+    edge_cost[rev] = -c
+    edge_cap[rev] = 0L
+    adj[u].push(fwd)
+    adj[v].push(rev)
+  }
+  // Excess: positive = supply to push out, negative = demand to fill.
+  let excess = FixedArray::makei(n, fn(i) { supply[i].to_int64() })
+  // SSP main loop.
+  let inf = 9223372036854775807L
+  let max_iter = n * m + 1000
+  let mut iter = 0
+  while iter < max_iter {
+    iter = iter + 1
+    // Find a source node with positive excess.
+    let mut src = -1
+    for i = 0; i < n; i = i + 1 {
+      if excess[i] > 0L {
+        src = i
+        break
+      }
+    }
+    if src < 0 {
+      break // All excesses satisfied — optimal.
+    }
+    // Run SPFA from src to find shortest paths in the residual graph.
+    let dist = FixedArray::make(n, inf)
+    let in_queue = FixedArray::make(n, false)
+    let cnt = FixedArray::make(n, 0)
+    let prev_edge = FixedArray::make(n, -1)
+    let queue : Array[Int] = [src]
+    dist[src] = 0L
+    in_queue[src] = true
+    cnt[src] = 1
+    let mut negative_cycle = false
+    while queue.length() > 0 {
+      let u = queue[0]
+      ignore(queue.remove(0))
+      in_queue[u] = false
+      let edges = adj[u]
+      for eidx = 0; eidx < edges.length(); eidx = eidx + 1 {
+        let e = edges[eidx]
+        let residual = edge_cap[e] - edge_flow[e]
+        if residual <= 0L {
+          continue
+        }
+        let v = edge_to[e]
+        let nd = dist[u] + edge_cost[e]
+        if nd < dist[v] {
+          dist[v] = nd
+          prev_edge[v] = e
+          if !in_queue[v] {
+            cnt[v] = cnt[v] + 1
+            if cnt[v] > n {
+              negative_cycle = true
+              break
             }
-          }
-          first_iter = false
-        }
-      }
-    } else {
-      // Subsequent iterations: Dijkstra with reduced costs.
-      found = dijkstra(g, src, sink, h, dist, prev_edge)
-      if found {
-        // Update potentials: h[v] += dist[v] for reachable vertices.
-        for i = 0; i < n; i = i + 1 {
-          if dist[i] < 9223372036854775807L {
-            h[i] = h[i] + dist[i]
+            in_queue[v] = true
+            queue.push(v)
           }
         }
       }
+      if negative_cycle {
+        break
+      }
     }
-    if !found {
-      break // No augmenting path
+    if negative_cycle {
+      return None // Negative cycle detected — infeasible.
     }
-    // Find bottleneck along the augmenting path.
-    let mut bottleneck = 9223372036854775807L
+    // Find a sink node with negative excess reachable from src.
+    let mut sink = -1
+    for i = 0; i < n; i = i + 1 {
+      if excess[i] < 0L && dist[i] < inf {
+        sink = i
+        break
+      }
+    }
+    if sink < 0 {
+      return None // No reachable sink — infeasible.
+    }
+    // Find bottleneck: min of source excess, -sink excess, min residual
+    // capacity along the path from src to sink.
+    let mut bottleneck = excess[src]
+    if -excess[sink] < bottleneck {
+      bottleneck = -excess[sink]
+    }
+    // Walk the path from sink back to src via prev_edge.
     let mut v = sink
     while v != src {
-      let e_idx = prev_edge[v]
-      if g.edges[e_idx].cap < bottleneck {
-        bottleneck = g.edges[e_idx].cap
+      let e = prev_edge[v]
+      if e < 0 {
+        return None // Path broken — should not happen.
       }
-      v = g.edges[e_idx ^ 1].to // partner edge's `to` = the `from` vertex
+      let residual = edge_cap[e] - edge_flow[e]
+      if residual < bottleneck {
+        bottleneck = residual
+      }
+      // The edge e goes from u to v. Its reverse edge e^1 goes from v to u.
+      // So edge_to[e ^ 1] = u, the previous node in the path.
+      v = edge_to[e ^ 1]
     }
-    // Augment: update residual capacities and accumulate cost.
-    // Use the **original** cost (not reduced cost) for total_cost.
+    if bottleneck <= 0L {
+      return None // Degenerate — should not happen.
+    }
+    // Augment flow along the path.
     v = sink
     while v != src {
-      let e_idx = prev_edge[v]
-      g.edges[e_idx].cap = g.edges[e_idx].cap - bottleneck
-      g.edges[e_idx ^ 1].cap = g.edges[e_idx ^ 1].cap + bottleneck
-      // Int64 accumulation: bottleneck * cost cannot overflow for
-      // 32-bit inputs (max product ~ 2^31 * 2^31 = 2^62 < 2^63).
-      total_cost = total_cost + bottleneck * g.edges[e_idx].cost.to_int64()
-      v = g.edges[e_idx ^ 1].to
+      let e = prev_edge[v]
+      edge_flow[e] = edge_flow[e] + bottleneck
+      edge_flow[e ^ 1] = edge_flow[e ^ 1] - bottleneck
+      v = edge_to[e ^ 1]
     }
-    total_flow = total_flow + bottleneck
+    // Update excesses.
+    excess[src] = excess[src] - bottleneck
+    excess[sink] = excess[sink] + bottleneck
   }
-  Some((total_flow, total_cost))
+  // Check feasibility: all excesses must be zero.
+  for i = 0; i < n; i = i + 1 {
+    if excess[i] != 0L {
+      return None
+    }
+  }
+  // Extract real arc flows (forward edges only) and compute total cost.
+  let real_flows = FixedArray::makei(m, fn(i) { edge_flow[2 * i] })
+  let mut total_cost = 0L
+  for i = 0; i < m; i = i + 1 {
+    total_cost = total_cost + real_flows[i] * arcs_cost[i].to_int64()
+  }
+  Some(MCFResult::{ total_cost, flows: real_flows })
 }
 
 // ---------------------------------------------------------------------------
@@ -428,137 +260,314 @@ pub fn min_cost_max_flow(
 // ---------------------------------------------------------------------------
 
 ///|
-test "mcmf: simple chain" {
-  // 0 ->(10, 1) 1 ->(10, 2) 2
-  // Max flow = 10, min cost = 10 * (1 + 2) = 30
-  let edges = [(0, 1, 10, 1), (1, 2, 10, 2)]
-  let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
-  assert_eq(flow, 10L)
-  assert_eq(cost, 30L)
+test "min_cost_flow: simple 2-node flow" {
+  // Node 0: supply 5, Node 1: demand 5
+  // Arc 0→1: cost 3, cap 10
+  let result = min_cost_flow(
+    2,
+    FixedArray::make(1, 0),
+    FixedArray::make(1, 1),
+    FixedArray::make(1, 3),
+    FixedArray::make(1, 10),
+    FixedArray::makei(2, fn(i) { if i == 0 { 5 } else { -5 } }),
+  )
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => {
+      assert_eq(r.total_cost, 15L) // 5 * 3
+      assert_eq(r.flows[0], 5L)
+    }
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: two parallel paths pick cheaper" {
-  // 0 -> 2 directly (cap 5, cost 10)
-  // 0 -> 1 -> 2 (cap 5, cost 1 + 1 = 2)
-  // Max flow = 10 (5 + 5), min cost = 5*10 + 5*2 = 60
-  let edges = [(0, 2, 5, 10), (0, 1, 5, 1), (1, 2, 5, 1)]
-  let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
-  assert_eq(flow, 10L)
-  assert_eq(cost, 60L)
+test "min_cost_flow: two paths" {
+  // Node 0: supply 10, Node 2: demand 10
+  // Arc 0: 0→1, cost 1, cap 10
+  // Arc 1: 1→2, cost 1, cap 10
+  // Arc 2: 0→2, cost 5, cap 10
+  // Optimal: send all through 0→1→2 (cost 2 per unit = 20 total)
+  let u = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 0
+      1 => 1
+      _ => 0
+    }
+  })
+  let v = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 1
+      1 => 2
+      _ => 2
+    }
+  })
+  let c = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 1
+      1 => 1
+      _ => 5
+    }
+  })
+  let cap = FixedArray::makei(3, fn(_i) { 10 })
+  let sup = FixedArray::makei(3, fn(i) {
+    if i == 0 {
+      10
+    } else if i == 2 {
+      -10
+    } else {
+      0
+    }
+  })
+  let result = min_cost_flow(3, u, v, c, cap, sup)
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => {
+      assert_eq(r.total_cost, 20L)
+      assert_eq(r.flows[0], 10L)
+      assert_eq(r.flows[1], 10L)
+      assert_eq(r.flows[2], 0L)
+    }
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: cheaper path has less capacity" {
-  // Path A: 0 -> 2, cap 3, cost 1
-  // Path B: 0 -> 1 -> 2, cap 10, cost 5
-  // Max flow = 13, min cost = 3*1 + 10*5 = 53
-  let edges = [(0, 2, 3, 1), (0, 1, 10, 1), (1, 2, 10, 4)]
-  let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
-  assert_eq(flow, 13L)
-  assert_eq(cost, 53L)
+test "min_cost_flow: capacity constrained" {
+  // Node 0: supply 10, Node 2: demand 10
+  // Arc 0: 0→1, cost 1, cap 4
+  // Arc 1: 1→2, cost 1, cap 4
+  // Arc 2: 0→2, cost 5, cap 10
+  // Optimal: 4 through 0→1→2 (cost 2*4=8), 6 through 0→2 (cost 5*6=30) = 38
+  let u = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 0
+      1 => 1
+      _ => 0
+    }
+  })
+  let v = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 1
+      1 => 2
+      _ => 2
+    }
+  })
+  let c = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 1
+      1 => 1
+      _ => 5
+    }
+  })
+  let cap = FixedArray::makei(3, fn(i) {
+    match i {
+      0 => 4
+      1 => 4
+      _ => 10
+    }
+  })
+  let sup = FixedArray::makei(3, fn(i) {
+    if i == 0 {
+      10
+    } else if i == 2 {
+      -10
+    } else {
+      0
+    }
+  })
+  let result = min_cost_flow(3, u, v, c, cap, sup)
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => {
+      assert_eq(r.total_cost, 38L)
+      assert_eq(r.flows[0], 4L)
+      assert_eq(r.flows[1], 4L)
+      assert_eq(r.flows[2], 6L)
+    }
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: no path" {
-  let edges = [(0, 1, 10, 1)]
-  let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
-  assert_eq(flow, 0L)
-  assert_eq(cost, 0L)
+test "min_cost_flow: infeasible supply" {
+  let result = min_cost_flow(
+    2,
+    FixedArray::make(1, 0),
+    FixedArray::make(1, 1),
+    FixedArray::make(1, 1),
+    FixedArray::make(1, 10),
+    FixedArray::makei(2, fn(i) { if i == 0 { 5 } else { 0 } }),
+  )
+  assert_true(result is None)
 }
 
 ///|
-test "mcmf: src equals sink returns None" {
-  let edges = [(0, 1, 10, 1)]
-  assert_true(min_cost_max_flow(3, 0, 0, edges) is None)
+test "min_cost_flow: single node no arcs" {
+  let result = min_cost_flow(
+    1,
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(1, 0),
+  )
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => assert_eq(r.total_cost, 0L)
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: invalid inputs return None" {
-  let edges = [(0, 1, 10, 1)]
-  assert_true(min_cost_max_flow(0, 0, 1, edges) is None)
-  assert_true(min_cost_max_flow(3, -1, 1, edges) is None)
-  assert_true(min_cost_max_flow(3, 0, 5, edges) is None)
+test "min_cost_flow: empty graph" {
+  let result = min_cost_flow(
+    0,
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+    FixedArray::make(0, 0),
+  )
+  assert_true(result is Some(_))
 }
 
 ///|
-test "mcmf: classic transport problem" {
-  // Source 0 supplies flow to sink 3 via two warehouses (1, 2).
-  // 0 -> 1 (cap 8, cost 2)
-  // 0 -> 2 (cap 6, cost 5)
-  // 1 -> 3 (cap 7, cost 3)
-  // 2 -> 3 (cap 10, cost 1)
-  // Max flow = 13: 7 via 0->1->3 (bottleneck 1->3 cap 7), 6 via 0->2->3
-  // (bottleneck 0->2 cap 6). Total source outflow = 8+6=14 but 1->3 caps
-  // path A at 7, so only 7 flows through 1. The remaining 6 flows through 2.
-  // Min cost = 7*(2+3) + 6*(5+1) = 35 + 36 = 71.
-  let edges = [(0, 1, 8, 2), (0, 2, 6, 5), (1, 3, 7, 3), (2, 3, 10, 1)]
-  let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
-  assert_eq(flow, 13L)
-  assert_eq(cost, 71L)
+test "min_cost_flow: negative cost arc" {
+  // Node 0: supply 3, Node 2: demand 3
+  // Arc 0: 0→1, cost -2, cap 5  (negative cost is fine)
+  // Arc 1: 1→2, cost 1, cap 5
+  // Optimal: send 3 through 0→1→2 (cost -2+1 = -1 per unit = -3 total)
+  let u = FixedArray::makei(2, fn(i) {
+    match i {
+      0 => 0
+      _ => 1
+    }
+  })
+  let v = FixedArray::makei(2, fn(i) {
+    match i {
+      0 => 1
+      _ => 2
+    }
+  })
+  let c = FixedArray::makei(2, fn(i) {
+    match i {
+      0 => -2
+      _ => 1
+    }
+  })
+  let cap = FixedArray::makei(2, fn(_i) { 5 })
+  let sup = FixedArray::makei(3, fn(i) {
+    if i == 0 {
+      3
+    } else if i == 2 {
+      -3
+    } else {
+      0
+    }
+  })
+  let result = min_cost_flow(3, u, v, c, cap, sup)
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => {
+      assert_eq(r.total_cost, -3L)
+      assert_eq(r.flows[0], 3L)
+      assert_eq(r.flows[1], 3L)
+    }
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: reverse edge enables rerouting" {
-  // 0 -> 1 (cap 5, cost 1)
-  // 0 -> 2 (cap 5, cost 1)
-  // 1 -> 3 (cap 5, cost 1)
-  // 2 -> 3 (cap 5, cost 1)
-  // 1 -> 2 (cap 5, cost 0)  // cross edge
-  // Max flow = 10, min cost = 10 * 2 = 20 (all paths cost 2)
-  let edges = [
-    (0, 1, 5, 1),
-    (0, 2, 5, 1),
-    (1, 3, 5, 1),
-    (2, 3, 5, 1),
-    (1, 2, 5, 0),
-  ]
-  let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
-  assert_eq(flow, 10L)
-  assert_eq(cost, 20L)
+test "min_cost_flow: multiple sources and sinks" {
+  // Nodes: 0 (supply 5), 1 (supply 3), 2 (demand 4), 3 (demand 4)
+  // Arc 0: 0→2, cost 1, cap 10
+  // Arc 1: 0→3, cost 3, cap 10
+  // Arc 2: 1→2, cost 2, cap 10
+  // Arc 3: 1→3, cost 1, cap 10
+  // Optimal:
+  //   0→2: 5 (cost 5), 1→3: 3 (cost 3), need 1 more to node 2
+  //   1→2: 1 (cost 2) — but 1 has only 3 supply, all used on 1→3
+  //   Actually: send 4 to node 2 and 4 to node 3
+  //   0→2: 4 (cost 4), 0→3: 1 (cost 3)
+  //   1→3: 3 (cost 3)
+  //   Total: 4 + 3 + 3 = 10
+  //   Or: 0→2: 5, 1→2: 0, 0→3: 0, 1→3: 3, need 1 more for node 2
+  //   → 1→2: 1 (cost 2), 1→3: 2 (cost 2) → 5+2+2 = 9... wait
+  //   Actually optimal: 0→2:5 (5), 1→2:0, 0→3:0, 1→3:3 (3), need 1 more for node 2
+  //   1→2:1 (2) → but 1 has supply 3, 1+2=3 ✓
+  //   → total: 5 + 2 + 3 = 10... no
+  //   Let me recompute: 0→2 cost1 * 5 = 5, 1→3 cost1 * 3 = 3, 1→2 cost2 * 1 = 2 → no wait 1→2 has cost 2
+  //   Actually: 1→3 cost 1 * 3 = 3, 1→2 cost 2 * 0 = 0, need 4 for node 2
+  //   0→2 cost 1 * 4 = 4, 0→3 cost 3 * 1 = 3, total = 4 + 3 + 3 = 10
+  //   Or: 0→2 cost 1 * 5 = 5, 0→3 cost 3 * 0 = 0, 1→3 cost 1 * 3 = 3, 1→2 cost 2 * 1 = 2
+  //   But node 2 gets 5+1=6 > 4, too much.
+  //   So: 0→2:4, 0→3:1, 1→2:0, 1→3:3 → 4+3+3=10
+  //   Or: 0→2:5, 0→3:0, 1→2:0, 1→3:3 → node 2 gets 5 (too much, demand 4)
+  //   So must be: 0→2:4, 0→3:1, 1→3:3, 1→2:0 → total 4+3+0+3=10
+  //   Or: 0→2:4, 0→3:1, 1→2:0, 1→3:3 → cost = 4*1 + 1*3 + 0*2 + 3*1 = 10
+  //   Another option: 0→2:4, 0→3:1, 1→2:0, 1→3:3 → 10
+  //   Or: 0→2:5, 1→2:-1 (reverse)? No, that doesn't make sense.
+  //   OK the optimal is 10.
+  let u = FixedArray::makei(4, fn(i) {
+    match i {
+      0 => 0
+      1 => 0
+      2 => 1
+      _ => 1
+    }
+  })
+  let v = FixedArray::makei(4, fn(i) {
+    match i {
+      0 => 2
+      1 => 3
+      2 => 2
+      _ => 3
+    }
+  })
+  let c = FixedArray::makei(4, fn(i) {
+    match i {
+      0 => 1
+      1 => 3
+      2 => 2
+      _ => 1
+    }
+  })
+  let cap = FixedArray::makei(4, fn(_i) { 10 })
+  let sup = FixedArray::makei(4, fn(i) {
+    match i {
+      0 => 5
+      1 => 3
+      2 => -4
+      _ => -4
+    }
+  })
+  let result = min_cost_flow(4, u, v, c, cap, sup)
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => assert_eq(r.total_cost, 10L)
+    None => assert_true(false)
+  }
 }
 
 ///|
-test "mcmf: unit capacities network" {
-  // Diamond: 0 -> 1 (1, 1), 0 -> 2 (1, 1), 1 -> 3 (1, 1), 2 -> 3 (1, 1)
-  // Max flow = 2, cost = 4
-  let edges = [(0, 1, 1, 1), (0, 2, 1, 1), (1, 3, 1, 1), (2, 3, 1, 1)]
-  let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
-  assert_eq(flow, 2L)
-  assert_eq(cost, 4L)
-}
-
-///|
-test "mcmf: negative cost edges" {
-  // Edge with negative cost: 0 -> 1 (cap 5, cost -3)
-  // The algorithm must handle this via initial SPFA.
-  let edges = [(0, 1, 5, -3), (1, 2, 5, 2)]
-  let (flow, cost) = min_cost_max_flow(3, 0, 2, edges).unwrap()
-  assert_eq(flow, 5L)
-  assert_eq(cost, -5L) // 5 * (-3 + 2) = 5 * (-1) = -5
-}
-
-///|
-test "mcmf: stress test against brute force" {
-  // Build a moderate network and verify against a hand-computed MCMF.
-  // Graph: 0 -> 1 (10, 3), 0 -> 2 (8, 5), 1 -> 2 (4, -1), 1 -> 3 (8, 2),
-  //        2 -> 3 (10, 1)
-  // Has negative cost edge (1->2 cost -1).
-  let edges = [
-    (0, 1, 10, 3),
-    (0, 2, 8, 5),
-    (1, 2, 4, -1),
-    (1, 3, 8, 2),
-    (2, 3, 10, 1),
-  ]
-  let (flow, cost) = min_cost_max_flow(4, 0, 3, edges).unwrap()
-  // Max flow = 18: send 10 through 0->1 and 8 through 0->2.
-  // At node 1: x1=10 splits into x3=2 (1->2) and x4=8 (1->3).
-  // At node 2: x2=8 (0->2) + x3=2 (1->2) = 10 = x5 (2->3).
-  // Flow = x4 + x5 = 8 + 10 = 18.
-  // Min cost for flow 18: cost = 3*10 + 5*8 + (-1)*2 + 2*8 + 1*10 = 94.
-  // Maximising x3 (the negative-cost edge) minimises total cost.
-  // x3 ≤ 4 (cap), x3 ≤ 10 - x2 = 2 (node 2 capacity), so x3 = 2.
-  assert_eq(flow, 18L)
-  assert_eq(cost, 94L)
+test "min_cost_flow: zero supply feasible" {
+  // All supplies zero — trivially feasible with zero flow.
+  let result = min_cost_flow(
+    3,
+    FixedArray::makei(2, fn(i) { i }),
+    FixedArray::makei(2, fn(i) { i + 1 }),
+    FixedArray::makei(2, fn(_i) { 1 }),
+    FixedArray::makei(2, fn(_i) { 10 }),
+    FixedArray::make(3, 0),
+  )
+  assert_true(result is Some(_))
+  match result {
+    Some(r) => {
+      assert_eq(r.total_cost, 0L)
+      assert_eq(r.flows[0], 0L)
+      assert_eq(r.flows[1], 0L)
+    }
+    None => assert_true(false)
+  }
 }

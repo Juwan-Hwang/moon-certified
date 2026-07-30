@@ -55,11 +55,30 @@ pub fn next(mt : MT19937) -> UInt {
 
 ///|
 /// Generate a random Int in [0, n).
+///
+/// Uses **rejection sampling** on a 31-bit range to eliminate the modulo
+/// bias present in `v % n`. The top bit of the 32-bit output is masked
+/// to produce a non-negative Int in [0, 2³¹).
 pub fn next_int(mt : MT19937, n : Int) -> Int {
   if n <= 0 {
     return 0
   }
-  (next(mt) >> 1).reinterpret_as_int() % n
+  if n == 1 {
+    return 0
+  }
+  // Rejection sampling: threshold = largest multiple of n ≤ 2³¹.
+  let range = 2147483648L // 2³¹
+  let n64 = n.to_int64()
+  let threshold = range - (range % n64)
+  let mut ok = false
+  let mut r = 0
+  while !ok {
+    r = (next(mt) >> 1).reinterpret_as_int()
+    if r.to_int64() < threshold {
+      ok = true
+    }
+  }
+  r % n
 }
 
 ///|

@@ -36,6 +36,17 @@
 /// The S-box computation is verified against NIST test vectors and the
 /// precomputed FIPS 197 table.
 ///
+/// **Timing measurement caveat**: While the implementation uses only
+/// branch-free, data-independent operations (no table lookups, no
+/// data-dependent branches), formal timing verification requires
+/// hardware-level measurement (e.g., `perf stat` cycle counting or
+/// oscilloscope-based power analysis) that is not possible in the MoonBit
+/// Wasm/JS target. The constant-time property is ensured by construction
+/// (all operations are bitwise XOR/AND/shift on fixed-size types), not by
+/// empirical timing measurement. On platforms with shared caches (e.g.,
+/// browser JS engines), JIT compilation may introduce subtle timing
+/// variations beyond the algorithm's control.
+///
 /// ## References
 ///
 /// - FIPS 197: Advanced Encryption Standard (NIST, 2001)
@@ -967,7 +978,7 @@ test "aes: FIPS 197 Appendix B — AES-128 ECB" {
   assert_true(k is Some(_))
   let ct = match encrypt_block(k.unwrap(), pt) {
     Some(c) => c
-    None => abort("encrypt failed")
+    None => fail("encrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
@@ -975,7 +986,7 @@ test "aes: FIPS 197 Appendix B — AES-128 ECB" {
   // Decrypt back.
   let dec = match decrypt_block(k.unwrap(), ct) {
     Some(d) => d
-    None => abort("decrypt failed")
+    None => fail("decrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])
@@ -1003,14 +1014,14 @@ test "aes: NIST SP 800-38A — AES-192 ECB" {
   let k = new_key(key)
   let ct = match encrypt_block(k.unwrap(), pt) {
     Some(c) => c
-    None => abort("encrypt failed")
+    None => fail("encrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
   }
   let dec = match decrypt_block(k.unwrap(), ct) {
     Some(d) => d
-    None => abort("decrypt failed")
+    None => fail("decrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])
@@ -1039,14 +1050,14 @@ test "aes: FIPS 197 Appendix C.3 — AES-256 ECB" {
   let k = new_key(key)
   let ct = match encrypt_block(k.unwrap(), pt) {
     Some(c) => c
-    None => abort("encrypt failed")
+    None => fail("encrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(ct[i], expected[i])
   }
   let dec = match decrypt_block(k.unwrap(), ct) {
     Some(d) => d
-    None => abort("decrypt failed")
+    None => fail("decrypt failed")
   }
   for i = 0; i < 16; i = i + 1 {
     assert_eq(dec[i], pt[i])

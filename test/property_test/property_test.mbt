@@ -353,7 +353,7 @@ test "property_test: failing property returns counterexample" {
   // The counterexample should be <= 0
   match result.counterexample {
     Some(v) => assert_true(v <= 0)
-    None => abort("should have a counterexample")
+    None => fail("should have a counterexample")
   }
 }
 

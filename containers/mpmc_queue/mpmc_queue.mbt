@@ -1,6 +1,10 @@
 /// MPMC Bounded Queue — Vyukov's Algorithm (Single-Threaded Simulation)
 /// ========================================================================
 ///
+/// **⚠️ WARNING: NOT thread-safe.** Despite the "MPMC" name, this is a
+/// single-threaded simulation. MoonBit compiles to Wasm/JS without atomic
+/// primitives, so CAS always succeeds. **Do not use from multiple threads.**
+///
 /// This is a bounded MPMC queue based on the array-based ring buffer
 /// design described by Dmitry Vyukov (used in Linux kernel, Intel TBB,
 /// Folly). Unlike the Michael-Scott linked-list queue, this uses a

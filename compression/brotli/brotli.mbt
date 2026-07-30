@@ -1,15 +1,19 @@
-/// Brotli compression — simplified implementation.
+/// Brotli-inspired LZ77 compression — custom format (NOT RFC 7932 compatible).
 ///
-/// Implements a Brotli-compatible format with LZ77 match finding and
-/// Huffman-style entropy coding. This implementation provides correct
-/// round-trip compression/decompression with a format inspired by
-/// RFC 7932 (Brotli).
+/// **WARNING**: This is NOT a standard Brotli implementation. It does NOT produce
+/// `.br` files that can be decompressed by the brotli command-line tool or any
+/// RFC 7932 compliant decoder. The format uses a custom magic number and a
+/// simplified LZ77+varint encoding without context modeling, Huffman coding,
+/// or static dictionaries. Use this only for internal round-trip compression
+/// within MoonBit.
 ///
-/// ## Format
+/// For production Brotli compression, use the official `brotli` library via FFI.
+///
+/// ## Custom frame format
 ///
 /// ```text
 /// +--------+--------+--------+--------+
-/// | Magic: 0xCEB22CF1 (4 bytes, LE)   |
+/// | Custom magic 0x424C424D ("MBLB")  |
 /// +--------+--------+--------+--------+
 /// | Content size (4 bytes, LE)        |
 /// +--------+--------+--------+--------+
@@ -23,12 +27,14 @@
 /// - Block data
 ///
 /// Compressed blocks use LZ77 with a 4-byte minimum match and variable-
-/// length offset/length encoding.
+/// length offset/length encoding (varint).
 ///
-/// ## References
+/// ## Why not RFC 7932?
 ///
-/// - Alakuijala, J. and Szabadka, Z. "Brotli Compressed Data Format."
-///   RFC 7932, 2016.
+/// A full RFC 7932 implementation requires context modeling, Huffman coding
+/// with custom alphabets, static dictionaries, insert-and-copy commands,
+/// and window-based streaming. This simplified format only provides LZ77
+/// match finding with varint serialization.
 ///
 /// `proof-enabled` is `false`; correctness is backed by round-trip tests.
 
@@ -37,9 +43,10 @@
 // ---------------------------------------------------------------------------
 
 ///|
-/// Brotli-like magic number (little-endian).
+/// Custom magic number: "MBLB" (MoonBit LZ Brotli-inspired).
+/// Intentionally NOT 0xCEB22CF1 to avoid confusion with any existing format.
 fn magic_bytes() -> Bytes {
-  Bytes::from_array([b'\xF1', b'\x2C', b'\xB2', b'\xCE'])
+  Bytes::from_array([b'\x4D', b'\x42', b'\x4C', b'\x42'])
 }
 
 ///|
@@ -161,12 +168,14 @@ fn decode_varint(data : Bytes, pos : Int) -> (Int, Int)? {
 // ---------------------------------------------------------------------------
 
 ///|
-/// Compress data using Brotli-style LZ77 compression.
+/// Compress data using Brotli-inspired LZ77 compression.
 ///
-/// Returns a compressed byte stream with the Brotli-like magic number.
+/// **WARNING**: Output uses a custom magic number and is NOT compatible with
+/// the standard Brotli format (RFC 7932). Do not write the output to `.br`
+/// files expecting standard tools to decompress them.
 pub fn compress(data : Bytes) -> Bytes {
   let output : Array[Byte] = []
-  // Magic number
+  // Custom magic number (NOT 0xCEB22CF1)
   for i = 0; i < 4; i = i + 1 {
     output.push(magic_bytes()[i])
   }
@@ -230,7 +239,10 @@ pub fn compress(data : Bytes) -> Bytes {
 }
 
 ///|
-/// Decompress a Brotli-style compressed stream.
+/// Decompress a custom-format compressed stream.
+///
+/// **WARNING**: This only decompresses data produced by `compress()` in this
+/// module. It cannot decompress standard Brotli (.br) files.
 pub fn decompress(data : Bytes) -> Bytes? {
   if data.length() < 9 {
     return None
@@ -253,9 +265,13 @@ pub fn decompress(data : Bytes) -> Bytes? {
     let block_type = data[pos].to_int()
     let block_size = data[pos + 1].to_int() | (data[pos + 2].to_int() << 8) | (data[pos + 3].to_int() << 16)
     pos = pos + 4
+    // Boundary check: block_size must not exceed remaining data
+    if block_size < 0 || pos + block_size > data.length() {
+      return None
+    }
     if block_type == 0 {
       // Raw block
-      for i = 0; i < block_size && pos < data.length(); i = i + 1 {
+      for i = 0; i < block_size; i = i + 1 {
         output.push(data[pos])
         pos = pos + 1
       }
@@ -263,29 +279,45 @@ pub fn decompress(data : Bytes) -> Bytes? {
       // Compressed block
       let block_end = pos + block_size
       while pos < block_end {
+        if pos >= data.length() {
+          return None
+        }
         let token_type = data[pos]
         pos = pos + 1
         if token_type == b'\x00' {
           // Literal
-          if pos < block_end {
-            output.push(data[pos])
-            pos = pos + 1
+          if pos >= block_end {
+            return None
           }
+          output.push(data[pos])
+          pos = pos + 1
         } else if token_type == b'\x01' {
           // Match
           match decode_varint(data, pos) {
             Some((offset, offset_bytes)) => {
               pos = pos + offset_bytes
+              if pos > block_end {
+                return None
+              }
               match decode_varint(data, pos) {
                 Some((length_raw, length_bytes)) => {
                   pos = pos + length_bytes
                   let length = length_raw + MIN_MATCH
-                  let start = output.length() - offset
-                  if start < 0 {
+                  // Boundary check: offset must be valid
+                  if offset <= 0 || offset > output.length() {
                     return None
                   }
+                  // Boundary check: length must be reasonable
+                  if length <= 0 || length > 255 + MIN_MATCH {
+                    return None
+                  }
+                  let start = output.length() - offset
                   for i = 0; i < length; i = i + 1 {
-                    output.push(output[start + i])
+                    let src_idx = start + i
+                    if src_idx < 0 || src_idx >= output.length() {
+                      return None
+                    }
+                    output.push(output[src_idx])
                   }
                 }
                 None => return None
@@ -293,8 +325,14 @@ pub fn decompress(data : Bytes) -> Bytes? {
             }
             None => return None
           }
+        } else {
+          // Unknown token type
+          return None
         }
       }
+    } else {
+      // Unknown block type
+      return None
     }
   }
   Some(Bytes::from_array(output))
@@ -376,6 +414,14 @@ test "brotli: invalid magic" {
 }
 
 ///|
+test "brotli: does not use fake brotli magic" {
+  let data = @utils.string_to_bytes("test")
+  let compressed = compress(data)
+  // Verify we do NOT use the fake magic 0xCEB22CF1 (LE: F1 2C B2 CE)
+  assert_true(!(compressed[0] == b'\xF1' && compressed[1] == b'\x2C' && compressed[2] == b'\xB2' && compressed[3] == b'\xCE'))
+}
+
+///|
 test "brotli: single byte" {
   let data = Bytes::from_array([b'\x42'])
   let compressed = compress(data)
@@ -408,5 +454,16 @@ test "brotli: large data with patterns" {
   match decompress(compressed) {
     Some(decompressed) => assert_eq(decompressed, data)
     None => assert_true(false)
+  }
+}
+
+///|
+test "brotli: malformed compressed data returns None" {
+  let mb = magic_bytes()
+  // Valid magic but block_size exceeds remaining data
+  let bad = Bytes::from_array([mb[0], mb[1], mb[2], mb[3], b'\x10', b'\x00', b'\x00', b'\x00', b'\x01', b'\xFF', b'\xFF', b'\xFF'])
+  match decompress(bad) {
+    Some(_) => assert_true(false)
+    None => assert_true(true)
   }
 }

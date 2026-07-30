@@ -24,8 +24,12 @@
 ///|
 /// Compute the cross product of vectors (p1→p2) and (p2→p3).
 /// Positive = left turn, negative = right turn, zero = colinear.
-fn cross(x1 : Int, y1 : Int, x2 : Int, y2 : Int, x3 : Int, y3 : Int) -> Int {
-  (x2 - x1) * (y3 - y1) - (y2 - y1) * (x3 - x1)
+///
+/// Returns `Int64` to prevent overflow when coordinates exceed ~46340
+/// (where Int32 products would overflow).
+fn cross(x1 : Int, y1 : Int, x2 : Int, y2 : Int, x3 : Int, y3 : Int) -> Int64 {
+  (x2.to_int64() - x1.to_int64()) * (y3.to_int64() - y1.to_int64()) -
+  (y2.to_int64() - y1.to_int64()) * (x3.to_int64() - x1.to_int64())
 }
 
 ///|
@@ -84,21 +88,21 @@ pub fn segments_intersect(
   let d2 = cross(x3, y3, x4, y4, x2, y2)
   let d3 = cross(x1, y1, x2, y2, x3, y3)
   let d4 = cross(x1, y1, x2, y2, x4, y4)
-  if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-    ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)) {
+  if ((d1 > 0L && d2 < 0L) || (d1 < 0L && d2 > 0L)) &&
+    ((d3 > 0L && d4 < 0L) || (d3 < 0L && d4 > 0L)) {
     return true
   }
   // Check colinear cases.
-  if d1 == 0 && on_segment(x3, y3, x4, y4, x1, y1) {
+  if d1 == 0L && on_segment(x3, y3, x4, y4, x1, y1) {
     return true
   }
-  if d2 == 0 && on_segment(x3, y3, x4, y4, x2, y2) {
+  if d2 == 0L && on_segment(x3, y3, x4, y4, x2, y2) {
     return true
   }
-  if d3 == 0 && on_segment(x1, y1, x2, y2, x3, y3) {
+  if d3 == 0L && on_segment(x1, y1, x2, y2, x3, y3) {
     return true
   }
-  if d4 == 0 && on_segment(x1, y1, x2, y2, x4, y4) {
+  if d4 == 0L && on_segment(x1, y1, x2, y2, x4, y4) {
     return true
   }
   false
@@ -124,12 +128,15 @@ pub fn segment_intersection(
     return None
   }
   // Compute using cross products (Cramer's rule on parametric form).
-  let denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-  if denom == 0 {
+  // Int64 prevents overflow for large coordinates.
+  let denom = (x1.to_int64() - x2.to_int64()) * (y3.to_int64() - y4.to_int64()) -
+    (y1.to_int64() - y2.to_int64()) * (x3.to_int64() - x4.to_int64())
+  if denom == 0L {
     // Parallel or colinear — no single intersection point.
     return None
   }
-  let t_num = (x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)
+  let t_num = (x1.to_int64() - x3.to_int64()) * (y3.to_int64() - y4.to_int64()) -
+    (y1.to_int64() - y3.to_int64()) * (x3.to_int64() - x4.to_int64())
   let t = t_num.to_double() / denom.to_double()
   let px = x1.to_double() + t * (x2 - x1).to_double()
   let py = y1.to_double() + t * (y2 - y1).to_double()

@@ -1,0 +1,66 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/ml/model_evaluation"
+
+// Values
+pub fn accuracy(ConfusionMatrix) -> Double
+
+pub fn balanced_accuracy(ConfusionMatrix) -> Double
+
+pub fn cohen_kappa(ConfusionMatrix) -> Double
+
+pub fn confusion_matrix(Array[Int], Array[Int], Int) -> ConfusionMatrix
+
+pub fn f1_score(ConfusionMatrix) -> Double
+
+pub fn fbeta_score(ConfusionMatrix, Double) -> Double
+
+pub fn macro_f1(Map[Int, ConfusionMatrix]) -> Double
+
+pub fn macro_precision(Map[Int, ConfusionMatrix]) -> Double
+
+pub fn macro_recall(Map[Int, ConfusionMatrix]) -> Double
+
+pub fn mae(Array[Double], Array[Double]) -> Double
+
+pub fn make_confusion_matrix(Int, Int, Int, Int) -> ConfusionMatrix
+
+pub fn mape(Array[Double], Array[Double]) -> Double
+
+pub fn mcc(ConfusionMatrix) -> Double
+
+pub fn micro_f1(Map[Int, ConfusionMatrix]) -> Double
+
+pub fn mse(Array[Double], Array[Double]) -> Double
+
+pub fn multi_class_confusion(Array[Int], Array[Int], Array[Int]) -> Map[Int, ConfusionMatrix]
+
+pub fn precision(ConfusionMatrix) -> Double
+
+pub fn r2_score(Array[Double], Array[Double]) -> Double
+
+pub fn recall(ConfusionMatrix) -> Double
+
+pub fn rmse(Array[Double], Array[Double]) -> Double
+
+pub fn specificity(ConfusionMatrix) -> Double
+
+pub fn weighted_f1(Map[Int, ConfusionMatrix], Array[Int]) -> Double
+
+pub fn weighted_precision(Map[Int, ConfusionMatrix], Array[Int]) -> Double
+
+pub fn weighted_recall(Map[Int, ConfusionMatrix], Array[Int]) -> Double
+
+// Errors
+
+// Types and methods
+pub struct ConfusionMatrix {
+  tp : Int
+  fp : Int
+  tn : Int
+  fneg : Int
+}
+
+// Type aliases
+
+// Traits
+

@@ -43,7 +43,7 @@ import {
   "moon-certified/geometry/segment_intersection",
   "moon-certified/graph/chu_liu",
   "moon-certified/graph/k_shortest_paths",
-  "moon-certified/graph/network_simplex",
+  "moon-certified/graph/min_cost_flow",
   "moon-certified/graph/tree_isomorphism",
   "moon-certified/math/fwht",
   "moon-certified/math/interpolation",

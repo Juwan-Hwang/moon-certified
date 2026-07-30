@@ -1,0 +1,20 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/crypto/hex"
+
+// Values
+pub fn ct_compare(String, String) -> Bool
+
+pub fn decode(String) -> Bytes?
+
+pub fn encode(Bytes) -> String
+
+pub fn encode_upper(Bytes) -> String
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

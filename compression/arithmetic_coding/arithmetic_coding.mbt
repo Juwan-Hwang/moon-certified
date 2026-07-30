@@ -376,7 +376,7 @@ test "arithmetic: round-trip simple text" {
   let data = @utils.string_to_bytes("hello world")
   let compressed = compress(data)
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), data.length())
@@ -391,7 +391,7 @@ test "arithmetic: round-trip repetitive data" {
   let compressed = compress(data)
   assert_true(compressed.length() < data.length())
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), data.length())
@@ -405,7 +405,7 @@ test "arithmetic: round-trip empty data" {
   let data = Bytes::make(0, b'\x00')
   let compressed = compress(data)
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), 0)
@@ -420,7 +420,7 @@ test "arithmetic: round-trip binary data" {
   let bytes = Bytes::from_array(data)
   let compressed = compress(bytes)
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), bytes.length())
@@ -434,7 +434,7 @@ test "arithmetic: round-trip random-looking data" {
   let data = @utils.string_to_bytes("The quick brown fox jumps over the lazy dog. 1234567890!")
   let compressed = compress(data)
   let decompressed = match decompress(compressed) {
-    None => abort("decompression failed")
+    None => fail("decompression failed")
     Some(d) => d
   }
   assert_eq(decompressed.length(), data.length())

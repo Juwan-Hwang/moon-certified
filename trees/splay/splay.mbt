@@ -374,8 +374,17 @@ pub fn[T] inorder(tree : SplayNode[T]) -> FixedArray[T] {
 
 ///|
 /// Integer comparator for tests.
+///
+/// Uses explicit comparison rather than `a - b` to avoid integer overflow
+/// when `a` and `b` have extreme opposite signs (e.g., `Int::MAX - Int::MIN`).
 fn int_cmp(a : Int, b : Int) -> Int {
-  a - b
+  if a < b {
+    -1
+  } else if a > b {
+    1
+  } else {
+    0
+  }
 }
 
 ///|
@@ -403,7 +412,7 @@ test "splay: search brings key to root" {
   assert_true(found)
   match t {
     Node(_, k, _, _) => assert_eq(k, 1)
-    Empty => abort("expected non-empty tree")
+    Empty => fail("expected non-empty tree")
   }
 }
 

@@ -20,6 +20,16 @@
 /// | `[^abc]`    | negated character class               |
 /// | `[a-z]`     | character range                       |
 /// | `\.`        | escaped literal (any char after `\`)  |
+/// | `^`         | start of string (zero-width assertion)|
+/// | `$`         | end of string (zero-width assertion)  |
+/// | `\b`        | word boundary (zero-width assertion)  |
+/// | `\B`        | non-word-boundary (zero-width assertion)|
+/// | `\d`        | digit `[0-9]`                         |
+/// | `\D`        | non-digit `[^0-9]`                    |
+/// | `\w`        | word character `[a-zA-Z0-9_]`         |
+/// | `\W`        | non-word character                    |
+/// | `\s`        | whitespace `[ \t\n\r\f\v]`            |
+/// | `\S`        | non-whitespace                        |
 ///
 /// ## Capture Groups
 ///
@@ -64,6 +74,15 @@ priv enum Matcher {
   /// Match a character class: `set[b]` is true if byte `b` is in the class.
   /// `negated` is true for `[^...]`.
   ClassNode(FixedArray[Bool], Bool)
+  /// Zero-width assertion: match only at start of text (position 0).
+  StartAnchor
+  /// Zero-width assertion: match only at end of text (position == text.length()).
+  EndAnchor
+  /// Zero-width assertion: match at a word boundary.
+  /// A word boundary is a position where one side is a word character
+  /// ([a-zA-Z0-9_]) and the other side is not (or is at the start/end of text).
+  /// `negated` is true for `\B` (non-word-boundary).
+  WordBoundary(Bool)
 }
 
 // ---------------------------------------------------------------------------
@@ -463,6 +482,14 @@ fn parse_atom(b : Builder) -> Frag? {
                 set[11] = true
                 Some(ClassNode(set, true))
               }
+              98 => {
+                // \b — word boundary (zero-width assertion)
+                Some(WordBoundary(false))
+              }
+              66 => {
+                // \B — non-word-boundary (zero-width assertion)
+                Some(WordBoundary(true))
+              }
               _ => None
             }
             match shorthand {
@@ -481,6 +508,14 @@ fn parse_atom(b : Builder) -> Frag? {
       } else if c == 46 {
         // '.' — any character
         let s = new_match(b, AnyChar)
+        Some({ start: s, out: [(s, 0)] })
+      } else if c == 94 {
+        // '^' — start of string anchor (zero-width assertion)
+        let s = new_match(b, StartAnchor)
+        Some({ start: s, out: [(s, 0)] })
+      } else if c == 36 {
+        // '$' — end of string anchor (zero-width assertion)
+        let s = new_match(b, EndAnchor)
         Some({ start: s, out: [(s, 0)] })
       } else if c == 41 || c == 124 || c == 42 || c == 43 || c == 63 {
         // ')', '|', '*', '+', '?' — these should not start an atom
@@ -719,8 +754,12 @@ fn copy_captures(caps : FixedArray[Int]) -> FixedArray[Int] {
 ///
 /// `pos` is the current text position (the index of the next character to
 /// be consumed). Capture markers record this position.
+///
+/// `text` is the full input string, needed for zero-width assertions
+/// (`^`, `$`, `\b`, `\B`).
 fn add_state(
   states : Array[NFAState],
+  text : String,
   state_idx : Int,
   pos : Int,
   captures : FixedArray[Int],
@@ -750,19 +789,61 @@ fn add_state(
     } else {
       new_caps[base + 1] = pos
     }
-    add_state(states, s.out1, pos, new_caps, list, visited)
+    add_state(states, text, s.out1, pos, new_caps, list, visited)
   } else {
     match s.matcher {
       None => {
         // Split state: follow both epsilon transitions.
-        add_state(states, s.out1, pos, captures, list, visited)
-        add_state(states, s.out2, pos, captures, list, visited)
+        add_state(states, text, s.out1, pos, captures, list, visited)
+        add_state(states, text, s.out2, pos, captures, list, visited)
       }
-      Some(_) =>
-        // Match state: add to list with its captures.
-        list.push((state_idx, captures))
+      Some(m) =>
+        match m {
+          StartAnchor =>
+            // ^ : zero-width assertion, match only at position 0
+            if pos == 0 {
+              add_state(states, text, s.out1, pos, captures, list, visited)
+            }
+          EndAnchor =>
+            // $ : zero-width assertion, match only at end of text
+            if pos == text.length() {
+              add_state(states, text, s.out1, pos, captures, list, visited)
+            }
+          WordBoundary(negated) => {
+            // \b : zero-width assertion at word boundary
+            // \B : zero-width assertion at non-word-boundary
+            let at_boundary = is_word_boundary(text, pos)
+            if at_boundary != negated {
+              add_state(states, text, s.out1, pos, captures, list, visited)
+            }
+          }
+          _ =>
+            // Regular Match state: add to list with its captures.
+            list.push((state_idx, captures))
+        }
     }
   }
+}
+
+///|
+/// Check if a byte value is a word character ([a-zA-Z0-9_]).
+fn is_word_char_byte(b : Int) -> Bool {
+  (b >= 48 && b <= 57) || // 0-9
+  (b >= 65 && b <= 90) || // A-Z
+  (b >= 97 && b <= 122) || // a-z
+  b == 95 // _
+}
+
+///|
+/// Check if position `pos` in `text` is a word boundary.
+///
+/// A word boundary occurs when one side of `pos` is a word character
+/// and the other side is not (or is at the start/end of text).
+fn is_word_boundary(text : String, pos : Int) -> Bool {
+  let n = text.length()
+  let before = pos > 0 && is_word_char_byte(text[pos - 1].to_int())
+  let after = pos < n && is_word_char_byte(text[pos].to_int())
+  before != after
 }
 
 ///|
@@ -783,6 +864,10 @@ fn find_accept(
 
 ///|
 /// Check if a character matches a `Matcher`.
+///
+/// Note: Assertion matchers (`StartAnchor`, `EndAnchor`, `WordBoundary`) are
+/// zero-width and handled in `add_state`, not here. They should never reach
+/// this function; if they do, `match_char` returns `false` (no match).
 fn match_char(m : Matcher, ch : Int) -> Bool {
   match m {
     Char(c) => ch == c
@@ -798,6 +883,9 @@ fn match_char(m : Matcher, ch : Int) -> Bool {
         // Characters outside 0–255: match iff class is negated.
         negated
       }
+    StartAnchor | EndAnchor | WordBoundary(_) =>
+      // Zero-width assertions are resolved in add_state, not here.
+      false
   }
 }
 
@@ -811,6 +899,7 @@ fn match_char(m : Matcher, ch : Int) -> Bool {
 /// this position.
 fn step(
   states : Array[NFAState],
+  text : String,
   current : Array[Thread],
   ch : Int,
   pos : Int,
@@ -824,8 +913,15 @@ fn step(
     let s = states[state_idx]
     match s.matcher {
       Some(m) =>
-        if match_char(m, ch) {
-          add_state(states, s.out1, pos, captures, next, visited)
+        match m {
+          StartAnchor | EndAnchor | WordBoundary(_) =>
+            // Assertions should have been resolved in add_state;
+            // they should never appear in the current list as match states.
+            ()
+          _ =>
+            if match_char(m, ch) {
+              add_state(states, text, s.out1, pos, captures, next, visited)
+            }
         }
       None => () // Accept state: no transition.
     }
@@ -917,7 +1013,7 @@ pub fn find_captures(re : Regex, text : String) -> CaptureMatch? {
     clear_visited(visited)
     current.clear()
     let initial_caps = FixedArray::make(caps_size, -1)
-    add_state(re.states, re.start, s, initial_caps, current, visited)
+    add_state(re.states, text, re.start, s, initial_caps, current, visited)
     // Check for an immediate (empty) match.
     let mut best_end = -1
     let mut best_caps : FixedArray[Int]? = None
@@ -932,7 +1028,7 @@ pub fn find_captures(re : Regex, text : String) -> CaptureMatch? {
     let mut e = s
     let mut alive = true
     while e < n && alive {
-      step(re.states, current, text[e].to_int(), e + 1, next, visited)
+      step(re.states, text, current, text[e].to_int(), e + 1, next, visited)
       e = e + 1
       // Move next into current.
       current.clear()
@@ -1405,4 +1501,113 @@ test "regex: deeply nested capture groups" {
     }
     None => fail("expected match")
   }
+}
+
+// ---------------------------------------------------------------------------
+// Anchor tests (^, $, \b, \B)
+// ---------------------------------------------------------------------------
+
+///|
+test "regex: start anchor ^" {
+  let re = compile("^abc").unwrap()
+  assert_true(is_match(re, "abc"))
+  assert_true(is_match(re, "abcdef"))
+  assert_false(is_match(re, "xabc"))
+  assert_false(is_match(re, " abc"))
+}
+
+///|
+test "regex: end anchor $" {
+  let re = compile("abc$").unwrap()
+  assert_true(is_match(re, "abc"))
+  assert_true(is_match(re, "xabc"))
+  assert_false(is_match(re, "abcd"))
+  assert_false(is_match(re, "abc "))
+}
+
+///|
+test "regex: both anchors ^...$" {
+  let re = compile("^abc$").unwrap()
+  assert_true(is_match(re, "abc"))
+  assert_false(is_match(re, "xabc"))
+  assert_false(is_match(re, "abcx"))
+  assert_false(is_match(re, " abc "))
+}
+
+///|
+test "regex: anchor with quantifier" {
+  let re = compile("^a*b$").unwrap()
+  assert_true(is_match(re, "b"))
+  assert_true(is_match(re, "ab"))
+  assert_true(is_match(re, "aaab"))
+  assert_false(is_match(re, "ba"))
+  assert_false(is_match(re, "aabx"))
+}
+
+///|
+test "regex: word boundary \\b" {
+  let re = compile("\\bcat\\b").unwrap()
+  assert_true(is_match(re, "cat"))
+  assert_true(is_match(re, "the cat sat"))
+  assert_true(is_match(re, "a cat!"))
+  assert_false(is_match(re, "category"))
+  assert_false(is_match(re, "concat"))
+  assert_false(is_match(re, "cats"))
+}
+
+///|
+test "regex: word boundary at start" {
+  let re = compile("\\bword").unwrap()
+  assert_true(is_match(re, "word"))
+  assert_true(is_match(re, "word here"))
+  assert_true(is_match(re, "the word"))
+  assert_false(is_match(re, "xword"))
+  assert_false(is_match(re, "swordfish"))
+}
+
+///|
+test "regex: word boundary at end" {
+  let re = compile("word\\b").unwrap()
+  assert_true(is_match(re, "word"))
+  assert_true(is_match(re, "a word"))
+  assert_true(is_match(re, "word!"))
+  assert_false(is_match(re, "words"))
+  // "xword" matches: "word" at pos 1, \b at end-of-string (pos 5)
+  assert_true(is_match(re, "xword"))
+}
+
+///|
+test "regex: non-word boundary \\B" {
+  // \B matches at a position that is NOT a word boundary
+  let re = compile("\\Bcat").unwrap()
+  assert_false(is_match(re, "cat")) // 'c' is at start = word boundary
+  assert_true(is_match(re, "concat")) // 'c' in middle = non-word-boundary
+  assert_false(is_match(re, "a cat")) // 'c' after space = word boundary
+}
+
+///|
+test "regex: \\b with capture groups" {
+  let re = compile("\\b(\\w+)\\b").unwrap()
+  match find_captures(re, "  hello  ") {
+    Some(m) => {
+      assert_eq(m.start, 2)
+      assert_eq(m.end, 7)
+      assert_eq(group(m, 1), Some((2, 7)))
+    }
+    None => fail("expected match")
+  }
+}
+
+///|
+test "regex: anchor in alternation" {
+  let re = compile("^abc|^xyz").unwrap()
+  assert_true(is_match(re, "abc"))
+  assert_true(is_match(re, "abcdef"))
+  assert_true(is_match(re, "xyz"))
+  assert_true(is_match(re, "xyz123"))
+  assert_false(is_match(re, "xabc"))
+  // "abcyz" starts with "abc" so ^abc matches — this is correct behavior
+  assert_true(is_match(re, "abcyz"))
+  // "xabc" does not start with abc or xyz
+  assert_false(is_match(re, "  abc"))
 }

@@ -164,7 +164,11 @@ pub fn utf16le_to_utf8(data : Bytes) -> String? {
 
 ///|
 /// Convert UTF-8 String to ISO-8859-1 (Latin-1) bytes.
-/// Characters outside Latin-1 range (U+0100+) are replaced with '?'.
+///
+/// **Warning**: Characters outside Latin-1 range (U+0100+) are silently
+/// replaced with '?'. This is data loss — the caller cannot distinguish
+/// between a literal '?' and a replacement. Use `utf8_to_latin1_checked`
+/// for production code where data integrity matters.
 pub fn utf8_to_latin1(s : String) -> Bytes {
   let cps = match utf8_to_codepoints(@utils.string_to_bytes(s)) {
     None => return Bytes::make(0, b'\x00')
@@ -182,6 +186,28 @@ pub fn utf8_to_latin1(s : String) -> Bytes {
 }
 
 ///|
+/// Convert UTF-8 String to ISO-8859-1 (Latin-1) bytes with strict validation.
+///
+/// Returns `None` if the input contains invalid UTF-8 or any character
+/// outside the Latin-1 range (U+0100+). Use this instead of `utf8_to_latin1`
+/// when data integrity is required.
+pub fn utf8_to_latin1_checked(s : String) -> Bytes? {
+  let cps = match utf8_to_codepoints(@utils.string_to_bytes(s)) {
+    None => return None
+    Some(c) => c
+  }
+  let buf : Array[Byte] = []
+  for i = 0; i < cps.length(); i = i + 1 {
+    if cps[i] <= 0xFF {
+      buf.push(cps[i].to_byte())
+    } else {
+      return None // Character outside Latin-1 range
+    }
+  }
+  Some(Bytes::from_array(buf))
+}
+
+///|
 /// Convert ISO-8859-1 (Latin-1) bytes to a UTF-8 String.
 pub fn latin1_to_utf8(data : Bytes) -> String {
   let cps : Array[Int] = []
@@ -193,7 +219,9 @@ pub fn latin1_to_utf8(data : Bytes) -> String {
 
 ///|
 /// Convert UTF-8 String to ASCII bytes.
-/// Non-ASCII characters are replaced with '?'.
+///
+/// **Warning**: Non-ASCII characters are silently replaced with '?'. This
+/// is data loss. Use `utf8_to_ascii_checked` for production code.
 pub fn utf8_to_ascii(s : String) -> Bytes {
   let cps = match utf8_to_codepoints(@utils.string_to_bytes(s)) {
     None => return Bytes::make(0, b'\x00')
@@ -208,6 +236,28 @@ pub fn utf8_to_ascii(s : String) -> Bytes {
     }
   }
   Bytes::from_array(buf)
+}
+
+///|
+/// Convert UTF-8 String to ASCII bytes with strict validation.
+///
+/// Returns `None` if the input contains invalid UTF-8 or any non-ASCII
+/// character. Use this instead of `utf8_to_ascii` when data integrity
+/// is required.
+pub fn utf8_to_ascii_checked(s : String) -> Bytes? {
+  let cps = match utf8_to_codepoints(@utils.string_to_bytes(s)) {
+    None => return None
+    Some(c) => c
+  }
+  let buf : Array[Byte] = []
+  for i = 0; i < cps.length(); i = i + 1 {
+    if cps[i] <= 0x7F {
+      buf.push(cps[i].to_byte())
+    } else {
+      return None
+    }
+  }
+  Some(Bytes::from_array(buf))
 }
 
 ///|
@@ -264,6 +314,18 @@ test "encoding_conversion: ASCII conversion" {
   assert_eq(ascii.length(), 5)
   let result = ascii_to_utf8(ascii)
   assert_eq(result, s)
+}
+
+///|
+test "encoding_conversion: checked variants reject non-representable" {
+  // Latin-1 checked: café is valid Latin-1
+  assert_true(utf8_to_latin1_checked("café") is Some(_))
+  // Latin-1 checked: 世界 is NOT valid Latin-1
+  assert_true(utf8_to_latin1_checked("世界") is None)
+  // ASCII checked: Hello is valid ASCII
+  assert_true(utf8_to_ascii_checked("Hello") is Some(_))
+  // ASCII checked: café is NOT valid ASCII
+  assert_true(utf8_to_ascii_checked("café") is None)
 }
 
 ///|

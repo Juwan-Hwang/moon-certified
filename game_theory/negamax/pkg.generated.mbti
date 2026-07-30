@@ -1,0 +1,26 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/game_theory/negamax"
+
+// Values
+pub fn[G : Game] find_best_move(G, Int) -> Int?
+
+pub fn[G : Game] negamax(G, Int, Double, Double) -> SearchResult
+
+// Errors
+
+// Types and methods
+pub struct SearchResult {
+  best_move : Int?
+  score : Double
+}
+
+// Type aliases
+
+// Traits
+pub trait Game {
+  fn legal_moves(Self) -> Array[Int]
+  fn make_move(Self, Int) -> Self
+  fn evaluate(Self) -> Double
+  fn is_terminal(Self) -> Bool
+}
+
