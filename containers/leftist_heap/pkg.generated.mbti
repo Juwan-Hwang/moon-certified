@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/containers/leftist_heap"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct LeftistHeap[T] {
+  // private fields
+}
+pub fn[T] LeftistHeap::extract_min(Self[T]) -> T?
+pub fn[T] LeftistHeap::find_min(Self[T]) -> T?
+pub fn[T] LeftistHeap::from_array(Array[T], (T, T) -> Int) -> Self[T]
+pub fn[T] LeftistHeap::insert(Self[T], T) -> Unit
+pub fn[T] LeftistHeap::is_empty(Self[T]) -> Bool
+pub fn[T] LeftistHeap::merge(Self[T], Self[T]) -> Unit
+pub fn[T] LeftistHeap::new((T, T) -> Int) -> Self[T]
+pub fn[T] LeftistHeap::size(Self[T]) -> Int
+pub fn[T] LeftistHeap::to_sorted_array(Self[T]) -> Array[T]
+
+// Type aliases
+
+// Traits
+

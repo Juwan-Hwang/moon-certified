@@ -1,0 +1,19 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/graph/gabow_scc"
+
+// Values
+pub fn gabow_scc(Int, Array[(Int, Int)]) -> GabowSCCResult
+
+// Errors
+
+// Types and methods
+pub struct GabowSCCResult {
+  component_id : Array[Int]
+  num_sccs : Int
+  sccs : Array[Array[Int]]
+}
+
+// Type aliases
+
+// Traits
+

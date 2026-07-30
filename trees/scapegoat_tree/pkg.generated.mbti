@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moon-certified/trees/scapegoat_tree"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ScapegoatTree[T] {
+  // private fields
+}
+pub fn[T] ScapegoatTree::contains(Self[T], T) -> Bool
+pub fn[T] ScapegoatTree::find_max(Self[T]) -> T?
+pub fn[T] ScapegoatTree::find_min(Self[T]) -> T?
+pub fn[T] ScapegoatTree::in_order(Self[T], (T) -> Unit) -> Unit
+pub fn[T] ScapegoatTree::insert(Self[T], T) -> Bool
+pub fn[T] ScapegoatTree::is_empty(Self[T]) -> Bool
+pub fn[T] ScapegoatTree::new((T, T) -> Int) -> Self[T]
+pub fn[T] ScapegoatTree::remove(Self[T], T) -> Bool
+pub fn[T] ScapegoatTree::size(Self[T]) -> Int
+pub fn[T] ScapegoatTree::to_sorted_array(Self[T]) -> Array[T]
+pub fn[T] ScapegoatTree::with_alpha((T, T) -> Int, Double) -> Self[T]
+
+// Type aliases
+
+// Traits
+
