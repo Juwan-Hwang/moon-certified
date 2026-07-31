@@ -5,7 +5,7 @@
 /// - **Gamma function** (Lanczos approximation, accuracy ~1e-15)
 /// - **Log-Gamma** (for large arguments and to avoid overflow)
 /// - **Beta function** B(a, b) = Γ(a)Γ(b)/Γ(a+b)
-/// - **Error function** erf and complementary erfc (Abramowitz & Stegun 7.1.26)
+/// - **Error function** erf and complementary erfc (incomplete gamma, accuracy ~1e-15)
 /// - **Normal distribution** CDF and PDF
 /// - **Bessel function** J₀ (first kind, order 0)
 ///
@@ -101,14 +101,93 @@ pub fn beta(a : Double, b : Double) -> Double {
 }
 
 // ---------------------------------------------------------------------------
-// Error function (Abramowitz & Stegun 7.1.26)
+// Error function — full double precision via incomplete gamma function
 // ---------------------------------------------------------------------------
+
+///|
+/// Regularized lower incomplete gamma function P(a, x) = γ(a, x) / Γ(a).
+///
+/// Uses series expansion for x < a+1 (fast convergence) and continued fraction
+/// for x >= a+1 (Lentz's method). Achieves full double precision (~1e-15).
+///
+/// Reference: Numerical Recipes 3rd ed. §6.2.
+fn gammp(a : Double, x : Double) -> Double {
+  if x < 0.0 || a <= 0.0 {
+    return 0.0
+  }
+  if x == 0.0 {
+    return 0.0
+  }
+  if x < a + 1.0 {
+    // Series representation: converges rapidly for x < a+1
+    gser(a, x)
+  } else {
+    // Continued fraction: converges rapidly for x >= a+1
+    1.0 - gcf(a, x)
+  }
+}
+
+///|
+/// Series representation of the lower incomplete gamma function.
+///
+/// γ(a, x) = x^a · e^(-x) · Σ_{n=0}^∞ Γ(a)/Γ(a+n+1) · x^n
+fn gser(a : Double, x : Double) -> Double {
+  let gln = lgamma(a)
+  let mut ap = a
+  let mut sum = 1.0 / a
+  let mut del = sum
+  for n = 0; n < 1000; n = n + 1 {
+    ap = ap + 1.0
+    del = del * x / ap
+    sum = sum + del
+    if del.abs() < sum.abs() * 1.0e-16 {
+      break
+    }
+  }
+  sum * @math.exp(-x + a * @math.ln(x) - gln)
+}
+
+///|
+/// Continued fraction representation of the upper incomplete gamma function.
+///
+/// Uses Lentz's method (modified) for numerical stability.
+/// Q(a, x) = Γ(a,x)/Γ(a) = e^(-x) · x^a · CF(a, x)
+fn gcf(a : Double, x : Double) -> Double {
+  let gln = lgamma(a)
+  let fpmin : Double = 1.0e-300
+  let mut b = x + 1.0 - a
+  let mut c = 1.0 / fpmin
+  let mut d = 1.0 / b
+  let mut h = d
+  for i = 1; i < 1000; i = i + 1 {
+    let an = -i.to_double() * (i.to_double() - a)
+    b = b + 2.0
+    d = an * d + b
+    if d.abs() < fpmin {
+      d = fpmin
+    }
+    c = b + an / c
+    if c.abs() < fpmin {
+      c = fpmin
+    }
+    d = 1.0 / d
+    let del = d * c
+    h = h * del
+    if (del - 1.0).abs() < 1.0e-16 {
+      break
+    }
+  }
+  @math.exp(-x + a * @math.ln(x) - gln) * h
+}
 
 ///|
 /// Error function erf(x).
 ///
-/// Uses the Abramowitz & Stegun 7.1.26 approximation, which has a maximum
-/// absolute error of 1.5×10⁻⁷. For x = 0, returns exactly 0.
+/// Computes erf(x) = P(1/2, x²) using the regularized incomplete gamma
+/// function, achieving full double precision (relative error < 1e-15).
+///
+/// This replaces the previous Abramowitz & Stegun 7.1.26 approximation
+/// (1.5×10⁻⁷ error) with an exact implementation.
 ///
 /// erf(0) = 0, erf(∞) = 1, erf(-x) = -erf(x).
 pub fn erf(x : Double) -> Double {
@@ -116,28 +195,29 @@ pub fn erf(x : Double) -> Double {
     return 0.0
   }
   if x < 0.0 {
-    return -erf(-x)
+    return -gammp(0.5, x * x)
   }
-  // For very large x, erf → 1.
-  if x > 6.0 {
-    return 1.0
-  }
-  // A&S 7.1.26 coefficients.
-  let a1 = 0.254829592
-  let a2 = -0.284496736
-  let a3 = 1.421413741
-  let a4 = -1.453152027
-  let a5 = 1.061405429
-  let p = 0.3275911
-  let t = 1.0 / (1.0 + p * x)
-  let y = 1.0 -
-    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * @math.exp(-x * x)
-  y
+  gammp(0.5, x * x)
 }
 
 ///|
 /// Complementary error function erfc(x) = 1 - erf(x).
+///
+/// Computes erfc(x) = Q(1/2, x²) directly via the continued fraction
+/// for x > 0.5, avoiding catastrophic cancellation that would occur
+/// in 1 - erf(x) for large x.
 pub fn erfc(x : Double) -> Double {
+  if x == 0.0 {
+    return 1.0
+  }
+  if x < 0.0 {
+    return 1.0 + erf(-x)
+  }
+  // For x >= 0.5, compute Q(1/2, x²) directly (no cancellation)
+  if x >= 0.5 {
+    return gcf(0.5, x * x)
+  }
+  // For small x, 1 - erf(x) is safe
   1.0 - erf(x)
 }
 
@@ -284,32 +364,54 @@ test "beta: known values" {
 ///|
 test "erf: known values" {
   // erf(0) = 0 (exact special case)
-  assert_true(erf(0.0).abs() < 1.0e-10)
-  // erf(1) ≈ 0.8427007929 (A&S accuracy ~1.5e-7)
-  assert_true((erf(1.0) - 0.8427007929).abs() < 1.0e-6)
+  assert_true(erf(0.0).abs() < 1.0e-15)
+  // erf(1) = 0.8427007929497149 (full double precision)
+  assert_true((erf(1.0) - 0.8427007929497149).abs() < 1.0e-14)
   // erf(-1) = -erf(1)
-  assert_true((erf(-1.0) - -0.8427007929).abs() < 1.0e-6)
-  // erf(2) ≈ 0.9953222650
-  assert_true((erf(2.0) - 0.9953222650).abs() < 1.0e-6)
+  assert_true((erf(-1.0) - -0.8427007929497149).abs() < 1.0e-14)
+  // erf(2) = 0.9953222650189527
+  assert_true((erf(2.0) - 0.9953222650189527).abs() < 1.0e-14)
+  // erf(0.5) = 0.5204998778130465
+  assert_true((erf(0.5) - 0.5204998778130465).abs() < 1.0e-14)
+  // erf(3) = 0.9999779095030014
+  assert_true((erf(3.0) - 0.9999779095030014).abs() < 1.0e-14)
+  // erf(5) ≈ 0.9999999999984626
+  assert_true((erf(5.0) - 0.9999999999984626).abs() < 1.0e-13)
+  // erf(0.1) = 0.1124629160182849
+  assert_true((erf(0.1) - 0.1124629160182849).abs() < 1.0e-14)
 }
 
 ///|
 test "erfc: complementarity" {
-  assert_true((erfc(0.0) - 1.0).abs() < 1.0e-10)
-  assert_true((erfc(1.0) - (1.0 - 0.8427007929)).abs() < 1.0e-6)
-  assert_true((erfc(1.0) + erf(1.0) - 1.0).abs() < 1.0e-6)
+  assert_true((erfc(0.0) - 1.0).abs() < 1.0e-15)
+  // erfc(1) = 1 - erf(1) = 0.1572992070502851
+  assert_true((erfc(1.0) - 0.1572992070502851).abs() < 1.0e-14)
+  // erfc + erf = 1
+  assert_true((erfc(1.0) + erf(1.0) - 1.0).abs() < 1.0e-14)
+  // erfc(2) = 0.0046777349810473
+  assert_true((erfc(2.0) - 0.0046777349810473).abs() < 1.0e-14)
+  // erfc(3) = 0.0000220904969986
+  assert_true((erfc(3.0) - 0.0000220904969986).abs() < 1.0e-14)
+  // erfc(-1) = 1 + erf(1) = 1.8427007929497149
+  assert_true((erfc(-1.0) - 1.8427007929497149).abs() < 1.0e-14)
+  // No catastrophic cancellation for large x
+  assert_true((erfc(5.0) - 1.5374597944280349e-12).abs() < 1.0e-20)
 }
 
 ///|
 test "normal_cdf: known values" {
-  // Φ(0) = 0.5 (exact via erf(0) = 0 special case)
-  assert_true((normal_cdf(0.0) - 0.5).abs() < 1.0e-10)
-  // Φ(1.96) ≈ 0.975
-  assert_true((normal_cdf(1.96) - 0.975).abs() < 1.0e-4)
-  // Φ(-1.96) ≈ 0.025
-  assert_true((normal_cdf(-1.96) - 0.025).abs() < 1.0e-4)
+  // Φ(0) = 0.5
+  assert_true((normal_cdf(0.0) - 0.5).abs() < 1.0e-15)
+  // Φ(1.96) = 0.9750021048517795
+  assert_true((normal_cdf(1.96) - 0.9750021048517795).abs() < 1.0e-13)
+  // Φ(-1.96) = 0.02499789514822045
+  assert_true((normal_cdf(-1.96) - 0.02499789514822045).abs() < 1.0e-13)
+  // Φ(1) = 0.8413447460685429
+  assert_true((normal_cdf(1.0) - 0.8413447460685429).abs() < 1.0e-13)
   // Symmetry: Φ(-x) = 1 - Φ(x)
-  assert_true((normal_cdf(1.0) + normal_cdf(-1.0) - 1.0).abs() < 1.0e-6)
+  assert_true((normal_cdf(1.0) + normal_cdf(-1.0) - 1.0).abs() < 1.0e-14)
+  // Φ(3) = 0.9986501019683699
+  assert_true((normal_cdf(3.0) - 0.9986501019683699).abs() < 1.0e-13)
 }
 
 ///|
