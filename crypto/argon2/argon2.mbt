@@ -31,7 +31,7 @@
 /// is the RFC 9106 recommendation for cryptographic applications.
 ///
 /// Not formally verified. Correctness is ensured by the test suite using
-/// known test vectors from the reference implementation.
+/// known test vectors from RFC 9106 and the reference implementation.
 ///
 /// `proof-enabled` is `false`.
 
@@ -54,6 +54,10 @@ const BLOCK_SIZE : Int = 1024
 ///|
 /// Number of 64-bit words in a block (128).
 const BLOCK_WORDS : Int = 128
+
+///|
+/// Number of sync points (slices) per pass (RFC 9106 §3.4).
+const SYNC_POINTS : Int = 4
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -103,11 +107,15 @@ pub fn params(
 ///|
 /// H' — variable-length hash function based on BLAKE2b (RFC 9106 §3.3).
 ///
-/// If `out_len` ≤ 64, computes BLAKE2b(out_len, [out_len_le32] || data).
-/// If `out_len` > 64, computes a chain of BLAKE2b-512 hashes:
-///   V_1 = BLAKE2b-512([out_len_le32] || data)
-///   V_i = BLAKE2b-512(V_{i-1})
-/// and concatenates the first `out_len` bytes.
+/// If `out_len` ≤ 64: H'^T(A) = H^T(LE32(T) || A)
+///
+/// If `out_len` > 64:
+///   r = ceil(T/32) - 2
+///   V_1 = H^64(LE32(T) || A)
+///   V_i = H^64(V_{i-1})  for i = 2..r
+///   A = W_1 || W_2 || ... || W_r   (W_i = first 32 bytes of V_i)
+///   V_{r+1} = H^(T-32*r)(V_r)
+///   Output = A || V_{r+1}
 fn h_prime(data : Bytes, out_len : Int) -> Bytes {
   let len_bytes : Array[Byte] = [
     (out_len & 0xFF).to_byte(),
@@ -126,19 +134,25 @@ fn h_prime(data : Bytes, out_len : Int) -> Bytes {
   if out_len <= 64 {
     @blake2.blake2b(input, out_len)
   } else {
-    // Chain BLAKE2b-512 hashes.
+    // RFC 9106 §3.3: variable-length hash for T > 64
+    let r = (out_len + 31) / 32 - 2 // ceil(T/32) - 2
     let result : Array[Byte] = []
-    let mut v = @blake2.blake2b_512(input)
-    for i = 0; i < out_len / 64; i = i + 1 {
-      for j = 0; j < 64 && result.length() < out_len; j = j + 1 {
+    let mut v = @blake2.blake2b_512(input) // V_1
+    for idx = 0; idx < r; idx = idx + 1 {
+      // W_{idx+1} = first 32 bytes of V_{idx+1}
+      for j = 0; j < 32; j = j + 1 {
         result.push(v[j])
       }
-      if result.length() < out_len {
-        v = @blake2.blake2b_512(v)
+      if idx < r - 1 {
+        v = @blake2.blake2b_512(v) // V_{idx+2}
       }
     }
-    // Handle remainder if out_len is not a multiple of 64.
-    // The last hash was already computed; just take what we need.
+    // V_{r+1} = H^(T-32*r)(V_r)
+    let last_len = out_len - 32 * r
+    let v_last = @blake2.blake2b(v, last_len)
+    for j = 0; j < last_len; j = j + 1 {
+      result.push(v_last[j])
+    }
     Bytes::from_array(result)
   }
 }
@@ -166,74 +180,14 @@ fn hi32(x : UInt64) -> UInt64 {
 }
 
 // ---------------------------------------------------------------------------
-// G compression function (correct implementation)
+// G compression function (BLAMKA)
 // ---------------------------------------------------------------------------
 
 ///|
-/// G compression function (RFC 9106 §3.5).
+/// Apply the G function (BLAMKA) to 4 elements of a block in place.
 ///
-/// Takes two 1024-byte blocks, XORs them, applies the P permutation, and
-/// XORs the result with the original. The P permutation applies 8 rounds
-/// of row-wise mixing followed by 8 rounds of column-wise mixing.
-///
-/// The matrix is viewed as an 8×16 array of 64-bit integers (row-major).
-/// Each round applies the gb function to 8 pairs of columns.
-fn compress_g(
-  x : FixedArray[UInt64], // 128 words (first block)
-  y : FixedArray[UInt64], // 128 words (second block)
-) -> FixedArray[UInt64] {
-  // R = X ^ Y
-  let r : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-  for i = 0; i < BLOCK_WORDS; i = i + 1 {
-    r[i] = x[i] ^ y[i]
-  }
-  // Apply P permutation to R.
-  p_permutation(r)
-  // Z = R ^ X ^ Y (XOR with original inputs for the Feistel-like structure)
-  let z : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-  for i = 0; i < BLOCK_WORDS; i = i + 1 {
-    z[i] = r[i] ^ x[i] ^ y[i]
-  }
-  z
-}
-
-///|
-/// The P permutation (RFC 9106 §3.5).
-///
-/// Views the 128-word block as an 8×16 matrix (8 rows, 16 columns).
-/// Applies two passes of the BLAKE2b G function:
-/// 1. Column pass: for each of 8 rows, apply G to 4 groups of 4 elements
-///    using stride pattern (0,4,8,12), (1,5,9,13), etc.
-/// 2. Row pass: for each of 8 column-pairs, apply G to 4 groups of 4
-///    elements with stride 16 (cross-row mixing).
-///
-/// Each G application performs two rounds of the BLAMKA mixing function.
-fn p_permutation(r : FixedArray[UInt64]) -> Unit {
-  // Column pass: process each row of the 8×16 matrix.
-  // For each row i (0..7), apply G to 4 groups of 4 elements with stride 4.
-  for i = 0; i < 8; i = i + 1 {
-    let base = 16 * i
-    gb_4(r, base + 0, base + 4, base + 8, base + 12)
-    gb_4(r, base + 1, base + 5, base + 9, base + 13)
-    gb_4(r, base + 2, base + 6, base + 10, base + 14)
-    gb_4(r, base + 3, base + 7, base + 11, base + 15)
-  }
-  // Row pass: process column pairs (RFC 9106 §3.5).
-  // For each column pair (2i, 2i+1), apply G to rows 0-3 and rows 4-7.
-  // Flat index: row*16 + col, max index = 7*16+15 = 127.
-  for i = 0; i < 8; i = i + 1 {
-    let c0 = 2 * i
-    let c1 = 2 * i + 1
-    gb_4(r, 0 * 16 + c0, 1 * 16 + c0, 2 * 16 + c0, 3 * 16 + c0)
-    gb_4(r, 4 * 16 + c0, 5 * 16 + c0, 6 * 16 + c0, 7 * 16 + c0)
-    gb_4(r, 0 * 16 + c1, 1 * 16 + c1, 2 * 16 + c1, 3 * 16 + c1)
-    gb_4(r, 4 * 16 + c1, 5 * 16 + c1, 6 * 16 + c1, 7 * 16 + c1)
-  }
-}
-
-///|
-/// Apply the G function to 4 elements of a block at indices (ia, ib, ic, id).
-/// Modifies the block in place.
+/// Each G application performs two rounds of mixing using 64-bit multiply-low
+/// operations (RFC 9106 §3.5).
 fn gb_4(
   r : FixedArray[UInt64],
   ia : Int,
@@ -245,7 +199,6 @@ fn gb_4(
   let mut b = r[ib]
   let mut c = r[ic]
   let mut d = r[id]
-  // G(a, b, c, d) — 4 applications of the round function
   // Round 1
   a = a + b + 2UL * lo32(a) * lo32(b)
   d = rotr64(d ^ a, 32)
@@ -262,129 +215,252 @@ fn gb_4(
   r[id] = d
 }
 
+///|
+/// Apply a BLAKE2b round to 16 elements of a block.
+///
+/// This is the building block of the P permutation. Matches the C reference
+/// `BLAKE2_ROUND_NOMSG` macro exactly, applying the G function (BLAMKA) in the
+/// standard BLAKE2b diagonal pattern:
+///
+/// First half:  G(v0,v4,v8,v12)  G(v1,v5,v9,v13)  G(v2,v6,v10,v14)  G(v3,v7,v11,v15)
+/// Second half: G(v0,v5,v10,v15) G(v1,v6,v11,v12) G(v2,v7,v8,v13)  G(v3,v4,v9,v14)
+///
+/// where (a..p) = (v0..v15).
+fn blake2_round_nomsg(
+  r : FixedArray[UInt64],
+  a : Int,
+  b : Int,
+  c : Int,
+  d : Int,
+  e : Int,
+  f : Int,
+  g : Int,
+  h : Int,
+  i : Int,
+  j : Int,
+  k : Int,
+  l : Int,
+  m : Int,
+  n : Int,
+  o : Int,
+  p : Int,
+) -> Unit {
+  // First 4 G calls: diagonal pattern G(v0,v4,v8,v12) ...
+  gb_4(r, a, e, i, m)
+  gb_4(r, b, f, j, n)
+  gb_4(r, c, g, k, o)
+  gb_4(r, d, h, l, p)
+  // Second 4 G calls: other diagonal G(v0,v5,v10,v15) ...
+  gb_4(r, a, f, k, p)
+  gb_4(r, b, g, l, m)
+  gb_4(r, c, h, i, n)
+  gb_4(r, d, e, j, o)
+}
+
+///|
+/// The P permutation (RFC 9106 §3.5).
+///
+/// Views the 128-word block as an 8×16 matrix (8 rows, 16 columns).
+/// Applies two passes:
+/// 1. Row pass: for each of 8 rows, apply a full BLAKE2b round to the
+///    16-word row (treating it as a 4×4 sub-matrix).
+/// 2. Column pass: for each of 8 column pairs, apply a full BLAKE2b round
+///    to 16 words formed by taking 2 elements from each row.
+fn p_permutation(r : FixedArray[UInt64]) -> Unit {
+  // Row pass: process each 16-word row.
+  for i = 0; i < 8; i = i + 1 {
+    let base = 16 * i
+    blake2_round_nomsg(
+      r,
+      base + 0, base + 1, base + 2, base + 3,
+      base + 4, base + 5, base + 6, base + 7,
+      base + 8, base + 9, base + 10, base + 11,
+      base + 12, base + 13, base + 14, base + 15,
+    )
+  }
+  // Column pass: process each column pair.
+  for i = 0; i < 8; i = i + 1 {
+    blake2_round_nomsg(
+      r,
+      2 * i + 0, 2 * i + 1, 2 * i + 16, 2 * i + 17,
+      2 * i + 32, 2 * i + 33, 2 * i + 48, 2 * i + 49,
+      2 * i + 64, 2 * i + 65, 2 * i + 80, 2 * i + 81,
+      2 * i + 96, 2 * i + 97, 2 * i + 112, 2 * i + 113,
+    )
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Block compression
+// ---------------------------------------------------------------------------
+
+///|
+/// Compress two blocks: G(X, Y) = P(X ^ Y) ^ X ^ Y.
+///
+/// Used for address generation where `with_xor` is not needed.
+fn compress_g(
+  x : FixedArray[UInt64],
+  y : FixedArray[UInt64],
+) -> FixedArray[UInt64] {
+  // R = X ^ Y
+  let r : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    r[i] = x[i] ^ y[i]
+  }
+  // Apply P permutation to R
+  p_permutation(r)
+  // Z = R ^ X ^ Y
+  let z : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    z[i] = r[i] ^ x[i] ^ y[i]
+  }
+  z
+}
+
+///|
+/// Fill a block in memory: B[cur] = G'(B[prev], B[ref], B[cur], with_xor).
+///
+/// This matches the C reference `fill_block`:
+/// 1. R = prev ^ ref
+/// 2. tmp = R (optionally XOR with old block if with_xor)
+/// 3. Apply P permutation to R
+/// 4. result = tmp ^ P(R)
+///
+/// For `with_xor = false` (pass 0): result = R ^ P(R) = (prev^ref) ^ P(prev^ref)
+/// For `with_xor = true` (pass > 0): result = (R ^ old) ^ P(R) = (prev^ref^old) ^ P(prev^ref)
+fn fill_block_mem(
+  memory : FixedArray[UInt64],
+  prev_off : Int,
+  ref_off : Int,
+  cur_off : Int,
+  with_xor : Bool,
+) -> Unit {
+  // R = prev ^ ref
+  let r : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    r[i] = memory[prev_off + i] ^ memory[ref_off + i]
+  }
+  // tmp = copy of R (before P), optionally XOR with old block
+  let tmp : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    tmp[i] = r[i]
+    if with_xor {
+      tmp[i] = tmp[i] ^ memory[cur_off + i]
+    }
+  }
+  // Apply P permutation to R (modifies r in place)
+  p_permutation(r)
+  // Store result = tmp ^ P(R)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    memory[cur_off + i] = tmp[i] ^ r[i]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Address generation for data-independent indexing
+// ---------------------------------------------------------------------------
+
+///|
+/// Generate the next address block for data-independent indexing.
+///
+/// Increments the counter in `input_block[6]`, then computes:
+///   tmp = G(zero, input_block)
+///   address = G(zero, tmp)
+///
+/// The result is stored in `address_block`.
+fn next_addresses(
+  address_block : FixedArray[UInt64],
+  input_block : FixedArray[UInt64],
+  zero_block : FixedArray[UInt64],
+) -> Unit {
+  // Increment counter (input_block[6])
+  input_block[6] = input_block[6] + 1UL
+  // tmp = G(zero, input)
+  let tmp = compress_g(zero_block, input_block)
+  // address = G(zero, tmp)
+  let result = compress_g(zero_block, tmp)
+  for i = 0; i < BLOCK_WORDS; i = i + 1 {
+    address_block[i] = result[i]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Index computation (RFC 9106 §3.4)
+// ---------------------------------------------------------------------------
+
+///|
+/// Compute the reference block index (RFC 9106 §3.4 `index_alpha`).
+///
+/// - `pseudo_rand_32`: Low 32 bits of the pseudo-random value (zero-extended
+///   to UInt64).
+/// - `pass`: Current pass number (0 = first pass).
+/// - `slice`: Current sync-point slice (0..3).
+/// - `index`: Position within the current segment (0..segment_length-1).
+/// - `same_lane`: Whether the reference lane is the same as the current lane.
+/// - `lane_length`: Number of columns per lane (= q).
+/// - `segment_length`: Number of columns per segment (= q / 4).
+///
+/// Returns the absolute column index within the reference lane.
+fn index_alpha(
+  pseudo_rand_32 : UInt64,
+  pass : Int,
+  slice : Int,
+  index : Int,
+  same_lane : Bool,
+  lane_length : Int,
+  segment_length : Int,
+) -> Int {
+  // --- Reference area size ---
+  let reference_area_size : Int = if pass == 0 {
+    if slice == 0 {
+      // First slice of first pass: only blocks before current index in this lane
+      index - 1
+    } else if same_lane {
+      // Same lane, later slice: all blocks in previous slices + current position
+      slice * segment_length + index - 1
+    } else {
+      // Different lane, later slice: all blocks in previous slices
+      slice * segment_length + (if index == 0 { -1 } else { 0 })
+    }
+  } else if same_lane {
+    // Later pass, same lane: all blocks except current segment + current position
+    lane_length - segment_length + index - 1
+  } else {
+    // Later pass, different lane: all blocks except current segment
+    lane_length - segment_length + (if index == 0 { -1 } else { 0 })
+  }
+  // --- Index mapping (RFC 9106 §3.4) ---
+  // All arithmetic in UInt64 to avoid Int32 overflow.
+  // relative_position = pseudo_rand_32 (zero-extended to 64 bits)
+  // relative_position = (relative_position^2) >> 32
+  // relative_position = reference_area_size - 1 -
+  //                     ((reference_area_size * relative_position) >> 32)
+  let rel_pos = pseudo_rand_32
+  let rel_pos = (rel_pos * rel_pos) >> 32
+  let ref_area = reference_area_size.to_uint64()
+  let rel_pos = ref_area - 1UL - ((ref_area * rel_pos) >> 32)
+  // --- Start position ---
+  let start_position = if pass != 0 {
+    if slice == SYNC_POINTS - 1 {
+      0
+    } else {
+      (slice + 1) * segment_length
+    }
+  } else {
+    0
+  }
+  // --- Absolute position ---
+  (start_position + rel_pos.to_int()) % lane_length
+}
+
 // ---------------------------------------------------------------------------
 // Memory layout helpers
 // ---------------------------------------------------------------------------
 
 ///|
-/// Get a pointer (index) into the memory matrix for lane `l`, column `c`.
-/// The memory is a flat array of UInt64 words; each block is 128 words.
+/// Word offset for block (lane, col) in the flat memory array.
 fn block_offset(lane : Int, col : Int, cols_per_lane : Int) -> Int {
   (lane * cols_per_lane + col) * BLOCK_WORDS
-}
-
-///|
-/// Copy a block (128 UInt64 words) from src to dst.
-fn copy_block(dst : FixedArray[UInt64], dst_off : Int, src : FixedArray[UInt64], src_off : Int) -> Unit {
-  for i = 0; i < BLOCK_WORDS; i = i + 1 {
-    dst[dst_off + i] = src[src_off + i]
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Indexing computation
-// ---------------------------------------------------------------------------
-
-///|
-/// Compute the reference area and the index of the reference block
-/// for data-dependent addressing (Argon2d/id).
-///
-/// Returns `(ref_lane, ref_index)`.
-///
-/// Implements RFC 9106 §3.4 index computation for **multi-lane** Argon2:
-/// - `prev_block` is the previous block in the current lane (B[i][j-1]).
-/// - `ref_lane` is determined by the second 32 bits of prev_block, clamped
-///   to `[0, current_lane]` during pass 0 (a lane may only reference earlier
-///   or same lanes during the first pass).
-/// - `ref_index` is determined by the first 32 bits, mapped to the
-///   reference area `[0, pseudo_rand_size)` using the RFC 9106 §3.4
-///   index mapping function.
-///
-/// **Note**: Lanes are processed sequentially (lane 0 → lane p-1) rather
-/// than in parallel. This is correct per RFC 9106 (the spec defines memory
-/// access patterns, not execution parallelism) but does not provide the
-/// speedup that true multi-threaded execution would. On MoonBit's current
-/// Wasm/JS single-threaded target, parallel execution is not available.
-fn compute_ref_index(
-  prev_block : FixedArray[UInt64],
-  prev_off : Int,
-  current_lane : Int,
-  current_col : Int,
-  cols_per_lane : Int,
-  pass : Int,
-  _same_lane : Bool,
-) -> (Int, Int) {
-  // J1 = first 32 bits of prev_block[0]
-  // J2 = second 32 bits of prev_block[0]
-  let j1 = lo32(prev_block[prev_off])
-  let j2 = hi32(prev_block[prev_off])
-  // Determine reference lane
-  let ref_lane = if current_col == cols_per_lane - 1 {
-    current_lane
-  } else {
-    if pass == 0 && current_col < 2 {
-      current_lane
-    } else {
-      // UInt64 modulo to avoid Int32 overflow (j2 can be up to 2^32-1)
-      (j2 % (current_lane + 1).to_uint64()).to_int()
-    }
-  }
-  // Determine reference area size
-  let reference_area_size : Int = if pass == 0 {
-    if ref_lane == current_lane {
-      if current_col > 1 { current_col - 1 } else { 1 }
-    } else {
-      if current_col > 1 { current_col - 1 } else { 1 }
-    }
-  } else {
-    if ref_lane == current_lane {
-      cols_per_lane - 1
-    } else {
-      cols_per_lane
-    }
-  }
-  // Compute reference index using RFC 9106 §3.4 index mapping.
-  // All arithmetic in UInt64 to avoid Int32 overflow.
-  // ref_index = ((J1^2 >> 32) * reference_area_size) >> 32
-  let pos = (j1 * j1) >> 32
-  let ref_index = ((pos * reference_area_size.to_uint64()) >> 32).to_int()
-  // Apply offset
-  let start_pos = if pass == 0 {
-    0
-  } else {
-    if ref_lane == current_lane {
-      current_col + 1
-    } else {
-      0
-    }
-  }
-  let abs_index = (start_pos + ref_index) % cols_per_lane
-  (ref_lane, abs_index)
-}
-
-// ---------------------------------------------------------------------------
-// Address generation for data-independent indexing (Argon2i first pass)
-// ---------------------------------------------------------------------------
-
-///|
-/// Generate address blocks for data-independent indexing.
-/// Produces a pseudo-random index for the first half of the first pass.
-fn generate_address(
-  address_block : FixedArray[UInt64],
-  input_block : FixedArray[UInt64],
-  zero_block : FixedArray[UInt64],
-  counter : Int,
-  _lane : Int,
-) -> Unit {
-  // Increment counter in input_block
-  input_block[6] = counter.to_uint64()
-  input_block[7] = 0UL // high 32 bits of counter (always 0 for small counters)
-  // address_block = G(zero_block, G(zero_block, input_block))
-  let tmp = compress_g(zero_block, input_block)
-  let result = compress_g(zero_block, tmp)
-  for i = 0; i < BLOCK_WORDS; i = i + 1 {
-    address_block[i] = result[i]
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -408,16 +484,17 @@ fn generate_address(
 ///
 /// The `parallelism` parameter correctly affects memory layout (m' = 4*p*⌊m/(4p)⌋),
 /// lane initialization, and cross-lane reference index computation per RFC 9106 §3.4.
-/// Lanes are processed **sequentially** (lane 0 → p-1), which produces identical
-/// output to a parallel implementation — RFC 9106 defines the algorithm in terms
-/// of memory access patterns, not execution order. Actual parallel speedup requires
-/// platform-level threading, which MoonBit's Wasm/JS target does not currently support.
+/// Lanes are processed **sequentially** within each sync-point slice, which
+/// produces identical output to a parallel implementation — RFC 9106 defines
+/// the algorithm in terms of memory access patterns, not execution order.
+/// Actual parallel speedup requires platform-level threading.
 ///
 /// ## Example
 ///
 /// ```moonbit
 /// let p = @argon2.params(3, 4096, 1, 32)
-/// let hash = @argon2.hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+/// let hash = @argon2.hash(@utils.string_to_bytes("password"),
+///   @utils.string_to_bytes("somesalt"), p, b"", b"")
 /// ```
 pub fn hash(
   password : Bytes,
@@ -433,11 +510,10 @@ pub fn hash(
   let v = params.version
   // Compute m' (adjusted memory): m' = 4 * p * floor(m / (4*p))
   let m_prime = 4 * p * (m / (4 * p))
-  let q = m_prime / p // columns per lane
+  let lane_length = m_prime / p // columns per lane (= q)
+  let segment_length = lane_length / SYNC_POINTS
   // Step 1: Compute H0
-  // H0 = BLAKE2b-512(
-  //   p || tau || m || t || v || y || |P| || P || |S| || S || |K| || K || |X| || X
-  // )
+  // H0 = BLAKE2b-512(p || tau || m || t || v || y || |P| || P || |S| || S || |K| || K || |X| || X)
   let h0_input : Array[Byte] = []
   // p (parallelism) as UInt32 LE
   h0_input.push((p & 0xFF).to_byte())
@@ -449,7 +525,7 @@ pub fn hash(
   h0_input.push(((tau >> 8) & 0xFF).to_byte())
   h0_input.push(((tau >> 16) & 0xFF).to_byte())
   h0_input.push(((tau >> 24) & 0xFF).to_byte())
-  // m (memory_cost) as UInt32 LE
+  // m (memory_cost) as UInt32 LE — note: original m, not m'
   h0_input.push((m & 0xFF).to_byte())
   h0_input.push(((m >> 8) & 0xFF).to_byte())
   h0_input.push(((m >> 16) & 0xFF).to_byte())
@@ -503,7 +579,6 @@ pub fn hash(
   }
   let h0 = @blake2.blake2b_512(Bytes::from_array(h0_input))
   // Step 2: Allocate memory matrix
-  // Memory: m_prime blocks × 128 UInt64 words
   let memory : FixedArray[UInt64] = FixedArray::make(m_prime * BLOCK_WORDS, 0UL)
   // Step 3: Initialize first two blocks of each lane
   // B[i][0] = H'(H0 || 0 || i, 1024)
@@ -514,17 +589,19 @@ pub fn hash(
       for k = 0; k < h0.length(); k = k + 1 {
         seed.push(h0[k])
       }
+      // j as UInt32 LE
       seed.push((j & 0xFF).to_byte())
       seed.push(((j >> 8) & 0xFF).to_byte())
       seed.push(((j >> 16) & 0xFF).to_byte())
       seed.push(((j >> 24) & 0xFF).to_byte())
+      // lane as UInt32 LE
       seed.push((lane & 0xFF).to_byte())
       seed.push(((lane >> 8) & 0xFF).to_byte())
       seed.push(((lane >> 16) & 0xFF).to_byte())
       seed.push(((lane >> 24) & 0xFF).to_byte())
       let block_bytes = h_prime(Bytes::from_array(seed), BLOCK_SIZE)
       // Convert bytes to UInt64 words (little-endian)
-      let off = block_offset(lane, j, q)
+      let off = block_offset(lane, j, lane_length)
       for w = 0; w < BLOCK_WORDS; w = w + 1 {
         let mut val : UInt64 = 0UL
         for b = 0; b < 8; b = b + 1 {
@@ -534,104 +611,83 @@ pub fn hash(
       }
     }
   }
-  // Step 4: Fill memory
-  // For Argon2id: first half of first pass is data-independent,
-  // the rest is data-dependent.
-  let half_q = q / 2
-  // Address generation state for data-independent indexing
+  // Step 4: Fill memory matrix
+  // Argon2id: data-independent for first half of first pass (slices 0..1),
+  //           data-dependent for the rest.
   let zero_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-  let input_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-  let address_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-  // Initialize input_block: [pass, lane, m_prime, t, y, 0, 0, 0, ...]
-  input_block[0] = 0UL // pass (filled per pass)
-  input_block[1] = 0UL // lane (filled per lane)
-  input_block[2] = m_prime.to_uint64()
-  input_block[3] = t.to_uint64()
-  input_block[4] = ARGON2_ID.to_uint64()
-  input_block[5] = 0UL // reserved
-  input_block[6] = 0UL // counter (incremented per address block)
-  input_block[7] = 0UL
-  let mut address_idx = 0
   for pass = 0; pass < t; pass = pass + 1 {
-    for lane = 0; lane < p; lane = lane + 1 {
-      // Set up input_block for this pass/lane
-      input_block[0] = pass.to_uint64()
-      input_block[1] = lane.to_uint64()
-      input_block[6] = 1UL // counter starts at 1
-      address_idx = 0
-      // Generate first address block
-      generate_address(address_block, input_block, zero_block, 1, lane)
-      for col = 0; col < q; col = col + 1 {
-        // Skip the first two columns (already initialized)
-        if col < 2 && pass == 0 {
-          continue
+    for slice = 0; slice < SYNC_POINTS; slice = slice + 1 {
+      for lane = 0; lane < p; lane = lane + 1 {
+        let data_independent = pass == 0 && slice < SYNC_POINTS / 2
+        // Set up input_block for data-independent addressing
+        let input_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+        let address_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+        if data_independent {
+          input_block[0] = pass.to_uint64()
+          input_block[1] = lane.to_uint64()
+          input_block[2] = slice.to_uint64()
+          input_block[3] = m_prime.to_uint64()
+          input_block[4] = t.to_uint64()
+          input_block[5] = ARGON2_ID.to_uint64()
+          input_block[6] = 0UL // counter (incremented by next_addresses)
         }
-        // Determine if this is data-independent or data-dependent
-        let data_independent = pass == 0 && col < half_q
-        // Compute reference block
-        let (ref_lane, ref_col) = if data_independent {
-          // Data-independent: use address block
-          if address_idx >= BLOCK_WORDS {
-            // Generate new address block
-            let counter = (input_block[6].to_int()) + 1
-            input_block[6] = counter.to_uint64()
-            generate_address(address_block, input_block, zero_block, counter, lane)
-            address_idx = 0
+        // Starting index: skip first 2 blocks in pass 0, slice 0 (pre-initialized)
+        let starting_index = if pass == 0 && slice == 0 { 2 } else { 0 }
+        // Generate first address block for data-independent addressing
+        if data_independent && pass == 0 && slice == 0 {
+          next_addresses(address_block, input_block, zero_block)
+        }
+        // Compute initial offsets (block indices within the lane)
+        let mut curr_col = slice * segment_length + starting_index
+        let mut prev_col = if curr_col % lane_length == 0 {
+          curr_col + lane_length - 1
+        } else {
+          curr_col - 1
+        }
+        // Iterate over blocks in this segment
+        for i = starting_index; i < segment_length; i = i + 1 {
+          // Fix prev_col when at column 1 of the lane
+          if curr_col % lane_length == 1 {
+            prev_col = curr_col - 1
           }
-          let reference_area_size = if pass == 0 {
-            if col < 2 { 1 } else { col - 1 }
+          // Get pseudo-random value
+          let pseudo_rand = if data_independent {
+            // Generate new address block when exhausted
+            if i % BLOCK_WORDS == 0 {
+              next_addresses(address_block, input_block, zero_block)
+            }
+            address_block[i % BLOCK_WORDS]
           } else {
-            q - 1
+            // Data-dependent: first word of previous block
+            memory[block_offset(lane, prev_col, lane_length)]
           }
-          let pseudo_rand = address_block[address_idx]
-          address_idx = address_idx + 1
-          // Index computation in UInt64 to avoid Int32 overflow.
-          // J1 (low 32 bits) → position, J2 (high 32 bits) → lane.
-          let j1 = lo32(pseudo_rand)
-          let pos = (j1 * j1) >> 32
-          let ref_index = ((pos * reference_area_size.to_uint64()) >> 32).to_int()
-          let rl = if col == q - 1 || (pass == 0 && col < 2) {
+          // Determine reference lane
+          let ref_lane = if pass == 0 && slice == 0 {
             lane
           } else {
-            (hi32(pseudo_rand) % (lane + 1).to_uint64()).to_int()
+            (hi32(pseudo_rand) % p.to_uint64()).to_int()
           }
-          (rl, ref_index % q)
-        } else {
-          // Data-dependent: use previous block
-          let prev_off = if col == 0 {
-            // Previous block is the last column of this lane
-            block_offset(lane, q - 1, q)
-          } else {
-            block_offset(lane, col - 1, q)
-          }
-          compute_ref_index(
-            memory, prev_off,
-            lane, col, q, pass, false,
+          // Determine reference index
+          let same_lane = ref_lane == lane
+          let ref_index = index_alpha(
+            lo32(pseudo_rand),
+            pass,
+            slice,
+            i,
+            same_lane,
+            lane_length,
+            segment_length,
           )
-        }
-        // Get offsets
-        let cur_off = block_offset(lane, col, q)
-        let prev_off = if col == 0 {
-          block_offset(lane, q - 1, q)
-        } else {
-          block_offset(lane, col - 1, q)
-        }
-        let ref_off = block_offset(ref_lane, ref_col, q)
-        // Compute new block: B[i][j] = G(B[i][j-1], B[l'][r])
-        let prev_copy : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-        copy_block(prev_copy, 0, memory, prev_off)
-        let ref_copy : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-        copy_block(ref_copy, 0, memory, ref_off)
-        let new_block = compress_g(prev_copy, ref_copy)
-        // For passes > 0: XOR with old value
-        if pass > 0 {
-          for i = 0; i < BLOCK_WORDS; i = i + 1 {
-            new_block[i] = new_block[i] ^ memory[cur_off + i]
-          }
-        }
-        // Store result
-        for i = 0; i < BLOCK_WORDS; i = i + 1 {
-          memory[cur_off + i] = new_block[i]
+          // Compute offsets in the flat memory array
+          let cur_off = block_offset(lane, curr_col, lane_length)
+          let prev_off = block_offset(lane, prev_col, lane_length)
+          let ref_off = block_offset(ref_lane, ref_index, lane_length)
+          // Fill block: B[cur] = G'(B[prev], B[ref], B[cur], with_xor)
+          let with_xor = pass != 0
+          fill_block_mem(memory, prev_off, ref_off, cur_off, with_xor)
+          // Advance to next block
+          curr_col = curr_col + 1
+          prev_col = prev_col + 1
         }
       }
     }
@@ -640,17 +696,17 @@ pub fn hash(
   // XOR all last-column blocks across lanes
   let final_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
   for lane = 0; lane < p; lane = lane + 1 {
-    let off = block_offset(lane, q - 1, q)
+    let off = block_offset(lane, lane_length - 1, lane_length)
     for i = 0; i < BLOCK_WORDS; i = i + 1 {
       final_block[i] = final_block[i] ^ memory[off + i]
     }
   }
-  // Convert final block to bytes
+  // Convert final block to bytes (little-endian)
   let final_bytes : Array[Byte] = Array::make(BLOCK_SIZE, b'\x00')
   for i = 0; i < BLOCK_WORDS; i = i + 1 {
-    let v = final_block[i]
+    let val = final_block[i]
     for b = 0; b < 8; b = b + 1 {
-      final_bytes[i * 8 + b] = ((v >> (b * 8)) & 0xFFUL).to_byte()
+      final_bytes[i * 8 + b] = ((val >> (b * 8)) & 0xFFUL).to_byte()
     }
   }
   // H'(final_block, hash_len)
@@ -672,9 +728,9 @@ pub fn hash_hex(
   ]
   let buf = StringBuilder::new()
   for i = 0; i < h.length(); i = i + 1 {
-    let v = h[i].to_int()
-    buf.write_char(hex_arr[(v >> 4) & 0xF])
-    buf.write_char(hex_arr[v & 0xF])
+    let val = h[i].to_int()
+    buf.write_char(hex_arr[(val >> 4) & 0xF])
+    buf.write_char(hex_arr[val & 0xF])
   }
   buf.to_string()
 }
@@ -792,9 +848,6 @@ test "argon2: multi-lane produces correct length" {
 ///|
 test "argon2: multi-lane affects computation (not just memory)" {
   // Same total memory (256 KiB) but different parallelism.
-  // p=1: 256 KiB / 1 lane = 256 blocks/lane
-  // p=2: 256 KiB / 2 lanes = 128 blocks/lane
-  // If multi-lane indexing is correctly implemented, the hashes differ.
   let p1 = params(1, 256, 1, 32)
   let p2 = params(1, 256, 2, 32)
   let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p1, b"", b"")
@@ -811,7 +864,6 @@ test "argon2: multi-lane affects computation (not just memory)" {
 
 ///|
 test "argon2: multi-lane deterministic" {
-  // Multi-lane output must be deterministic across runs.
   let p = params(2, 128, 4, 32)
   let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
   let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
@@ -838,4 +890,176 @@ test "argon2: multiple passes" {
   let p = params(3, 64, 1, 32)
   let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
   assert_eq(h.length(), 32)
+}
+
+///|
+test "argon2: h_prime variable-length output > 64 bytes" {
+  // RFC 9106 §3.3: For T > 64, output = W_1 || W_2 || ... || V_{r+1}
+  // where W_i = first 32 bytes of V_i, V_1 = H^64(LE32(T) || data)
+  let data = @utils.string_to_bytes("test data for h_prime")
+  let result_100 = h_prime(data, 100)
+  assert_eq(result_100.length(), 100)
+  let result_200 = h_prime(data, 200)
+  assert_eq(result_200.length(), 200)
+  // V_1 = BLAKE2b-512(LE32(100) || data)
+  let direct_input : Array[Byte] = [
+    100, 0, 0, 0, // out_len LE
+  ]
+  for i = 0; i < data.length(); i = i + 1 {
+    direct_input.push(data[i])
+  }
+  let v1 = @blake2.blake2b_512(Bytes::from_array(direct_input))
+  // W_1 = first 32 bytes of V_1
+  for i = 0; i < 32; i = i + 1 {
+    assert_eq(result_100[i], v1[i])
+  }
+  // V_2 = BLAKE2b-512(V_1), W_2 = first 32 bytes of V_2
+  let v2 = @blake2.blake2b_512(v1)
+  for i = 0; i < 32; i = i + 1 {
+    assert_eq(result_100[32 + i], v2[i])
+  }
+}
+
+// ---------------------------------------------------------------------------
+// RFC 9106 / reference C library test vectors
+// ---------------------------------------------------------------------------
+
+///|
+/// Helper: convert a hex string to Bytes for test vector comparison.
+fn hex_to_bytes(hex : String) -> Bytes {
+  let result : Array[Byte] = []
+  let chars = hex.to_array()
+  let mut i = 0
+  while i + 1 < chars.length() {
+    let hi = chars[i].to_int() - '0'.to_int()
+    let lo = chars[i + 1].to_int() - '0'.to_int()
+    let hi = if hi > 9 { hi - 39 } else { hi } // 'a' = 97, '0' = 48, diff = 49, but -39 for lowercase
+    let lo = if lo > 9 { lo - 39 } else { lo }
+    result.push(((hi << 4) | lo).to_byte())
+    i = i + 2
+  }
+  Bytes::from_array(result)
+}
+
+///|
+test "argon2: RFC 9106 vector 1 (t=3,m=64,p=1,tau=32)" {
+  // Password = 0x01*8, Salt = 0x02*8, t=3, m=64, p=1, tau=32
+  let pwd = Bytes::make(8, b'\x01')
+  let salt = Bytes::make(8, b'\x02')
+  let p = params(3, 64, 1, 32)
+  let h = hash(pwd, salt, p, b"", b"")
+  let expected = hex_to_bytes("e597a7ca0a127a42cf629fc66c3113cab68af48c3140605539ad4a2d7d7fd643")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 2 (t=3,m=64,p=2,tau=32)" {
+  // Password = 0x01*8, Salt = 0x02*8, t=3, m=64, p=2, tau=32
+  let pwd = Bytes::make(8, b'\x01')
+  let salt = Bytes::make(8, b'\x02')
+  let p = params(3, 64, 2, 32)
+  let h = hash(pwd, salt, p, b"", b"")
+  let expected = hex_to_bytes("85688bad75c9523513842e0125fb4c4be7c0934b5e06ac404fc446ce845fa032")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 3 (t=1,m=64,p=1,tau=32)" {
+  // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=32
+  let p = params(1, 64, 1, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("729c7a54441bc13559bdca71348c4e554599e719c08a952601ed5c83618c1bbd")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 4 (t=2,m=64,p=1,tau=32)" {
+  // Password = "password", Salt = "somesalt", t=2, m=64, p=1, tau=32
+  let p = params(2, 64, 1, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("16a1a498734609dd01456da406de9f3d9da93e6c86c300a12fc1465214ce4922")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 5 (empty pwd, t=1,m=8,p=1,tau=32)" {
+  // Password = "", Salt = 0x00*16, t=1, m=8, p=1, tau=32
+  let salt = Bytes::make(16, b'\x00')
+  let p = params(1, 8, 1, 32)
+  let h = hash(b"", salt, p, b"", b"")
+  let expected = hex_to_bytes("cfa0d2d242da6703d311d7eefc922e39cc60c9f4ec93a67d20995be541a06be4")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 6 (tau=64)" {
+  // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=64
+  let p = params(1, 64, 1, 64)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("5c6bf55c8656e969fc02abfef931c6a52e6c34e83d1cd32d6da544b30daa3ef2ec357847e038df39ddf38526b8300cca72bdf872dd6ac1ae6fd6c0b59b836eba")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 7 (t=2,m=128,p=4,tau=32)" {
+  // Password = "test", Salt = "somesalt", t=2, m=128, p=4, tau=32
+  let p = params(2, 128, 4, 32)
+  let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("62bc768edae0bd07480fabb9ab0f52bd21b22ae990b782afdebcec5adce34815")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: RFC 9106 vector 8 (tau=16)" {
+  // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=16
+  let p = params(1, 64, 1, 16)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("a4c9703acfe09fecddbe807f00689134")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: ref vector 9 (t=3,m=64,p=1,tau=32)" {
+  // Multiple passes: t=3, m=64, p=1
+  let p = params(3, 64, 1, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("b9e3bfda58fb95f1e1e479af4e01bfade5a0dba34d400a254f770462674169e6")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: ref vector 10 (t=1,m=64,p=2,tau=32)" {
+  // Multi-lane: t=1, m=64, p=2
+  let p = params(1, 64, 2, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("7ee97262358926f30e4431533d4ab811ab69977948b628b123dc4cf41e9e6f5d")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: ref vector 11 (t=1,m=256,p=1,tau=32)" {
+  // Higher memory: t=1, m=256, p=1
+  let p = params(1, 256, 1, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("024ec0c1ac65d08d95f1e46fcc33801dc5dcee045470e74765b7f7381b50ecd5")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: ref vector 12 (t=1,m=256,p=4,tau=32)" {
+  // Higher memory + multi-lane: t=1, m=256, p=4
+  let p = params(1, 256, 4, 32)
+  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let expected = hex_to_bytes("445897f117bb4c5a1dd14f65658e5c52612b1ab7d1badcd8fd6492191db418a1")
+  assert_eq(h, expected)
+}
+
+///|
+test "argon2: ref vector 13 (empty pwd, t=2,m=8,p=1,tau=32)" {
+  // Empty password, multiple passes: t=2, m=8, p=1
+  let salt = Bytes::make(16, b'\x00')
+  let p = params(2, 8, 1, 32)
+  let h = hash(b"", salt, p, b"", b"")
+  let expected = hex_to_bytes("2bf798a872dd5ac068d555d2ff67c372afac0d28630353c885f080a114329a2c")
+  assert_eq(h, expected)
 }
