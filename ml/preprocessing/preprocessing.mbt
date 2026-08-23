@@ -1,3 +1,4 @@
+///|
 /// Feature Preprocessing — StandardScaler, MinMaxScaler, OneHotEncoder.
 ///
 /// Provides standard data transformation utilities used in ML pipelines:
@@ -226,7 +227,14 @@ pub struct MinMaxScaler {
 ///|
 /// Create a MinMaxScaler with default range [0, 1].
 pub fn MinMaxScaler::new() -> MinMaxScaler {
-  { mins: [], maxs: [], fitted: false, n_features: 0, range_min: 0.0, range_max: 1.0 }
+  {
+    mins: [],
+    maxs: [],
+    fitted: false,
+    n_features: 0,
+    range_min: 0.0,
+    range_max: 1.0,
+  }
 }
 
 ///|
@@ -234,7 +242,14 @@ pub fn MinMaxScaler::new() -> MinMaxScaler {
 pub fn MinMaxScaler::with_range(min : Double, max : Double) -> MinMaxScaler {
   let lo = if min < max { min } else { 0.0 }
   let hi = if min < max { max } else { 1.0 }
-  { mins: [], maxs: [], fitted: false, n_features: 0, range_min: lo, range_max: hi }
+  {
+    mins: [],
+    maxs: [],
+    fitted: false,
+    n_features: 0,
+    range_min: lo,
+    range_max: hi,
+  }
 }
 
 ///|
@@ -372,7 +387,10 @@ pub fn OneHotEncoder::new(n_classes : Int) -> OneHotEncoder {
 ///|
 /// Encode a single label as a one-hot vector.
 /// If the label is out of range `[0, n_classes)`, the vector is all zeros.
-pub fn OneHotEncoder::encode(encoder : OneHotEncoder, label : Int) -> Array[Double] {
+pub fn OneHotEncoder::encode(
+  encoder : OneHotEncoder,
+  label : Int,
+) -> Array[Double] {
   let v = Array::make(encoder.n_classes, 0.0)
   if label >= 0 && label < encoder.n_classes {
     v[label] = 1.0
@@ -463,13 +481,12 @@ test "standard_scaler: inverse_transform" {
     Some(z_vals) => {
       let recovered = StandardScaler::inverse_transform(scaler, z_vals)
       match recovered {
-        Some(r) => {
+        Some(r) =>
           for i = 0; i < x.length(); i = i + 1 {
             for j = 0; j < 2; j = j + 1 {
               assert_true((r[i][j] - x[i][j]).abs() < 0.0000000001)
             }
           }
-        }
         None => assert_true(false)
       }
     }
@@ -483,12 +500,11 @@ test "standard_scaler: constant column" {
   let x : Array[Array[Double]] = [[5.0], [5.0], [5.0]]
   let result = StandardScaler::fit_transform(scaler, x)
   match result {
-    Some(z) => {
+    Some(z) =>
       // Constant column → std set to 1, so z = (5-5)/1 = 0
       for i = 0; i < 3; i = i + 1 {
         assert_true(z[i][0] == 0.0)
       }
-    }
     None => assert_true(false)
   }
 }
@@ -550,13 +566,12 @@ test "minmax_scaler: inverse_transform" {
     Some(z_vals) => {
       let recovered = MinMaxScaler::inverse_transform(scaler, z_vals)
       match recovered {
-        Some(r) => {
+        Some(r) =>
           for i = 0; i < x.length(); i = i + 1 {
             for j = 0; j < 2; j = j + 1 {
               assert_true((r[i][j] - x[i][j]).abs() < 0.0000000001)
             }
           }
-        }
         None => assert_true(false)
       }
     }
@@ -570,12 +585,11 @@ test "minmax_scaler: constant column" {
   let x : Array[Array[Double]] = [[3.0], [3.0], [3.0]]
   let result = MinMaxScaler::fit_transform(scaler, x)
   match result {
-    Some(z) => {
+    Some(z) =>
       // Constant → set to range_min (0.0)
       for i = 0; i < 3; i = i + 1 {
         assert_true(z[i][0] == 0.0)
       }
-    }
     None => assert_true(false)
   }
 }

@@ -1,0 +1,7 @@
+import {
+  "moon-certified/crypto/sha256",
+}
+
+options(
+  "proof-enabled": false,
+)

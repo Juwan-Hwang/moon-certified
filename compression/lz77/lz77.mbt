@@ -128,8 +128,8 @@ pub fn compress(data : Bytes) -> Bytes {
       // Full comparison.
       let mut match_len = 0
       while match_len < max_len &&
-        pos + match_len < n &&
-        data[candidate + match_len] == data[pos + match_len] {
+            pos + match_len < n &&
+            data[candidate + match_len] == data[pos + match_len] {
         match_len = match_len + 1
       }
       if match_len > best_len {
@@ -225,13 +225,16 @@ fn encode_tokens(tokens : Array[Token], original_len : Int) -> Bytes {
     let flag_pos = output.length()
     output.push(b'\x00')
     let mut flag = 0
-    let group_end = if idx + 8 < tokens.length() { idx + 8 } else { tokens.length() }
+    let group_end = if idx + 8 < tokens.length() {
+      idx + 8
+    } else {
+      tokens.length()
+    }
     for bit = 0; bit < 8 && idx + bit < tokens.length(); bit = bit + 1 {
       match tokens[idx + bit] {
-        Token::Literal(b) => {
+        Token::Literal(b) =>
           // bit stays 0 (literal)
           output.push(b)
-        }
         Token::Match(dist, len) => {
           flag = flag | (1 << bit)
           let adjusted_len = len - MIN_MATCH
@@ -406,10 +409,10 @@ test "lz77: binary data" {
 test "lz77: incompressible data overhead is bounded" {
   // Data with no repeats — overhead should be ~12.5%, not 100%.
   let data = Bytes::from_array([
-    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-    b'\x08', b'\x09', b'\x0A', b'\x0B', b'\x0C', b'\x0D', b'\x0E', b'\x0F',
-    b'\x10', b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17',
-    b'\x18', b'\x19', b'\x1A', b'\x1B', b'\x1C', b'\x1D', b'\x1E', b'\x1F',
+    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+    b'\x09', b'\x0A', b'\x0B', b'\x0C', b'\x0D', b'\x0E', b'\x0F', b'\x10', b'\x11',
+    b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1A',
+    b'\x1B', b'\x1C', b'\x1D', b'\x1E', b'\x1F',
   ])
   let compressed = compress(data)
   // 4 bytes header + 4 flag bytes + 32 literal bytes = 40 bytes max.
@@ -424,8 +427,8 @@ test "lz77: corrupt stream returns None" {
   // Invalid back-reference.
   let bad = Bytes::from_array([
     b'\x05', b'\x00', b'\x00', b'\x00', // original_len = 5
-    b'\x01', // flag: token 0 is a match
-    b'\x10', b'\x00', // dist=16, len=3 — but output is empty!
+     b'\x01', // flag: token 0 is a match
+     b'\x10', b'\x00', // dist=16, len=3 — but output is empty!
   ])
   assert_true(decompress(bad) is None)
 }

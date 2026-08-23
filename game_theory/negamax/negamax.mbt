@@ -48,7 +48,12 @@ pub struct SearchResult {
 /// `depth`: maximum search depth (0 = evaluate immediately)
 /// `alpha`: best value for maximizing player (initial: -infinity)
 /// `beta`: best value for minimizing player (initial: +infinity)
-pub fn[G : Game] negamax(state : G, depth : Int, alpha : Double, beta : Double) -> SearchResult {
+pub fn[G : Game] negamax(
+  state : G,
+  depth : Int,
+  alpha : Double,
+  beta : Double,
+) -> SearchResult {
   if depth == 0 || state.is_terminal() {
     return { best_move: None, score: state.evaluate() }
   }
@@ -97,7 +102,7 @@ priv struct TTTState {
 }
 
 ///|
-impl Game for TTTState with legal_moves(self : TTTState) -> Array[Int] {
+impl Game for TTTState with fn legal_moves(self : TTTState) -> Array[Int] {
   let moves : Array[Int] = []
   for i = 0; i < 9; i = i + 1 {
     if self.board[i] == 0 {
@@ -108,7 +113,7 @@ impl Game for TTTState with legal_moves(self : TTTState) -> Array[Int] {
 }
 
 ///|
-impl Game for TTTState with make_move(self : TTTState, mv : Int) -> TTTState {
+impl Game for TTTState with fn make_move(self : TTTState, mv : Int) -> TTTState {
   let new_board = Array::make(9, 0)
   for i = 0; i < 9; i = i + 1 {
     new_board[i] = self.board[i]
@@ -118,15 +123,22 @@ impl Game for TTTState with make_move(self : TTTState, mv : Int) -> TTTState {
 }
 
 ///|
-impl Game for TTTState with evaluate(self : TTTState) -> Double {
+impl Game for TTTState with fn evaluate(self : TTTState) -> Double {
   // Check all winning lines
   let lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // cols
-    [0, 4, 8], [2, 4, 6], // diagonals
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8], // rows
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8], // cols
+    [0, 4, 8],
+    [2, 4, 6], // diagonals
   ]
   for i = 0; i < lines.length(); i = i + 1 {
-    let s = self.board[lines[i][0]] + self.board[lines[i][1]] + self.board[lines[i][2]]
+    let s = self.board[lines[i][0]] +
+      self.board[lines[i][1]] +
+      self.board[lines[i][2]]
     if s == 3 || s == -3 {
       // Winner = s/3 (1 for X, -1 for O).
       // Negamax requires evaluation from the perspective of the player to move.
@@ -138,13 +150,22 @@ impl Game for TTTState with evaluate(self : TTTState) -> Double {
 }
 
 ///|
-impl Game for TTTState with is_terminal(self : TTTState) -> Bool {
+impl Game for TTTState with fn is_terminal(self : TTTState) -> Bool {
   // Check for win
   let lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6],
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
   ]
   for i = 0; i < lines.length(); i = i + 1 {
-    let s = self.board[lines[i][0]] + self.board[lines[i][1]] + self.board[lines[i][2]]
+    let s = self.board[lines[i][0]] +
+      self.board[lines[i][1]] +
+      self.board[lines[i][2]]
     if s == 3 || s == -3 {
       return true
     }
@@ -161,10 +182,7 @@ impl Game for TTTState with is_terminal(self : TTTState) -> Bool {
 ///|
 test "negamax: finds winning move" {
   // X can win by placing at position 2 (top row: X X _)
-  let state : TTTState = {
-    board: [1, 1, 0, -1, -1, 0, 0, 0, 0],
-    player: 1,
-  }
+  let state : TTTState = { board: [1, 1, 0, -1, -1, 0, 0, 0, 0], player: 1 }
   let mv = find_best_move(state, 5)
   match mv {
     Some(m) => assert_eq(m, 2)
@@ -176,10 +194,7 @@ test "negamax: finds winning move" {
 test "negamax: blocks opponent win" {
   // O threatens to win at position 5 (row 1: O O _); X must block
   // X at position 0 prevents O from creating a fork via the center
-  let state : TTTState = {
-    board: [1, 0, 0, -1, -1, 0, 0, 0, 0],
-    player: 1,
-  }
+  let state : TTTState = { board: [1, 0, 0, -1, -1, 0, 0, 0, 0], player: 1 }
   let mv = find_best_move(state, 5)
   match mv {
     Some(m) => assert_eq(m, 5) // Block the row
@@ -189,10 +204,7 @@ test "negamax: blocks opponent win" {
 
 ///|
 test "negamax: empty board returns a move" {
-  let state : TTTState = {
-    board: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    player: 1,
-  }
+  let state : TTTState = { board: [0, 0, 0, 0, 0, 0, 0, 0, 0], player: 1 }
   let mv = find_best_move(state, 3)
   match mv {
     Some(_) => assert_true(true)

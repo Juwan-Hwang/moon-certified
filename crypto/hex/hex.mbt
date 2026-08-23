@@ -37,6 +37,7 @@ let hex_upper : FixedArray[Byte] = FixedArray::make(16, b'\x00')
 /// Indexed by byte value (0–255).
 let hex_decode : FixedArray[Int] = FixedArray::make(256, -1)
 
+///|
 test "hex: init tables" {
   // Tables are initialised lazily on first use via init_tables().
   // This test verifies the initialisation is correct.
@@ -181,6 +182,7 @@ pub fn ct_compare(a : String, b : String) -> Bool {
   diff == 0
 }
 
+///|
 /// Normalize a hex character to its numeric value (0–15), or 0 if invalid.
 /// Uppercase letters are converted to lowercase equivalent for comparison.
 fn normalize_hex(b : Byte) -> Int {
@@ -200,6 +202,7 @@ fn normalize_hex(b : Byte) -> Int {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+///|
 fn string_to_bytes(s : String) -> Bytes {
   let arr : Array[Byte] = []
   for c in s.iter() {
@@ -208,6 +211,7 @@ fn string_to_bytes(s : String) -> Bytes {
   Bytes::from_array(arr)
 }
 
+///|
 fn bytes_to_string(b : Bytes) -> String {
   let sb = StringBuilder::new()
   for i = 0; i < b.length(); i = i + 1 {
@@ -237,16 +241,12 @@ test "hex: encode known vectors" {
     "666f6f62",
   )
   assert_eq(
-    encode(
-      Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61']),
-    ),
+    encode(Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61'])),
     "666f6f6261",
   )
   assert_eq(
     encode(
-      Bytes::from_array([
-        b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72',
-      ]),
+      Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72']),
     ),
     "666f6f626172",
   )
@@ -281,28 +281,29 @@ test "hex: decode known vectors" {
   )
   assert_eq(
     decode("666f6f626172").unwrap(),
-    Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72',
-    ]),
+    Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72']),
   )
 }
 
 ///|
 test "hex: decode uppercase" {
-  assert_eq(decode("DEADBEEF").unwrap(), Bytes::from_array([
-    b'\xDE', b'\xAD', b'\xBE', b'\xEF',
-  ]))
+  assert_eq(
+    decode("DEADBEEF").unwrap(),
+    Bytes::from_array([b'\xDE', b'\xAD', b'\xBE', b'\xEF']),
+  )
   assert_eq(decode("00FF").unwrap(), Bytes::from_array([b'\x00', b'\xFF']))
 }
 
 ///|
 test "hex: decode mixed case" {
-  assert_eq(decode("DeAdBeEf").unwrap(), Bytes::from_array([
-    b'\xDE', b'\xAD', b'\xBE', b'\xEF',
-  ]))
-  assert_eq(decode("aAbBcC").unwrap(), Bytes::from_array([
-    b'\xAA', b'\xBB', b'\xCC',
-  ]))
+  assert_eq(
+    decode("DeAdBeEf").unwrap(),
+    Bytes::from_array([b'\xDE', b'\xAD', b'\xBE', b'\xEF']),
+  )
+  assert_eq(
+    decode("aAbBcC").unwrap(),
+    Bytes::from_array([b'\xAA', b'\xBB', b'\xCC']),
+  )
 }
 
 ///|

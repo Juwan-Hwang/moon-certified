@@ -523,7 +523,7 @@ pub fn serialize_tree(tree : HuffmanTree) -> Bytes {
   let result : Array[Byte] = Array::make(byte_len, b'\x00')
   for i = 0; i < bits.length(); i = i + 1 {
     if bits[i] {
-      result[i / 8] = result[i / 8] | (1 << (7 - (i % 8))).to_byte()
+      result[i / 8] = result[i / 8] | (1 << (7 - i % 8)).to_byte()
     }
   }
   Bytes::from_array(result)
@@ -538,6 +538,7 @@ pub fn serialize_tree_bit_count(tree : HuffmanTree) -> Int {
   }
 }
 
+///|
 fn count_node_bits(node : HNode, acc : Int) -> Int {
   match node {
     Leaf(_) => acc + 9 // 1 flag bit + 8 data bits
@@ -549,6 +550,7 @@ fn count_node_bits(node : HNode, acc : Int) -> Int {
   }
 }
 
+///|
 fn serialize_node(node : HNode, bits : Array[Bool]) -> Unit {
   match node {
     Leaf(b) => {
@@ -590,11 +592,13 @@ pub fn deserialize_tree(data : Bytes, bit_count : Int) -> HuffmanTree? {
   }
 }
 
+///|
 /// Mutable cursor for reading bits during tree deserialization.
 priv struct BitCursor {
   mut pos : Int
 }
 
+///|
 fn deserialize_node(
   data : Bytes,
   bit_count : Int,
@@ -631,10 +635,11 @@ fn deserialize_node(
   }
 }
 
+///|
 /// Read the `idx`-th bit from `data` (MSB-first within each byte).
 fn read_bit(data : Bytes, idx : Int) -> Bool {
   let byte_idx = idx / 8
-  let bit_idx = 7 - (idx % 8)
+  let bit_idx = 7 - idx % 8
   if byte_idx >= data.length() {
     false
   } else {

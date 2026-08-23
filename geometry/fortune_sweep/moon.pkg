@@ -1,0 +1,7 @@
+import {
+  "moon-certified/containers/priority_queue",
+}
+
+options(
+  "proof-enabled": false,
+)

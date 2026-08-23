@@ -1,0 +1,6 @@
+///|
+/// Kruskal MST verified predicates.
+///
+/// Note: The full MST optimality property (minimum total weight spanning tree)
+/// is not formally verified due to the complexity of proving cut/cycle properties
+/// with mutable union-find structures. Only edge_count_bound is verified.

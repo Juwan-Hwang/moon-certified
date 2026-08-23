@@ -1,0 +1,5 @@
+///|
+/// The array is sorted in ascending order: xs[k] <= xs[k+1] for all valid k.
+predicate sorted_asc(xs : FixedArray[Int]) {
+  ∀ k : Int, ((0 <= k) && (k + 1 < xs.length())) → xs[k] <= xs[k + 1]
+}

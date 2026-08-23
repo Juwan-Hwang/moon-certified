@@ -199,7 +199,11 @@ pub fn[T] optimize(
   } else {
     initial_population.length()
   }
-  let tour_size = if config.tournament_size < 1 { 1 } else { config.tournament_size }
+  let tour_size = if config.tournament_size < 1 {
+    1
+  } else {
+    config.tournament_size
+  }
   let elite_count = if config.elite_count < 0 { 0 } else { config.elite_count }
   // Initialize population with scores
   let mut population : Array[Scored[T]] = []
@@ -432,6 +436,7 @@ pub fn swap_mutation(arr : Array[Int], rng : GARng) -> Array[Int] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "ga: finds global minimum of quadratic" {
   // Minimize (x - 7)^2 where x ∈ [0, 14]
   let config : GAConfig = {
@@ -446,17 +451,33 @@ test "ga: finds global minimum of quadratic" {
   let result = optimize(
     config,
     [0, 2, 4, 6, 8, 10, 12, 14],
-    fn(x : Int) -> Double { let d = x - 7; d.to_double() * d.to_double() },
-    fn(a : Int, b : Int, _rng : GARng) -> Int { if a == b { a } else { (a + b) / 2 } },
+    fn(x : Int) -> Double {
+      let d = x - 7
+      d.to_double() * d.to_double()
+    },
+    fn(a : Int, b : Int, _rng : GARng) -> Int {
+      if a == b {
+        a
+      } else {
+        (a + b) / 2
+      }
+    },
     fn(x : Int, rng : GARng) -> Int {
       let result = x + (rng.next_int(3) - 1)
-      if result < 0 { 0 } else if result > 14 { 14 } else { result }
+      if result < 0 {
+        0
+      } else if result > 14 {
+        14
+      } else {
+        result
+      }
     },
   )
   assert_eq(result.best, 7)
   assert_eq(result.best_cost, 0.0)
 }
 
+///|
 test "ga: onemax problem" {
   // Maximize number of 1s in a binary array (minimize number of 0s)
   let config : GAConfig = {
@@ -504,6 +525,7 @@ test "ga: onemax problem" {
   }
 }
 
+///|
 test "ga: determinism" {
   let config : GAConfig = {
     max_generations: 30,
@@ -514,15 +536,31 @@ test "ga: determinism" {
     elite_count: 1,
     seed: 123UL,
   }
-  let cost_fn = fn(x : Int) -> Double { let d = x - 5; d.to_double() * d.to_double() }
+  let cost_fn = fn(x : Int) -> Double {
+    let d = x - 5
+    d.to_double() * d.to_double()
+  }
   let cross_fn = fn(a : Int, b : Int, _ : GARng) -> Int { (a + b) / 2 }
   let mut_fn = fn(x : Int, rng : GARng) -> Int { x + (rng.next_int(3) - 1) }
-  let r1 = optimize(config, [0, 1, 2, 3, 4, 5, 6, 7, 8, 10], cost_fn, cross_fn, mut_fn)
-  let r2 = optimize(config, [0, 1, 2, 3, 4, 5, 6, 7, 8, 10], cost_fn, cross_fn, mut_fn)
+  let r1 = optimize(
+    config,
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
+    cost_fn,
+    cross_fn,
+    mut_fn,
+  )
+  let r2 = optimize(
+    config,
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
+    cost_fn,
+    cross_fn,
+    mut_fn,
+  )
   assert_eq(r1.best, r2.best)
   assert_eq(r1.best_cost, r2.best_cost)
 }
 
+///|
 test "ga: elitism preserves best" {
   // With high elite count, the best should never get worse
   let config : GAConfig = {
@@ -537,7 +575,10 @@ test "ga: elitism preserves best" {
   let result = optimize(
     config,
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-    fn(x : Int) -> Double { let d = x - 5; d.to_double() * d.to_double() },
+    fn(x : Int) -> Double {
+      let d = x - 5
+      d.to_double() * d.to_double()
+    },
     fn(a : Int, b : Int, _ : GARng) -> Int { (a + b) / 2 },
     fn(x : Int, rng : GARng) -> Int { x + (rng.next_int(5) - 2) },
   )
@@ -545,6 +586,7 @@ test "ga: elitism preserves best" {
   assert_true(result.best_cost <= 0.0)
 }
 
+///|
 test "ga: improvements counter" {
   let config : GAConfig = {
     max_generations: 50,
@@ -558,7 +600,10 @@ test "ga: improvements counter" {
   let result = optimize(
     config,
     [0, 1, 2, 3, 10, 11, 12, 13, 14],
-    fn(x : Int) -> Double { let d = x - 7; d.to_double() * d.to_double() },
+    fn(x : Int) -> Double {
+      let d = x - 7
+      d.to_double() * d.to_double()
+    },
     fn(a : Int, b : Int, _ : GARng) -> Int { (a + b) / 2 },
     fn(x : Int, rng : GARng) -> Int { x + (rng.next_int(3) - 1) },
   )
@@ -567,6 +612,7 @@ test "ga: improvements counter" {
   assert_eq(result.best_cost, 0.0)
 }
 
+///|
 test "ga: TSP small instance" {
   // 5-city TSP using permutation representation
   let dist = [
@@ -662,6 +708,7 @@ test "ga: TSP small instance" {
   }
 }
 
+///|
 test "ga: GARng reproducibility" {
   let r1 = GARng::new(42UL)
   let r2 = GARng::new(42UL)
@@ -670,6 +717,7 @@ test "ga: GARng reproducibility" {
   }
 }
 
+///|
 test "ga: single_point_crossover produces valid child" {
   let rng = GARng::new(42UL)
   let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -682,6 +730,7 @@ test "ga: single_point_crossover produces valid child" {
   }
 }
 
+///|
 test "ga: uniform_crossover produces valid child" {
   let rng = GARng::new(42UL)
   let a = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -693,6 +742,7 @@ test "ga: uniform_crossover produces valid child" {
   }
 }
 
+///|
 test "ga: swap_mutation preserves multiset" {
   let rng = GARng::new(42UL)
   let arr = [1, 2, 3, 4, 5]
@@ -720,6 +770,7 @@ test "ga: swap_mutation preserves multiset" {
   }
 }
 
+///|
 test "ga: random_reset_mutation changes at most one element" {
   let rng = GARng::new(42UL)
   let arr = [5, 5, 5, 5, 5]

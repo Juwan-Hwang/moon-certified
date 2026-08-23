@@ -47,6 +47,7 @@
 // Curve parameters: NIST P-256 (secp256r1)
 // ---------------------------------------------------------------------------
 
+///|
 /// Parse a BigInt from a decimal string, aborting with a descriptive
 /// message if the string is invalid. Used exclusively for fixed RFC
 /// curve constants that are guaranteed correct by construction.
@@ -57,36 +58,42 @@ fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
   }
 }
 
+///|
 /// Prime p = 2^256 - 2^224 + 2^192 + 2^96 - 1
 let p : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573530086143415290314195533631308867097853951",
   "P-256 prime p",
 )
 
+///|
 /// Curve order n
 let n_order : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573529996955224135760342422259061068512044369",
   "P-256 order n",
 )
 
+///|
 /// Curve coefficient a = -3 mod p
 let a_coeff : @bigint.BigInt = parse_curve_const(
   "115792089210356248762697446949407573530086143415290314195533631308867097853948",
   "P-256 coefficient a",
 )
 
+///|
 /// Curve coefficient b
 let b_coeff : @bigint.BigInt = parse_curve_const(
   "41058363725152142129326129780047268409114441015993725554835256314039467401291",
   "P-256 coefficient b",
 )
 
+///|
 /// Generator x-coordinate
 let gx : @bigint.BigInt = parse_curve_const(
   "48439561293906451759052585252797914202762949526041747995844080717082404635286",
   "P-256 generator Gx",
 )
 
+///|
 /// Generator y-coordinate
 let gy : @bigint.BigInt = parse_curve_const(
   "36134250956749795798585127919587881956611106672985015071877198253568414405109",
@@ -97,8 +104,13 @@ let gy : @bigint.BigInt = parse_curve_const(
 // Modular arithmetic helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// (a + b) mod m
-fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_add(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let sum = @bigint.add(a, b)
   match @bigint.divmod(sum, m) {
     Some((_, r)) => r
@@ -106,8 +118,13 @@ fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a - b) mod m (result always non-negative)
-fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_sub(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let diff = @bigint.sub(a, b)
   if @bigint.compare(diff, @bigint.zero()) < 0 {
     @bigint.add(diff, m)
@@ -116,14 +133,20 @@ fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a * b) mod m
-fn mod_mul(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_mul(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   match @bigint.divmod(@bigint.mul(a, b), m) {
     Some((_, r)) => r
     None => @bigint.zero()
   }
 }
 
+///|
 /// a^(-1) mod m using Fermat's little theorem (for prime m).
 ///
 /// **Note**: This uses `mod_pow` which internally uses binary square-and-
@@ -139,21 +162,25 @@ fn mod_inv(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
   }
 }
 
+///|
 /// (a * b) mod p (field multiplication)
 fn fe_mul(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_mul(a, b, p)
 }
 
+///|
 /// (a + b) mod p (field addition)
 fn fe_add(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_add(a, b, p)
 }
 
+///|
 /// (a - b) mod p (field subtraction)
 fn fe_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_sub(a, b, p)
 }
 
+///|
 /// a^(-1) mod p (field inversion)
 fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
   mod_inv(a, p)
@@ -163,6 +190,7 @@ fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
 // BigInt <-> bytes (big-endian) conversion
 // ---------------------------------------------------------------------------
 
+///|
 /// Convert BigInt to big-endian byte array of fixed length.
 fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   let result : Array[Byte] = Array::make(len, b'\x00')
@@ -182,6 +210,7 @@ fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 /// Convert big-endian byte array (as Bytes) to BigInt.
 fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   let mut result = @bigint.zero()
@@ -195,6 +224,7 @@ fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   result
 }
 
+///|
 /// Convert a BigInt known to be in [0, 255] to an Int.
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   let mut lo = 0
@@ -214,6 +244,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
 // Point representation (Jacobian projective coordinates)
 // ---------------------------------------------------------------------------
 
+///|
 /// Jacobian projective coordinates (X, Y, Z) with x = X/Z^2, y = Y/Z^3.
 /// The point at infinity is represented as Z = 0.
 priv struct Point {
@@ -222,16 +253,19 @@ priv struct Point {
   z : @bigint.BigInt
 }
 
+///|
 /// Point at infinity (Z = 0).
 fn point_infinity() -> Point {
   { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
 }
 
+///|
 /// Check if a point is the point at infinity.
 fn is_infinity(pt : Point) -> Bool {
   @bigint.equal(pt.z, @bigint.zero())
 }
 
+///|
 /// Point doubling in Jacobian coordinates (optimized for a = -3).
 /// Uses the formula:
 ///   if Y == 0: return infinity
@@ -261,11 +295,15 @@ fn point_double(pt : Point) -> Point {
   )
   let x3 = fe_sub(fe_mul(m, m), fe_mul(@bigint.from_int_value(2), s))
   let y4 = fe_mul(y2, y2)
-  let y3 = fe_sub(fe_mul(m, fe_sub(s, x3)), fe_mul(@bigint.from_int_value(8), y4))
+  let y3 = fe_sub(
+    fe_mul(m, fe_sub(s, x3)),
+    fe_mul(@bigint.from_int_value(8), y4),
+  )
   let z3 = fe_mul(fe_mul(@bigint.from_int_value(2), y), z)
   { x: x3, y: y3, z: z3 }
 }
 
+///|
 /// Point addition in Jacobian coordinates.
 /// Handles all cases including doubling and infinity.
 fn point_add(p1 : Point, p2 : Point) -> Point {
@@ -308,14 +346,12 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
     fe_sub(fe_mul(r, r), h_3),
     fe_mul(@bigint.from_int_value(2), u1_h_2),
   )
-  let y3 = fe_sub(
-    fe_mul(r, fe_sub(u1_h_2, x3)),
-    fe_mul(s1, h_3),
-  )
+  let y3 = fe_sub(fe_mul(r, fe_sub(u1_h_2, x3)), fe_mul(s1, h_3))
   let z3 = fe_mul(fe_mul(z1, z2), h)
   { x: x3, y: y3, z: z3 }
 }
 
+///|
 /// Conditional swap: if `swap` is true, exchange r0 and r1.
 /// Used by the Montgomery ladder to eliminate the Hamming-weight timing
 /// leak present in double-and-add.
@@ -327,6 +363,7 @@ fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
   }
 }
 
+///|
 /// Scalar multiplication: k * P using the Montgomery ladder.
 ///
 /// The Montgomery ladder processes each bit of the scalar with exactly
@@ -359,6 +396,7 @@ fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
   r0
 }
 
+///|
 /// Convert a Jacobian point to affine coordinates.
 fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt)? {
   if is_infinity(pt) {
@@ -372,6 +410,7 @@ fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt)? {
   Some((x, y))
 }
 
+///|
 /// Generator point G in Jacobian coordinates (Z = 1).
 let generator : Point = { x: gx, y: gy, z: @bigint.one() }
 
@@ -379,6 +418,7 @@ let generator : Point = { x: gx, y: gy, z: @bigint.one() }
 // Point encoding / decoding (uncompressed SEC1 format)
 // ---------------------------------------------------------------------------
 
+///|
 /// Encode a public key point as 65 bytes (uncompressed SEC1):
 /// 04 || x (32 bytes, big-endian) || y (32 bytes, big-endian)
 fn point_encode_uncompressed(pt : Point) -> Bytes {
@@ -401,6 +441,7 @@ fn point_encode_uncompressed(pt : Point) -> Bytes {
   }
 }
 
+///|
 /// Decode a 65-byte uncompressed public key.
 /// Returns the point, or None if invalid.
 fn point_decode_uncompressed(data : Bytes) -> Point? {
@@ -436,6 +477,7 @@ fn point_decode_uncompressed(data : Bytes) -> Point? {
 // RFC 6979 deterministic nonce generation
 // ---------------------------------------------------------------------------
 
+///|
 /// bits2int: convert a byte string to an integer.
 /// For P-256 with SHA-256, the bit length of q is 256, and the hash
 /// output is also 256 bits, so this is just big-endian interpretation.
@@ -443,6 +485,7 @@ fn bits2int(data : Bytes) -> @bigint.BigInt {
   bytes_to_bigint_be(data)
 }
 
+///|
 /// int2octets: convert an integer to a 32-byte big-endian octet string.
 /// Per RFC 6979, x is first reduced mod q.
 fn int2octets(x : @bigint.BigInt) -> Bytes {
@@ -453,6 +496,7 @@ fn int2octets(x : @bigint.BigInt) -> Bytes {
   bigint_to_bytes_be(z, 32)
 }
 
+///|
 /// bits2octets: convert a byte string to a 32-byte octet string.
 /// z1 = bits2int(data); z2 = z1 mod q; return int2octets(z2)
 fn bits2octets(data : Bytes) -> Bytes {
@@ -464,6 +508,7 @@ fn bits2octets(data : Bytes) -> Bytes {
   int2octets(z2)
 }
 
+///|
 /// Generate a deterministic nonce k per RFC 6979 using HMAC-SHA256.
 ///
 /// Inputs:
@@ -482,12 +527,18 @@ fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
   let h1_bytes = bits2octets(hash)
 
   // Step d: K = HMAC_K(V || 0x00 || x_bytes || h1_bytes)
-  let msg_d = concat_bytes(concat_bytes(concat_bytes(v_init, bytes_single(b'\x00')), x_bytes), h1_bytes)
+  let msg_d = concat_bytes(
+    concat_bytes(concat_bytes(v_init, bytes_single(b'\x00')), x_bytes),
+    h1_bytes,
+  )
   let k1 = @hmac.hmac_sha256(k_init, msg_d)
   // Step e: V = HMAC_K(V)
   let v1 = @hmac.hmac_sha256(k1, v_init)
   // Step f: K = HMAC_K(V || 0x01 || x_bytes || h1_bytes)
-  let msg_f = concat_bytes(concat_bytes(concat_bytes(v1, bytes_single(b'\x01')), x_bytes), h1_bytes)
+  let msg_f = concat_bytes(
+    concat_bytes(concat_bytes(v1, bytes_single(b'\x01')), x_bytes),
+    h1_bytes,
+  )
   let k2 = @hmac.hmac_sha256(k1, msg_f)
   // Step g: V = HMAC_K(V)
   let v2 = @hmac.hmac_sha256(k2, v1)
@@ -503,10 +554,8 @@ fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
     let t = v_current
     let k_candidate = bits2int(t)
     // Check 1 <= k < n
-    if @bigint.compare(k_candidate, zero) > 0 && @bigint.compare(
-      k_candidate,
-      n_order,
-    ) < 0 {
+    if @bigint.compare(k_candidate, zero) > 0 &&
+      @bigint.compare(k_candidate, n_order) < 0 {
       return k_candidate
     }
     // K = HMAC_K(V || 0x00)
@@ -519,6 +568,7 @@ fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
   zero
 }
 
+///|
 /// Concatenate two Bytes.
 fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   let result : Array[Byte] = []
@@ -531,6 +581,7 @@ fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 /// Create a single-byte Bytes.
 fn bytes_single(b : Byte) -> Bytes {
   Bytes::from_array([b])
@@ -571,10 +622,9 @@ pub fn sign(private_key : Bytes, message : Bytes) -> Bytes {
   // If it is (k==0 mod n, probability ~2^-256), the signature is invalid.
   let kg_affine = match to_affine(kg) {
     Some(pt) => pt
-    None => {
+    None =>
       // k*G is point at infinity — return a deterministic invalid signature.
       return Bytes::make(64, b'\x00')
-    }
   }
   let r = match @bigint.divmod(kg_affine.0, n_order) {
     Some((_, rem)) => rem

@@ -355,11 +355,7 @@ fn _kdtree_search(
       } else {
         0.0
       }
-      let (near, far) = if diff < 0.0 {
-        (left, right)
-      } else {
-        (right, left)
-      }
+      let (near, far) = if diff < 0.0 { (left, right) } else { (right, left) }
       // Search the near subtree.
       _kdtree_search(near, query, k, heap, idx)
       // Only search the far subtree if it could contain closer points.
@@ -457,11 +453,7 @@ fn _kdtree_search_all(
       } else {
         0.0
       }
-      let (near, far) = if diff < 0.0 {
-        (left, right)
-      } else {
-        (right, left)
-      }
+      let (near, far) = if diff < 0.0 { (left, right) } else { (right, left) }
       _kdtree_search_all(near, query, k, heap, entries)
       let max_dist = nnheap_max_dist(heap)
       if diff * diff < max_dist {

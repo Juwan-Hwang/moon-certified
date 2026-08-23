@@ -297,8 +297,8 @@ test "lehman_factor: product of two primes near Int32 sqrt" {
 ///|
 test "lehman_factor: factor divides n for various composites" {
   let cases = [
-    15, 21, 35, 49, 77, 91, 143, 187, 221, 247, 299, 323, 361, 391, 437, 529,
-    667, 899, 1147, 1517, 561, 1105, 1729, 2465,
+    15, 21, 35, 49, 77, 91, 143, 187, 221, 247, 299, 323, 361, 391, 437, 529, 667,
+    899, 1147, 1517, 561, 1105, 1729, 2465,
   ]
   for i = 0; i < cases.length(); i = i + 1 {
     let n = cases[i]

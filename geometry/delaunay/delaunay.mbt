@@ -211,7 +211,7 @@ fn walk_to_containing(
   tris : Array[Tri],
   pts : Array[DPoint],
   hint : Int,
-  p : DPoint
+  p : DPoint,
 ) -> Int {
   let mut curr = hint
   let max_steps = tris.length() + 10
@@ -262,7 +262,7 @@ fn flood_bad(
   pts : Array[DPoint],
   start : Int,
   p : DPoint,
-  bad_markers : FixedArray[Bool]
+  bad_markers : FixedArray[Bool],
 ) -> Array[Int] {
   let bad : Array[Int] = []
   let visited = FixedArray::make(tris.length(), false)
@@ -310,7 +310,7 @@ fn flood_bad(
 fn collect_boundary(
   tris : Array[Tri],
   bad : Array[Int],
-  bad_markers : FixedArray[Bool]
+  bad_markers : FixedArray[Bool],
 ) -> Array[(Int, Int, Int)] {
   // Build map: start_vertex → (end_vertex, external_neighbor).
   let edge_map : Map[Int, (Int, Int)] = Map([])
@@ -452,15 +452,7 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
   all_points.push({ x: midx, y: midy + st }) // index n+2
   // --- Initialize triangulation with super-triangle ---
   let tris : Array[Tri] = [
-    Tri::{
-      v0: n,
-      v1: n + 1,
-      v2: n + 2,
-      n0: -1,
-      n1: -1,
-      n2: -1,
-      alive: true,
-    },
+    Tri::{ v0: n, v1: n + 1, v2: n + 2, n0: -1, n1: -1, n2: -1, alive: true },
   ]
   let mut hint = 0
   // --- Shuffle insertion order ---
@@ -496,14 +488,15 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
     for i = 0; i < k; i = i + 1 {
       let (a, b, ext_n) = boundary[i]
       tris.push(Tri::{
-        v0: a,
-        v1: b,
-        v2: p_idx,
-        n0: ext_n, // external neighbor across edge (a, b)
-        n1: first_new + ((i + 1) % k), // next triangle in cycle
-        n2: first_new + ((i - 1 + k) % k), // previous triangle in cycle
-        alive: true,
-      })
+          v0: a,
+          v1: b,
+          v2: p_idx,
+          n0: ext_n, // external neighbor across edge (a, b)
+          n1: first_new + (i + 1) % k, // next triangle in cycle
+          n2: first_new + (i - 1 + k) % k,
+          alive: true,
+        }, // previous triangle in cycle
+      )
     }
     // Update external neighbors to point to new triangles.
     for i = 0; i < k; i = i + 1 {

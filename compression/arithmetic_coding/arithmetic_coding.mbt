@@ -196,7 +196,7 @@ pub fn compress(data : Bytes) -> Bytes {
     writer: new_writer(),
     low: 0U,
     high: 0xFFFFFFFFU,
-    pending: 0
+    pending: 0,
   }
   // Encode each data byte
   for i = 0; i < data.length(); i = i + 1 {
@@ -245,9 +245,9 @@ fn encode_symbol(st : EncState, model : FreqModel, sym : Int) -> Unit {
   let range = (st.high - st.low).to_uint64() + 1UL
   let total = model.total.to_uint64()
   let new_high = st.low.to_uint64() +
-    (range * model.cum[sym + 1].to_uint64()) / total - 1UL
-  let new_low = st.low.to_uint64() +
-    (range * model.cum[sym].to_uint64()) / total
+    range * model.cum[sym + 1].to_uint64() / total -
+    1UL
+  let new_low = st.low.to_uint64() + range * model.cum[sym].to_uint64() / total
   st.high = new_high.to_uint()
   st.low = new_low.to_uint()
   // Renormalise (WNC algorithm)
@@ -293,13 +293,17 @@ pub fn decompress(data : Bytes) -> Bytes? {
   if orig_len < 0 {
     return None
   }
-  let reader = new_reader(Bytes::from_array({
-    let arr : Array[Byte] = []
-    for i = 4; i < data.length(); i = i + 1 {
-      arr.push(data[i])
-    }
-    arr
-  }))
+  let reader = new_reader(
+    Bytes::from_array(
+      {
+        let arr : Array[Byte] = []
+        for i = 4; i < data.length(); i = i + 1 {
+          arr.push(data[i])
+        }
+        arr
+      },
+    ),
+  )
   let model = new_model()
   let mut low : UInt = 0U
   let mut high : UInt = 0xFFFFFFFFU
@@ -314,7 +318,7 @@ pub fn decompress(data : Bytes) -> Bytes? {
     // Compute current value and find the matching symbol
     let range = (high - low).to_uint64() + 1UL
     let total = model.total.to_uint64()
-    let value = (((code - low + 1U).to_uint64()) * total - 1UL) / range
+    let value = ((code - low + 1U).to_uint64() * total - 1UL) / range
     // Binary search for the symbol
     let mut lo_idx = 0
     let mut hi_idx = NUM_SYMBOLS
@@ -337,9 +341,9 @@ pub fn decompress(data : Bytes) -> Bytes? {
     count = count + 1
     // Narrow the interval (same as encoder)
     let new_high = low.to_uint64() +
-      (range * model.cum[sym + 1].to_uint64()) / total - 1UL
-    let new_low = low.to_uint64() +
-      (range * model.cum[sym].to_uint64()) / total
+      range * model.cum[sym + 1].to_uint64() / total -
+      1UL
+    let new_low = low.to_uint64() + range * model.cum[sym].to_uint64() / total
     high = new_high.to_uint()
     low = new_low.to_uint()
     // Renormalise (must match encoder exactly)
@@ -431,7 +435,9 @@ test "arithmetic: round-trip binary data" {
 
 ///|
 test "arithmetic: round-trip random-looking data" {
-  let data = @utils.string_to_bytes("The quick brown fox jumps over the lazy dog. 1234567890!")
+  let data = @utils.string_to_bytes(
+    "The quick brown fox jumps over the lazy dog. 1234567890!",
+  )
   let compressed = compress(data)
   let decompressed = match decompress(compressed) {
     None => fail("decompression failed")

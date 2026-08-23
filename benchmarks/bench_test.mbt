@@ -84,9 +84,10 @@ test "bench: radix_sort 100K elements" {
   let t = time_us(fn() { let _ = @radix_sort.radix_sort(xs) })
   println("radix_sort 100K: " + fmt_us(t))
   match @radix_sort.radix_sort(xs) {
-    Some(sorted) => for i = 0; i < n - 1; i = i + 1 {
-      assert_true(sorted[i] <= sorted[i + 1])
-    }
+    Some(sorted) =>
+      for i = 0; i < n - 1; i = i + 1 {
+        assert_true(sorted[i] <= sorted[i + 1])
+      }
     None => assert_true(false)
   }
 }
@@ -557,7 +558,7 @@ test "bench: kmeans 1000 points 5 clusters" {
 test "bench: matrix_chain 100 matrices" {
   let dims : Array[Int] = []
   for i = 0; i < 101; i = i + 1 {
-    dims.push(10 + (i * 7) % 90)
+    dims.push(10 + i * 7 % 90)
   }
   let t = time_us(fn() { let _ = @matrix_chain.matrix_chain_order(dims) })
   println("matrix_chain 100 matrices: " + fmt_us(t))
@@ -573,16 +574,18 @@ test "bench: knapsack 1000 items capacity 10000" {
   let values : Array[Int] = []
   let counts : Array[Int] = []
   for i = 0; i < n; i = i + 1 {
-    weights.push(1 + (i * 7) % 50)
-    values.push(1 + (i * 13) % 100)
-    counts.push(1 + (i * 3) % 5)
+    weights.push(1 + i * 7 % 50)
+    values.push(1 + i * 13 % 100)
+    counts.push(1 + i * 3 % 5)
   }
   let capacity = 10000
   let t = time_us(fn() {
     let _ = @knapsack_opt.multiple_knapsack(weights, values, counts, capacity)
   })
   println("knapsack 1000 items cap 10K: " + fmt_us(t))
-  let result = @knapsack_opt.multiple_knapsack(weights, values, counts, capacity)
+  let result = @knapsack_opt.multiple_knapsack(
+    weights, values, counts, capacity,
+  )
   assert_true(result > 0)
 }
 
@@ -595,7 +598,9 @@ test "bench: closest_pair 10K points" {
   let n = 10000
   let points : Array[@geometry_utils.Point] = []
   for i = 0; i < n; i = i + 1 {
-    points.push(@geometry_utils.point((i * 7 + 3) % 10000, (i * 13 + 5) % 10000))
+    points.push(
+      @geometry_utils.point((i * 7 + 3) % 10000, (i * 13 + 5) % 10000),
+    )
   }
   let t = time_us(fn() { let _ = @closest_pair.closest_pair(points) })
   println("closest_pair 10K points: " + fmt_us(t))
@@ -639,7 +644,7 @@ test "bench: dominator_tree 1000-node graph" {
       }
     }
     // Add some cross edges for complexity.
-    if i > 10 && (i * 3) % 7 == 0 {
+    if i > 10 && i * 3 % 7 == 0 {
       succ.push(i / 2)
     }
     adj.push(succ)
@@ -666,7 +671,7 @@ test "bench: edmonds_blossom 200-node graph" {
     if i + 3 < n {
       neighbors.push(i + 3)
     }
-    if i > 5 && (i % 2 == 0) {
+    if i > 5 && i % 2 == 0 {
       neighbors.push(i - 5)
     }
     adj.push(neighbors)

@@ -1,3 +1,4 @@
+///|
 /// K-Means clustering for arbitrary-dimensional points.
 ///
 /// Uses k-means++ seeding and Lloyd refinement. Points are represented as
@@ -12,20 +13,24 @@
 
 let km_default_seed : Int = 0x1A2B3C4D
 
+///|
 priv struct Rng {
   mut state : Int
 }
 
+///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn Rng::next(self : Rng) -> Int {
   self.state = @utils.lcg_next(self.state)
   self.state
 }
 
+///|
 fn Rng::next_double(self : Rng) -> Double {
   self.next().to_double() / 2147483648.0
 }
@@ -34,6 +39,7 @@ fn Rng::next_double(self : Rng) -> Double {
 // Geometry helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Squared Euclidean distance between two d-dimensional points.
 fn sq_dist(a : Array[Double], b : Array[Double]) -> Double {
   let d = a.length()
@@ -49,6 +55,7 @@ fn sq_dist(a : Array[Double], b : Array[Double]) -> Double {
 // Result type
 // ---------------------------------------------------------------------------
 
+///|
 pub struct KMeansResult {
   centroids : Array[Array[Double]]
   assignments : Array[Int]
@@ -58,6 +65,7 @@ pub struct KMeansResult {
 // k-means++ initialisation
 // ---------------------------------------------------------------------------
 
+///|
 fn kmeans_pp_init(
   points : Array[Array[Double]],
   k : Int,
@@ -107,6 +115,7 @@ fn kmeans_pp_init(
 // Lloyd iteration
 // ---------------------------------------------------------------------------
 
+///|
 fn assign_all(
   points : Array[Array[Double]],
   centroids : Array[Array[Double]],
@@ -129,6 +138,7 @@ fn assign_all(
   assignments
 }
 
+///|
 fn recompute(
   points : Array[Array[Double]],
   assignments : Array[Int],
@@ -137,7 +147,9 @@ fn recompute(
   let n = points.length()
   let k = prev_centroids.length()
   let d = if n > 0 { points[0].length() } else { 0 }
-  let sums : Array[Array[Double]] = Array::makei(k, fn(_i) { Array::make(d, 0.0) })
+  let sums : Array[Array[Double]] = Array::makei(k, fn(_i) {
+    Array::make(d, 0.0)
+  })
   let counts = Array::make(k, 0)
   for i = 0; i < n; i = i + 1 {
     let c = assignments[i]
@@ -146,7 +158,9 @@ fn recompute(
       sums[c][j] = sums[c][j] + points[i][j]
     }
   }
-  let centroids : Array[Array[Double]] = Array::makei(k, fn(_i) { Array::make(d, 0.0) })
+  let centroids : Array[Array[Double]] = Array::makei(k, fn(_i) {
+    Array::make(d, 0.0)
+  })
   for c = 0; c < k; c = c + 1 {
     if counts[c] > 0 {
       let cnt = counts[c].to_double()
@@ -164,6 +178,7 @@ fn recompute(
   centroids
 }
 
+///|
 fn reseed_empty(
   points : Array[Array[Double]],
   centroids : Array[Array[Double]],
@@ -205,6 +220,7 @@ fn reseed_empty(
   }
 }
 
+///|
 fn assignments_equal(a : Array[Int], b : Array[Int]) -> Bool {
   let n = a.length()
   if b.length() != n {
@@ -222,6 +238,7 @@ fn assignments_equal(a : Array[Int], b : Array[Int]) -> Bool {
 // Public API
 // ---------------------------------------------------------------------------
 
+///|
 /// Cluster `points` into `k` groups using k-means++ and Lloyd iteration.
 ///
 /// Points are arbitrary-dimensional vectors (`Array[Double]`). All points must
@@ -234,6 +251,7 @@ pub fn kmeans(
   kmeans_with_seed(points, k, max_iters, @utils.fresh_seed(km_default_seed))
 }
 
+///|
 /// K-means with a user-specified PRNG seed for reproducible independent runs.
 pub fn kmeans_with_seed(
   points : Array[Array[Double]],
@@ -269,6 +287,7 @@ pub fn kmeans_with_seed(
 // Helpers for 2-D convenience
 // ---------------------------------------------------------------------------
 
+///|
 /// Helper to create a 2-D point from a tuple.
 pub fn point2d(x : Double, y : Double) -> Array[Double] {
   [x, y]
@@ -278,10 +297,12 @@ pub fn point2d(x : Double, y : Double) -> Array[Double] {
 // Test helpers
 // ---------------------------------------------------------------------------
 
+///|
 fn approx_eq(a : Double, b : Double) -> Bool {
   @utils.approx_eq(a, b)
 }
 
+///|
 fn centroid_index_near(
   centroids : Array[Array[Double]],
   coords : Array[Double],
@@ -343,8 +364,14 @@ test "kmeans: k greater than n is clamped to n" {
 ///|
 test "kmeans: two well-separated clusters 2D" {
   let pts = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
-    [10.0, 10.0], [10.0, 11.0], [11.0, 10.0], [11.0, 11.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
+    [10.0, 10.0],
+    [10.0, 11.0],
+    [11.0, 10.0],
+    [11.0, 11.0],
   ]
   let r = kmeans(pts, 2, 100)
   assert_eq(r.centroids.length(), 2)

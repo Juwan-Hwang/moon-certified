@@ -291,3 +291,38 @@ test "large sets: random-like unions" {
     assert_eq(find(uf, r), Some(r))
   }
 }
+
+///|
+/// Create n singleton sets: parent[i] = i for i in [0, n).
+/// Verified: parent[i] == i for all i in [0, length), length >= 0.
+pub fn uf_new(n : Int) -> FixedArray[Int] where {
+  proof_ensure: result => self_parent(result, result.length()),
+  proof_ensure: result => 0 <= result.length(),
+} {
+  let len = if n < 0 { 0 } else { n }
+  let parent = FixedArray::make(len, 0)
+  for i = 0; i < len; {
+    parent[i] = i
+    continue i + 1
+  } nobreak {
+    parent
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= len,
+    proof_invariant: self_parent(parent, i),
+    proof_invariant: parent.length() == len,
+    proof_reasoning: (
+      #| Each iteration sets parent[i] = i, extending the self-parent
+      #| property from [0, i) to [0, i+1).
+      #| At exit, i == len, so self_parent holds for the entire array.
+    ),
+  }
+}
+
+///|
+/// Return the number of elements (array length). Verified: result >= 0.
+pub fn uf_size(parent : FixedArray[Int]) -> Int where {
+  proof_ensure: result => 0 <= result,
+} {
+  parent.length()
+}

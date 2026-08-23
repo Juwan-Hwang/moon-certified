@@ -268,23 +268,53 @@ test "chacha20_poly1305: RFC 8439 §2.8.2 test vector" {
   let key = Bytes::from_array(key_arr)
   // Nonce: 07 00 00 00 40 41 42 43 44 45 46 47
   let nonce = Bytes::from_array([
-    mb(7), mb(0), mb(0), mb(0),
-    mb(64), mb(65), mb(66), mb(67),
-    mb(68), mb(69), mb(70), mb(71),
+    mb(7),
+    mb(0),
+    mb(0),
+    mb(0),
+    mb(64),
+    mb(65),
+    mb(66),
+    mb(67),
+    mb(68),
+    mb(69),
+    mb(70),
+    mb(71),
   ])
   // AAD: 50 51 52 53 c0 c1 c2 c3 c4 c5 c6 c7
   let aad = Bytes::from_array([
-    mb(80), mb(81), mb(82), mb(83),
-    mb(192), mb(193), mb(194), mb(195),
-    mb(196), mb(197), mb(198), mb(199),
+    mb(80),
+    mb(81),
+    mb(82),
+    mb(83),
+    mb(192),
+    mb(193),
+    mb(194),
+    mb(195),
+    mb(196),
+    mb(197),
+    mb(198),
+    mb(199),
   ])
   let plaintext = b"Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
   // Expected tag: 1a e1 0b 59 4f 09 e2 6a 7e 90 2e cb d0 60 06 91
   let expected_tag = Bytes::from_array([
-    mb(26), mb(225), mb(11), mb(89),
-    mb(79), mb(9), mb(226), mb(106),
-    mb(126), mb(144), mb(46), mb(203),
-    mb(208), mb(96), mb(6), mb(145),
+    mb(26),
+    mb(225),
+    mb(11),
+    mb(89),
+    mb(79),
+    mb(9),
+    mb(226),
+    mb(106),
+    mb(126),
+    mb(144),
+    mb(46),
+    mb(203),
+    mb(208),
+    mb(96),
+    mb(6),
+    mb(145),
   ])
   let result = encrypt(key, nonce, aad, plaintext)
   assert_true(result is Some(_))

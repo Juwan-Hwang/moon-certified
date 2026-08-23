@@ -84,7 +84,7 @@ fn write_u32_le(buf : Array[Byte], val : UInt) -> Unit {
 ///|
 /// Read a 32-bit unsigned integer in little-endian from bytes.
 fn read_u32_le(data : Bytes, pos : Int) -> UInt {
-  (data[pos].to_uint()) |
+  data[pos].to_uint() |
   (data[pos + 1].to_uint() << 8) |
   (data[pos + 2].to_uint() << 16) |
   (data[pos + 3].to_uint() << 24)
@@ -137,7 +137,7 @@ pub fn gzip_compress(data : Bytes) -> Bytes {
   let crc = @crc.crc32(bytes_to_fixed(data))
   write_u32_le(output, crc)
   // ISIZE: original size mod 2^32.
-  let isize = (data.length().reinterpret_as_uint() & 0xFFFFFFFFU)
+  let isize = data.length().reinterpret_as_uint() & 0xFFFFFFFFU
   write_u32_le(output, isize)
   Bytes::from_array(output)
 }

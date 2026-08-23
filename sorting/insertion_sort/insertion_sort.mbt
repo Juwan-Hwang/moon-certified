@@ -158,3 +158,12 @@ test "insertion_sort: generic with String" {
   assert_eq(xs[2], "cherry")
   assert_eq(xs[3], "date")
 }
+
+///|
+/// For n <= 1, sorted_asc holds vacuously (no adjacent pair exists).
+pub fn trivial_sorted(xs : FixedArray[Int]) -> Unit where {
+  proof_require: xs.length() <= 1,
+  proof_ensure: sorted_asc(xs),
+} {
+  ()
+}

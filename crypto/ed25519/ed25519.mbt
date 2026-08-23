@@ -57,6 +57,7 @@
 // Field parameters: GF(2^255 - 19)
 // ---------------------------------------------------------------------------
 
+///|
 /// Parse a BigInt from a decimal string, aborting with a descriptive
 /// message if the string is invalid. Used exclusively for fixed RFC
 /// curve constants that are guaranteed correct by construction.
@@ -67,24 +68,28 @@ fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
   }
 }
 
+///|
 /// Prime p = 2^255 - 19
 let p : @bigint.BigInt = parse_curve_const(
   "57896044618658097711785492504343953926634992332820282019728792003956564819949",
   "Ed25519 prime p",
 )
 
+///|
 /// Curve order L = 2^252 + 27742317777372353535851937790883648493
 let l_order : @bigint.BigInt = parse_curve_const(
   "7237005577332262213973186563042994240857116359379907606001950938285454250989",
   "Ed25519 order L",
 )
 
+///|
 /// d = -121665 * inv(121666) mod p
 let d_param : @bigint.BigInt = parse_curve_const(
   "37095705934669439343138083508754565189542113879843219016388785533085940283555",
   "Ed25519 parameter d",
 )
 
+///|
 /// I = sqrt(-1) mod p = 2^((p-1)/4) mod p
 let i_sqrt : @bigint.BigInt = parse_curve_const(
   "19681161376707505956807079304988542015446066515923890162744021073123829784752",
@@ -95,8 +100,13 @@ let i_sqrt : @bigint.BigInt = parse_curve_const(
 // Modular arithmetic helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// (a + b) mod m
-fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_add(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let sum = @bigint.add(a, b)
   match @bigint.divmod(sum, m) {
     Some((_, r)) => r
@@ -104,8 +114,13 @@ fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a - b) mod m (result always non-negative)
-fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_sub(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let diff = @bigint.sub(a, b)
   if @bigint.compare(diff, @bigint.zero()) < 0 {
     @bigint.add(diff, m)
@@ -114,29 +129,38 @@ fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a * b) mod m
-fn mod_mul(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_mul(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   match @bigint.divmod(@bigint.mul(a, b), m) {
     Some((_, r)) => r
     None => @bigint.zero()
   }
 }
 
+///|
 /// (a * b) mod p (field multiplication)
 fn fe_mul(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_mul(a, b, p)
 }
 
+///|
 /// (a + b) mod p (field addition)
 fn fe_add(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_add(a, b, p)
 }
 
+///|
 /// (a - b) mod p (field subtraction)
 fn fe_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_sub(a, b, p)
 }
 
+///|
 /// a^(-1) mod p using Fermat's little theorem: a^(p-2) mod p
 fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
   let exp = @bigint.sub(p, @bigint.from_int_value(2))
@@ -150,6 +174,7 @@ fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
 // Point representation (extended twisted Edwards coordinates)
 // ---------------------------------------------------------------------------
 
+///|
 /// Extended twisted Edwards coordinates (X, Y, Z, T) with x = X/Z, y = Y/Z, T = X*Y/Z.
 priv struct Point {
   x : @bigint.BigInt
@@ -158,11 +183,13 @@ priv struct Point {
   t : @bigint.BigInt // T = X*Y/Z
 }
 
+///|
 /// Identity point (0, 1, 1, 0)
 fn identity() -> Point {
   { x: @bigint.zero(), y: @bigint.one(), z: @bigint.one(), t: @bigint.zero() }
 }
 
+///|
 /// Point addition in extended coordinates (RFC 8032 §5.1.4 variant).
 /// Uses the formula from the ed25519 reference implementation:
 /// A = (Y1-X1)*(Y2-X2)
@@ -196,6 +223,7 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   { x: fe_mul(e, f), y: fe_mul(g, h), z: fe_mul(f, g), t: fe_mul(e, h) }
 }
 
+///|
 /// Conditional swap: if `swap` is true, exchange r0 and r1.
 /// Used by the Montgomery ladder to avoid data-dependent branching on
 /// secret scalar bits. While the `if` itself is a branch, the critical
@@ -210,6 +238,7 @@ fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
   }
 }
 
+///|
 /// Scalar multiplication: k * P using the Montgomery ladder.
 ///
 /// The Montgomery ladder processes each bit of the scalar with exactly
@@ -254,6 +283,7 @@ fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
 // Encoding / decoding
 // ---------------------------------------------------------------------------
 
+///|
 /// Encode a point as 32 bytes (little-endian y-coordinate with sign bit of x).
 fn point_encode(pt : Point) -> Bytes {
   // Recover affine x = X/Z, y = Y/Z
@@ -274,6 +304,7 @@ fn point_encode(pt : Point) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 /// Decode a 32-byte point encoding.
 /// Returns the point, or None if the encoding is invalid.
 fn point_decode(data : Bytes) -> Point? {
@@ -311,10 +342,11 @@ fn point_decode(data : Bytes) -> Point? {
   let v3 = fe_mul(v2, v)
   let v7 = fe_mul(fe_mul(v3, v3), v) // v^3 * v^3 * v = v^7
   let uv7 = fe_mul(u, v7)
-  let exp = match @bigint.div(
-    @bigint.sub(p, @bigint.from_int_value(5)),
-    @bigint.from_int_value(8),
-  ) {
+  let exp = match
+    @bigint.div(
+      @bigint.sub(p, @bigint.from_int_value(5)),
+      @bigint.from_int_value(8),
+    ) {
     Some(v) => v
     None => return None
   }
@@ -355,6 +387,7 @@ fn point_decode(data : Bytes) -> Point? {
 // BigInt <-> bytes (little-endian) conversion
 // ---------------------------------------------------------------------------
 
+///|
 /// Convert BigInt to little-endian byte array of fixed length.
 fn bigint_to_bytes_le(n : @bigint.BigInt, len : Int) -> Bytes {
   let result : Array[Byte] = Array::make(len, b'\x00')
@@ -374,6 +407,7 @@ fn bigint_to_bytes_le(n : @bigint.BigInt, len : Int) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 /// Convert little-endian byte array to BigInt.
 fn bytes_to_bigint_le(data : Array[Byte]) -> @bigint.BigInt {
   let mut result = @bigint.zero()
@@ -387,6 +421,7 @@ fn bytes_to_bigint_le(data : Array[Byte]) -> @bigint.BigInt {
   result
 }
 
+///|
 /// Convert a BigInt known to be in [0, 255] to an Int.
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   let mut lo = 0
@@ -406,6 +441,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
 // Base point
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute the base point B for Ed25519.
 /// By = 4/5 mod p, Bx recovered from curve equation.
 fn compute_base_point() -> Point {
@@ -419,10 +455,11 @@ fn compute_base_point() -> Point {
   let v3 = fe_mul(v2, v)
   let v7 = fe_mul(fe_mul(v3, v3), v) // v^3 * v^3 * v = v^7
   let uv7 = fe_mul(u, v7)
-  let exp = match @bigint.div(
-    @bigint.sub(p, @bigint.from_int_value(5)),
-    @bigint.from_int_value(8),
-  ) {
+  let exp = match
+    @bigint.div(
+      @bigint.sub(p, @bigint.from_int_value(5)),
+      @bigint.from_int_value(8),
+    ) {
     Some(v) => v
     None => abort("FATAL: division by 8 in ed25519 compute_base_point")
   }
@@ -446,6 +483,7 @@ fn compute_base_point() -> Point {
   { x: bx, y: by, z: @bigint.one(), t: fe_mul(bx, by) }
 }
 
+///|
 /// Cached base point B (computed once at module init).
 let base_point : Point = compute_base_point()
 
@@ -599,6 +637,7 @@ pub fn verify(public_key : Bytes, message : Bytes, signature : Bytes) -> Bool {
 // Helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Decode a clamped scalar from 32 bytes of a hash (little-endian).
 fn decode_scalar(h : Bytes, offset : Int) -> @bigint.BigInt {
   let bytes : Array[Byte] = []
@@ -612,6 +651,7 @@ fn decode_scalar(h : Bytes, offset : Int) -> @bigint.BigInt {
   bytes_to_bigint_le(bytes)
 }
 
+///|
 /// Slice a Bytes into an Array[Byte].
 fn slice(data : Bytes, offset : Int, len : Int) -> Array[Byte] {
   let result : Array[Byte] = []
@@ -621,6 +661,7 @@ fn slice(data : Bytes, offset : Int, len : Int) -> Array[Byte] {
   result
 }
 
+///|
 /// Convert Bytes to Array[Byte].
 fn bytes_to_array(data : Bytes) -> Array[Byte] {
   let result : Array[Byte] = []
@@ -630,6 +671,7 @@ fn bytes_to_array(data : Bytes) -> Array[Byte] {
   result
 }
 
+///|
 /// Constant-time byte array comparison.
 /// Always iterates over max(a.length, b.length) to avoid leaking length info.
 fn constant_time_eq(a : Bytes, b : Bytes) -> Bool {

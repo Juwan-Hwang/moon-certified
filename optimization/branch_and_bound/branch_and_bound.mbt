@@ -388,13 +388,22 @@ pub fn[T] optimize(
   let frontier : Frontier[T] = Frontier::new(config.strategy)
   let root_bound = bound(initial)
   let root_complete = is_complete(initial)
-  frontier.push({ bound: root_bound, depth: 0, state: initial, is_complete: root_complete })
+  frontier.push({
+    bound: root_bound,
+    depth: 0,
+    state: initial,
+    is_complete: root_complete,
+  })
   let mut best : T? = None
   let mut best_cost = 1.0 / 0.0 // +inf
   let mut nodes_expanded = 0
   let mut nodes_pruned = 0
   let mut all_optimal : Array[T] = []
-  let max_nodes = if config.max_nodes > 0 { config.max_nodes } else { 2147483647 }
+  let max_nodes = if config.max_nodes > 0 {
+    config.max_nodes
+  } else {
+    2147483647
+  }
   let mut completed = true
   while frontier.len() > 0 {
     if nodes_expanded >= max_nodes {
@@ -462,14 +471,7 @@ pub fn[T] optimize(
       }
     }
   }
-  {
-    best,
-    best_cost,
-    nodes_expanded,
-    nodes_pruned,
-    completed,
-    all_optimal,
-  }
+  { best, best_cost, nodes_expanded, nodes_pruned, completed, all_optimal }
 }
 
 // ---------------------------------------------------------------------------
@@ -552,11 +554,15 @@ test "bb: 0/1 knapsack optimal" {
     result
   }
 
-  let config : BbConfig = { max_nodes: 0, strategy: BestFirst, collect_all_optimal: false }
+  let config : BbConfig = {
+    max_nodes: 0,
+    strategy: BestFirst,
+    collect_all_optimal: false,
+  }
   let result = optimize(config, (0, capacity, 0), bound, is_complete, branch)
   assert_true(result.completed)
   // best_cost = -15.0 (value = 15)
-  assert_true((result.best_cost - (-15.0)).abs() < 0.001)
+  assert_true((result.best_cost - -15.0).abs() < 0.001)
   assert_true(result.nodes_expanded > 0)
   assert_true(result.nodes_pruned >= 0)
 }
@@ -607,10 +613,14 @@ test "bb: 0/1 knapsack depth-first" {
     result
   }
 
-  let config : BbConfig = { max_nodes: 0, strategy: DepthFirst, collect_all_optimal: false }
+  let config : BbConfig = {
+    max_nodes: 0,
+    strategy: DepthFirst,
+    collect_all_optimal: false,
+  }
   let result = optimize(config, (0, capacity, 0), bound, is_complete, branch)
   // Best: take item 0 (w=2,v=3) + item 1 (w=3,v=4) = w=5, v=7
-  assert_true((result.best_cost - (-7.0)).abs() < 0.001)
+  assert_true((result.best_cost - -7.0).abs() < 0.001)
   assert_true(result.completed)
 }
 
@@ -680,9 +690,15 @@ test "bb: assignment problem" {
 ///|
 /// Test: no feasible solution (empty branch at root).
 test "bb: no feasible solution" {
-  fn bound(_: Int) -> Double { 0.0 }
-  fn is_complete(_: Int) -> Bool { false }
-  fn branch(_: Int) -> Array[Int] { [] }
+  fn bound(_ : Int) -> Double {
+    0.0
+  }
+  fn is_complete(_ : Int) -> Bool {
+    false
+  }
+  fn branch(_ : Int) -> Array[Int] {
+    []
+  }
 
   let config = default_config()
   let result = optimize(config, 0, bound, is_complete, branch)
@@ -694,9 +710,15 @@ test "bb: no feasible solution" {
 ///|
 /// Test: trivial problem (root is complete).
 test "bb: root is complete" {
-  fn bound(x : Int) -> Double { x.to_double() }
-  fn is_complete(_: Int) -> Bool { true }
-  fn branch(_: Int) -> Array[Int] { [] }
+  fn bound(x : Int) -> Double {
+    x.to_double()
+  }
+  fn is_complete(_ : Int) -> Bool {
+    true
+  }
+  fn branch(_ : Int) -> Array[Int] {
+    []
+  }
 
   let config = default_config()
   let result = optimize(config, 42, bound, is_complete, branch)
@@ -736,7 +758,11 @@ test "bb: max_nodes limit" {
     result
   }
 
-  let config : BbConfig = { max_nodes: 5, strategy: BestFirst, collect_all_optimal: false }
+  let config : BbConfig = {
+    max_nodes: 5,
+    strategy: BestFirst,
+    collect_all_optimal: false,
+  }
   let result = optimize(config, (0, capacity, 0), bound, is_complete, branch)
   assert_false(result.completed)
   assert_true(result.nodes_expanded <= 5)
@@ -777,10 +803,14 @@ test "bb: collect all optimal" {
     result
   }
 
-  let config : BbConfig = { max_nodes: 0, strategy: BestFirst, collect_all_optimal: true }
+  let config : BbConfig = {
+    max_nodes: 0,
+    strategy: BestFirst,
+    collect_all_optimal: true,
+  }
   let result = optimize(config, (0, capacity, 0), bound, is_complete, branch)
   assert_true(result.completed)
-  assert_true((result.best_cost - (-5.0)).abs() < 0.001)
+  assert_true((result.best_cost - -5.0).abs() < 0.001)
   // Should have found 2 optimal solutions (take item 0 or take item 1).
   assert_true(result.all_optimal.length() >= 2)
 }
@@ -887,10 +917,30 @@ test "bb: breadth-first consistency" {
     result
   }
 
-  let config_bf : BbConfig = { max_nodes: 0, strategy: BestFirst, collect_all_optimal: false }
-  let config_bfs : BbConfig = { max_nodes: 0, strategy: BreadthFirst, collect_all_optimal: false }
-  let result_bf = optimize(config_bf, (0, capacity, 0), bound, is_complete, branch)
-  let result_bfs = optimize(config_bfs, (0, capacity, 0), bound, is_complete, branch)
+  let config_bf : BbConfig = {
+    max_nodes: 0,
+    strategy: BestFirst,
+    collect_all_optimal: false,
+  }
+  let config_bfs : BbConfig = {
+    max_nodes: 0,
+    strategy: BreadthFirst,
+    collect_all_optimal: false,
+  }
+  let result_bf = optimize(
+    config_bf,
+    (0, capacity, 0),
+    bound,
+    is_complete,
+    branch,
+  )
+  let result_bfs = optimize(
+    config_bfs,
+    (0, capacity, 0),
+    bound,
+    is_complete,
+    branch,
+  )
   // Both strategies should find the same optimal cost.
   assert_true((result_bf.best_cost - result_bfs.best_cost).abs() < 0.001)
 }
@@ -943,9 +993,21 @@ test "bb: strategy agreement" {
     result
   }
 
-  let config_best : BbConfig = { max_nodes: 0, strategy: BestFirst, collect_all_optimal: false }
-  let config_dfs : BbConfig = { max_nodes: 0, strategy: DepthFirst, collect_all_optimal: false }
-  let config_bfs : BbConfig = { max_nodes: 0, strategy: BreadthFirst, collect_all_optimal: false }
+  let config_best : BbConfig = {
+    max_nodes: 0,
+    strategy: BestFirst,
+    collect_all_optimal: false,
+  }
+  let config_dfs : BbConfig = {
+    max_nodes: 0,
+    strategy: DepthFirst,
+    collect_all_optimal: false,
+  }
+  let config_bfs : BbConfig = {
+    max_nodes: 0,
+    strategy: BreadthFirst,
+    collect_all_optimal: false,
+  }
   let r1 = optimize(config_best, (0, capacity, 0), bound, is_complete, branch)
   let r2 = optimize(config_dfs, (0, capacity, 0), bound, is_complete, branch)
   let r3 = optimize(config_bfs, (0, capacity, 0), bound, is_complete, branch)
@@ -961,8 +1023,12 @@ test "bb: strategy agreement" {
 test "bb: pruning count" {
   // Simple problem: find minimum of f(x) = x for x in [0, 3]
   // with branch generating x and x+1.
-  fn bound(x : Int) -> Double { x.to_double() }
-  fn is_complete(x : Int) -> Bool { x >= 3 }
+  fn bound(x : Int) -> Double {
+    x.to_double()
+  }
+  fn is_complete(x : Int) -> Bool {
+    x >= 3
+  }
   fn branch(x : Int) -> Array[Int] {
     if x >= 3 {
       return []

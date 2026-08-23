@@ -234,3 +234,19 @@ test "build_lps: empty" {
   let lps = build_lps("")
   assert_eq(lps.length(), 0)
 }
+
+///|
+/// Compute the LPS array length. Verified: result == pattern_len when pattern_len >= 0.
+pub fn kmp_lps_length(pattern_len : Int) -> Int where {
+  proof_require: 0 <= pattern_len,
+  proof_ensure: result => result == pattern_len,
+} {
+  pattern_len
+}
+
+///|
+test "kmp_lps_length: basic" {
+  assert_eq(kmp_lps_length(0), 0)
+  assert_eq(kmp_lps_length(5), 5)
+  assert_eq(kmp_lps_length(10), 10)
+}

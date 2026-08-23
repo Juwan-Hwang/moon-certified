@@ -27,14 +27,8 @@
 ///|
 /// BLAKE2b initialization vector.
 let blake2b_iv : Array[UInt64] = [
-  0x6A09E667F3BCC908UL,
-  0xBB67AE8584CAA73BUL,
-  0x3C6EF372FE94F82BUL,
-  0xA54FF53A5F1D36F1UL,
-  0x510E527FADE682D1UL,
-  0x9B05688C2B3E6C1FUL,
-  0x1F83D9ABFB41BD6BUL,
-  0x5BE0CD19137E2179UL,
+  0x6A09E667F3BCC908UL, 0xBB67AE8584CAA73BUL, 0x3C6EF372FE94F82BUL, 0xA54FF53A5F1D36F1UL,
+  0x510E527FADE682D1UL, 0x9B05688C2B3E6C1FUL, 0x1F83D9ABFB41BD6BUL, 0x5BE0CD19137E2179UL,
 ]
 
 ///|
@@ -72,7 +66,13 @@ pub struct Blake2bState {
 ///|
 /// Create a BLAKE2b state for hashing with the given output length (1–64).
 pub fn blake2b_init(out_len : Int) -> Blake2bState {
-  let out_len = if out_len < 1 { 1 } else if out_len > 64 { 64 } else { out_len }
+  let out_len = if out_len < 1 {
+    1
+  } else if out_len > 64 {
+    64
+  } else {
+    out_len
+  }
   let h = Array::make(8, 0UL)
   for i = 0; i < 8; i = i + 1 {
     h[i] = blake2b_iv[i]
@@ -116,10 +116,7 @@ fn g(
 }
 
 ///|
-fn compress_block(
-  state : Blake2bState,
-  block : Array[Byte],
-) -> Unit {
+fn compress_block(state : Blake2bState, block : Array[Byte]) -> Unit {
   let m : Array[UInt64] = Array::make(16, 0UL)
   // Load message words (little-endian)
   for i = 0; i < 16; i = i + 1 {
@@ -161,11 +158,7 @@ pub fn blake2b_update(state : Blake2bState, data : Bytes) -> Unit {
   let mut i = 0
   while i < data.length() {
     let need = 128 - state.buf_len
-    let chunk = if data.length() - i < need {
-      data.length() - i
-    } else {
-      need
-    }
+    let chunk = if data.length() - i < need { data.length() - i } else { need }
     for j = 0; j < chunk; j = j + 1 {
       state.buf[state.buf_len + j] = data[i + j]
     }
@@ -201,7 +194,7 @@ pub fn blake2b_finalize(state : Blake2bState) -> Bytes {
   // Extract output (little-endian)
   let result : Array[Byte] = Array::make(state.out_len, b'\x00')
   for i = 0; i < state.out_len; i = i + 1 {
-    result[i] = ((state.h[i / 8] >> ((i % 8) * 8)) & 0xFFUL).to_byte()
+    result[i] = ((state.h[i / 8] >> (i % 8 * 8)) & 0xFFUL).to_byte()
   }
   Bytes::from_array(result)
 }

@@ -76,38 +76,38 @@ let max_chain : Int = 128
 /// Index 0 = code 257, index 28 = code 285.
 let length_base : FixedArray[Int] = FixedArray::from_array([
   3, 4, 5, 6, 7, 8, 9, 10, // 257-264
-  11, 13, 15, 17, // 265-268
-  19, 23, 27, 31, // 269-272
-  35, 43, 51, 59, // 273-276
-  67, 83, 99, 115, // 277-280
-  131, 163, 195, 227, // 281-284
-  258, // 285
+   11, 13, 15, 17, // 265-268
+   19, 23, 27, 31, // 269-272
+   35, 43, 51, 59, // 273-276
+   67, 83, 99, 115, // 277-280
+   131, 163, 195, 227, // 281-284
+   258, // 285
 ])
 
 ///|
 /// Number of extra bits for each length code (257..285).
 let length_extra : FixedArray[Int] = FixedArray::from_array([
   0, 0, 0, 0, 0, 0, 0, 0, // 257-264
-  1, 1, 1, 1, // 265-268
-  2, 2, 2, 2, // 269-272
-  3, 3, 3, 3, // 273-276
-  4, 4, 4, 4, // 277-280
-  5, 5, 5, 5, // 281-284
-  0, // 285
+   1, 1, 1, 1, // 265-268
+   2, 2, 2, 2, // 269-272
+   3, 3, 3, 3, // 273-276
+   4, 4, 4, 4, // 277-280
+   5, 5, 5, 5, // 281-284
+   0, // 285
 ])
 
 ///|
 /// Distance base values for distance codes 0..29.
 let dist_base : FixedArray[Int] = FixedArray::from_array([
-  1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513,
-  769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+  1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769,
+  1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
 ])
 
 ///|
 /// Number of extra bits for each distance code 0..29.
 let dist_extra : FixedArray[Int] = FixedArray::from_array([
-  0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10,
-  11, 11, 12, 12, 13, 13,
+  0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
+  12, 12, 13, 13,
 ])
 
 // ---------------------------------------------------------------------------
@@ -505,8 +505,8 @@ fn lz77_compress(data : Bytes) -> Array[LzToken] {
       // Full comparison.
       let mut match_len = 0
       while match_len < max_len &&
-        pos + match_len < n &&
-        data[candidate + match_len] == data[pos + match_len] {
+            pos + match_len < n &&
+            data[candidate + match_len] == data[pos + match_len] {
         match_len = match_len + 1
       }
       if match_len > best_len {
@@ -662,7 +662,9 @@ fn deflate_fixed(data : Bytes) -> Bytes {
 /// Returns (lit_freqs[0..285], dist_freqs[0..29]).
 /// lit_freqs includes literal bytes (0-255), end-of-block (256), and
 /// length codes (257-285). dist_freqs includes distance codes (0-29).
-fn build_freq_tables(tokens : Array[LzToken]) -> (FixedArray[Int], FixedArray[Int]) {
+fn build_freq_tables(
+  tokens : Array[LzToken],
+) -> (FixedArray[Int], FixedArray[Int]) {
   let lit_freqs : FixedArray[Int] = FixedArray::make(286, 0)
   let dist_freqs : FixedArray[Int] = FixedArray::make(30, 0)
   // End-of-block symbol always appears once.
@@ -696,7 +698,11 @@ priv struct HuffNode {
 /// Uses a min-heap to build the Huffman tree, then extracts code lengths.
 /// Code lengths are limited to `max_bits` using a simple post-processing
 /// step that redistributes overlong codes (zlib approach).
-fn build_optimal_lengths(freqs : FixedArray[Int], num_symbols : Int, max_bits : Int) -> FixedArray[Int] {
+fn build_optimal_lengths(
+  freqs : FixedArray[Int],
+  num_symbols : Int,
+  max_bits : Int,
+) -> FixedArray[Int] {
   let lengths : FixedArray[Int] = FixedArray::make(num_symbols, 0)
   // Collect non-zero frequency symbols.
   let nodes : Array[HuffNode] = []
@@ -772,7 +778,12 @@ fn build_optimal_lengths(freqs : FixedArray[Int], num_symbols : Int, max_bits : 
     heap_size = heap_size - 1
     sift_down(heap, nodes, heap_size)
     // Merge.
-    nodes.push({ freq: nodes[min1].freq + nodes[min2].freq, left: min1, right: min2, symbol: -1 })
+    nodes.push({
+      freq: nodes[min1].freq + nodes[min2].freq,
+      left: min1,
+      right: min2,
+      symbol: -1,
+    })
     heap[heap_size] = nodes.length() - 1
     heap_size = heap_size + 1
     sift_up(heap, nodes, heap_size - 1)
@@ -809,13 +820,22 @@ fn build_optimal_lengths(freqs : FixedArray[Int], num_symbols : Int, max_bits : 
 /// Uses the zlib approach: count codes at each length, then redistribute
 /// from the deepest levels upward. This is not strictly optimal but is
 /// correct (produces valid prefix codes) and very fast.
-fn limit_code_lengths(lengths : FixedArray[Int], num_symbols : Int, max_bits : Int) -> Unit {
+fn limit_code_lengths(
+  lengths : FixedArray[Int],
+  num_symbols : Int,
+  max_bits : Int,
+) -> Unit {
   // Count codes at each length (from original, untruncated lengths).
   let orig_count : FixedArray[Int] = FixedArray::make(16, 0)
   for i = 0; i < num_symbols; i = i + 1 {
     let l = lengths[i]
     if l > 0 {
-      orig_count[if l > 15 { 15 } else { l }] = orig_count[if l > 15 { 15 } else { l }] + 1
+      orig_count[if l > 15 { 15 } else { l }] = orig_count[if l > 15 {
+          15
+        } else {
+          l
+        }] +
+        1
     }
   }
   // Check for overflow (codes longer than max_bits).
@@ -1042,9 +1062,8 @@ fn deflate_dynamic(data : Bytes) -> Bytes {
   // Encode LZ77 tokens using the dynamic literal/length and distance tables.
   for i = 0; i < tokens.length(); i = i + 1 {
     match tokens[i] {
-      LzToken::Literal(b) => {
+      LzToken::Literal(b) =>
         write_huffman(w, lit_table.codes[b], lit_table.lengths[b])
-      }
       LzToken::Match(len, dist) => {
         let (lc_idx, lc_extra) = length_to_code(len)
         let lc_sym = 257 + lc_idx
@@ -1120,18 +1139,14 @@ pub fn inflate(data : Bytes) -> Bytes? {
       let block_result = inflate_fixed_block(r, output, lit_codes)
       match block_result {
         None => return None
-        Some(_) => if bfinal == 1 {
-          done = true
-        }
+        Some(_) => if bfinal == 1 { done = true }
       }
     } else if btype == 2 {
       // Dynamic Huffman block (BTYPE = 10).
       let block_result = inflate_dynamic_block(r, output)
       match block_result {
         None => return None
-        Some(_) => if bfinal == 1 {
-          done = true
-        }
+        Some(_) => if bfinal == 1 { done = true }
       }
     } else {
       // Reserved (BTYPE = 11) — invalid.
@@ -1481,7 +1496,9 @@ test "inflate: truncated stream returns None" {
 test "inflate: corrupt NLEN returns None" {
   // Construct a stored block with bad NLEN.
   // BFINAL=1, BTYPE=00 → 0x01, then LEN=01 00, NLEN=00 00 (wrong, should be FE FF)
-  let bad = Bytes::from_array([b'\x01', b'\x01', b'\x00', b'\x00', b'\x00', b'Z'])
+  let bad = Bytes::from_array([
+    b'\x01', b'\x01', b'\x00', b'\x00', b'\x00', b'Z',
+  ])
   assert_true(inflate(bad) is None)
 }
 

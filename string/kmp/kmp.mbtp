@@ -1,0 +1,7 @@
+///|
+/// KMP verified predicates.
+///
+/// Note: The full matching completeness property (if pattern exists in text,
+/// KMP finds it) requires inductive proofs over the failure function's
+/// border-array invariant that exceed Z3's automatic capability.
+/// Only kmp_lps_length (LPS array length == pattern length) is verified.

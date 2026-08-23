@@ -1,3 +1,4 @@
+///|
 /// ECDSA test suite.
 ///
 /// Tests include:
@@ -17,6 +18,7 @@ fn hex2bytes(s : String) -> Bytes {
 // RFC 6979 Appendix A.2.5 Test Vectors (P-256, SHA-256)
 // ---------------------------------------------------------------------------
 
+///|
 test "rfc6979 A.2.5: public key derivation" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -30,6 +32,7 @@ test "rfc6979 A.2.5: public key derivation" {
   assert_eq(@hex.encode(pk), @hex.encode(expected_pk))
 }
 
+///|
 test "rfc6979 A.2.5: sign 'sample'" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -66,6 +69,7 @@ test "rfc6979 A.2.5: sign 'sample'" {
   assert_eq(@hex.encode(Bytes::from_array(s_actual)), @hex.encode(expected_s))
 }
 
+///|
 test "rfc6979 A.2.5: sign 'test'" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -86,6 +90,7 @@ test "rfc6979 A.2.5: sign 'test'" {
 // Round-trip tests
 // ---------------------------------------------------------------------------
 
+///|
 test "ecdsa: sign and verify round-trip" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -97,6 +102,7 @@ test "ecdsa: sign and verify round-trip" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "ecdsa: deterministic signatures" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -107,6 +113,7 @@ test "ecdsa: deterministic signatures" {
   assert_true(@hex.encode(sig1) == @hex.encode(sig2))
 }
 
+///|
 test "ecdsa: verify with wrong message fails" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -115,10 +122,13 @@ test "ecdsa: verify with wrong message fails" {
   let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
   let sig = sign(sk, msg)
   assert_true(verify(pk, msg, sig))
-  let other_msg = Bytes::from_array([b'\x77', b'\x6f', b'\x72', b'\x6c', b'\x64'])
+  let other_msg = Bytes::from_array([
+    b'\x77', b'\x6f', b'\x72', b'\x6c', b'\x64',
+  ])
   assert_false(verify(pk, other_msg, sig))
 }
 
+///|
 test "ecdsa: verify with wrong public key fails" {
   let sk1 = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -134,6 +144,7 @@ test "ecdsa: verify with wrong public key fails" {
   assert_false(verify(pk2, msg, sig))
 }
 
+///|
 test "ecdsa: empty message sign and verify" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -145,6 +156,7 @@ test "ecdsa: empty message sign and verify" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "ecdsa: signature size is 64 bytes" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -154,6 +166,7 @@ test "ecdsa: signature size is 64 bytes" {
   assert_true(sig.length() == 64)
 }
 
+///|
 test "ecdsa: public key size is 65 bytes" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -163,6 +176,7 @@ test "ecdsa: public key size is 65 bytes" {
   assert_eq(pk[0], b'\x04')
 }
 
+///|
 test "ecdsa: verify rejects invalid signature length" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -173,6 +187,7 @@ test "ecdsa: verify rejects invalid signature length" {
   assert_false(verify(pk, msg, short_sig))
 }
 
+///|
 test "ecdsa: verify rejects invalid public key length" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",
@@ -183,6 +198,7 @@ test "ecdsa: verify rejects invalid public key length" {
   assert_false(verify(short_pk, msg, sig))
 }
 
+///|
 test "ecdsa: verify rejects tampered signature" {
   let sk = hex2bytes(
     "c9afa9d845ba75166b5c215767b1d6934e50c3db36e89b127b8a622b120f6721",

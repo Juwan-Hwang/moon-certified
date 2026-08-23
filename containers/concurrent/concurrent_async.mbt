@@ -211,10 +211,7 @@ pub fn[K : Hash + Eq, V] AsyncMap::get(m : AsyncMap[K, V], k : K) -> V? {
 
 ///|
 /// Remove key `k` if present. Returns `true` if the key was found.
-pub fn[K : Hash + Eq, V] AsyncMap::remove(
-  m : AsyncMap[K, V],
-  k : K,
-) -> Bool {
+pub fn[K : Hash + Eq, V] AsyncMap::remove(m : AsyncMap[K, V], k : K) -> Bool {
   SpinMutex::acquire(m.mutex)
   let existed = m.inner.contains(k)
   m.inner.remove(k)
@@ -224,10 +221,7 @@ pub fn[K : Hash + Eq, V] AsyncMap::remove(
 
 ///|
 /// Check if key `k` is present.
-pub fn[K : Hash + Eq, V] AsyncMap::contains(
-  m : AsyncMap[K, V],
-  k : K,
-) -> Bool {
+pub fn[K : Hash + Eq, V] AsyncMap::contains(m : AsyncMap[K, V], k : K) -> Bool {
   SpinMutex::acquire(m.mutex)
   let result = m.inner.contains(k)
   SpinMutex::release(m.mutex)

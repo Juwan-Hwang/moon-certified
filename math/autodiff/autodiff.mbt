@@ -228,13 +228,7 @@ pub fn tanh(a : Dual) -> Dual {
 /// The derivative of `|x|` is `sign(x)` for `x ≠ 0`; at `x = 0` the
 /// derivative is set to `0` (subgradient convention).
 pub fn abs(a : Dual) -> Dual {
-  let s = if a.val > 0.0 {
-    1.0
-  } else if a.val < 0.0 {
-    -1.0
-  } else {
-    0.0
-  }
+  let s = if a.val > 0.0 { 1.0 } else if a.val < 0.0 { -1.0 } else { 0.0 }
   { val: a.val.abs(), deriv: s * a.deriv }
 }
 
@@ -247,10 +241,7 @@ pub fn abs(a : Dual) -> Dual {
 ///
 /// Performs `n` forward passes, each seeding one variable's derivative to `1`.
 /// Returns an array of `n` partial derivatives.
-pub fn gradient(
-  f : (Array[Dual]) -> Dual,
-  x : Array[Double],
-) -> Array[Double] {
+pub fn gradient(f : (Array[Dual]) -> Dual, x : Array[Double]) -> Array[Double] {
   let n = x.length()
   let result = Array::make(n, 0.0)
   let duals : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0 })
@@ -382,9 +373,7 @@ test "autodiff: chain rule — sin(x²)" {
 
 ///|
 test "autodiff: division derivative" {
-  let f = fn(x : Dual) -> Dual {
-    div(add_scalar(x, 1.0), add_scalar(x, -1.0))
-  }
+  let f = fn(x : Dual) -> Dual { div(add_scalar(x, 1.0), add_scalar(x, -1.0)) }
   let d = f(variable(3.0))
   assert_true((d.val - 2.0).abs() < 1.0e-15)
   assert_true((d.deriv + 0.5).abs() < 1.0e-15)
@@ -474,9 +463,7 @@ test "autodiff: constant has zero derivative" {
 
 ///|
 test "autodiff: 3D gradient" {
-  let f = fn(xs : Array[Dual]) -> Dual {
-    mul(mul(xs[0], xs[1]), xs[2])
-  }
+  let f = fn(xs : Array[Dual]) -> Dual { mul(mul(xs[0], xs[1]), xs[2]) }
   let g = gradient(f, [2.0, 3.0, 4.0])
   assert_true((g[0] - 12.0).abs() < 1.0e-15)
   assert_true((g[1] - 8.0).abs() < 1.0e-15)

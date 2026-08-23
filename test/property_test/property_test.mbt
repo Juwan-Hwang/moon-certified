@@ -222,7 +222,9 @@ pub fn check_int(
   min_val : Int,
   max_val : Int,
 ) -> PropertyResult[Int] {
-  check_property_int(prop, default_num_tests, 0xDEADBEEFCAFEBABEUL, min_val, max_val)
+  check_property_int(
+    prop, default_num_tests, 0xDEADBEEFCAFEBABEUL, min_val, max_val,
+  )
 }
 
 // ---------------------------------------------------------------------------

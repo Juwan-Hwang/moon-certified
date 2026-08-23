@@ -45,10 +45,10 @@
 ///|
 /// Kernel function type.
 pub enum KernelType {
-  Linear       // K(x, y) = x · y
-  RBF          // K(x, y) = exp(-γ · ||x - y||²)
-  Polynomial   // K(x, y) = (γ · x · y + r)^d
-  Sigmoid      // K(x, y) = tanh(γ · x · y + r)
+  Linear // K(x, y) = x · y
+  RBF // K(x, y) = exp(-γ · ||x - y||²)
+  Polynomial // K(x, y) = (γ · x · y + r)^d
+  Sigmoid // K(x, y) = tanh(γ · x · y + r)
 } derive(Eq, Debug)
 
 ///|
@@ -108,17 +108,13 @@ pub fn default_config() -> SVMConfig {
 
 ///|
 /// Create a custom configuration with Linear kernel (backward compatible).
-pub fn make_config(c : Double, max_iter : Int, tol : Double, eps : Double) -> SVMConfig {
-  {
-    c,
-    max_iter,
-    tol,
-    eps,
-    kernel: Linear,
-    gamma: 0.0,
-    degree: 3,
-    coef0: 0.0,
-  }
+pub fn make_config(
+  c : Double,
+  max_iter : Int,
+  tol : Double,
+  eps : Double,
+) -> SVMConfig {
+  { c, max_iter, tol, eps, kernel: Linear, gamma: 0.0, degree: 3, coef0: 0.0 }
 }
 
 ///|
@@ -162,7 +158,12 @@ pub fn rbf_config(c : Double, gamma : Double) -> SVMConfig {
 
 ///|
 /// Convenience: create a Polynomial kernel config.
-pub fn poly_config(c : Double, gamma : Double, degree : Int, coef0 : Double) -> SVMConfig {
+pub fn poly_config(
+  c : Double,
+  gamma : Double,
+  degree : Int,
+  coef0 : Double,
+) -> SVMConfig {
   {
     c,
     max_iter: 1000,
@@ -217,7 +218,11 @@ fn kernel_fn(
 
 ///|
 /// Compute the kernel value using model parameters (for prediction).
-fn kernel_fn_model(a : Array[Double], b : Array[Double], model : SVMModel) -> Double {
+fn kernel_fn_model(
+  a : Array[Double],
+  b : Array[Double],
+  model : SVMModel,
+) -> Double {
   let result = match model.kernel {
     Linear => dot(a, b)
     RBF => {
@@ -424,11 +429,11 @@ fn take_step(
   let e2 = compute_error(i2, y, k, alphas, bias[0], n) - y2
   let s = y1 * y2
   let (l, h) = if s < 0.0 {
-    let lo = (0.0).max(alpha2 - alpha1)
+    let lo = 0.0.max(alpha2 - alpha1)
     let hi = config.c.min(config.c + alpha2 - alpha1)
     (lo, hi)
   } else {
-    let lo = (0.0).max(alpha2 + alpha1 - config.c)
+    let lo = 0.0.max(alpha2 + alpha1 - config.c)
     let hi = config.c.min(alpha2 + alpha1)
     (lo, hi)
   }
@@ -453,8 +458,16 @@ fn take_step(
     let f2 = y2 * (e2 + bias[0]) - s * alpha1 * k12 - alpha2 * k22
     let l1 = alpha1 + s * (alpha2 - l)
     let h1 = alpha1 + s * (alpha2 - h)
-    let l_obj = l1 * f1 + l * f2 + 0.5 * l1 * l1 * k11 + 0.5 * l * l * k22 + s * l * l1 * k12
-    let h_obj = h1 * f1 + h * f2 + 0.5 * h1 * h1 * k11 + 0.5 * h * h * k22 + s * h * h1 * k12
+    let l_obj = l1 * f1 +
+      l * f2 +
+      0.5 * l1 * l1 * k11 +
+      0.5 * l * l * k22 +
+      s * l * l1 * k12
+    let h_obj = h1 * f1 +
+      h * f2 +
+      0.5 * h1 * h1 * k11 +
+      0.5 * h * h * k22 +
+      s * h * h1 * k12
     if l_obj < h_obj - config.eps {
       a2 = l
     } else if l_obj > h_obj + config.eps {
@@ -599,11 +612,16 @@ pub fn predict(model : SVMModel, x : Array[Double]) -> Double {
   }
   let mut sum = model.bias
   for i = 0; i < model.support_vectors.length(); i = i + 1 {
-    sum = sum + model.alphas[i] * model.support_labels[i] * kernel_fn_model(
-      x, model.support_vectors[i], model,
-    )
+    sum = sum +
+      model.alphas[i] *
+      model.support_labels[i] *
+      kernel_fn_model(x, model.support_vectors[i], model)
   }
-  if sum >= 0.0 { 1.0 } else { -1.0 }
+  if sum >= 0.0 {
+    1.0
+  } else {
+    -1.0
+  }
 }
 
 ///|
@@ -611,9 +629,10 @@ pub fn predict(model : SVMModel, x : Array[Double]) -> Double {
 pub fn decision_function(model : SVMModel, x : Array[Double]) -> Double {
   let mut sum = model.bias
   for i = 0; i < model.support_vectors.length(); i = i + 1 {
-    sum = sum + model.alphas[i] * model.support_labels[i] * kernel_fn_model(
-      x, model.support_vectors[i], model,
-    )
+    sum = sum +
+      model.alphas[i] *
+      model.support_labels[i] *
+      kernel_fn_model(x, model.support_vectors[i], model)
   }
   sum
 }
@@ -712,10 +731,20 @@ fn tanh_approx(x : Double) -> Double {
 ///|
 test "svm: linearly separable data" {
   let x : Array[Array[Double]] = [
-    [1.0, 1.0], [1.5, 0.5], [0.5, 1.5], [1.0, 2.0], [2.0, 1.0],
-    [5.0, 5.0], [5.5, 4.5], [4.5, 5.5], [5.0, 6.0], [6.0, 5.0],
+    [1.0, 1.0],
+    [1.5, 0.5],
+    [0.5, 1.5],
+    [1.0, 2.0],
+    [2.0, 1.0],
+    [5.0, 5.0],
+    [5.5, 4.5],
+    [4.5, 5.5],
+    [5.0, 6.0],
+    [6.0, 5.0],
   ]
-  let y : Array[Double] = [-1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  let y : Array[Double] = [
+    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+  ]
   let config = default_config()
   let model = match train(x, y, config) {
     None => fail("training failed")
@@ -730,7 +759,10 @@ test "svm: linearly separable data" {
 ///|
 test "svm: decision function sign" {
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.1, 0.1], [10.0, 10.0], [9.5, 10.5],
+    [0.0, 0.0],
+    [0.1, 0.1],
+    [10.0, 10.0],
+    [9.5, 10.5],
   ]
   let y : Array[Double] = [-1.0, -1.0, 1.0, 1.0]
   let model = train(x, y, default_config()).unwrap()
@@ -741,7 +773,10 @@ test "svm: decision function sign" {
 ///|
 test "svm: has support vectors" {
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 1.0], [10.0, 10.0], [11.0, 11.0],
+    [0.0, 0.0],
+    [1.0, 1.0],
+    [10.0, 10.0],
+    [11.0, 11.0],
   ]
   let y : Array[Double] = [-1.0, -1.0, 1.0, 1.0]
   let model = train(x, y, default_config()).unwrap()
@@ -767,7 +802,10 @@ test "svm: RBF kernel solves XOR problem" {
   // XOR: (0,0)→-1, (1,1)→-1, (0,1)→+1, (1,0)→+1
   // Linear kernel cannot solve this, but RBF can.
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [1.0, 0.0],
+    [0.0, 0.0],
+    [1.0, 1.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
   ]
   let y : Array[Double] = [-1.0, -1.0, 1.0, 1.0]
   let config = rbf_config(10.0, 1.0)
@@ -786,10 +824,20 @@ test "svm: RBF kernel solves XOR problem" {
 test "svm: RBF kernel with concentric circles" {
   // Inner circle (class -1) and outer ring (class +1)
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.5, 0.0], [0.0, 0.5], [-0.5, 0.0], [0.0, -0.5],
-    [3.0, 0.0], [3.5, 0.0], [0.0, 3.0], [-3.0, 0.0], [0.0, -3.0],
+    [0.0, 0.0],
+    [0.5, 0.0],
+    [0.0, 0.5],
+    [-0.5, 0.0],
+    [0.0, -0.5],
+    [3.0, 0.0],
+    [3.5, 0.0],
+    [0.0, 3.0],
+    [-3.0, 0.0],
+    [0.0, -3.0],
   ]
-  let y : Array[Double] = [-1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  let y : Array[Double] = [
+    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+  ]
   let config = rbf_config(1.0, 0.5)
   let model = match train(x, y, config) {
     None => fail("RBF training failed")
@@ -803,8 +851,14 @@ test "svm: RBF kernel with concentric circles" {
 test "svm: polynomial kernel" {
   // Data separable by a polynomial decision boundary
   let x : Array[Array[Double]] = [
-    [1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0],
-    [2.0, 2.0], [2.0, 3.0], [3.0, 2.0], [3.0, 3.0],
+    [1.0, 0.0],
+    [0.0, 1.0],
+    [-1.0, 0.0],
+    [0.0, -1.0],
+    [2.0, 2.0],
+    [2.0, 3.0],
+    [3.0, 2.0],
+    [3.0, 3.0],
   ]
   let y : Array[Double] = [-1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0]
   let config = poly_config(1.0, 1.0, 2, 0.0) // degree-2 poly
@@ -820,8 +874,14 @@ test "svm: polynomial kernel" {
 ///|
 test "svm: sigmoid kernel" {
   let x : Array[Array[Double]] = [
-    [0.1, 0.1], [0.2, 0.1], [0.1, 0.2], [0.2, 0.2],
-    [0.8, 0.8], [0.9, 0.8], [0.8, 0.9], [0.9, 0.9],
+    [0.1, 0.1],
+    [0.2, 0.1],
+    [0.1, 0.2],
+    [0.2, 0.2],
+    [0.8, 0.8],
+    [0.9, 0.8],
+    [0.8, 0.9],
+    [0.9, 0.9],
   ]
   let y : Array[Double] = [-1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0]
   let config = make_kernel_config(1.0, 1000, 0.001, 0.001, Sigmoid, 1.0, 3, 0.0)
@@ -837,7 +897,10 @@ test "svm: sigmoid kernel" {
 ///|
 test "svm: linear kernel still works with new config" {
   let x : Array[Array[Double]] = [
-    [1.0, 1.0], [2.0, 2.0], [8.0, 8.0], [9.0, 9.0],
+    [1.0, 1.0],
+    [2.0, 2.0],
+    [8.0, 8.0],
+    [9.0, 9.0],
   ]
   let y : Array[Double] = [-1.0, -1.0, 1.0, 1.0]
   let config = make_kernel_config(1.0, 1000, 0.001, 0.001, Linear, 0.0, 3, 0.0)
@@ -854,14 +917,21 @@ test "svm: linear kernel still works with new config" {
 test "svm: multi-class one-vs-rest (3 classes)" {
   // 3 clusters: class 0 near (1,1), class 1 near (5,5), class 2 near (1,5)
   let x : Array[Array[Double]] = [
-    [1.0, 1.0], [1.5, 0.5], [0.5, 1.5], [1.0, 2.0],
-    [5.0, 5.0], [5.5, 4.5], [4.5, 5.5], [5.0, 6.0],
-    [1.0, 5.0], [1.5, 4.5], [0.5, 5.5], [1.0, 6.0],
+    [1.0, 1.0],
+    [1.5, 0.5],
+    [0.5, 1.5],
+    [1.0, 2.0],
+    [5.0, 5.0],
+    [5.5, 4.5],
+    [4.5, 5.5],
+    [5.0, 6.0],
+    [1.0, 5.0],
+    [1.5, 4.5],
+    [0.5, 5.5],
+    [1.0, 6.0],
   ]
   let y : Array[Double] = [
-    0.0, 0.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 1.0,
-    2.0, 2.0, 2.0, 2.0,
+    0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0,
   ]
   let config = default_config()
   let model = match train_multiclass(x, y, config) {
@@ -878,9 +948,15 @@ test "svm: multi-class one-vs-rest (3 classes)" {
 test "svm: multi-class with RBF kernel" {
   // Non-linearly separable 3-class problem
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.5, 0.0], [0.0, 0.5],
-    [4.0, 0.0], [4.5, 0.0], [4.0, 0.5],
-    [2.0, 4.0], [2.5, 4.0], [2.0, 4.5],
+    [0.0, 0.0],
+    [0.5, 0.0],
+    [0.0, 0.5],
+    [4.0, 0.0],
+    [4.5, 0.0],
+    [4.0, 0.5],
+    [2.0, 4.0],
+    [2.5, 4.0],
+    [2.0, 4.5],
   ]
   let y : Array[Double] = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0]
   let config = rbf_config(10.0, 0.5)
@@ -925,7 +1001,10 @@ test "svm: exp and tanh helpers" {
 test "svm: auto gamma computation" {
   // When gamma=0.0, it should be auto-computed as 1/n_features
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [1.0, 1.0], [0.0, 1.0], [1.0, 0.0],
+    [0.0, 0.0],
+    [1.0, 1.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
   ]
   let y : Array[Double] = [-1.0, -1.0, 1.0, 1.0]
   // gamma=0 means auto=1/2=0.5

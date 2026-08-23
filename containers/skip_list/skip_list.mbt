@@ -201,10 +201,7 @@ pub fn[V] delete(sl : SkipList[V], key : Int) -> Unit {
             None => ()
             Some(prev) =>
               match prev.forward[i] {
-                Some(n) =>
-                  if n.key == key {
-                    prev.forward[i] = n.forward[i]
-                  }
+                Some(n) => if n.key == key { prev.forward[i] = n.forward[i] }
                 None => ()
               }
           }

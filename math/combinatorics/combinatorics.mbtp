@@ -1,0 +1,5 @@
+///|
+/// Factorial result is always >= 1 for n >= 0.
+predicate factorial_ok(result : Int) {
+  1 <= result
+}

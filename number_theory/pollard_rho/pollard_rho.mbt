@@ -40,6 +40,7 @@
 // Pollard-Rho core
 // ---------------------------------------------------------------------------
 
+///|
 /// Batch size for GCD accumulation. 128 is the standard choice balancing GCD
 /// call reduction against backtracking cost.
 let prho_batch_size : Int = 128
@@ -85,7 +86,7 @@ fn prho_find(n : Int64, c : Int64, x0 : Int64) -> Int64 {
           // Cycle found without a factor; this attempt failed.
           return n
         }
-        q = (q * diff) % n
+        q = q * diff % n
       }
       g = @int64_utils.gcd64(q, n)
       k = k + limit

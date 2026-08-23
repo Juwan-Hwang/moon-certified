@@ -84,7 +84,7 @@ fn MCTS::rng_below(self : MCTS, n : Int) -> Int {
   // n divides 2^31 evenly (e.g. n=2 → threshold=2^31 > Int::max_value).
   let limit : Int64 = 2147483648L
   let n64 = n.to_int64()
-  let threshold = limit - (limit % n64)
+  let threshold = limit - limit % n64
   let mut r = self.rng().to_int64()
   while r >= threshold {
     r = self.rng().to_int64()
@@ -329,7 +329,7 @@ fn rng_below(rng : () -> Int, n : Int) -> Int {
   // n divides 2^31 evenly (e.g. n=2 → threshold=2^31 > Int::max_value).
   let limit : Int64 = 2147483648L
   let n64 = n.to_int64()
-  let threshold = limit - (limit % n64)
+  let threshold = limit - limit % n64
   let mut r = (rng() & 0x7FFFFFFF).to_int64()
   while r >= threshold {
     r = (rng() & 0x7FFFFFFF).to_int64()

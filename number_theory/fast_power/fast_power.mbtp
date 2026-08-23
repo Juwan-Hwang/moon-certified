@@ -1,3 +1,17 @@
+///|
+/// Postcondition: result is non-negative.
 predicate power_nonneg(result : Int) {
   0 <= result
+}
+
+///|
+/// Postcondition: result >= 1 when base >= 1.
+predicate power_ge1(result : Int) {
+  1 <= result
+}
+
+///|
+/// Postcondition: result >= base when base >= 1 and exp >= 1.
+predicate power_ge_base(base : Int, result : Int) {
+  base <= result
 }

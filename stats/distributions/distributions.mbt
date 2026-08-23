@@ -484,7 +484,7 @@ pub fn chi_square_pdf(x : Double, k : Double) -> Double {
   }
   let log_pdf = (k / 2.0 - 1.0) * @math.ln(x) -
     x / 2.0 -
-    (k / 2.0) * @math.ln(2.0) -
+    k / 2.0 * @math.ln(2.0) -
     @special_functions.lgamma(k / 2.0)
   @math.exp(log_pdf)
 }
@@ -524,13 +524,15 @@ pub fn f_pdf(x : Double, d1 : Double, d2 : Double) -> Double {
   if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
     return 0.0
   }
-  let log_pdf = (d1 / 2.0) * @math.ln(d1 * x) +
-    (d2 / 2.0) * @math.ln(d2) -
-    ((d1 + d2) / 2.0) * @math.ln(d1 * x + d2) -
+  let log_pdf = d1 / 2.0 * @math.ln(d1 * x) +
+    d2 / 2.0 * @math.ln(d2) -
+    (d1 + d2) / 2.0 * @math.ln(d1 * x + d2) -
     @math.ln(x) -
-    (@special_functions.lgamma(d1 / 2.0) +
-     @special_functions.lgamma(d2 / 2.0) -
-     @special_functions.lgamma((d1 + d2) / 2.0))
+    (
+      @special_functions.lgamma(d1 / 2.0) +
+      @special_functions.lgamma(d2 / 2.0) -
+      @special_functions.lgamma((d1 + d2) / 2.0)
+    )
   @math.exp(log_pdf)
 }
 
@@ -547,7 +549,7 @@ pub fn f_cdf(x : Double, d1 : Double, d2 : Double) -> Double {
   if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
     return 0.0
   }
-  let z = (d1 * x) / (d1 * x + d2)
+  let z = d1 * x / (d1 * x + d2)
   regularized_incomplete_beta(z, d1 / 2.0, d2 / 2.0)
 }
 
@@ -596,6 +598,7 @@ pub fn gamma_cdf(x : Double, k : Double, theta : Double) -> Double {
 // Internal: Regularized incomplete beta and gamma functions
 // ---------------------------------------------------------------------------
 
+///|
 /// Regularized lower incomplete gamma function P(a, x) = γ(a, x) / Γ(a).
 ///
 /// Uses the series expansion for x < a+1 and continued fraction for x ≥ a+1
@@ -628,11 +631,7 @@ fn regularized_lower_incomplete_gamma(a : Double, x : Double) -> Double {
     let mut d = 0.0
     let mut i = 1
     while i < 200 {
-      let an = if i == 1 {
-        0.0
-      } else {
-        (i.to_double() - 1.0) - a
-      }
+      let an = if i == 1 { 0.0 } else { i.to_double() - 1.0 - a }
       let denom = an + x
       if denom.abs() < 1.0e-30 {
         d = 1.0e-30
@@ -666,6 +665,7 @@ fn regularized_lower_incomplete_gamma(a : Double, x : Double) -> Double {
   }
 }
 
+///|
 /// Regularized incomplete beta function I_x(a, b).
 ///
 /// Uses the continued fraction representation (Numerical Recipes §6.4).
@@ -694,6 +694,7 @@ fn regularized_incomplete_beta(x : Double, a : Double, b : Double) -> Double {
   }
 }
 
+///|
 /// Continued fraction for the incomplete beta function (Lentz's method).
 fn beta_continued_fraction(x : Double, a : Double, b : Double) -> Double {
   let mut f = 1.0e-30

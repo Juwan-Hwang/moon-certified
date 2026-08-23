@@ -1,0 +1,10 @@
+import {
+  "moon-certified/crypto/hmac",
+  "moon-certified/crypto/sha512",
+  "moon-certified/serialization/json",
+  "moon-certified/utils",
+}
+
+options(
+  "proof-enabled": false,
+)

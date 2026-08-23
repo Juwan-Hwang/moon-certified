@@ -53,7 +53,12 @@ pub fn new(n : Int) -> PushRelabel {
 ///|
 /// Add a directed edge from `u` to `v` with capacity `cap`.
 /// A reverse edge with 0 capacity is added automatically.
-pub fn PushRelabel::add_edge(self : PushRelabel, u : Int, v : Int, cap : Int) -> Unit {
+pub fn PushRelabel::add_edge(
+  self : PushRelabel,
+  u : Int,
+  v : Int,
+  cap : Int,
+) -> Unit {
   let forward = { to: v, cap, flow: 0, rev: self.adj[v].length() }
   let backward = { to: u, cap: 0, flow: 0, rev: self.adj[u].length() }
   self.adj[u].push(forward)
@@ -68,7 +73,11 @@ fn PushRelabel::push(self : PushRelabel, u : Int, idx : Int) -> Bool {
   if d <= 0 || self.height[u] <= self.height[e.to] {
     return false
   }
-  let amount = if self.excess[u] < d.to_int64() { self.excess[u] } else { d.to_int64() }
+  let amount = if self.excess[u] < d.to_int64() {
+    self.excess[u]
+  } else {
+    d.to_int64()
+  }
   self.adj[u][idx].flow = self.adj[u][idx].flow + amount.to_int()
   self.adj[e.to][e.rev].flow = self.adj[e.to][e.rev].flow - amount.to_int()
   self.excess[u] = self.excess[u] - amount
@@ -119,7 +128,11 @@ fn PushRelabel::gap(self : PushRelabel, h : Int) -> Unit {
 
 ///|
 /// Discharge node `u`: push/relabel until excess is 0 or height increases.
-fn PushRelabel::discharge(self : PushRelabel, u : Int, current : Array[Int]) -> Unit {
+fn PushRelabel::discharge(
+  self : PushRelabel,
+  u : Int,
+  current : Array[Int],
+) -> Unit {
   while self.excess[u] > 0L {
     if current[u] >= self.adj[u].length() {
       let old_h = self.height[u]
@@ -131,10 +144,8 @@ fn PushRelabel::discharge(self : PushRelabel, u : Int, current : Array[Int]) -> 
         break
       }
       current[u] = 0
-    } else {
-      if !self.push(u, current[u]) {
-        current[u] = current[u] + 1
-      }
+    } else if !self.push(u, current[u]) {
+      current[u] = current[u] + 1
     }
   }
 }
@@ -144,8 +155,17 @@ fn PushRelabel::discharge(self : PushRelabel, u : Int, current : Array[Int]) -> 
 ///
 /// Returns the max flow value as `Int64`.
 /// Returns 0 for invalid inputs (n <= 0, source == sink, out of bounds).
-pub fn PushRelabel::max_flow(self : PushRelabel, source : Int, sink : Int) -> Int64 {
-  if self.n <= 0 || source < 0 || source >= self.n || sink < 0 || sink >= self.n || source == sink {
+pub fn PushRelabel::max_flow(
+  self : PushRelabel,
+  source : Int,
+  sink : Int,
+) -> Int64 {
+  if self.n <= 0 ||
+    source < 0 ||
+    source >= self.n ||
+    sink < 0 ||
+    sink >= self.n ||
+    source == sink {
     return 0L
   }
   // Initialize heights and reset state

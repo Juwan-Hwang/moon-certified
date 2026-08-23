@@ -125,7 +125,11 @@ pub fn enabled(logger : Logger, level : LogLevel) -> Bool {
 
 ///|
 /// Format a log message as a human-readable string.
-fn format_text(level : LogLevel, msg : String, fields : Array[LogField]) -> String {
+fn format_text(
+  level : LogLevel,
+  msg : String,
+  fields : Array[LogField],
+) -> String {
   let buf = StringBuilder::new()
   buf.write(level_to_string(level))
   buf.write(" | ")
@@ -141,7 +145,11 @@ fn format_text(level : LogLevel, msg : String, fields : Array[LogField]) -> Stri
 
 ///|
 /// Format a log message as JSON.
-fn format_json(level : LogLevel, msg : String, fields : Array[LogField]) -> String {
+fn format_json(
+  level : LogLevel,
+  msg : String,
+  fields : Array[LogField],
+) -> String {
   let buf = StringBuilder::new()
   buf.write("{\"level\":\"")
   buf.write(level_to_string(level).trim())
@@ -170,21 +178,54 @@ fn escape_json(s : String) -> String {
   for ch in s {
     let cp = ch.to_int()
     match cp {
-      34 => { buf.write("\\"); buf.write("\"") } // "
-      92 => { buf.write("\\"); buf.write("\\") } // \
-      8 => { buf.write("\\"); buf.write("b") } // backspace
-      12 => { buf.write("\\"); buf.write("f") } // form feed
-      10 => { buf.write("\\"); buf.write("n") } // newline
-      13 => { buf.write("\\"); buf.write("r") } // carriage return
-      9 => { buf.write("\\"); buf.write("t") } // tab
+      34 => {
+        buf.write("\\")
+        buf.write("\"")
+      } // "
+      92 => {
+        buf.write("\\")
+        buf.write("\\")
+      } // \
+      8 => {
+        buf.write("\\")
+        buf.write("b")
+      } // backspace
+      12 => {
+        buf.write("\\")
+        buf.write("f")
+      } // form feed
+      10 => {
+        buf.write("\\")
+        buf.write("n")
+      } // newline
+      13 => {
+        buf.write("\\")
+        buf.write("r")
+      } // carriage return
+      9 => {
+        buf.write("\\")
+        buf.write("t")
+      } // tab
       _ =>
         if cp < 32 {
           // Control character: \u00XX
           buf.write("\\u00")
           let hi = cp >> 4
           let lo = cp & 0xF
-          buf.write_char(if hi < 10 { (48 + hi).unsafe_to_char() } else { (55 + hi).unsafe_to_char() })
-          buf.write_char(if lo < 10 { (48 + lo).unsafe_to_char() } else { (55 + lo).unsafe_to_char() })
+          buf.write_char(
+            if hi < 10 {
+              (48 + hi).unsafe_to_char()
+            } else {
+              (55 + hi).unsafe_to_char()
+            },
+          )
+          buf.write_char(
+            if lo < 10 {
+              (48 + lo).unsafe_to_char()
+            } else {
+              (55 + lo).unsafe_to_char()
+            },
+          )
         } else {
           buf.write_char(ch)
         }
@@ -270,7 +311,11 @@ test "structured_logging: level filtering" {
 ///|
 test "structured_logging: fields in message" {
   let logger = new()
-  match log(logger, Info, "Request received", [field("method", "GET"), int_field("status", 200)]) {
+  match
+    log(logger, Info, "Request received", [
+      field("method", "GET"),
+      int_field("status", 200),
+    ]) {
     Some(s) => {
       assert_true(s.contains("method=GET"))
       assert_true(s.contains("status=200"))
@@ -306,7 +351,10 @@ test "structured_logging: persistent fields" {
 test "structured_logging: JSON escape special characters" {
   let logger = json_logger(Info)
   // Message with quotes, backslash, newline, tab, and control chars
-  match log(logger, Info, "hello \"world\" \\ \n \t \r", [field("key\"with\"quotes", "val\b\f")]) {
+  match
+    log(logger, Info, "hello \"world\" \\ \n \t \r", [
+      field("key\"with\"quotes", "val\b\f"),
+    ]) {
     Some(s) => {
       // Verify proper JSON escaping
       assert_true(s.contains("\\\"world\\\""))

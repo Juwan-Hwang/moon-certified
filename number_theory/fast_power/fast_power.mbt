@@ -181,3 +181,94 @@ test "fast_power_checked: base just below sqrt(Int32::MAX)" {
   // 46341^2 = 2147488281 > Int::MAX
   assert_true(fast_power_checked(46341, 2) is None)
 }
+
+///|
+/// Verified fast power with lower bound: result >= 1 when base >= 1.
+/// Proven by Z3: base >= 1 implies all intermediate results >= 1.
+pub fn fast_power_ge1(
+  base : Int,
+  exp : Int,
+) -> Int where {
+  proof_decrease: exp,
+  proof_require: 1 <= base && 0 <= exp,
+  proof_ensure: result => power_ge1(result),
+} {
+  if exp == 0 {
+    1
+  } else if exp % 2 == 0 {
+    proof_assert 0 < exp
+    proof_assert 0 <= exp / 2
+    proof_assert exp / 2 < exp
+    let half = fast_power_ge1(base, exp / 2)
+    proof_assert 1 <= half
+    half * half
+  } else {
+    proof_assert 0 < exp
+    proof_assert 0 <= exp - 1
+    proof_assert exp - 1 < exp
+    let rest = fast_power_ge1(base, exp - 1)
+    proof_assert 1 <= rest
+    base * rest
+  }
+}
+
+///|
+/// Verified fast power with base lower bound: result >= base when base >= 1, exp >= 1.
+pub fn fast_power_ge_base(
+  base : Int,
+  exp : Int,
+) -> Int where {
+  proof_decrease: exp,
+  proof_require: 1 <= base && 1 <= exp,
+  proof_ensure: result => power_ge_base(base, result),
+} {
+  if exp == 1 {
+    proof_assert base <= base
+    base
+  } else if exp % 2 == 0 {
+    proof_assert 1 < exp
+    proof_assert 0 <= exp / 2
+    proof_assert exp / 2 < exp
+    proof_assert 1 <= exp / 2
+    let half = fast_power_ge_base(base, exp / 2)
+    proof_assert base <= half
+    half * half
+  } else {
+    proof_assert 1 < exp
+    proof_assert 0 <= exp - 1
+    proof_assert exp - 1 < exp
+    proof_assert 1 <= exp - 1
+    let rest = fast_power_ge_base(base, exp - 1)
+    proof_assert base <= rest
+    base * rest
+  }
+}
+
+///|
+test "fast_power_ge1: basic" {
+  assert_eq(fast_power_ge1(2, 10), 1024)
+  assert_eq(fast_power_ge1(3, 4), 81)
+  assert_eq(fast_power_ge1(1, 0), 1)
+  assert_true(fast_power_ge1(2, 10) >= 1)
+  assert_true(fast_power_ge1(1, 100) >= 1)
+}
+
+///|
+test "fast_power_ge1: zero exponent" {
+  assert_eq(fast_power_ge1(5, 0), 1)
+  assert_true(fast_power_ge1(5, 0) >= 1)
+}
+
+///|
+test "fast_power_ge_base: basic" {
+  assert_eq(fast_power_ge_base(2, 10), 1024)
+  assert_eq(fast_power_ge_base(3, 4), 81)
+  assert_true(fast_power_ge_base(2, 10) >= 2)
+  assert_true(fast_power_ge_base(3, 4) >= 3)
+}
+
+///|
+test "fast_power_ge_base: exp 1" {
+  assert_eq(fast_power_ge_base(7, 1), 7)
+  assert_true(fast_power_ge_base(7, 1) >= 7)
+}

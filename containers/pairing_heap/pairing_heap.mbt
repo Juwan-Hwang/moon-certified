@@ -208,23 +208,27 @@ pub fn[T] extract_min(heap : PairingHeap[T]) -> T? {
 pub fn[T] merge(heap : PairingHeap[T], other : PairingHeap[T]) -> Unit {
   match (heap.root, other.root) {
     (None, None) => ()
-    (None, Some(_)) =>
+    (
+      None,
       // heap is empty, take other's root.
-      {
-        heap.root = other.root
-        heap.count = other.count
-        other.root = None
-        other.count = 0
-      }
+      Some(_),
+    ) => {
+      heap.root = other.root
+      heap.count = other.count
+      other.root = None
+      other.count = 0
+    }
     (Some(_), None) => ()
-    (Some(r1), Some(r2)) =>
+    (
+      Some(r1),
       // Both non-empty: meld the roots.
-      {
-        heap.root = Some(meld(r1, r2, heap.compare))
-        heap.count = heap.count + other.count
-        other.root = None
-        other.count = 0
-      }
+      Some(r2),
+    ) => {
+      heap.root = Some(meld(r1, r2, heap.compare))
+      heap.count = heap.count + other.count
+      other.root = None
+      other.count = 0
+    }
   }
 }
 

@@ -42,6 +42,7 @@ const SAMPLE_RATE : Int = 32
 // Types
 // ---------------------------------------------------------------------------
 
+///|
 pub struct FMIndex {
   priv c_table : Map[Int, Int] // C[c] = count of chars < c
   priv occ_samples : FixedArray[FixedArray[Int]] // Sampled Occ: occ[ci][sample_idx]
@@ -161,7 +162,14 @@ pub fn build(text : String) -> FMIndex {
   for i = 0; i < sigma; i = i + 1 {
     alphabet_fa[i] = alphabet[i]
   }
-  { c_table, occ_samples, bwt: bwt_codes, alphabet: alphabet_fa, char_index, n: bwt_len }
+  {
+    c_table,
+    occ_samples,
+    bwt: bwt_codes,
+    alphabet: alphabet_fa,
+    char_index,
+    n: bwt_len,
+  }
 }
 
 ///|

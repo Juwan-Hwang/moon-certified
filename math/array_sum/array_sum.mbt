@@ -177,3 +177,116 @@ test "array_sum_checked: boundary" {
   xs[1] = 1
   assert_true(array_sum_checked(xs) is None)
 }
+
+///|
+/// Verified bounded sum: when all elements are in [lo, hi],
+/// the sum is bounded by [n * lo, n * hi].
+pub fn bounded_sum(
+  xs : FixedArray[Int],
+  lo : Int,
+  hi : Int,
+) -> Int where {
+  proof_require: in_range(xs, lo, hi),
+  proof_ensure: result => sum_bounded(xs.length(), lo, hi, result),
+} {
+  for i = 0, sum = 0; i < xs.length(); {
+    proof_assert lo <= xs[i]
+    proof_assert xs[i] <= hi
+    continue i + 1, sum + xs[i]
+  } nobreak {
+    sum
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= xs.length(),
+    proof_invariant: i * lo <= sum,
+    proof_invariant: sum <= i * hi,
+    proof_reasoning: (
+      #| Each element xs[i] is in [lo, hi].
+      #| After k steps, sum = xs[0]+...+xs[k-1].
+      #| Since each term >= lo, sum >= k * lo.
+      #| Since each term <= hi, sum <= k * hi.
+    ),
+  }
+}
+
+///|
+/// Verified non-negative sum: when all elements are non-negative,
+/// the sum is non-negative. (Special case of bounded_sum with lo=0.)
+pub fn array_sum_nonneg(
+  xs : FixedArray[Int],
+) -> Int where {
+  proof_require: ∀ i : Int, 0 <= i && i < xs.length() → 0 <= xs[i],
+  proof_ensure: result => 0 <= result,
+} {
+  for i = 0, sum = 0; i < xs.length(); {
+    proof_assert 0 <= xs[i]
+    continue i + 1, sum + xs[i]
+  } nobreak {
+    sum
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= xs.length(),
+    proof_invariant: 0 <= sum,
+  }
+}
+
+///|
+/// Verified uniform sum: when all elements equal val,
+/// the sum equals n * val.
+pub fn uniform_sum(
+  xs : FixedArray[Int],
+  val : Int,
+) -> Int where {
+  proof_require: all_equal(xs, val),
+  proof_ensure: result => uniform_sum_ok(xs.length(), val, result),
+} {
+  for i = 0, sum = 0; i < xs.length(); {
+    proof_assert xs[i] == val
+    continue i + 1, sum + xs[i]
+  } nobreak {
+    sum
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= xs.length(),
+    proof_invariant: sum == i * val,
+    proof_reasoning: (
+      #| Each element equals val.
+      #| After k steps, sum = k * val.
+    ),
+  }
+}
+
+///|
+test "bounded_sum: basic" {
+  let xs = FixedArray::make(5, 3)
+  assert_eq(bounded_sum(xs, 0, 10), 15)
+  assert_true(0 * 5 <= 15 && 15 <= 10 * 5)
+}
+
+///|
+test "bounded_sum: mixed range" {
+  let xs = FixedArray::make(4, 0)
+  xs[0] = 1; xs[1] = 5; xs[2] = 3; xs[3] = 2
+  assert_eq(bounded_sum(xs, 0, 10), 11)
+  assert_true(0 <= 11 && 11 <= 40)
+}
+
+///|
+test "array_sum_nonneg: basic" {
+  let xs = FixedArray::makei(5, fn(i) { i + 1 })
+  assert_eq(array_sum_nonneg(xs), 15)
+  assert_true(0 <= 15)
+}
+
+///|
+test "uniform_sum: basic" {
+  let xs = FixedArray::make(5, 7)
+  assert_eq(uniform_sum(xs, 7), 35)
+  assert_eq(uniform_sum(xs, 7), 5 * 7)
+}
+
+///|
+test "uniform_sum: zeros" {
+  let xs = FixedArray::make(10, 0)
+  assert_eq(uniform_sum(xs, 0), 0)
+}

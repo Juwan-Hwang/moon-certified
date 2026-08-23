@@ -119,7 +119,7 @@ fn reg_lower_incomplete_gamma(a : Double, x : Double) -> Double {
     let mut h = d
     let mut i = 1
     while i < 1000 {
-      let an = -(i.to_double()) * (i.to_double() - a)
+      let an = -i.to_double() * (i.to_double() - a)
       b = b + 2.0
       d = an * d + b
       if d.abs() < 1.0e-300 {
@@ -253,8 +253,11 @@ pub fn proportion_ci(
   trials : Int,
   confidence : Double,
 ) -> (Double, Double) {
-  if trials <= 0 || successes < 0 || successes > trials ||
-    confidence <= 0.0 || confidence >= 1.0 {
+  if trials <= 0 ||
+    successes < 0 ||
+    successes > trials ||
+    confidence <= 0.0 ||
+    confidence >= 1.0 {
     return (@double.not_a_number, @double.not_a_number)
   }
   let n = trials.to_double()
@@ -314,7 +317,11 @@ pub fn mean_difference_ci(
     n1 + n2 - 2
   } else {
     let d = (num / den).to_int()
-    if d < 1 { 1 } else { d }
+    if d < 1 {
+      1
+    } else {
+      d
+    }
   }
   let critical = t_critical(confidence, df)
   let diff = m1 - m2
@@ -415,8 +422,8 @@ test "confidence_interval: proportion CI known values" {
   assert_true(lo < 0.5)
   assert_true(hi > 0.5)
   // CI width should be roughly ±0.1.
-  assert_true((hi - lo) < 0.25)
-  assert_true((hi - lo) > 0.1)
+  assert_true(hi - lo < 0.25)
+  assert_true(hi - lo > 0.1)
 }
 
 ///|
@@ -469,9 +476,9 @@ test "confidence_interval: invalid inputs return NaN" {
 test "confidence_interval: large sample uses normal approximation" {
   // For n ≥ 30, the t critical value converges to z.
   let data = [
-    5.0, 5.1, 4.9, 5.2, 4.8, 5.0, 5.1, 4.9, 5.2, 5.0, 5.1, 4.9, 5.0, 5.2, 4.8,
-    5.0, 5.1, 4.9, 5.2, 5.0, 5.1, 4.9, 5.0, 5.2, 4.8, 5.0, 5.1, 4.9, 5.2, 5.0,
-    5.1, 4.9, 5.0, 5.2, 4.8,
+    5.0, 5.1, 4.9, 5.2, 4.8, 5.0, 5.1, 4.9, 5.2, 5.0, 5.1, 4.9, 5.0, 5.2, 4.8, 5.0,
+    5.1, 4.9, 5.2, 5.0, 5.1, 4.9, 5.0, 5.2, 4.8, 5.0, 5.1, 4.9, 5.2, 5.0, 5.1, 4.9,
+    5.0, 5.2, 4.8,
   ]
   let (lo, hi) = mean_ci(data, 0.95)
   let m = @descriptive.mean(data)

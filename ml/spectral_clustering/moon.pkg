@@ -6,5 +6,5 @@ import {
 
 options(
   "proof-enabled": false,
-  "alert": "experimental",
+  alert: "experimental",
 )

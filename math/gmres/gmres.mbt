@@ -70,7 +70,11 @@ fn dot(a : Array[Double], b : Array[Double]) -> Double {
 
 ///|
 /// Matrix-vector product: result = A·v.
-fn mat_vec(a : Array[Array[Double]], v : Array[Double], result : Array[Double]) -> Unit {
+fn mat_vec(
+  a : Array[Array[Double]],
+  v : Array[Double],
+  result : Array[Double],
+) -> Unit {
   let n = v.length()
   for i = 0; i < n; i = i + 1 {
     let mut s = 0.0
@@ -120,7 +124,11 @@ pub fn gmres_solve_with(
   if n == 0 {
     return Some([])
   }
-  if a.length() != n || x0.length() != n || tol <= 0.0 || max_iter <= 0 || restart < 1 {
+  if a.length() != n ||
+    x0.length() != n ||
+    tol <= 0.0 ||
+    max_iter <= 0 ||
+    restart < 1 {
     return None
   }
   for i = 0; i < n; i = i + 1 {
@@ -332,7 +340,10 @@ fn _back_substitute(
 test "gmres: solve 2×2 system" {
   let a = [[4.0, 1.0], [1.0, 3.0]]
   let b = [1.0, 2.0]
-  let x = @test_utils.expect_some(gmres_solve(a, b, [0.0, 0.0]), "gmres should converge")
+  let x = @test_utils.expect_some(
+    gmres_solve(a, b, [0.0, 0.0]),
+    "gmres should converge",
+  )
   let r0 = a[0][0] * x[0] + a[0][1] * x[1] - b[0]
   let r1 = a[1][0] * x[0] + a[1][1] * x[1] - b[1]
   assert_true(r0.abs() < 1.0e-8)
@@ -341,13 +352,12 @@ test "gmres: solve 2×2 system" {
 
 ///|
 test "gmres: solve non-symmetric 3×3" {
-  let a = [
-    [2.0, 1.0, 0.0],
-    [0.0, 3.0, 1.0],
-    [1.0, 0.0, 4.0],
-  ]
+  let a = [[2.0, 1.0, 0.0], [0.0, 3.0, 1.0], [1.0, 0.0, 4.0]]
   let b = [5.0, 10.0, 9.0]
-  let x = @test_utils.expect_some(gmres_solve(a, b, [0.0, 0.0, 0.0]), "should converge")
+  let x = @test_utils.expect_some(
+    gmres_solve(a, b, [0.0, 0.0, 0.0]),
+    "should converge",
+  )
   for i = 0; i < 3; i = i + 1 {
     let mut s = 0.0
     for j = 0; j < 3; j = j + 1 {
@@ -370,7 +380,10 @@ test "gmres: identity matrix" {
 test "gmres: diagonal system" {
   let a = [[3.0, 0.0, 0.0], [0.0, 5.0, 0.0], [0.0, 0.0, 7.0]]
   let b = [6.0, 10.0, 14.0]
-  let x = @test_utils.expect_some(gmres_solve(a, b, [0.0, 0.0, 0.0]), "diagonal")
+  let x = @test_utils.expect_some(
+    gmres_solve(a, b, [0.0, 0.0, 0.0]),
+    "diagonal",
+  )
   assert_true((x[0] - 2.0).abs() < 1.0e-8)
   assert_true((x[1] - 2.0).abs() < 1.0e-8)
   assert_true((x[2] - 2.0).abs() < 1.0e-8)

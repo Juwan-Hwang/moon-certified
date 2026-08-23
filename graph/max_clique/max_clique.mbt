@@ -166,11 +166,7 @@ fn bron_kerbosch(state : SearchState, r_size : Int, p : Int, x : Int) -> Unit {
   let pivot = choose_pivot(state.adj, p, union)
   // Candidates: P \ N(pivot) = P & ~N(pivot)
   // If pivot is -1 (P ∪ X empty), candidates = P (shouldn't happen here).
-  let p_candidates = if pivot == -1 {
-    p
-  } else {
-    p ^ (p & state.adj[pivot])
-  }
+  let p_candidates = if pivot == -1 { p } else { p ^ (p & state.adj[pivot]) }
   // Iterate over candidates.
   let mut v_list = p_candidates
   while v_list != 0 {

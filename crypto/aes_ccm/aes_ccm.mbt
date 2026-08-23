@@ -39,10 +39,7 @@ pub struct CcmResult {
 
 ///|
 /// XOR two fixed-length byte arrays (truncated to shorter length).
-fn xor_block(
-  a : FixedArray[Byte],
-  b : FixedArray[Byte],
-) -> FixedArray[Byte] {
+fn xor_block(a : FixedArray[Byte], b : FixedArray[Byte]) -> FixedArray[Byte] {
   let n = if a.length() < b.length() { a.length() } else { b.length() }
   let result = FixedArray::make(n, b'\x00')
   for i = 0; i < n; i = i + 1 {
@@ -113,10 +110,7 @@ fn build_b0(
 
 ///|
 /// Build the A_i counter block for CTR mode.
-fn build_ctr_block(
-  nonce : FixedArray[Byte],
-  counter : Int,
-) -> FixedArray[Byte] {
+fn build_ctr_block(nonce : FixedArray[Byte], counter : Int) -> FixedArray[Byte] {
   let l = 15 - nonce.length()
   let ai = FixedArray::make(16, b'\x00')
   // Flags: Reserved(1) | 0(1) | 0(3) | L-1(3)
@@ -197,7 +191,7 @@ pub fn encrypt(
   let msg_len = plaintext.length()
   // Check message length fits in L bytes.
   // For l >= 4, 2^(8*l) overflows 32-bit Int; any practical message fits.
-  if l < 4 && msg_len > (1 << (l * 8)) {
+  if l < 4 && msg_len > 1 << (l * 8) {
     return None
   }
   let has_aad = aad.length() > 0
@@ -305,7 +299,7 @@ pub fn decrypt(
   }
   let l = 15 - nonce.length()
   let ct_len = ciphertext.length()
-  if l < 4 && ct_len > (1 << (l * 8)) {
+  if l < 4 && ct_len > 1 << (l * 8) {
     return None
   }
   let has_aad = aad.length() > 0
@@ -426,11 +420,10 @@ test "aes_ccm: round-trip short message" {
       assert_eq(result.ciphertext.length(), 10)
       assert_eq(result.tag.length(), 8)
       match decrypt(key, nonce, result.ciphertext, aad, result.tag) {
-        Some(decrypted) => {
+        Some(decrypted) =>
           for i = 0; i < 10; i = i + 1 {
             assert_eq(decrypted[i], pt[i])
           }
-        }
         None => assert_true(false)
       }
     }
@@ -450,7 +443,7 @@ test "aes_ccm: round-trip with AAD" {
   }
   let pt = FixedArray::make(32, b'\x00')
   for i = 0; i < 32; i = i + 1 {
-    pt[i] = (i).to_byte()
+    pt[i] = i.to_byte()
   }
   let aad = FixedArray::make(8, b'\x00')
   for i = 0; i < 8; i = i + 1 {
@@ -461,11 +454,10 @@ test "aes_ccm: round-trip with AAD" {
       assert_eq(result.ciphertext.length(), 32)
       assert_eq(result.tag.length(), 16)
       match decrypt(key, nonce, result.ciphertext, aad, result.tag) {
-        Some(decrypted) => {
+        Some(decrypted) =>
           for i = 0; i < 32; i = i + 1 {
             assert_eq(decrypted[i], pt[i])
           }
-        }
         None => assert_true(false)
       }
     }
@@ -553,7 +545,7 @@ test "aes_ccm: invalid nonce length rejected" {
 test "aes_ccm: multi-block message" {
   let key = FixedArray::make(32, b'\x00')
   for i = 0; i < 32; i = i + 1 {
-    key[i] = (i).to_byte()
+    key[i] = i.to_byte()
   }
   let nonce = FixedArray::make(12, b'\x00')
   for i = 0; i < 12; i = i + 1 {
@@ -561,7 +553,7 @@ test "aes_ccm: multi-block message" {
   }
   let pt = FixedArray::make(100, b'\x00')
   for i = 0; i < 100; i = i + 1 {
-    pt[i] = ((i * 7) % 256).to_byte()
+    pt[i] = (i * 7 % 256).to_byte()
   }
   let aad = FixedArray::make(16, b'\x00')
   for i = 0; i < 16; i = i + 1 {
@@ -571,11 +563,10 @@ test "aes_ccm: multi-block message" {
     Some(result) => {
       assert_eq(result.ciphertext.length(), 100)
       match decrypt(key, nonce, result.ciphertext, aad, result.tag) {
-        Some(decrypted) => {
+        Some(decrypted) =>
           for i = 0; i < 100; i = i + 1 {
             assert_eq(decrypted[i], pt[i])
           }
-        }
         None => assert_true(false)
       }
     }

@@ -425,6 +425,7 @@ fn[T] verify_cartesian(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "cartesian_tree: empty array" {
   let t = CartesianTree::from_array([], fn(a : Int, b : Int) -> Int { a - b })
   assert_eq(t.size(), 0)
@@ -432,6 +433,7 @@ test "cartesian_tree: empty array" {
   assert_true(t.rmq(0, 0) is None)
 }
 
+///|
 test "cartesian_tree: single element" {
   let t = CartesianTree::from_array([42], fn(a : Int, b : Int) -> Int { a - b })
   assert_eq(t.size(), 1)
@@ -440,8 +442,11 @@ test "cartesian_tree: single element" {
   assert_eq(t.get(0), Some(42))
 }
 
+///|
 test "cartesian_tree: two elements ascending" {
-  let t = CartesianTree::from_array([1, 2], fn(a : Int, b : Int) -> Int { a - b })
+  let t = CartesianTree::from_array([1, 2], fn(a : Int, b : Int) -> Int {
+    a - b
+  })
   // Min-heap: 1 is root, 2 is right child
   assert_eq(t.root(), 0)
   assert_eq(t.rmq(0, 1), Some(0)) // min is 1 at index 0
@@ -449,14 +454,18 @@ test "cartesian_tree: two elements ascending" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: two elements descending" {
-  let t = CartesianTree::from_array([2, 1], fn(a : Int, b : Int) -> Int { a - b })
+  let t = CartesianTree::from_array([2, 1], fn(a : Int, b : Int) -> Int {
+    a - b
+  })
   // Min-heap: 1 is root, 2 is left child
   assert_eq(t.root(), 1)
   assert_eq(t.rmq(0, 1), Some(1)) // min is 1 at index 1
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: in-order preserves original array" {
   let arr = [5, 2, 8, 1, 9, 3, 7, 4, 6]
   let t = CartesianTree::from_array(arr, fn(a : Int, b : Int) -> Int { a - b })
@@ -464,12 +473,14 @@ test "cartesian_tree: in-order preserves original array" {
   assert_eq(result, arr)
 }
 
+///|
 test "cartesian_tree: heap property" {
   let arr = [5, 2, 8, 1, 9, 3, 7, 4, 6]
   let t = CartesianTree::from_array(arr, fn(a : Int, b : Int) -> Int { a - b })
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: rmq basic" {
   //                1(3)
   //               /    \
@@ -490,6 +501,7 @@ test "cartesian_tree: rmq basic" {
   assert_eq(t.rmq(0, 4), Some(3))
 }
 
+///|
 test "cartesian_tree: rmq all same values" {
   let arr = [5, 5, 5, 5, 5]
   let t = CartesianTree::from_array(arr, fn(a : Int, b : Int) -> Int { a - b })
@@ -503,6 +515,7 @@ test "cartesian_tree: rmq all same values" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: rmq sorted ascending" {
   let arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   let t = CartesianTree::from_array(arr, fn(a : Int, b : Int) -> Int { a - b })
@@ -513,6 +526,7 @@ test "cartesian_tree: rmq sorted ascending" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: rmq sorted descending" {
   let arr = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
   let t = CartesianTree::from_array(arr, fn(a : Int, b : Int) -> Int { a - b })
@@ -523,6 +537,7 @@ test "cartesian_tree: rmq sorted descending" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: max-heap via reversed comparator" {
   // Reversed comparator → max-Cartesian tree
   let arr = [5, 2, 8, 1, 9, 3, 7, 4, 6]
@@ -536,13 +551,17 @@ test "cartesian_tree: max-heap via reversed comparator" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { b - a }))
 }
 
+///|
 test "cartesian_tree: rmq invalid ranges" {
-  let t = CartesianTree::from_array([1, 2, 3], fn(a : Int, b : Int) -> Int { a - b })
+  let t = CartesianTree::from_array([1, 2, 3], fn(a : Int, b : Int) -> Int {
+    a - b
+  })
   assert_true(t.rmq(-1, 2) is None)
   assert_true(t.rmq(0, 3) is None)
   assert_true(t.rmq(2, 1) is None)
 }
 
+///|
 test "cartesian_tree: stress test rmq correctness" {
   // Compare O(1) RMQ against brute-force O(n) scan
   let arr = [7, 3, 9, 1, 8, 5, 2, 6, 4, 0, 7, 3, 8, 1, 5]
@@ -562,6 +581,7 @@ test "cartesian_tree: stress test rmq correctness" {
   assert_true(verify_cartesian(t, fn(a : Int, b : Int) -> Int { a - b }))
 }
 
+///|
 test "cartesian_tree: large random stress test" {
   // Generate pseudo-random array and verify RMQ
   let mut seed = 12345
@@ -577,7 +597,7 @@ test "cartesian_tree: large random stress test" {
     seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
     let lo = seed % 500
     seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
-    let hi = lo + (seed % (500 - lo))
+    let hi = lo + seed % (500 - lo)
     // Brute-force
     let mut min_idx = lo
     for k = lo + 1; k <= hi; k = k + 1 {
@@ -589,6 +609,7 @@ test "cartesian_tree: large random stress test" {
   }
 }
 
+///|
 test "cartesian_tree: string keys" {
   let arr = ["cherry", "apple", "banana", "date"]
   let t = CartesianTree::from_array(arr, fn(a : String, b : String) -> Int {
@@ -598,7 +619,9 @@ test "cartesian_tree: string keys" {
     let mut i = 0
     while i < n {
       let d = ac[i].to_int() - bc[i].to_int()
-      if d != 0 { return d }
+      if d != 0 {
+        return d
+      }
       i = i + 1
     }
     ac.length() - bc.length()

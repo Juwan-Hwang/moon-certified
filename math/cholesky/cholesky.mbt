@@ -126,7 +126,7 @@ pub fn decompose(a : FixedArray[Double], n : Int) -> Cholesky? {
       l[i * n + j] = s / diag
     }
   }
-  Some({ l: l, n: n })
+  Some({ l, n })
 }
 
 // ---------------------------------------------------------------------------
@@ -189,6 +189,62 @@ pub fn solve(chol : Cholesky, b : FixedArray[Double]) -> FixedArray[Double] {
     x[i] = sum / chol.l[i * n + i]
   }
   x
+}
+
+// ---------------------------------------------------------------------------
+// Forward substitution (solve_lower)
+// ---------------------------------------------------------------------------
+
+///|
+/// Solve L·y = b by forward substitution, where L is the lower-triangular
+/// Cholesky factor.
+///
+/// - `chol`: The Cholesky decomposition.
+/// - `b`: Right-hand side vector (length `n`).
+///
+/// Returns the solution vector `y` (length `n`).
+///
+/// ## Complexity
+///
+/// O(n²).
+pub fn solve_lower(
+  chol : Cholesky,
+  b : FixedArray[Double],
+) -> FixedArray[Double] {
+  let n = chol.n
+  let y : FixedArray[Double] = FixedArray::make(n, 0.0)
+  for i = 0; i < n; i = i + 1 {
+    let mut sum = b[i]
+    for k = 0; k < i; k = k + 1 {
+      sum = sum - chol.l[i * n + k] * y[k]
+    }
+    y[i] = sum / chol.l[i * n + i]
+  }
+  y
+}
+
+// ---------------------------------------------------------------------------
+// Log-determinant
+// ---------------------------------------------------------------------------
+
+///|
+/// Compute ln(det(A)) = 2·Σ ln(L[i][i]) using the Cholesky factor.
+///
+/// This is more numerically stable than computing `determinant` and then
+/// taking the logarithm, especially for very large or very small determinants.
+///
+/// Returns `-∞` if the matrix is not positive definite (a diagonal entry ≤ 0).
+pub fn log_det(chol : Cholesky) -> Double {
+  let n = chol.n
+  let mut result = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let d = chol.l[i * n + i]
+    if d <= 0.0 {
+      return -1.0 / 0.0
+    }
+    result = result + 2.0 * @math.ln(d)
+  }
+  result
 }
 
 // ---------------------------------------------------------------------------
@@ -280,10 +336,12 @@ pub fn reconstruct(chol : Cholesky) -> FixedArray[Double] {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 fn approx_eq(a : Double, b : Double, tol : Double) -> Bool {
   (a - b).abs() < tol
 }
 
+///|
 test "decompose: 2x2 SPD matrix" {
   // A = [[4, 2], [2, 3]] — SPD (eigenvalues 5±√5 > 0)
   let a : FixedArray[Double] = FixedArray::from_array([4.0, 2.0, 2.0, 3.0])
@@ -296,6 +354,7 @@ test "decompose: 2x2 SPD matrix" {
   assert_true(approx_eq(l[3], 1.4142135623730951, 1.0e-10)) // L[1][1] = sqrt(2)
 }
 
+///|
 test "decompose: identity matrix" {
   let n = 3
   let a : FixedArray[Double] = FixedArray::make(n * n, 0.0)
@@ -313,6 +372,7 @@ test "decompose: identity matrix" {
   }
 }
 
+///|
 test "decompose: non-positive-definite returns None" {
   // A = [[1, 2], [2, 1]] — indefinite (eigenvalues 3, -1)
   let a : FixedArray[Double] = FixedArray::from_array([1.0, 2.0, 2.0, 1.0])
@@ -320,12 +380,14 @@ test "decompose: non-positive-definite returns None" {
   assert_true(result is None)
 }
 
+///|
 test "decompose: zero diagonal returns None" {
   let a : FixedArray[Double] = FixedArray::from_array([0.0, 0.0, 0.0, 0.0])
   let result = decompose(a, 2)
   assert_true(result is None)
 }
 
+///|
 test "solve: 3x3 system" {
   // A = [[4, 12, -16], [12, 37, -43], [-16, -43, 98]] — SPD
   // A·x = b where b = [1, 2, 3]
@@ -345,6 +407,7 @@ test "solve: 3x3 system" {
   }
 }
 
+///|
 test "solve: diagonal system" {
   let a : FixedArray[Double] = FixedArray::from_array([9.0, 0.0, 0.0, 4.0])
   let b : FixedArray[Double] = FixedArray::from_array([18.0, 8.0])
@@ -354,6 +417,7 @@ test "solve: diagonal system" {
   assert_true(approx_eq(x[1], 2.0, 1.0e-10))
 }
 
+///|
 test "determinant: 2x2 SPD" {
   // A = [[4, 2], [2, 3]], det = 4*3 - 2*2 = 8
   let a : FixedArray[Double] = FixedArray::from_array([4.0, 2.0, 2.0, 3.0])
@@ -362,6 +426,7 @@ test "determinant: 2x2 SPD" {
   assert_true(approx_eq(det, 8.0, 1.0e-8))
 }
 
+///|
 test "determinant: identity" {
   let n = 3
   let a : FixedArray[Double] = FixedArray::make(n * n, 0.0)
@@ -373,6 +438,7 @@ test "determinant: identity" {
   assert_true(approx_eq(det, 1.0, 1.0e-10))
 }
 
+///|
 test "inverse: 2x2 SPD" {
   // A = [[4, 2], [2, 3]], A⁻¹ = [[3/8, -1/4], [-1/4, 1/2]]
   let a : FixedArray[Double] = FixedArray::from_array([4.0, 2.0, 2.0, 3.0])
@@ -384,6 +450,7 @@ test "inverse: 2x2 SPD" {
   assert_true(approx_eq(inv[3], 0.5, 1.0e-10)) // 1/2
 }
 
+///|
 test "inverse: verify A·A⁻¹ = I" {
   // 3x3 SPD matrix
   let a : FixedArray[Double] = FixedArray::from_array([
@@ -404,6 +471,7 @@ test "inverse: verify A·A⁻¹ = I" {
   }
 }
 
+///|
 test "reconstruct: L·Lᵀ = A" {
   let a : FixedArray[Double] = FixedArray::from_array([
     4.0, 12.0, -16.0, 12.0, 37.0, -43.0, -16.0, -43.0, 98.0,
@@ -415,6 +483,7 @@ test "reconstruct: L·Lᵀ = A" {
   }
 }
 
+///|
 test "large matrix: 10x10 SPD" {
   // Construct a diagonally dominant SPD matrix: A = D + v·vᵀ
   // where D = 10*I and v = [1,2,...,10]

@@ -1,3 +1,4 @@
+///|
 /// Risk Management — VaR, CVaR, and Stress Testing.
 ///
 /// Value at Risk (VaR) and Conditional Value at Risk (CVaR, also known
@@ -87,15 +88,19 @@ fn normal_inv_cdf(p : Double) -> Double {
   let p_high = 1.0 - p_low
   if p < p_low {
     let q = sqrt(-2.0 * @math.ln(p))
-    let num = ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
+    let num = ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q +
+      c[5]
     let den = (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
     return num / den
   }
   if p <= p_high {
     let q = p - 0.5
     let r = q * q
-    let num = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q
-    let den = (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0)
+    let num = (
+        ((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]
+      ) *
+      q
+    let den = ((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0
     return num / den
   }
   let q = sqrt(-2.0 * @math.ln(1.0 - p))
@@ -116,7 +121,8 @@ fn erf(x : Double) -> Double {
   let a5 = 1.061405429
   let p = 0.3275911
   let t = 1.0 / (1.0 + p * ax)
-  let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
+  let y = 1.0 -
+    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
   sign * y
 }
 
@@ -170,7 +176,7 @@ fn skewness(returns : Array[Double]) -> Double {
     let z = (returns[i] - m) / s
     sum = sum + z * z * z
   }
-  (n.to_double() / ((n - 1) * (n - 2)).to_double()) * sum
+  n.to_double() / ((n - 1) * (n - 2)).to_double() * sum
 }
 
 ///|
@@ -190,7 +196,14 @@ fn kurtosis(returns : Array[Double]) -> Double {
     let z = (returns[i] - m) / s
     sum = sum + z * z * z * z
   }
-  let k = n.to_double() * (n + 1).to_double() / ((n - 1) * (n - 2) * (n - 3)).to_double() * sum - 3.0 * (n - 1).to_double() * (n - 1).to_double() / ((n - 2) * (n - 3)).to_double()
+  let k = n.to_double() *
+    (n + 1).to_double() /
+    ((n - 1) * (n - 2) * (n - 3)).to_double() *
+    sum -
+    3.0 *
+    (n - 1).to_double() *
+    (n - 1).to_double() /
+    ((n - 2) * (n - 3)).to_double()
   k
 }
 
@@ -289,7 +302,7 @@ pub fn historical_var(
   let sorted = sort_desc(returns)
   // The VaR is the loss at the (1-confidence) quantile.
   let index = ((1.0 - confidence) * n.to_double()).to_int()
-  let idx = if index >= n { n - 1 } else { if index < 0 { 0 } else { index } }
+  let idx = if index >= n { n - 1 } else if index < 0 { 0 } else { index }
   // sorted is descending, so the worst returns are at the end.
   // The (1-c) quantile is at position n - idx from the start.
   let worst_idx = if idx == 0 { n - 1 } else { n - idx }
@@ -331,7 +344,9 @@ pub fn cornish_fisher_var(
   // Cornish-Fisher expansion
   let z2 = z * z
   let z3 = z2 * z
-  let cf_adj = (z2 - 1.0) * sk / 6.0 + (z3 - 3.0 * z) * ku / 24.0 - (2.0 * z3 - 5.0 * z) * sk * sk / 36.0
+  let cf_adj = (z2 - 1.0) * sk / 6.0 +
+    (z3 - 3.0 * z) * ku / 24.0 -
+    (2.0 * z3 - 5.0 * z) * sk * sk / 36.0
   let z_cf = z + cf_adj
   let var_return = -(m + z_cf * s)
   if var_return > 0.0 {
@@ -382,7 +397,13 @@ pub fn historical_cvar(
   }
   let sorted = sort_desc(returns)
   let num_tail = ((1.0 - confidence) * n.to_double()).to_int()
-  let tail_count = if num_tail < 1 { 1 } else { if num_tail > n { n } else { num_tail } }
+  let tail_count = if num_tail < 1 {
+    1
+  } else if num_tail > n {
+    n
+  } else {
+    num_tail
+  }
   // Average the worst tail_count returns (at the end of descending sorted array)
   let mut sum = 0.0
   for i = 0; i < tail_count; i = i + 1 {
@@ -563,7 +584,7 @@ test "variance: variance with positive mean reduces risk" {
 test "variance: monte carlo variance equals historical" {
   let returns : Array[Double] = []
   for i = 0; i < 200; i = i + 1 {
-    returns.push(-0.01 + (i.to_double() / 100.0))
+    returns.push(-0.01 + i.to_double() / 100.0)
   }
   let mc_var = monte_carlo_var(returns, 0.95, 1_000_000.0)
   let hist_var = historical_var(returns, 0.95, 1_000_000.0)

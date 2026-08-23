@@ -1,0 +1,10 @@
+import {
+  "moonbitlang/core/math",
+  "moon-certified/math/fft",
+  "moon-certified/math/dct",
+  "moon-certified/signal_processing/filter_design",
+}
+
+options(
+  "proof-enabled": false,
+)

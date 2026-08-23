@@ -1,3 +1,4 @@
+///|
 test "GaussianNB: basic two-class separation" {
   // Class 0 centered around (0, 0), class 1 around (10, 10).
   let x = [
@@ -20,11 +21,9 @@ test "GaussianNB: basic two-class separation" {
   assert_true(gaussian_predict(model, [15.0, 15.0]) == 1)
 }
 
+///|
 test "GaussianNB: batch prediction" {
-  let x = [
-    [0.0, 0.0],
-    [10.0, 10.0],
-  ]
+  let x = [[0.0, 0.0], [10.0, 10.0]]
   let y = [0, 1]
   let model = gaussian_fit(x, y, 1.0e-9)
   let preds = gaussian_predict_batch(model, [[1.0, 1.0], [9.0, 9.0]])
@@ -32,11 +31,9 @@ test "GaussianNB: batch prediction" {
   assert_eq(preds[1], 1)
 }
 
+///|
 test "GaussianNB: log proba ordering" {
-  let x = [
-    [0.0],
-    [10.0],
-  ]
+  let x = [[0.0], [10.0]]
   let y = [0, 1]
   let model = gaussian_fit(x, y, 1.0e-9)
   let (label, log_probs) = gaussian_predict_log_proba(model, [1.0])
@@ -45,12 +42,9 @@ test "GaussianNB: log proba ordering" {
   assert_true(log_probs[0] > log_probs[1])
 }
 
+///|
 test "GaussianNB: three classes" {
-  let x = [
-    [0.0],
-    [5.0],
-    [10.0],
-  ]
+  let x = [[0.0], [5.0], [10.0]]
   let y = [0, 1, 2]
   let model = gaussian_fit(x, y, 1.0e-9)
   assert_eq(gaussian_predict(model, [0.5]), 0)
@@ -58,6 +52,7 @@ test "GaussianNB: three classes" {
   assert_eq(gaussian_predict(model, [9.5]), 2)
 }
 
+///|
 test "MultinomialNB: text classification" {
   // 3 features (words), 2 classes (spam/ham)
   let x = [
@@ -74,6 +69,7 @@ test "MultinomialNB: text classification" {
   assert_eq(multinomial_predict(model, [0.0, 5.0, 3.0]), 1)
 }
 
+///|
 test "MultinomialNB: smoothing prevents zero probability" {
   // With alpha=1, a feature unseen in training won't cause log(0).
   let x = [[1.0, 0.0], [0.0, 1.0]]
@@ -84,6 +80,7 @@ test "MultinomialNB: smoothing prevents zero probability" {
   assert_true(label == 0 || label == 1)
 }
 
+///|
 test "BernoulliNB: binary classification" {
   let x = [
     [1.0, 0.0, 1.0],
@@ -102,19 +99,16 @@ test "BernoulliNB: binary classification" {
   assert_eq(label, 1)
 }
 
+///|
 test "BernoulliNB: binarization" {
-  let x = [
-    [0.8, 0.1],
-    [0.9, 0.2],
-    [0.1, 0.8],
-    [0.2, 0.9],
-  ]
+  let x = [[0.8, 0.1], [0.9, 0.2], [0.1, 0.8], [0.2, 0.9]]
   let y = [0, 0, 1, 1]
   let model = bernoulli_fit(x, y, 1.0, 0.5)
   assert_eq(bernoulli_predict(model, [0.7, 0.3]), 0)
   assert_eq(bernoulli_predict(model, [0.3, 0.7]), 1)
 }
 
+///|
 test "accuracy: correct computation" {
   assert_eq(accuracy([0, 1, 2, 3], [0, 1, 2, 3]), 1.0)
   assert_eq(accuracy([0, 1, 2, 3], [0, 0, 2, 3]), 0.75)
@@ -122,6 +116,7 @@ test "accuracy: correct computation" {
   assert_eq(accuracy([], []), 0.0)
 }
 
+///|
 test "GaussianNB: equal priors when balanced" {
   let x = [[0.0], [10.0]]
   let y = [0, 1]

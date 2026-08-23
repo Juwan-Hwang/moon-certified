@@ -35,7 +35,11 @@ fn YamlAnchors::new() -> YamlAnchors {
 
 ///|
 /// Store an anchor → value mapping.
-fn YamlAnchors::set(self : YamlAnchors, name : String, value : YamlValue) -> Unit {
+fn YamlAnchors::set(
+  self : YamlAnchors,
+  name : String,
+  value : YamlValue,
+) -> Unit {
   self.entries.push((name, value))
 }
 
@@ -192,7 +196,11 @@ fn parse_sequence(
     if !trimmed.has_prefix("- ") && trimmed != "-" {
       break
     }
-    let rest = if trimmed == "-" { "" } else { str_substring(trimmed, 2, trimmed.length()) }
+    let rest = if trimmed == "-" {
+      ""
+    } else {
+      str_substring(trimmed, 2, trimmed.length())
+    }
     // Check for alias: *name
     if rest.has_prefix("*") {
       let alias_name = str_substring(rest, 1, rest.length()).trim().to_owned()
@@ -218,7 +226,8 @@ fn parse_sequence(
           i = ni
         }
       }
-    } else if actual_rest.contains(": ") || (actual_rest.has_suffix(":") && !actual_rest.contains(": ")) {
+    } else if actual_rest.contains(": ") ||
+      (actual_rest.has_suffix(":") && !actual_rest.contains(": ")) {
       // Inline mapping after "- "
       let sub_lines : Array[String] = []
       sub_lines.push(String::make(indent + 2, ' ') + actual_rest)
@@ -291,10 +300,14 @@ fn parse_mapping(
       break
     }
     let key = str_substring(trimmed, 0, colon_idx)
-    let val_str = str_substring(trimmed, colon_idx + 1, trimmed.length()).trim().to_owned()
+    let val_str = str_substring(trimmed, colon_idx + 1, trimmed.length())
+      .trim()
+      .to_owned()
     // Handle alias value: *name
     if val_str.has_prefix("*") {
-      let alias_name = str_substring(val_str, 1, val_str.length()).trim().to_owned()
+      let alias_name = str_substring(val_str, 1, val_str.length())
+        .trim()
+        .to_owned()
       // Merge key: <<: *name
       if key == "<<" {
         match anchors.get(alias_name) {
@@ -345,7 +358,9 @@ fn parse_mapping(
       for p = 0; p < parts.length(); p = p + 1 {
         let part = parts[p].trim().to_owned()
         if part.has_prefix("*") {
-          let alias_name = str_substring(part, 1, part.length()).trim().to_owned()
+          let alias_name = str_substring(part, 1, part.length())
+            .trim()
+            .to_owned()
           match anchors.get(alias_name) {
             Some(YamlMap(merged)) =>
               for k = 0; k < merged.length(); k = k + 1 {
@@ -415,7 +430,10 @@ fn find_colon(s : String) -> Int {
     }
   }
   // Check for trailing colon (key:)
-  if chars.length() > 0 && chars[chars.length() - 1] == ':' && !in_squote && !in_dquote {
+  if chars.length() > 0 &&
+    chars[chars.length() - 1] == ':' &&
+    !in_squote &&
+    !in_dquote {
     return chars.length() - 1
   }
   -1
@@ -563,6 +581,7 @@ pub fn dump_yaml(v : YamlValue) -> String {
   buf.to_string()
 }
 
+///|
 fn dump_value(v : YamlValue, indent : Int, buf : StringBuilder) -> Unit {
   match v {
     YamlNull => buf.write("null")
@@ -570,15 +589,14 @@ fn dump_value(v : YamlValue, indent : Int, buf : StringBuilder) -> Unit {
     YamlInt(n) => buf.write(n.to_string())
     YamlFloat(f) => buf.write(f.to_string())
     YamlStr(s) => dump_string(s, buf)
-    YamlSeq(items) => {
+    YamlSeq(items) =>
       for i = 0; i < items.length(); i = i + 1 {
         buf.write(String::make(indent, ' '))
         buf.write("- ")
         dump_value_inline(items[i], indent + 2, buf)
         buf.write('\n')
       }
-    }
-    YamlMap(pairs) => {
+    YamlMap(pairs) =>
       for i = 0; i < pairs.length(); i = i + 1 {
         buf.write(String::make(indent, ' '))
         buf.write(pairs[i].0)
@@ -586,10 +604,10 @@ fn dump_value(v : YamlValue, indent : Int, buf : StringBuilder) -> Unit {
         dump_value_inline(pairs[i].1, indent + 2, buf)
         buf.write('\n')
       }
-    }
   }
 }
 
+///|
 fn dump_value_inline(
   v : YamlValue,
   child_indent : Int,
@@ -609,9 +627,18 @@ fn dump_value_inline(
   }
 }
 
+///|
 fn dump_string(s : String, buf : StringBuilder) -> Unit {
   // Quote if needed (contains special chars)
-  let needs_quote = s == "" || s == "null" || s == "true" || s == "false" || s.contains(": ") || s.contains("#") || s.has_prefix("- ") || s.has_prefix("? ") || s.has_prefix("! ")
+  let needs_quote = s == "" ||
+    s == "null" ||
+    s == "true" ||
+    s == "false" ||
+    s.contains(": ") ||
+    s.contains("#") ||
+    s.has_prefix("- ") ||
+    s.has_prefix("? ") ||
+    s.has_prefix("! ")
   if needs_quote {
     buf.write('"')
     buf.write(s)
@@ -667,7 +694,7 @@ test "yaml: anchor and alias on mapping" {
   let yaml = "defaults: &def\n  adapter: postgres\n  host: localhost\ndevelopment:\n  database: dev_db\n  <<: *def\n"
   let v = parse_yaml(yaml)
   match v {
-    Some(YamlMap(pairs)) => {
+    Some(YamlMap(pairs)) =>
       // pairs[0] = ("defaults", map)
       // pairs[1] = ("development", map with merged entries)
       match pairs[1].1 {
@@ -690,7 +717,6 @@ test "yaml: anchor and alias on mapping" {
         }
         _ => assert_true(false)
       }
-    }
     _ => assert_true(false)
   }
 }

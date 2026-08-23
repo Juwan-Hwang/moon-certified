@@ -62,14 +62,19 @@ fn utf8_to_codepoints(data : Bytes) -> Array[Int]? {
       if i + 2 >= data.length() {
         return None
       }
-      let cp = ((b & 0x0F) << 12) | ((data[i + 1].to_int() & 0x3F) << 6) | (data[i + 2].to_int() & 0x3F)
+      let cp = ((b & 0x0F) << 12) |
+        ((data[i + 1].to_int() & 0x3F) << 6) |
+        (data[i + 2].to_int() & 0x3F)
       cps.push(cp)
       i = i + 3
     } else if b >> 3 == 0x1E {
       if i + 3 >= data.length() {
         return None
       }
-      let cp = ((b & 0x07) << 18) | ((data[i + 1].to_int() & 0x3F) << 12) | ((data[i + 2].to_int() & 0x3F) << 6) | (data[i + 3].to_int() & 0x3F)
+      let cp = ((b & 0x07) << 18) |
+        ((data[i + 1].to_int() & 0x3F) << 12) |
+        ((data[i + 2].to_int() & 0x3F) << 6) |
+        (data[i + 3].to_int() & 0x3F)
       cps.push(cp)
       i = i + 4
     } else {

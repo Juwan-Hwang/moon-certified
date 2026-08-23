@@ -111,7 +111,7 @@ pub fn[T] fisher_yates_shuffle(xs : FixedArray[T], rng : () -> Int) -> Unit {
     // Rejection sampling on the upper 15 bits to avoid modulo bias.
     // The threshold is the largest multiple of (i+1) that fits in 2^15.
     let range = i + 1
-    let threshold = 32768 - (32768 % range)
+    let threshold = 32768 - 32768 % range
     let mut r = (rng() >> 16) & 0x7FFF
     while r >= threshold {
       r = (rng() >> 16) & 0x7FFF

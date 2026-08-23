@@ -49,21 +49,25 @@ let nmf_eps : Double = 1.0e-10
 // Deterministic PRNG (LCG)
 // ---------------------------------------------------------------------------
 
+///|
 priv struct NmfRng {
   mut state : Int
 }
 
+///|
 fn NmfRng::new(seed : Int) -> NmfRng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn NmfRng::next(self : NmfRng) -> Int {
   // LCG: state = (a * state + c) mod 2^31
   self.state = (self.state * 1103515245 + 12345) & 0x7FFFFFFF
   self.state
 }
 
+///|
 fn NmfRng::next_double(self : NmfRng) -> Double {
   self.next().to_double() / 2147483648.0
 }
@@ -420,12 +424,7 @@ test "nmf: basic decomposition" {
 
 ///|
 test "nmf: reconstruction error decreases" {
-  let v = [
-    [1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-    [0.0, 0.0, 1.0],
-    [1.0, 1.0, 0.0],
-  ]
+  let v = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0]]
   let r = nmf(v, 2, 200, 1.0e-6, 42)
   // With k=2 and 3 features, reconstruction won't be perfect
   // but error should be reasonable
@@ -435,11 +434,7 @@ test "nmf: reconstruction error decreases" {
 ///|
 test "nmf: perfect reconstruction with k=d" {
   // With k = d, NMF should reconstruct V (up to numerical precision)
-  let v = [
-    [1.0, 2.0, 0.0],
-    [3.0, 0.0, 4.0],
-    [0.0, 5.0, 6.0],
-  ]
+  let v = [[1.0, 2.0, 0.0], [3.0, 0.0, 4.0], [0.0, 5.0, 6.0]]
   let r = nmf(v, 3, 500, 1.0e-8, 42)
   let recon = nmf_reconstruct(r)
   let err = nmf_frobenius_diff(v, recon)
@@ -486,11 +481,7 @@ test "nmf: deterministic with same seed" {
 
 ///|
 test "nmf: transform new sample" {
-  let v = [
-    [1.0, 2.0, 3.0],
-    [4.0, 5.0, 6.0],
-    [7.0, 8.0, 9.0],
-  ]
+  let v = [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]]
   let r = nmf(v, 2, 200, 1.0e-4, 42)
   // Transform a new 3D sample
   let coeffs = nmf_transform(r, [2.0, 3.0, 4.0], 100)
@@ -516,11 +507,7 @@ test "nmf: reconstruct returns W*H" {
 ///|
 test "nmf: single component" {
   // Rank-1 approximation
-  let v = [
-    [1.0, 2.0, 3.0],
-    [2.0, 4.0, 6.0],
-    [3.0, 6.0, 9.0],
-  ]
+  let v = [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0], [3.0, 6.0, 9.0]]
   let r = nmf(v, 1, 300, 1.0e-6, 42)
   // This is a rank-1 matrix, so k=1 should reconstruct well
   let recon = nmf_reconstruct(r)

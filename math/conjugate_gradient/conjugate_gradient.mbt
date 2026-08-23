@@ -58,9 +58,11 @@ let default_max_iter : Int = 10000
 ///
 /// ## Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let a = [[4.0, 1.0], [1.0, 3.0]]
+///
 /// let b = [1.0, 2.0]
+///
 /// let x = cg_solve(a, b, [0.0, 0.0])
 /// // x ≈ [0.0909, 0.6364]
 /// ```
@@ -204,7 +206,10 @@ fn _cg_solve_impl(
 test "cg: solve 2×2 SPD system" {
   let a = [[4.0, 1.0], [1.0, 3.0]]
   let b = [1.0, 2.0]
-  let x = @test_utils.expect_some(cg_solve(a, b, [0.0, 0.0]), "cg_solve should converge")
+  let x = @test_utils.expect_some(
+    cg_solve(a, b, [0.0, 0.0]),
+    "cg_solve should converge",
+  )
   // Verify: A·x ≈ b
   let r0 = a[0][0] * x[0] + a[0][1] * x[1] - b[0]
   let r1 = a[1][0] * x[0] + a[1][1] * x[1] - b[1]
@@ -214,13 +219,12 @@ test "cg: solve 2×2 SPD system" {
 
 ///|
 test "cg: solve 3×3 SPD system" {
-  let a = [
-    [4.0, 1.0, 0.0],
-    [1.0, 3.0, 1.0],
-    [0.0, 1.0, 2.0],
-  ]
+  let a = [[4.0, 1.0, 0.0], [1.0, 3.0, 1.0], [0.0, 1.0, 2.0]]
   let b = [5.0, 6.0, 4.0]
-  let x = @test_utils.expect_some(cg_solve(a, b, [0.0, 0.0, 0.0]), "should converge")
+  let x = @test_utils.expect_some(
+    cg_solve(a, b, [0.0, 0.0, 0.0]),
+    "should converge",
+  )
   for i = 0; i < 3; i = i + 1 {
     let mut s = 0.0
     for j = 0; j < 3; j = j + 1 {
@@ -234,7 +238,10 @@ test "cg: solve 3×3 SPD system" {
 test "cg: identity matrix" {
   let a = [[1.0, 0.0], [0.0, 1.0]]
   let b = [3.0, 7.0]
-  let x = @test_utils.expect_some(cg_solve(a, b, [0.0, 0.0]), "identity should converge")
+  let x = @test_utils.expect_some(
+    cg_solve(a, b, [0.0, 0.0]),
+    "identity should converge",
+  )
   assert_true((x[0] - 3.0).abs() < 1.0e-10)
   assert_true((x[1] - 7.0).abs() < 1.0e-10)
 }
@@ -258,7 +265,10 @@ test "cg: zero initial residual (already solved)" {
   let a = [[2.0, 0.0], [0.0, 2.0]]
   let b = [4.0, 6.0]
   // Start at the exact solution
-  let x = @test_utils.expect_some(cg_solve(a, b, [2.0, 3.0]), "should converge immediately")
+  let x = @test_utils.expect_some(
+    cg_solve(a, b, [2.0, 3.0]),
+    "should converge immediately",
+  )
   assert_true((x[0] - 2.0).abs() < 1.0e-10)
   assert_true((x[1] - 3.0).abs() < 1.0e-10)
 }

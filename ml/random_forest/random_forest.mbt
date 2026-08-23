@@ -37,23 +37,27 @@ priv struct Rng {
   mut state : Int
 }
 
+///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 /// Advance the generator and return a non-negative Int in [0, 2^31).
 fn Rng::next(self : Rng) -> Int {
   self.state = (self.state * 1103515245 + 12345) & 0x7FFFFFFF
   self.state
 }
 
+///|
 /// Uniform Double in [0, 1). Uses the full 31-bit state, so the high bits
 /// (which are well-mixed in an LCG) drive the value.
 fn Rng::next_double(self : Rng) -> Double {
   self.next().to_double() / 2147483648.0
 }
 
+///|
 /// Uniform Int in [0, bound). Derived from `next_double` so the well-mixed
 /// high bits — not the weak, short-period low bits — determine the result.
 /// (LCG low bits cycle with tiny periods: e.g. `state mod 8` has period 8,
@@ -89,6 +93,7 @@ priv struct Node {
   right : Node? // >  threshold
 }
 
+///|
 fn leaf_cls(y : Array[Int]) -> Node {
   {
     is_leaf: true,
@@ -101,6 +106,7 @@ fn leaf_cls(y : Array[Int]) -> Node {
   }
 }
 
+///|
 fn leaf_reg(y : Array[Double]) -> Node {
   {
     is_leaf: true,
@@ -206,13 +212,7 @@ fn cmp_double(a : Double, b : Double) -> Int {
 /// full shuffled copy beyond what is needed: a partial Fisher–Yates shuffle
 /// moves `k` randomly chosen positions to the front.
 fn random_subset(rng : Rng, n_features : Int, k : Int) -> Array[Int] {
-  let kk = if k > n_features {
-    n_features
-  } else if k < 1 {
-    1
-  } else {
-    k
-  }
+  let kk = if k > n_features { n_features } else if k < 1 { 1 } else { k }
   let indices = Array::makei(n_features, fn(i) { i })
   for i = 0; i < kk; i = i + 1 {
     let j = i + rng.next_int(n_features - i)
@@ -271,8 +271,9 @@ fn best_split_cls(
         continue
       }
       let child = (
-        nl.to_double() * gini(left_labels) + nr.to_double() * gini(right_labels)
-      ) /
+          nl.to_double() * gini(left_labels) +
+          nr.to_double() * gini(right_labels)
+        ) /
         n.to_double()
       let gain = parent_gini - child
       if gain > best_gain {
@@ -328,8 +329,8 @@ fn best_split_reg(
         continue
       }
       let child = (
-        nl.to_double() * variance(left_y) + nr.to_double() * variance(right_y)
-      ) /
+          nl.to_double() * variance(left_y) + nr.to_double() * variance(right_y)
+        ) /
         n.to_double()
       let gain = parent_var - child
       if gain > best_gain {
@@ -594,9 +595,21 @@ pub fn new_classifier(
 ) -> RandomForest {
   {
     trees: [],
-    n_trees: if n_trees > 0 { n_trees } else { 100 },
-    max_depth: if max_depth > 0 { max_depth } else { 10 },
-    min_samples_split: if min_samples_split > 1 { min_samples_split } else { 2 },
+    n_trees: if n_trees > 0 {
+      n_trees
+    } else {
+      100
+    },
+    max_depth: if max_depth > 0 {
+      max_depth
+    } else {
+      10
+    },
+    min_samples_split: if min_samples_split > 1 {
+      min_samples_split
+    } else {
+      2
+    },
     max_features,
     is_regressor: false,
     n_features: 0,
@@ -617,9 +630,21 @@ pub fn new_regressor(
 ) -> RandomForest {
   {
     trees: [],
-    n_trees: if n_trees > 0 { n_trees } else { 100 },
-    max_depth: if max_depth > 0 { max_depth } else { 10 },
-    min_samples_split: if min_samples_split > 1 { min_samples_split } else { 2 },
+    n_trees: if n_trees > 0 {
+      n_trees
+    } else {
+      100
+    },
+    max_depth: if max_depth > 0 {
+      max_depth
+    } else {
+      10
+    },
+    min_samples_split: if min_samples_split > 1 {
+      min_samples_split
+    } else {
+      2
+    },
     max_features,
     is_regressor: true,
     n_features: 0,
@@ -770,11 +795,7 @@ pub fn fit_regress(
     sq_err = sq_err + d * d
     counted = counted + 1
   }
-  rf.oob_err = if counted > 0 {
-    sq_err / counted.to_double()
-  } else {
-    -1.0
-  }
+  rf.oob_err = if counted > 0 { sq_err / counted.to_double() } else { -1.0 }
 }
 
 ///|

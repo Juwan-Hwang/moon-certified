@@ -129,7 +129,7 @@ test "interpolation: newton at data point" {
 test "interpolation: negative coordinates" {
   let points = [(-3.0, 9.0), (-1.0, 1.0), (1.0, 1.0)]
   // y = x² through these points; at x=0, y=0
-  assert_true((lagrange_interpolate(points, 0.0)).abs() < 0.0000000001)
+  assert_true(lagrange_interpolate(points, 0.0).abs() < 0.0000000001)
 }
 
 ///|

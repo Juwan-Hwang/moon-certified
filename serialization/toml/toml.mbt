@@ -57,7 +57,7 @@ pub enum TomlValue {
 ///|
 /// Structural equality for `TomlValue`. Two values are equal iff they have
 /// the same type and recursively equal contents.
-impl Eq for TomlValue with equal(a, b) {
+impl Eq for TomlValue with fn equal(a, b) {
   match (a, b) {
     (Str(x), Str(y)) => x == y
     (Int(x), Int(y)) => x == y
@@ -85,7 +85,10 @@ fn toml_array_eq(x : Array[TomlValue], y : Array[TomlValue]) -> Bool {
 }
 
 ///|
-fn toml_table_eq(x : Array[(String, TomlValue)], y : Array[(String, TomlValue)]) -> Bool {
+fn toml_table_eq(
+  x : Array[(String, TomlValue)],
+  y : Array[(String, TomlValue)],
+) -> Bool {
   if x.length() != y.length() {
     return false
   }
@@ -328,8 +331,7 @@ fn TomlParser::skip_newline(self : TomlParser) -> Unit {
     let c = self.input[self.pos].to_int()
     if c == 13 {
       self.pos = self.pos + 1
-      if self.pos < self.input.length() &&
-        self.input[self.pos].to_int() == 10 {
+      if self.pos < self.input.length() && self.input[self.pos].to_int() == 10 {
         self.pos = self.pos + 1
       }
     } else if c == 10 {
@@ -761,11 +763,9 @@ fn TomlParser::parse_number(self : TomlParser) -> TomlValue? {
     if self.peek() == 105 {
       // 'i' — signed inf
       if self.consume("inf") {
-        return Some(Float(if c0 == 45 {
-          @double.neg_infinity
-        } else {
-          @double.infinity
-        }))
+        return Some(
+          Float(if c0 == 45 { @double.neg_infinity } else { @double.infinity }),
+        )
       } else {
         return None
       }
@@ -1510,7 +1510,6 @@ fn hex_digit(n : Int) -> Char {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -1532,7 +1531,9 @@ test "toml: parse simple scalars" {
 
 ///|
 test "toml: parse comments and blank lines" {
-  let v = parse("# top-level comment\n\nname = \"Alice\"  # trailing comment\n\nage = 30\n")
+  let v = parse(
+    "# top-level comment\n\nname = \"Alice\"  # trailing comment\n\nage = 30\n",
+  )
   match v {
     Some(t) => {
       assert_eq(as_str(get(t, "name")), Some("Alice"))
@@ -1568,7 +1569,8 @@ test "toml: parse nested table" {
           match get(Table(a), "b") {
             Some(Table(b)) =>
               match get(Table(b), "c") {
-                Some(Table(c)) => assert_eq(as_int(get(Table(c), "value")), Some(42))
+                Some(Table(c)) =>
+                  assert_eq(as_int(get(Table(c), "value")), Some(42))
                 _ => fail("expected c table")
               }
             _ => fail("expected b table")
@@ -1601,7 +1603,9 @@ test "toml: parse dotted keys" {
 
 ///|
 test "toml: parse array of tables" {
-  let v = parse("[[products]]\nname = \"Hammer\"\nsku = 738594937\n\n[[products]]\nname = \"Nail\"\nsku = 284758393\n")
+  let v = parse(
+    "[[products]]\nname = \"Hammer\"\nsku = 738594937\n\n[[products]]\nname = \"Nail\"\nsku = 284758393\n",
+  )
   match v {
     Some(t) =>
       match get(t, "products") {
@@ -1627,7 +1631,9 @@ test "toml: parse array of tables" {
 
 ///|
 test "toml: parse arrays" {
-  let v = parse("nums = [1, 2, 3]\nmixed = [\"a\", true, 4.5]\nmulti = [\n  1,\n  2,\n]\n")
+  let v = parse(
+    "nums = [1, 2, 3]\nmixed = [\"a\", true, 4.5]\nmulti = [\n  1,\n  2,\n]\n",
+  )
   match v {
     Some(t) => {
       match get(t, "nums") {
@@ -1666,7 +1672,9 @@ test "toml: parse inline table" {
 
 ///|
 test "toml: parse string forms and integers" {
-  let v = parse("basic = \"hello\\nworld\"\nliteral = 'raw \\n string'\nhex = 0xFF\noct = 0o17\nbin = 0b1010\nunder = 1_000_000\n")
+  let v = parse(
+    "basic = \"hello\\nworld\"\nliteral = 'raw \\n string'\nhex = 0xFF\noct = 0o17\nbin = 0b1010\nunder = 1_000_000\n",
+  )
   match v {
     Some(t) => {
       assert_eq(as_str(get(t, "basic")), Some("hello\nworld"))

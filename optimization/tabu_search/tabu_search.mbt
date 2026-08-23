@@ -233,7 +233,9 @@ pub fn[T] optimize(
         }
       }
       // Stop early if we've evaluated enough neighbors
-      if config.neighborhood_size > 0 && j + 1 >= config.neighborhood_size && best_neighbor_idx >= 0 {
+      if config.neighborhood_size > 0 &&
+        j + 1 >= config.neighborhood_size &&
+        best_neighbor_idx >= 0 {
         break
       }
     }
@@ -273,6 +275,7 @@ fn hash_pair(a : Int, b : Int) -> UInt64 {
   h1 * 31UL + h2
 }
 
+///|
 test "tabu_search: finds global minimum of quadratic" {
   // Minimize (x - 7)^2 where x ∈ [0, 14]
   // Neighbors: x ± 1 (clamped to [0, 14])
@@ -285,11 +288,18 @@ test "tabu_search: finds global minimum of quadratic" {
   let result = optimize(
     config,
     0, // start at x=0
-    fn(x : Int) -> Double { let d = x - 7; d.to_double() * d.to_double() },
+    fn(x : Int) -> Double {
+      let d = x - 7
+      d.to_double() * d.to_double()
+    },
     fn(x : Int) -> Array[Int] {
       let result : Array[Int] = []
-      if x > 0 { result.push(x - 1) }
-      if x < 14 { result.push(x + 1) }
+      if x > 0 {
+        result.push(x - 1)
+      }
+      if x < 14 {
+        result.push(x + 1)
+      }
       result
     },
     fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) },
@@ -298,6 +308,7 @@ test "tabu_search: finds global minimum of quadratic" {
   assert_eq(result.best_cost, 0.0)
 }
 
+///|
 test "tabu_search: escapes local minimum" {
   // Function with local minima at x=3 and x=10, global at x=10
   // f(x) = (x-3)^2 for x < 7, f(x) = (x-10)^2 + 1 for x >= 7
@@ -326,8 +337,12 @@ test "tabu_search: escapes local minimum" {
     },
     fn(x : Int) -> Array[Int] {
       let result : Array[Int] = []
-      if x > 0 { result.push(x - 1) }
-      if x < 15 { result.push(x + 1) }
+      if x > 0 {
+        result.push(x - 1)
+      }
+      if x < 15 {
+        result.push(x + 1)
+      }
       result
     },
     fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) },
@@ -337,6 +352,7 @@ test "tabu_search: escapes local minimum" {
   assert_eq(result.best_cost, -5.0)
 }
 
+///|
 test "tabu_search: determinism" {
   // Same seed should produce same result
   let config : TabuConfig = {
@@ -345,11 +361,18 @@ test "tabu_search: determinism" {
     neighborhood_size: 0,
     seed: 123UL,
   }
-  let cost_fn = fn(x : Int) -> Double { let d = x - 5; d.to_double() * d.to_double() }
+  let cost_fn = fn(x : Int) -> Double {
+    let d = x - 5
+    d.to_double() * d.to_double()
+  }
   let neighbor_fn = fn(x : Int) -> Array[Int] {
     let r : Array[Int] = []
-    if x > 0 { r.push(x - 1) }
-    if x < 10 { r.push(x + 1) }
+    if x > 0 {
+      r.push(x - 1)
+    }
+    if x < 10 {
+      r.push(x + 1)
+    }
     r
   }
   let hash_fn = fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) }
@@ -359,6 +382,7 @@ test "tabu_search: determinism" {
   assert_eq(r1.best_cost, r2.best_cost)
 }
 
+///|
 test "tabu_search: already at optimum" {
   let config : TabuConfig = {
     max_iter: 50,
@@ -369,11 +393,18 @@ test "tabu_search: already at optimum" {
   let result = optimize(
     config,
     5, // already at optimum
-    fn(x : Int) -> Double { let d = x - 5; d.to_double() * d.to_double() },
+    fn(x : Int) -> Double {
+      let d = x - 5
+      d.to_double() * d.to_double()
+    },
     fn(x : Int) -> Array[Int] {
       let r : Array[Int] = []
-      if x > 0 { r.push(x - 1) }
-      if x < 10 { r.push(x + 1) }
+      if x > 0 {
+        r.push(x - 1)
+      }
+      if x < 10 {
+        r.push(x + 1)
+      }
       r
     },
     fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) },
@@ -382,6 +413,7 @@ test "tabu_search: already at optimum" {
   assert_eq(result.best_cost, 0.0)
 }
 
+///|
 test "tabu_search: TSP small instance" {
   // 5-city TSP: find shortest tour
   // Distance matrix (symmetric)
@@ -462,6 +494,7 @@ test "tabu_search: TSP small instance" {
   }
 }
 
+///|
 test "tabu_search: improvements counter" {
   let config : TabuConfig = {
     max_iter: 100,
@@ -472,11 +505,18 @@ test "tabu_search: improvements counter" {
   let result = optimize(
     config,
     0,
-    fn(x : Int) -> Double { let d = x - 5; d.to_double() * d.to_double() },
+    fn(x : Int) -> Double {
+      let d = x - 5
+      d.to_double() * d.to_double()
+    },
     fn(x : Int) -> Array[Int] {
       let r : Array[Int] = []
-      if x > 0 { r.push(x - 1) }
-      if x < 10 { r.push(x + 1) }
+      if x > 0 {
+        r.push(x - 1)
+      }
+      if x < 10 {
+        r.push(x + 1)
+      }
       r
     },
     fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) },
@@ -486,6 +526,7 @@ test "tabu_search: improvements counter" {
   assert_eq(result.best, 5)
 }
 
+///|
 test "tabu_search: max_iter reached" {
   let config : TabuConfig = {
     max_iter: 10,
@@ -499,8 +540,12 @@ test "tabu_search: max_iter reached" {
     fn(x : Int) -> Double { x.to_double() },
     fn(x : Int) -> Array[Int] {
       let r : Array[Int] = []
-      if x > 0 { r.push(x - 1) }
-      if x < 100 { r.push(x + 1) }
+      if x > 0 {
+        r.push(x - 1)
+      }
+      if x < 100 {
+        r.push(x + 1)
+      }
       r
     },
     fn(a : Int, b : Int) -> UInt64 { hash_pair(a, b) },
@@ -510,6 +555,7 @@ test "tabu_search: max_iter reached" {
   assert_true(result.best_cost <= 0.0)
 }
 
+///|
 test "tabu_search: empty neighborhood stops early" {
   let config : TabuConfig = {
     max_iter: 100,
@@ -529,6 +575,7 @@ test "tabu_search: empty neighborhood stops early" {
   assert_eq(result.best_cost, 42.0)
 }
 
+///|
 test "tabu_search: string optimization" {
   // Find the string that maximizes vowels (minimize consonant count)
   let config : TabuConfig = {

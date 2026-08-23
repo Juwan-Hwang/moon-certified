@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**0.1.0** — 337 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3968 tests 全部通过。形式化验证覆盖 9 个核心搜索/判定包（5 完整正确性证明 + 4 部分验证），其余 328 个包依赖测试验证。
+**0.1.0** — 340 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3968 tests 全部通过。形式化验证覆盖 24 个包（5 完整正确性证明 + 3 增强 + 16 部分），其余 313 个包依赖测试验证。
 
 > 本项目尚处于开发阶段，从未正式发布。0.1.0 反映当前开发状态。
 
@@ -63,13 +63,25 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | ✅ 完整正确性 | max_element | 返回的索引指向最大元素 |
 | ✅ 完整正确性 | min_element | 返回的索引指向最小元素 |
 | ✅ 完整正确性 | is_sorted | 返回 true 时数组有序；返回 false 时存在逆序对 |
-| ⚠️ 部分验证 | array_sum | 结果非负（非负输入下），完整正确性未验证 |
-| ⚠️ 部分验证 | gcd | 结果非负（非负输入下），整除性/最大性未验证 |
-| ⚠️ 部分验证 | fast_power | 结果非负（非负输入下），base^exp 正确性未验证 |
+| 🔶 增强验证 | array_sum | 非负性 + 有界求和 [n·lo, n·hi] + 均匀数组精确等式 n·val |
+| 🔶 增强验证 | gcd | 非负性 + 整除自反性 d|d + 零整除性 d|0 |
+| 🔶 增强验证 | fast_power | 非负性 + base≥1 时 result≥1 + base≥1 exp≥1 时 result≥base |
 | ⚠️ 部分验证 | dijkstra | 数组边界 + 结果长度，最短路径最优性未验证 |
+| ⚠️ 部分验证 | binary_heap | 索引边界 (parent/left/right child) |
+| ⚠️ 部分验证 | bitset | 容量非负 |
+| ⚠️ 部分验证 | union_find | self_parent 初始化正确性 |
+| ⚠️ 部分验证 | red_black_tree | empty() 返回空树、size() 非负 |
+| ⚠️ 部分验证 | kruskal | MST 边数 ≤ n-1 |
+| ⚠️ 部分验证 | topological_sort | 邻接矩阵索引边界 [0, n²) |
+| ⚠️ 部分验证 | kmp | LPS 数组长度 == pattern 长度 |
+| ⚠️ 部分验证 | combinatorics | 阶乘结果 ≥ 1 |
+| ⚠️ 部分验证 | matrix | identity_int 长度 n² + transpose_int 长度 n·m |
+| ⚠️ 部分验证 | insertion_sort | n≤1 时 sorted_asc vacuously true |
+| ⚠️ 部分验证 | merge_sort | n≤1 时 sorted_asc vacuously true |
 
 **重要说明**：
 - ✅ 完整正确性：Z3 证明了算法的核心正确性（找到正确结果或正确判断有序性）
+- 🔶 增强验证：在部分验证基础上，新增了更强的性质验证（如精确等式、单调性、整除性等）
 - ⚠️ 部分验证：Z3 证明了部分性质（非负性、边界安全），但完整正确性需要非线性算术推理，超出 Z3 自动证明能力
 - `proof_axiomatized` 引理 `graph_index_bound`（dijkstra 中使用）是一个数学上正确但被假设而非证明的非线性算术事实（涉及两个变量相乘 `u * n`，Z3 线性算术求解器无法自动证明）。保留此公理是为了让 Z3 能验证它力所能及的部分——数组长度属性 `result.length() == n`
 - **泛型版本均未形式化验证**：表中标注"✅ verified + generic"的包，其 ✅ 仅指已验证的 Int 版本，泛型伴随函数（`search_generic[T]` 等）不做验证，注释中明确标注
@@ -709,7 +721,7 @@ moon-certified/
 └── README.md
 ```
 
-图例：✅ = 完整正确性验证 | ⚠️ = 部分验证 | 🔒 = 仅测试验证
+图例：✅ = 完整正确性验证 | 🔶 = 增强验证 | ⚠️ = 部分验证 | 🔒 = 仅测试验证
 
 ## 测试统计
 
@@ -722,22 +734,22 @@ moon-certified/
 | min_element | 7 | ✅ 完整正确性 | ✅ generic |
 | interpolation_search | 11 | 🔒 tested | ❌ |
 | exponential_search | 11 | 🔒 tested | ❌ |
-| insertion_sort | 12 | 🔒 tested | ✅ generic |
+| insertion_sort | 12 | ⚠️ 部分验证 | ✅ generic |
 | selection_sort | 10 | 🔒 tested | ✅ generic |
-| merge_sort | 15 | 🔒 tested | ✅ generic |
+| merge_sort | 15 | ⚠️ 部分验证 | ✅ generic |
 | quick_sort | 15 | 🔒 tested | ✅ generic |
 | heap_sort | 12 | 🔒 tested | ✅ generic |
 | counting_sort | 12 | 🔒 tested | ❌ |
 | radix_sort | 11 | 🔒 tested | ❌ |
 | is_sorted | 10 | ✅ 完整正确性 | ✅ generic |
-| binary_heap | 17 | 🔒 tested | ✅ HeapG[T] |
+| binary_heap | 17 | ⚠️ 部分验证 | ✅ HeapG[T] |
 | hash_table | 19 | 🔒 tested | ✅ HashTable[K,V] |
 | lru_cache | 8 | 🔒 tested | ❌ |
 | bloom_filter | 9 | 🔒 tested | ❌ |
-| union_find | 16 | 🔒 tested | ❌ (pub struct) |
+| union_find | 16 | ⚠️ 部分验证 | ❌ (pub struct) |
 | bst | 19 | 🔒 tested | ❌ |
 | avl | 17 | 🔒 tested | ❌ |
-| red_black_tree | 23 | 🔒 tested | ✅ generic |
+| red_black_tree | 23 | ⚠️ 部分验证 | ✅ generic |
 | btree | 16 | 🔒 tested | ❌ |
 | segment_tree | 19 | 🔒 tested | ❌ |
 | fenwick | 14 | 🔒 tested | ❌ |
@@ -746,9 +758,9 @@ moon-certified/
 | treap | 13 | 🔒 tested | ❌ |
 | bfs_dfs | 34 | 🔒 tested | ❌ |
 | adj_list | 23 | 🔒 tested | ❌ |
-| topological_sort | 12 | 🔒 tested | ❌ |
+| topological_sort | 12 | ⚠️ 部分验证 | ❌ |
 | topological_sort_adj | 16 | 🔒 tested | ❌ |
-| kruskal | 14 | 🔒 tested | ❌ |
+| kruskal | 14 | ⚠️ 部分验证 | ❌ |
 | prim | 11 | 🔒 tested | ❌ |
 | scc | 12 | 🔒 tested | ❌ |
 | dijkstra | 11 | ⚠️ 部分验证 | ❌ |
@@ -758,17 +770,17 @@ moon-certified/
 | a_star | 11 | 🔒 tested | ❌ |
 | max_flow | 12 | 🔒 tested | ❌ |
 | advanced | 19 | 🔒 tested | ❌ |
-| kmp | 17 | 🔒 tested | ❌ |
+| kmp | 17 | ⚠️ 部分验证 | ❌ |
 | rabin_karp | 25 | 🔒 tested | ❌ |
 | suffix_array | 15 | 🔒 tested | ❌ |
 | z_function | 19 | 🔒 tested | ❌ |
 | manacher | 23 | 🔒 tested | ❌ |
-| gcd | 8 | ⚠️ 部分验证 | ❌ |
-| fast_power | 12 | ⚠️ 部分验证 | ❌ |
+| gcd | 8 | 🔶 增强验证 | ❌ |
+| fast_power | 12 | 🔶 增强验证 | ❌ |
 | prime | 18 | 🔒 tested | ❌ |
 | miller_rabin | 11 | 🔒 tested | ❌ |
 | crt | 20 | 🔒 tested | ❌ |
-| array_sum | 7 | ⚠️ 部分验证 | ❌ |
+| array_sum | 7 | 🔶 增强验证 | ❌ |
 | dp | 21 | 🔒 tested | ❌ |
 | lis | 14 | 🔒 tested | ❌ |
 | convex_hull | 9 | 🔒 tested | ❌ |
@@ -787,8 +799,8 @@ moon-certified/
 | dinic | 8 | 🔒 tested | ❌ |
 | closest_pair | 9 | 🔒 tested | ❌ |
 | segment_ops | 33 | 🔒 tested | ❌ |
-| combinatorics | 15 | 🔒 tested | ❌ |
-| matrix | 12 | 🔒 tested | ❌ |
+| combinatorics | 15 | ⚠️ 部分验证 | ❌ |
+| matrix | 12 | ⚠️ 部分验证 | ❌ |
 | priority_queue | 15 | 🔒 tested | ✅ HeapG[T] |
 | monotonic | 21 | 🔒 tested | ❌ |
 | interval_dp | 22 | 🔒 tested | ❌ |
@@ -826,7 +838,7 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3968** | **5 完整, 4 部分, 328 tested** | **17 generic** |
+| **Total** | **3968** | **5 完整, 3 增强, 16 部分, 313 tested** | **17 generic** |
 
 > 注：上表仅列出部分代表性包。完整 337 个包的测试统计请运行 `moon test` 查看。
 

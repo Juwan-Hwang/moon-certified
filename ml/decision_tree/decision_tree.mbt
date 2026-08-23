@@ -358,8 +358,7 @@ fn best_split_regress(
         continue
       }
       let child_var = (
-          nl.to_double() * variance(left_y) +
-          nr.to_double() * variance(right_y)
+          nl.to_double() * variance(left_y) + nr.to_double() * variance(right_y)
         ) /
         n.to_double()
       let gain = parent_var - child_var
@@ -437,9 +436,21 @@ fn build_regress(
           right: None,
         }
       }
-      let left = build_regress(left_x, left_y, features, depth + 1, max_depth, min_split)
+      let left = build_regress(
+        left_x,
+        left_y,
+        features,
+        depth + 1,
+        max_depth,
+        min_split,
+      )
       let right = build_regress(
-        right_x, right_y, features, depth + 1, max_depth, min_split,
+        right_x,
+        right_y,
+        features,
+        depth + 1,
+        max_depth,
+        min_split,
       )
       {
         is_leaf: false,

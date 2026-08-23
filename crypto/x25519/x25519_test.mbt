@@ -1,3 +1,4 @@
+///|
 /// X25519 test suite.
 ///
 /// Tests include:
@@ -17,6 +18,7 @@ fn hex2bytes(s : String) -> Bytes {
 // RFC 7748 §5.2 Test Vectors (scalar multiplication)
 // ---------------------------------------------------------------------------
 
+///|
 test "rfc7748 §5.2 vector 1" {
   let scalar = hex2bytes(
     "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",
@@ -31,6 +33,7 @@ test "rfc7748 §5.2 vector 1" {
   assert_eq(@hex.encode(result), @hex.encode(expected))
 }
 
+///|
 test "rfc7748 §5.2 vector 2" {
   let scalar = hex2bytes(
     "4b66e9d4d1b4673c5ad22691957d6af5c11b6421e0ea01d42ca4169e7918ba0d",
@@ -49,6 +52,7 @@ test "rfc7748 §5.2 vector 2" {
 // RFC 7748 §6.1 Diffie-Hellman Key Exchange Test Vectors
 // ---------------------------------------------------------------------------
 
+///|
 test "rfc7748 §6.1 DH key exchange" {
   let alice_private = hex2bytes(
     "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
@@ -90,6 +94,7 @@ test "rfc7748 §6.1 DH key exchange" {
 // Property tests
 // ---------------------------------------------------------------------------
 
+///|
 test "x25519: base point is u=9" {
   let bp = base_point()
   assert_eq(bp.length(), 32)
@@ -99,12 +104,14 @@ test "x25519: base point is u=9" {
   }
 }
 
+///|
 test "x25519: public key is 32 bytes" {
   let sk = Bytes::make(32, b'\x01')
   let pk = derive_public_key(sk)
   assert_eq(pk.length(), 32)
 }
 
+///|
 test "x25519: shared secret symmetry" {
   let alice_sk = hex2bytes(
     "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
@@ -119,6 +126,7 @@ test "x25519: shared secret symmetry" {
   assert_eq(@hex.encode(s1), @hex.encode(s2))
 }
 
+///|
 test "x25519: different keys produce different shared secrets" {
   let sk1 = Bytes::make(32, b'\x01')
   let sk2 = Bytes::make(32, b'\x02')
@@ -133,6 +141,7 @@ test "x25519: different keys produce different shared secrets" {
   assert_true(@hex.encode(s_self) != @hex.encode(s1))
 }
 
+///|
 test "x25519: clamping is idempotent" {
   let sk = hex2bytes(
     "a546e36bf0527c9d3b16154b82465edd62144c0ac1fc5a18506a2244ba449ac4",

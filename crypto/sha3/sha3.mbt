@@ -87,7 +87,7 @@ fn keccak_f(flat : FixedArray[UInt64]) -> Unit {
       }
     }
     // χ step: A[x,y] = B[x,y] ^ ((~B[x+1,y]) & B[x+2,y])
-    // Use XOR with all-ones instead of lnot() for bitwise NOT.
+    // Use XOR with all-ones instead of l!() for bitwise NOT.
     for x = 0; x < 5; x = x + 1 {
       for y = 0; y < 5; y = y + 1 {
         let not_next = b[(x + 1) % 5 + 5 * y] ^ 0xFFFFFFFFFFFFFFFFUL

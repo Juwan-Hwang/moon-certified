@@ -180,7 +180,14 @@ fn new_state(
   is_capture_start : Bool,
 ) -> Int {
   let idx = b.states.length()
-  b.states.push({ matcher, out1, out2, is_accept, capture_group, is_capture_start })
+  b.states.push({
+    matcher,
+    out1,
+    out2,
+    is_accept,
+    capture_group,
+    is_capture_start,
+  })
   idx
 }
 
@@ -482,14 +489,12 @@ fn parse_atom(b : Builder) -> Frag? {
                 set[11] = true
                 Some(ClassNode(set, true))
               }
-              98 => {
+              98 =>
                 // \b — word boundary (zero-width assertion)
                 Some(WordBoundary(false))
-              }
-              66 => {
+              66 =>
                 // \B — non-word-boundary (zero-width assertion)
                 Some(WordBoundary(true))
-              }
               _ => None
             }
             match shorthand {

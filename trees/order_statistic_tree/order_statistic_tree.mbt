@@ -431,30 +431,28 @@ fn[T] OrderStatisticTree::insert_fixup(
         }
         grandparent.color = Red
         node = grandparent
-      } else {
-        if !self.is_left_child(parent, node) {
-          // Case 2: node is right child
-          node = parent
-          self.left_rotate(node)
-          // Re-fetch parent and grandparent after rotation
-          let new_parent = match node.parent {
-            Some(p) => p
-            None => break
-          }
-          let new_gp = match new_parent.parent {
-            Some(gp) => gp
-            None => break
-          }
-          // Case 3
-          new_parent.color = Black
-          new_gp.color = Red
-          self.right_rotate(new_gp)
-        } else {
-          // Case 3: node is left child
-          parent.color = Black
-          grandparent.color = Red
-          self.right_rotate(grandparent)
+      } else if !self.is_left_child(parent, node) {
+        // Case 2: node is right child
+        node = parent
+        self.left_rotate(node)
+        // Re-fetch parent and grandparent after rotation
+        let new_parent = match node.parent {
+          Some(p) => p
+          None => break
         }
+        let new_gp = match new_parent.parent {
+          Some(gp) => gp
+          None => break
+        }
+        // Case 3
+        new_parent.color = Black
+        new_gp.color = Red
+        self.right_rotate(new_gp)
+      } else {
+        // Case 3: node is left child
+        parent.color = Black
+        grandparent.color = Red
+        self.right_rotate(grandparent)
       }
     } else {
       // Parent is right child — symmetric
@@ -467,28 +465,26 @@ fn[T] OrderStatisticTree::insert_fixup(
         }
         grandparent.color = Red
         node = grandparent
-      } else {
-        if self.is_left_child(parent, node) {
-          // Case 2: node is left child
-          node = parent
-          self.right_rotate(node)
-          let new_parent = match node.parent {
-            Some(p) => p
-            None => break
-          }
-          let new_gp = match new_parent.parent {
-            Some(gp) => gp
-            None => break
-          }
-          new_parent.color = Black
-          new_gp.color = Red
-          self.left_rotate(new_gp)
-        } else {
-          // Case 3: node is right child
-          parent.color = Black
-          grandparent.color = Red
-          self.left_rotate(grandparent)
+      } else if self.is_left_child(parent, node) {
+        // Case 2: node is left child
+        node = parent
+        self.right_rotate(node)
+        let new_parent = match node.parent {
+          Some(p) => p
+          None => break
         }
+        let new_gp = match new_parent.parent {
+          Some(gp) => gp
+          None => break
+        }
+        new_parent.color = Black
+        new_gp.color = Red
+        self.left_rotate(new_gp)
+      } else {
+        // Case 3: node is right child
+        parent.color = Black
+        grandparent.color = Red
+        self.left_rotate(grandparent)
       }
     }
   }
@@ -510,12 +506,7 @@ fn[T] OrderStatisticTree::transplant(
 ) -> Unit {
   match u.parent {
     None => self.root = v
-    Some(p) =>
-      if self.is_left_child(p, u) {
-        p.left = v
-      } else {
-        p.right = v
-      }
+    Some(p) => if self.is_left_child(p, u) { p.left = v } else { p.right = v }
   }
   match v {
     Some(vn) => vn.parent = u.parent
@@ -619,11 +610,7 @@ fn[T] OrderStatisticTree::delete_node(
         None => ()
       }
     }
-    size_fixup_start = if y_is_direct_child {
-      Some(y)
-    } else {
-      x_parent
-    }
+    size_fixup_start = if y_is_direct_child { Some(y) } else { x_parent }
     self.transplant(z, Some(y))
     y.left = z.left
     match y.left {
@@ -843,17 +830,11 @@ fn[T] OrderStatisticTree::check_rb(
       }
       // BST property
       match n.left {
-        Some(l) =>
-          if (self.compare)(l.key, n.key) >= 0 {
-            return -1
-          }
+        Some(l) => if (self.compare)(l.key, n.key) >= 0 { return -1 }
         None => ()
       }
       match n.right {
-        Some(r) =>
-          if (self.compare)(r.key, n.key) <= 0 {
-            return -1
-          }
+        Some(r) => if (self.compare)(r.key, n.key) <= 0 { return -1 }
         None => ()
       }
       let lbh = self.check_rb(n.left)

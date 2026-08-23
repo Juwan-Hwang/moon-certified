@@ -65,16 +65,19 @@ priv struct Rng {
   mut state : Int
 }
 
+///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn Rng::next(self : Rng) -> Int {
   self.state = @utils.lcg_next(self.state)
   self.state
 }
 
+///|
 fn Rng::next_double(self : Rng) -> Double {
   self.next().to_double() / 2147483648.0
 }
@@ -124,7 +127,11 @@ fn ms_mean(data : Array[Array[Double]], d : Int) -> Array[Double] {
 
 ///|
 /// Per-feature sample standard deviation (ddof = 1).
-fn ms_std(data : Array[Array[Double]], mean : Array[Double], d : Int) -> Array[Double] {
+fn ms_std(
+  data : Array[Array[Double]],
+  mean : Array[Double],
+  d : Int,
+) -> Array[Double] {
   let n = data.length()
   let stds = Array::make(d, 0.0)
   if n <= 1 {
@@ -171,7 +178,10 @@ pub fn estimate_bandwidth(data : Array[Array[Double]]) -> Double {
     return 1.0
   }
   // Silverman's factor: (4/(d+2))^(1/(d+4))
-  let factor = @math.pow(4.0 / (d.to_double() + 2.0), 1.0 / (d.to_double() + 4.0))
+  let factor = @math.pow(
+    4.0 / (d.to_double() + 2.0),
+    1.0 / (d.to_double() + 4.0),
+  )
   let n_factor = @math.pow(n.to_double(), -1.0 / (d.to_double() + 4.0))
   factor * n_factor * sigma_avg
 }
@@ -224,11 +234,7 @@ pub struct MeanShiftResult {
 ///|
 /// Evaluate the kernel weight for a squared distance `sq_d` given bandwidth
 /// `h`. Returns 0.0 if the point is outside the kernel support.
-fn kernel_weight(
-  sq_d : Double,
-  h : Double,
-  kernel : KernelType,
-) -> Double {
+fn kernel_weight(sq_d : Double, h : Double, kernel : KernelType) -> Double {
   match kernel {
     Gaussian => {
       // K(d) = exp(−d² / (2 h²))
@@ -241,14 +247,13 @@ fn kernel_weight(
         @math.exp(-ratio * 0.5)
       }
     }
-    Flat => {
+    Flat =>
       // K(d) = 1 if d < h, else 0
       if sq_d < h * h {
         1.0
       } else {
         0.0
       }
-    }
   }
 }
 
@@ -428,7 +433,11 @@ pub fn mean_shift(
       cluster_centers: [center],
       labels: [0],
       n_clusters: 1,
-      bandwidth: if config.bandwidth > 0.0 { config.bandwidth } else { 1.0 },
+      bandwidth: if config.bandwidth > 0.0 {
+        config.bandwidth
+      } else {
+        1.0
+      },
     }
   }
   let d = data[0].length()
@@ -548,11 +557,7 @@ pub fn mean_shift_predict(
 
 ///|
 test "mean_shift: single cluster (all identical points)" {
-  let data = [
-    [1.0, 2.0],
-    [1.0, 2.0],
-    [1.0, 2.0],
-  ]
+  let data = [[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]
   let result = mean_shift_default(data)
   assert_eq(result.n_clusters, 1)
   assert_eq(result.labels[0], 0)
@@ -711,12 +716,7 @@ test "mean_shift: convergence on Gaussian blob" {
 
 ///|
 test "mean_shift: cluster centers are means of members" {
-  let data = [
-    [0.0, 0.0],
-    [2.0, 0.0],
-    [10.0, 0.0],
-    [12.0, 0.0],
-  ]
+  let data = [[0.0, 0.0], [2.0, 0.0], [10.0, 0.0], [12.0, 0.0]]
   let config = mean_shift_config(4.0)
   let result = mean_shift(data, config)
   assert_eq(result.n_clusters, 2)
@@ -751,14 +751,7 @@ test "mean_shift: predict new point" {
 
 ///|
 test "mean_shift: 1D data" {
-  let data = [
-    [0.0],
-    [0.5],
-    [1.0],
-    [8.0],
-    [8.5],
-    [9.0],
-  ]
+  let data = [[0.0], [0.5], [1.0], [8.0], [8.5], [9.0]]
   let config = mean_shift_config(3.0)
   let result = mean_shift(data, config)
   assert_eq(result.n_clusters, 2)
@@ -775,12 +768,7 @@ test "mean_shift: 1D data" {
 
 ///|
 test "mean_shift: deterministic (same seed)" {
-  let data = [
-    [0.0, 0.0],
-    [0.3, 0.0],
-    [5.0, 5.0],
-    [5.3, 5.0],
-  ]
+  let data = [[0.0, 0.0], [0.3, 0.0], [5.0, 5.0], [5.3, 5.0]]
   let config = mean_shift_config(2.0)
   let r1 = mean_shift(data, config)
   let r2 = mean_shift(data, config)
@@ -792,13 +780,7 @@ test "mean_shift: deterministic (same seed)" {
 
 ///|
 test "mean_shift: bandwidth affects cluster count" {
-  let data = [
-    [0.0],
-    [2.0],
-    [4.0],
-    [6.0],
-    [8.0],
-  ]
+  let data = [[0.0], [2.0], [4.0], [6.0], [8.0]]
   // Large bandwidth → fewer clusters (all merge into 1)
   let wide = mean_shift_config(10.0)
   let r_wide = mean_shift(data, wide)

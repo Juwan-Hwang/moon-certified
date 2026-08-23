@@ -274,3 +274,12 @@ test "merge_sort: stability" {
   assert_eq(xs[8].1, 5)
   assert_eq(xs[9].1, 9)
 }
+
+///|
+/// For n <= 1, sorted_asc holds vacuously (no adjacent pair exists).
+pub fn trivial_sorted(xs : FixedArray[Int]) -> Unit where {
+  proof_require: xs.length() <= 1,
+  proof_ensure: sorted_asc(xs),
+} {
+  ()
+}

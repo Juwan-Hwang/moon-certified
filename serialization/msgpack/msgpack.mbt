@@ -71,6 +71,7 @@ fn pack_into(value : MsgPack, buf : Array[Byte]) -> Unit {
 // Integer encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_int(n : Int64, buf : Array[Byte]) -> Unit {
   if n >= 0L {
     if n <= 127L {
@@ -88,25 +89,24 @@ fn pack_int(n : Int64, buf : Array[Byte]) -> Unit {
       buf.push(b'\xCF')
       push_u64_be(buf, n.reinterpret_as_uint64())
     }
+  } else if n >= -32L {
+    buf.push(n.to_byte())
+  } else if n >= -128L {
+    buf.push(b'\xD0')
+    buf.push(n.to_byte())
+  } else if n >= -32768L {
+    buf.push(b'\xD1')
+    push_u16_be(buf, n.to_int())
+  } else if n >= -2147483648L {
+    buf.push(b'\xD2')
+    push_u32_be(buf, n)
   } else {
-    if n >= -32L {
-      buf.push(n.to_byte())
-    } else if n >= -128L {
-      buf.push(b'\xD0')
-      buf.push(n.to_byte())
-    } else if n >= -32768L {
-      buf.push(b'\xD1')
-      push_u16_be(buf, n.to_int())
-    } else if n >= -2147483648L {
-      buf.push(b'\xD2')
-      push_u32_be(buf, n)
-    } else {
-      buf.push(b'\xD3')
-      push_u64_be(buf, n.reinterpret_as_uint64())
-    }
+    buf.push(b'\xD3')
+    push_u64_be(buf, n.reinterpret_as_uint64())
   }
 }
 
+///|
 fn pack_uint(n : UInt64, buf : Array[Byte]) -> Unit {
   let v = n.reinterpret_as_int64()
   if v >= 0L {
@@ -121,6 +121,7 @@ fn pack_uint(n : UInt64, buf : Array[Byte]) -> Unit {
 // Float encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_f64(f : Double, buf : Array[Byte]) -> Unit {
   buf.push(b'\xCB')
   let bits = f.reinterpret_as_uint64()
@@ -131,6 +132,7 @@ fn pack_f64(f : Double, buf : Array[Byte]) -> Unit {
 // String encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_str_impl(s : String, buf : Array[Byte]) -> Unit {
   let bytes = @utils.string_to_bytes(s)
   let len = bytes.length()
@@ -155,6 +157,7 @@ fn pack_str_impl(s : String, buf : Array[Byte]) -> Unit {
 // Binary encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_bin_impl(b : Bytes, buf : Array[Byte]) -> Unit {
   let len = b.length()
   if len <= 0xFF {
@@ -176,6 +179,7 @@ fn pack_bin_impl(b : Bytes, buf : Array[Byte]) -> Unit {
 // Array encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_array_impl(arr : Array[MsgPack], buf : Array[Byte]) -> Unit {
   let len = arr.length()
   if len <= 15 {
@@ -196,7 +200,11 @@ fn pack_array_impl(arr : Array[MsgPack], buf : Array[Byte]) -> Unit {
 // Map encoding
 // ---------------------------------------------------------------------------
 
-fn pack_map_impl(entries : Array[(MsgPack, MsgPack)], buf : Array[Byte]) -> Unit {
+///|
+fn pack_map_impl(
+  entries : Array[(MsgPack, MsgPack)],
+  buf : Array[Byte],
+) -> Unit {
   let len = entries.length()
   if len <= 15 {
     buf.push((0x80 | len).to_byte())
@@ -218,6 +226,7 @@ fn pack_map_impl(entries : Array[(MsgPack, MsgPack)], buf : Array[Byte]) -> Unit
 // Extension type encoding
 // ---------------------------------------------------------------------------
 
+///|
 fn pack_ext_impl(type_code : Int, data : Bytes, buf : Array[Byte]) -> Unit {
   let len = data.length()
   match len {
@@ -265,11 +274,13 @@ fn pack_ext_impl(type_code : Int, data : Bytes, buf : Array[Byte]) -> Unit {
 // Byte helpers (big-endian)
 // ---------------------------------------------------------------------------
 
+///|
 fn push_u16_be(buf : Array[Byte], val : Int) -> Unit {
   buf.push(((val >> 8) & 0xFF).to_byte())
   buf.push((val & 0xFF).to_byte())
 }
 
+///|
 fn push_u32_be(buf : Array[Byte], val : Int64) -> Unit {
   buf.push(((val >> 24) & 0xFF).to_byte())
   buf.push(((val >> 16) & 0xFF).to_byte())
@@ -277,6 +288,7 @@ fn push_u32_be(buf : Array[Byte], val : Int64) -> Unit {
   buf.push((val & 0xFF).to_byte())
 }
 
+///|
 fn push_u64_be(buf : Array[Byte], val : UInt64) -> Unit {
   buf.push(((val >> 56) & 0xFFUL).to_byte())
   buf.push(((val >> 48) & 0xFFUL).to_byte())
@@ -405,31 +417,27 @@ fn unpack_one(data : Bytes, pos : DecodePos) -> Result[MsgPack, String] {
         Some(b) => Ok(Float64(b.reinterpret_as_double()))
       }
     }
-    0xCC => {
+    0xCC =>
       match read_u8(data, pos) {
         None => Err("truncated uint8")
         Some(v) => Ok(UInt(v.reinterpret_as_uint().to_uint64()))
       }
-    }
-    0xCD => {
+    0xCD =>
       match read_u16_be(data, pos) {
         None => Err("truncated uint16")
         Some(v) => Ok(UInt(v.reinterpret_as_uint().to_uint64()))
       }
-    }
-    0xCE => {
+    0xCE =>
       match read_u32_be(data, pos) {
         None => Err("truncated uint32")
         Some(v) => Ok(UInt(v.reinterpret_as_uint().to_uint64()))
       }
-    }
-    0xCF => {
+    0xCF =>
       match read_u64_be(data, pos) {
         None => Err("truncated uint64")
         Some(v) => Ok(UInt(v))
       }
-    }
-    0xD0 => {
+    0xD0 =>
       match read_u8(data, pos) {
         None => Err("truncated int8")
         Some(v) => {
@@ -437,8 +445,7 @@ fn unpack_one(data : Bytes, pos : DecodePos) -> Result[MsgPack, String] {
           Ok(Int(signed.to_int64()))
         }
       }
-    }
-    0xD1 => {
+    0xD1 =>
       match read_u16_be(data, pos) {
         None => Err("truncated int16")
         Some(v) => {
@@ -446,66 +453,56 @@ fn unpack_one(data : Bytes, pos : DecodePos) -> Result[MsgPack, String] {
           Ok(Int(signed.to_int64()))
         }
       }
-    }
-    0xD2 => {
+    0xD2 =>
       match read_u32_be(data, pos) {
         None => Err("truncated int32")
         Some(v) => Ok(Int(v.to_int64()))
       }
-    }
-    0xD3 => {
+    0xD3 =>
       match read_u64_be(data, pos) {
         None => Err("truncated int64")
         Some(v) => Ok(Int(v.reinterpret_as_int64()))
       }
-    }
     0xD4 => unpack_ext_fixed(data, pos, 1)
     0xD5 => unpack_ext_fixed(data, pos, 2)
     0xD6 => unpack_ext_fixed(data, pos, 4)
     0xD7 => unpack_ext_fixed(data, pos, 8)
     0xD8 => unpack_ext_fixed(data, pos, 16)
-    0xD9 => {
+    0xD9 =>
       match read_u8(data, pos) {
         None => Err("truncated str8")
         Some(l) => unpack_str(data, pos, l)
       }
-    }
-    0xDA => {
+    0xDA =>
       match read_u16_be(data, pos) {
         None => Err("truncated str16")
         Some(l) => unpack_str(data, pos, l)
       }
-    }
-    0xDB => {
+    0xDB =>
       match read_u32_be(data, pos) {
         None => Err("truncated str32")
         Some(l) => unpack_str(data, pos, l)
       }
-    }
-    0xDC => {
+    0xDC =>
       match read_u16_be(data, pos) {
         None => Err("truncated array16")
         Some(l) => unpack_array(data, pos, l)
       }
-    }
-    0xDD => {
+    0xDD =>
       match read_u32_be(data, pos) {
         None => Err("truncated array32")
         Some(l) => unpack_array(data, pos, l)
       }
-    }
-    0xDE => {
+    0xDE =>
       match read_u16_be(data, pos) {
         None => Err("truncated map16")
         Some(l) => unpack_map(data, pos, l)
       }
-    }
-    0xDF => {
+    0xDF =>
       match read_u32_be(data, pos) {
         None => Err("truncated map32")
         Some(l) => unpack_map(data, pos, l)
       }
-    }
     _ => Err("unknown format code: 0x" + code.to_string())
   }
 }
@@ -531,6 +528,7 @@ fn unpack_ext_fixed(
 // Reader helpers
 // ---------------------------------------------------------------------------
 
+///|
 fn read_u8(data : Bytes, pos : DecodePos) -> Int? {
   if pos.idx >= data.length() {
     return None
@@ -540,6 +538,7 @@ fn read_u8(data : Bytes, pos : DecodePos) -> Int? {
   Some(v)
 }
 
+///|
 fn read_u16_be(data : Bytes, pos : DecodePos) -> Int? {
   if pos.idx + 2 > data.length() {
     return None
@@ -550,6 +549,7 @@ fn read_u16_be(data : Bytes, pos : DecodePos) -> Int? {
   Some((hi << 8) | lo)
 }
 
+///|
 fn read_u32_be(data : Bytes, pos : DecodePos) -> Int? {
   if pos.idx + 4 > data.length() {
     return None
@@ -562,6 +562,7 @@ fn read_u32_be(data : Bytes, pos : DecodePos) -> Int? {
   Some((b0 << 24) | (b1 << 16) | (b2 << 8) | b3)
 }
 
+///|
 fn read_u64_be(data : Bytes, pos : DecodePos) -> UInt64? {
   if pos.idx + 8 > data.length() {
     return None
@@ -574,6 +575,7 @@ fn read_u64_be(data : Bytes, pos : DecodePos) -> UInt64? {
   Some(result)
 }
 
+///|
 fn read_bytes(data : Bytes, pos : DecodePos, n : Int) -> Bytes? {
   if pos.idx + n > data.length() {
     return None
@@ -590,7 +592,12 @@ fn read_bytes(data : Bytes, pos : DecodePos, n : Int) -> Bytes? {
 // Compound type unpackers
 // ---------------------------------------------------------------------------
 
-fn unpack_str(data : Bytes, pos : DecodePos, len : Int) -> Result[MsgPack, String] {
+///|
+fn unpack_str(
+  data : Bytes,
+  pos : DecodePos,
+  len : Int,
+) -> Result[MsgPack, String] {
   if pos.idx + len > data.length() {
     return Err("truncated string")
   }
@@ -602,7 +609,12 @@ fn unpack_str(data : Bytes, pos : DecodePos, len : Int) -> Result[MsgPack, Strin
   Ok(Str(@utils.bytes_to_string(Bytes::from_array(buf))))
 }
 
-fn unpack_bin(data : Bytes, pos : DecodePos, len : Int) -> Result[MsgPack, String] {
+///|
+fn unpack_bin(
+  data : Bytes,
+  pos : DecodePos,
+  len : Int,
+) -> Result[MsgPack, String] {
   if pos.idx + len > data.length() {
     return Err("truncated binary")
   }
@@ -614,6 +626,7 @@ fn unpack_bin(data : Bytes, pos : DecodePos, len : Int) -> Result[MsgPack, Strin
   Ok(Bin(Bytes::from_array(buf)))
 }
 
+///|
 fn unpack_array(
   data : Bytes,
   pos : DecodePos,
@@ -629,6 +642,7 @@ fn unpack_array(
   Ok(Array(arr))
 }
 
+///|
 fn unpack_map(
   data : Bytes,
   pos : DecodePos,
@@ -648,6 +662,7 @@ fn unpack_map(
   Ok(Map(entries))
 }
 
+///|
 fn unpack_ext(
   data : Bytes,
   pos : DecodePos,
@@ -670,7 +685,7 @@ fn unpack_ext(
 ///|
 /// Reinterpret IEEE-754 single-precision bits (as Int) to Double.
 fn uint32_to_double(bits : Int) -> Double {
-  let sign = if (bits >> 31) == 1 { -1.0 } else { 1.0 }
+  let sign = if bits >> 31 == 1 { -1.0 } else { 1.0 }
   let exp = (bits >> 23) & 0xFF
   let mantissa = bits & 0x7FFFFF
   if exp == 0 {
@@ -947,7 +962,8 @@ test "msgpack: float64 round-trip" {
   let packed = pack_double(3.14159265358979)
   assert_eq(packed[0], b'\xCB')
   match unpack(packed) {
-    Ok(Float64(v)) => assert_true((v - 3.14159265358979).abs() < 0.000000000000001)
+    Ok(Float64(v)) =>
+      assert_true((v - 3.14159265358979).abs() < 0.000000000000001)
     _ => fail("expected Float64")
   }
 }

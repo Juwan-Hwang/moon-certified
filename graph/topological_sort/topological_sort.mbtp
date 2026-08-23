@@ -1,0 +1,7 @@
+///|
+/// Topological sort verified predicates.
+///
+/// Note: The full topological order property (for every edge u->v,
+/// pos[u] < pos[v]) is not formally verified due to the complexity of
+/// quantifying over edges in the adjacency matrix with mutable in-degree array.
+/// Only edge_index (adjacency matrix index computation) is formally verified.

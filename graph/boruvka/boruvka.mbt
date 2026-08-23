@@ -72,7 +72,10 @@ pub fn edge(from : Int, to : Int, weight : Int) -> Edge {
 /// result has exactly `n - 1` edges; for a disconnected graph it is a spanning
 /// forest. Returns an empty array and weight `0L` when `n <= 0` or there are no
 /// edges.
-pub fn boruvka_mst(edges : FixedArray[Edge], n : Int) -> (FixedArray[Edge], Int64) {
+pub fn boruvka_mst(
+  edges : FixedArray[Edge],
+  n : Int,
+) -> (FixedArray[Edge], Int64) {
   if n <= 0 || edges.length() == 0 {
     return (FixedArray::make(0, edge(0, 0, 0)), 0L)
   }

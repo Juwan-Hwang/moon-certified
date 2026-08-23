@@ -390,16 +390,17 @@ fn[T] rebalance_after_delete(n : AaNode[T]) -> AaNode[T] {
     None => 0
     Some(r) => r.level
   }
-  let min_level = if left_level < right_level { left_level } else { right_level }
+  let min_level = if left_level < right_level {
+    left_level
+  } else {
+    right_level
+  }
   let should_be = 1 + min_level
   if should_be < n.level {
     n.level = should_be
     // Also decrease right child's level to match.
     match n.right {
-      Some(r) =>
-        if r.level > should_be {
-          r.level = should_be
-        }
+      Some(r) => if r.level > should_be { r.level = should_be }
       None => ()
     }
   }
@@ -462,6 +463,7 @@ pub fn[T] AaTree::in_order(self : AaTree[T], f : (T) -> Unit) -> Unit {
   in_order_rec(self.root, f)
 }
 
+///|
 fn[T] in_order_rec(node : AaNode[T]?, f : (T) -> Unit) -> Unit {
   match node {
     None => ()
@@ -491,16 +493,14 @@ fn[T] verify_bst(node : AaNode[T]?, compare : (T, T) -> Int) -> Bool {
   match node {
     None => true
     Some(n) => {
-      let left_ok =
-        match n.left {
-          None => true
-          Some(l) => compare(l.val, n.val) < 0 && verify_bst(Some(l), compare)
-        }
-      let right_ok =
-        match n.right {
-          None => true
-          Some(r) => compare(r.val, n.val) > 0 && verify_bst(Some(r), compare)
-        }
+      let left_ok = match n.left {
+        None => true
+        Some(l) => compare(l.val, n.val) < 0 && verify_bst(Some(l), compare)
+      }
+      let right_ok = match n.right {
+        None => true
+        Some(r) => compare(r.val, n.val) > 0 && verify_bst(Some(r), compare)
+      }
       left_ok && right_ok
     }
   }
@@ -518,10 +518,7 @@ fn[T] verify_aa_invariants(node : AaNode[T]?) -> Bool {
       }
       // Check: left child level is exactly one less
       match n.left {
-        Some(l) =>
-          if l.level != n.level - 1 {
-            return false
-          }
+        Some(l) => if l.level != n.level - 1 { return false }
         None => ()
       }
       // Check: right child level is equal or one less
@@ -536,10 +533,7 @@ fn[T] verify_aa_invariants(node : AaNode[T]?) -> Bool {
       match n.right {
         Some(r) =>
           match r.right {
-            Some(rr) =>
-              if rr.level >= n.level {
-                return false
-              }
+            Some(rr) => if rr.level >= n.level { return false }
             None => ()
           }
         None => ()
@@ -571,6 +565,7 @@ fn[T] height_of(node : AaNode[T]?) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "aa_tree: empty tree" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.is_empty())
@@ -580,6 +575,7 @@ test "aa_tree: empty tree" {
   assert_true(t.find_max() is None)
 }
 
+///|
 test "aa_tree: insert and search" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.insert(5))
@@ -595,6 +591,7 @@ test "aa_tree: insert and search" {
   assert_false(t.contains(4))
 }
 
+///|
 test "aa_tree: duplicate insert" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.insert(5))
@@ -602,6 +599,7 @@ test "aa_tree: duplicate insert" {
   assert_eq(t.size(), 1)
 }
 
+///|
 test "aa_tree: find_min and find_max" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -613,6 +611,7 @@ test "aa_tree: find_min and find_max" {
   assert_eq(t.find_max(), Some(9))
 }
 
+///|
 test "aa_tree: in-order sorted" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   let input = [7, 3, 9, 1, 5, 8, 2, 6, 4, 0]
@@ -625,6 +624,7 @@ test "aa_tree: in-order sorted" {
   }
 }
 
+///|
 test "aa_tree: BST property after inserts" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 100; i = i + 1 {
@@ -634,6 +634,7 @@ test "aa_tree: BST property after inserts" {
   assert_true(verify_aa_invariants(t.root))
 }
 
+///|
 test "aa_tree: insert sorted ascending" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 200; i = i + 1 {
@@ -651,6 +652,7 @@ test "aa_tree: insert sorted ascending" {
   }
 }
 
+///|
 test "aa_tree: insert sorted descending" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 200; i = i + 1 {
@@ -663,6 +665,7 @@ test "aa_tree: insert sorted descending" {
   assert_true(h <= 20)
 }
 
+///|
 test "aa_tree: remove leaf" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -675,6 +678,7 @@ test "aa_tree: remove leaf" {
   assert_true(verify_aa_invariants(t.root))
 }
 
+///|
 test "aa_tree: remove node with one child" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -689,6 +693,7 @@ test "aa_tree: remove node with one child" {
   assert_true(verify_aa_invariants(t.root))
 }
 
+///|
 test "aa_tree: remove node with two children" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -707,6 +712,7 @@ test "aa_tree: remove node with two children" {
   assert_eq(result, [1, 3, 4, 6, 7, 8])
 }
 
+///|
 test "aa_tree: remove non-existent" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -715,6 +721,7 @@ test "aa_tree: remove non-existent" {
   assert_eq(t.size(), 2)
 }
 
+///|
 test "aa_tree: remove all" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 50; i = i + 1 {
@@ -728,6 +735,7 @@ test "aa_tree: remove all" {
   assert_true(t.root is None)
 }
 
+///|
 test "aa_tree: intermixed insert and remove" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -744,6 +752,7 @@ test "aa_tree: intermixed insert and remove" {
   assert_eq(result, [1, 4, 7, 9])
 }
 
+///|
 test "aa_tree: height is logarithmic" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 1000; i = i + 1 {
@@ -755,6 +764,7 @@ test "aa_tree: height is logarithmic" {
   assert_true(h < 100)
 }
 
+///|
 test "aa_tree: stress test random operations" {
   let t = AaTree::new(fn(a : Int, b : Int) -> Int { a - b })
   let mut seed = 42
@@ -772,14 +782,12 @@ test "aa_tree: stress test random operations" {
       } else {
         assert_false(t.insert(val))
       }
+    } else if present[val] {
+      assert_true(t.remove(val))
+      present[val] = false
+      count = count - 1
     } else {
-      if present[val] {
-        assert_true(t.remove(val))
-        present[val] = false
-        count = count - 1
-      } else {
-        assert_false(t.remove(val))
-      }
+      assert_false(t.remove(val))
     }
     if i % 500 == 499 {
       assert_true(verify_bst(t.root, t.compare))
@@ -800,6 +808,7 @@ test "aa_tree: stress test random operations" {
   }
 }
 
+///|
 test "aa_tree: string keys" {
   let t = AaTree::new(fn(a : String, b : String) -> Int {
     let ac = a.to_array()
@@ -808,7 +817,9 @@ test "aa_tree: string keys" {
     let mut i = 0
     while i < n {
       let d = ac[i].to_int() - bc[i].to_int()
-      if d != 0 { return d }
+      if d != 0 {
+        return d
+      }
       i = i + 1
     }
     ac.length() - bc.length()

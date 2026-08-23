@@ -436,8 +436,12 @@ test "chacha20: RFC 8439 §2.8.2 block 0 (poly key)" {
   }
   let key = to_bytes(key_arr)
   // Nonce: 07 00 00 00 40 41 42 43 44 45 46 47
-  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71]
-    .map(fn(v) { v.to_byte() })
+  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71].map(fn(
+      v,
+    ) {
+      v.to_byte()
+    },
+  )
   let nonce = to_bytes(nonce_arr)
   let key_words = key_to_words(key)
   let nonce_words = nonce_to_words(nonce)
@@ -458,8 +462,12 @@ test "chacha20: RFC 8439 §2.8.2 block 1 (keystream)" {
     key_arr.push((128 + i).to_byte())
   }
   let key = to_bytes(key_arr)
-  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71]
-    .map(fn(v) { v.to_byte() })
+  let nonce_arr : Array[Byte] = [7, 0, 0, 0, 64, 65, 66, 67, 68, 69, 70, 71].map(fn(
+      v,
+    ) {
+      v.to_byte()
+    },
+  )
   let nonce = to_bytes(nonce_arr)
   let key_words = key_to_words(key)
   let nonce_words = nonce_to_words(nonce)

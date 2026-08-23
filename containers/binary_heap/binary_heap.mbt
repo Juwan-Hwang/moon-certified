@@ -806,3 +806,30 @@ test "HeapG: empty heap operations" {
   assert_true(h.peek() is None)
   assert_true(h.pop() is None)
 }
+
+///|
+/// Compute parent index: (i-1)/2. Verified: for i >= 1, result in [0, i).
+pub fn parent_index(i : Int) -> Int where {
+  proof_require: 1 <= i,
+  proof_ensure: result => 0 <= result && result < i,
+} {
+  (i - 1) / 2
+}
+
+///|
+/// Compute left child index: 2*i+1. Verified: result > i.
+pub fn left_child_index(i : Int) -> Int where {
+  proof_require: 0 <= i,
+  proof_ensure: result => i < result,
+} {
+  2 * i + 1
+}
+
+///|
+/// Compute right child index: 2*i+2. Verified: result > i.
+pub fn right_child_index(i : Int) -> Int where {
+  proof_require: 0 <= i,
+  proof_ensure: result => i < result,
+} {
+  2 * i + 2
+}

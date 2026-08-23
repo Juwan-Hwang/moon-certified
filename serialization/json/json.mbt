@@ -63,7 +63,7 @@ pub enum JsonValue {
 ///
 /// Note: `NaN` numbers are considered equal to each other (unlike IEEE 754),
 /// which is consistent with JSON having no `NaN` representation.
-impl Eq for JsonValue with equal(a, b) {
+impl Eq for JsonValue with fn equal(a, b) {
   match (a, b) {
     (Null, Null) => true
     (Bool(x), Bool(y)) => x == y
@@ -358,6 +358,7 @@ pub fn get_bool(v : JsonValue, key : String) -> Bool? {
 // Parser
 // ---------------------------------------------------------------------------
 
+///|
 /// Maximum nesting depth for JSON parsing.
 ///
 /// Prevents stack-overflow attacks via deeply nested `[[[...]]]` or
@@ -608,16 +609,15 @@ fn Parser::parse_hex4(self : Parser) -> Int? {
   for i = 0; i < 4; i = i + 1 {
     let c = self.input[self.pos].to_int()
     self.pos = self.pos + 1
-    let digit =
-      if c >= 48 && c <= 57 {
-        c - 48 // 0-9
-      } else if c >= 65 && c <= 70 {
-        c - 55 // A-F
-      } else if c >= 97 && c <= 102 {
-        c - 87 // a-f
-      } else {
-        return None
-      }
+    let digit = if c >= 48 && c <= 57 {
+      c - 48 // 0-9
+    } else if c >= 65 && c <= 70 {
+      c - 55 // A-F
+    } else if c >= 97 && c <= 102 {
+      c - 87 // a-f
+    } else {
+      return None
+    }
     val = (val << 4) | digit
   }
   Some(val)
@@ -768,10 +768,9 @@ fn Parser::parse_object(self : Parser) -> JsonValue? {
             pairs.push((key, v))
             self.skip_ws()
             match self.peek() {
-              44 => {
+              44 =>
                 // ','
                 self.pos = self.pos + 1
-              }
               125 => {
                 // '}'
                 self.pos = self.pos + 1
@@ -833,7 +832,7 @@ fn write_value(
       }
     BigInt(s) => buf.write_string(s)
     Str(s) => write_string(s, buf)
-    Arr(items) => {
+    Arr(items) =>
       if items.length() == 0 {
         buf.write_string("[]")
       } else {
@@ -853,8 +852,7 @@ fn write_value(
         }
         buf.write_char(']')
       }
-    }
-    Obj(pairs) => {
+    Obj(pairs) =>
       if pairs.length() == 0 {
         buf.write_string("{}")
       } else {
@@ -880,7 +878,6 @@ fn write_value(
         }
         buf.write_char('}')
       }
-    }
   }
 }
 
@@ -1033,7 +1030,7 @@ test "json: parse nested" {
     Some(Obj(pairs)) => {
       let (_, v0) = pairs[0]
       match v0 {
-        Arr(a) => {
+        Arr(a) =>
           match a[2] {
             Obj(inner) => {
               let (_, iv0) = inner[0]
@@ -1041,7 +1038,6 @@ test "json: parse nested" {
             }
             _ => fail("expected inner object")
           }
-        }
         _ => fail("expected array")
       }
     }
@@ -1104,16 +1100,8 @@ test "json: stringify NaN and Infinity as null" {
 ///|
 test "json: round-trip" {
   let inputs = [
-    "null",
-    "true",
-    "false",
-    "42",
-    "-3.14",
-    "\"hello world\"",
-    "[1,2,3]",
-    "{\"a\":1,\"b\":2}",
-    "{\"nested\":{\"deep\":[1,[2,3]]}}",
-    "{\"unicode\":\"\\u00e9\\u00e8\\u00ea\"}",
+    "null", "true", "false", "42", "-3.14", "\"hello world\"", "[1,2,3]", "{\"a\":1,\"b\":2}",
+    "{\"nested\":{\"deep\":[1,[2,3]]}}", "{\"unicode\":\"\\u00e9\\u00e8\\u00ea\"}",
   ]
   for i = 0; i < inputs.length(); i = i + 1 {
     let parsed = parse(inputs[i])
@@ -1252,6 +1240,7 @@ test "json: moderate nesting accepted" {
   assert_true(parse(moderate) is Some(_))
 }
 
+///|
 test "json: big integer parsed as BigInt" {
   // 20-digit number exceeds 2^53, should be BigInt not Number
   let v = parse("12345678901234567890")
@@ -1262,6 +1251,7 @@ test "json: big integer parsed as BigInt" {
   }
 }
 
+///|
 test "json: negative big integer parsed as BigInt" {
   let v = parse("-98765432109876543210")
   assert_true(v is Some(_))
@@ -1271,6 +1261,7 @@ test "json: negative big integer parsed as BigInt" {
   }
 }
 
+///|
 test "json: small integer stays Number" {
   // 15 significant digits = within Double precision
   let v = parse("123456789012345")
@@ -1280,6 +1271,7 @@ test "json: small integer stays Number" {
   }
 }
 
+///|
 test "json: 16-digit integer becomes BigInt" {
   // 16 significant digits exceed safe Double range
   let v = parse("1234567890123456")
@@ -1289,6 +1281,7 @@ test "json: 16-digit integer becomes BigInt" {
   }
 }
 
+///|
 test "json: float with many digits stays Number" {
   // Has a decimal point, so never BigInt even with many digits
   let v = parse("12345678901234567890.0")
@@ -1298,6 +1291,7 @@ test "json: float with many digits stays Number" {
   }
 }
 
+///|
 test "json: exponent number stays Number" {
   let v = parse("12345678901234567890e5")
   match v {
@@ -1306,6 +1300,7 @@ test "json: exponent number stays Number" {
   }
 }
 
+///|
 test "json: BigInt round-trips through stringify" {
   let original = "9007199254740993" // 2^53 + 1
   let v = parse(original)
@@ -1318,6 +1313,7 @@ test "json: BigInt round-trips through stringify" {
   }
 }
 
+///|
 test "json: BigInt in object" {
   let json = parse("{\"id\": 12345678901234567890, \"name\": \"test\"}")
   assert_true(json is Some(_))
@@ -1338,6 +1334,7 @@ test "json: BigInt in object" {
   }
 }
 
+///|
 test "json: BigInt in array" {
   let json = parse("[12345678901234567890, 42, -99999999999999999999]")
   assert_true(json is Some(_))
@@ -1363,12 +1360,14 @@ test "json: BigInt in array" {
   }
 }
 
+///|
 test "json: is_bigint predicate" {
   assert_true(is_bigint(BigInt("12345678901234567890")))
   assert_false(is_bigint(Number(42.0)))
   assert_false(is_bigint(Null))
 }
 
+///|
 test "json: as_bigint accessor" {
   let v = BigInt("99999999999999999999")
   match as_bigint(v) {
@@ -1380,17 +1379,20 @@ test "json: as_bigint accessor" {
   assert_true(as_bigint(Str("hello")) is None)
 }
 
+///|
 test "json: json_bigint constructor and stringify" {
   let v = json_bigint("123456789012345678901234567890")
   assert_eq(stringify(v), "123456789012345678901234567890")
 }
 
+///|
 test "json: BigInt equality" {
   assert_true(BigInt("12345678901234567890") == BigInt("12345678901234567890"))
   assert_false(BigInt("12345678901234567890") == BigInt("12345678901234567891"))
   assert_false(BigInt("12345678901234567890") == Number(1.2345678901234568e19))
 }
 
+///|
 test "json: leading zeros don't trigger BigInt" {
   // "0" is a valid JSON number with only 1 significant digit
   let v = parse("0")
@@ -1402,6 +1404,7 @@ test "json: leading zeros don't trigger BigInt" {
   assert_true(parse("001234") is None)
 }
 
+///|
 test "json: BigInt stringify in pretty mode" {
   let v = json_obj([("balance", BigInt("999999999999999999999"))])
   let s = stringify_pretty(v, 2)

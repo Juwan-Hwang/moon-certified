@@ -37,6 +37,7 @@
 ///
 /// `proof-enabled` is `false`.
 
+///|
 /// Maximum counter value (saturating). Prevents Int32 overflow.
 let counter_max : Int = 2147483647
 
@@ -54,17 +55,33 @@ pub struct CountingBloomFilter {
 /// Create a new counting bloom filter.
 /// `expected_elements` is the estimated number of elements to store.
 /// `false_positive_rate` is the desired false positive probability.
-pub fn new(expected_elements : Int, false_positive_rate : Double) -> CountingBloomFilter {
+pub fn new(
+  expected_elements : Int,
+  false_positive_rate : Double,
+) -> CountingBloomFilter {
   // Calculate optimal parameters
   // m = -n * ln(p) / (ln(2)^2)
   // k = (m/n) * ln(2)
   let ln2 = 0.6931471805599453
   let n = if expected_elements < 1 { 100 } else { expected_elements }
-  let p = if false_positive_rate <= 0.0 || false_positive_rate >= 1.0 { 0.01 } else { false_positive_rate }
-  let m = ((-(n.to_double()) * @math.ln(p)) / (ln2 * ln2)).to_int() + 1
-  let k = ((m.to_double() / n.to_double()) * ln2).to_int() + 1
+  let p = if false_positive_rate <= 0.0 || false_positive_rate >= 1.0 {
+    0.01
+  } else {
+    false_positive_rate
+  }
+  let m = (-n.to_double() * @math.ln(p) / (ln2 * ln2)).to_int() + 1
+  let k = (m.to_double() / n.to_double() * ln2).to_int() + 1
   let bits = if m < 8 { 8 } else { m }
-  { counters: Array::make(bits, 0), num_hashes: if k < 1 { 1 } else { k }, num_bits: bits, count: 0 }
+  {
+    counters: Array::make(bits, 0),
+    num_hashes: if k < 1 {
+      1
+    } else {
+      k
+    },
+    num_bits: bits,
+    count: 0,
+  }
 }
 
 ///|
@@ -74,7 +91,11 @@ fn double_hash(key : String, i : Int, m : Int) -> Int {
   let h1 = hash_fn(key, 0)
   let h2 = hash_fn(key, 1)
   let result = (h1 + i * h2) % m
-  if result < 0 { result + m } else { result }
+  if result < 0 {
+    result + m
+  } else {
+    result
+  }
 }
 
 ///|
@@ -84,7 +105,11 @@ fn hash_fn(s : String, seed : Int) -> Int {
   for ch in s {
     hash = hash * 31 + ch.to_int()
   }
-  if hash < 0 { -hash } else { hash }
+  if hash < 0 {
+    -hash
+  } else {
+    hash
+  }
 }
 
 ///|

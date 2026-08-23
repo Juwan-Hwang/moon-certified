@@ -193,9 +193,7 @@ test "carmichael: edge cases" {
 ///|
 test "carmichael: divides Euler totient" {
   // λ(n) must divide φ(n) for all n ≥ 1.  φ is computed by brute force.
-  let cases = [
-    2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 24, 30, 561, 1105, 1729,
-  ]
+  let cases = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 24, 30, 561, 1105, 1729]
   for i = 0; i < cases.length(); i = i + 1 {
     let n = cases[i]
     let lam = carmichael(n)

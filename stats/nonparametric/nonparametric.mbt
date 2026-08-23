@@ -131,7 +131,7 @@ pub struct MannWhitneyResult {
 /// zero (e.g. all observations tied).
 pub fn mann_whitney_u_test(
   x : Array[Double],
-  y : Array[Double]
+  y : Array[Double],
 ) -> MannWhitneyResult {
   let n1 = x.length()
   let n2 = y.length()
@@ -157,16 +157,12 @@ pub fn mann_whitney_u_test(
   let u = if u1 < u2 { u1 } else { u2 }
   let nf = n.to_double()
   // Variance with tie correction (guard against N == 1, already excluded).
-  let var_u = n1.to_double() * n2.to_double() / 12.0 *
-    ((nf + 1.0) - tie_term / (nf * (nf - 1.0)))
+  let var_u = n1.to_double() *
+    n2.to_double() /
+    12.0 *
+    (nf + 1.0 - tie_term / (nf * (nf - 1.0)))
   if var_u <= 0.0 {
-    return {
-      u1,
-      u2,
-      u,
-      z: @double.not_a_number,
-      p_value: @double.not_a_number,
-    }
+    return { u1, u2, u, z: @double.not_a_number, p_value: @double.not_a_number }
   }
   let mean_u = n1.to_double() * n2.to_double() / 2.0
   let std_u = var_u.sqrt()
@@ -179,13 +175,7 @@ pub fn mann_whitney_u_test(
 fn mw_nan(n1 : Int, n2 : Int) -> MannWhitneyResult {
   let u1 = 0.0
   let u2 = n1.to_double() * n2.to_double()
-  {
-    u1,
-    u2,
-    u: 0.0,
-    z: @double.not_a_number,
-    p_value: @double.not_a_number,
-  }
+  { u1, u2, u: 0.0, z: @double.not_a_number, p_value: @double.not_a_number }
 }
 
 // ---------------------------------------------------------------------------
@@ -220,7 +210,7 @@ pub struct WilcoxonResult {
 /// non-zero differences, or the variance is zero.
 pub fn wilcoxon_signed_rank_test(
   x : Array[Double],
-  y : Array[Double]
+  y : Array[Double],
 ) -> WilcoxonResult {
   if x.length() != y.length() || x.length() == 0 {
     return wil_nan(0)
@@ -312,7 +302,9 @@ pub struct KruskalWallisResult {
 ///
 /// Returns `NaN` statistics when there are fewer than 2 non-empty groups or
 /// the tie correction is undefined.
-pub fn kruskal_wallis_test(groups : Array[Array[Double]]) -> KruskalWallisResult {
+pub fn kruskal_wallis_test(
+  groups : Array[Array[Double]],
+) -> KruskalWallisResult {
   // Flatten, remembering group boundaries.
   let pooled : Array[Double] = []
   let group_of : Array[Int] = []
@@ -396,7 +388,12 @@ fn chi_square_upper_p_wh(h : Double, df : Int) -> Double {
 
 ///|
 fn kw_nan(df : Int) -> KruskalWallisResult {
-  { h: @double.not_a_number, df, z: @double.not_a_number, p_value: @double.not_a_number }
+  {
+    h: @double.not_a_number,
+    df,
+    z: @double.not_a_number,
+    p_value: @double.not_a_number,
+  }
 }
 
 // ---------------------------------------------------------------------------

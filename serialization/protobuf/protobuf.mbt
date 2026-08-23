@@ -22,7 +22,7 @@ pub fn encode_varint(value : UInt64) -> Bytes {
   let buf : Array[Byte] = []
   let mut v = value
   while v >= 0x80UL {
-    buf.push(((v & 0x7FUL).to_byte()) | 0x80)
+    buf.push((v & 0x7FUL).to_byte() | 0x80)
     v = v >> 7
   }
   buf.push(v.to_byte())
@@ -54,7 +54,7 @@ pub fn decode_varint(data : Bytes, offset : Int) -> (UInt64, Int)? {
 ///|
 /// Zigzag encode a 32-bit signed integer.
 pub fn zigzag_encode32(n : Int) -> UInt {
-  ((n << 1).reinterpret_as_uint()).lxor((n >> 31).reinterpret_as_uint())
+  (n << 1).reinterpret_as_uint().lxor((n >> 31).reinterpret_as_uint())
 }
 
 ///|
@@ -66,7 +66,7 @@ pub fn zigzag_decode32(n : UInt) -> Int {
 ///|
 /// Zigzag encode a 64-bit signed integer.
 pub fn zigzag_encode64(n : Int64) -> UInt64 {
-  ((n << 1).reinterpret_as_uint64()).lxor((n >> 63).reinterpret_as_uint64())
+  (n << 1).reinterpret_as_uint64().lxor((n >> 63).reinterpret_as_uint64())
 }
 
 ///|
@@ -182,7 +182,7 @@ pub fn decode_message(data : Bytes) -> Array[ProtoField]? {
       Some((fn_, wt, np)) => {
         pos = np
         match wt {
-          0 => {
+          0 =>
             // Varint
             match decode_varint(data, pos) {
               None => return None
@@ -190,15 +190,18 @@ pub fn decode_message(data : Bytes) -> Array[ProtoField]? {
                 let buf : Array[Byte] = []
                 let mut val = v
                 while val >= 0x80UL {
-                  buf.push(((val & 0x7FUL).to_byte()) | 0x80)
+                  buf.push((val & 0x7FUL).to_byte() | 0x80)
                   val = val >> 7
                 }
                 buf.push(val.to_byte())
-                fields.push({ field_number: fn_, wire_type: wt, data: Bytes::from_array(buf) })
+                fields.push({
+                  field_number: fn_,
+                  wire_type: wt,
+                  data: Bytes::from_array(buf),
+                })
                 pos = vp
               }
             }
-          }
           1 => {
             // 64-bit
             if pos + 8 > data.length() {
@@ -208,10 +211,14 @@ pub fn decode_message(data : Bytes) -> Array[ProtoField]? {
             for i = 0; i < 8; i = i + 1 {
               buf.push(data[pos + i])
             }
-            fields.push({ field_number: fn_, wire_type: wt, data: Bytes::from_array(buf) })
+            fields.push({
+              field_number: fn_,
+              wire_type: wt,
+              data: Bytes::from_array(buf),
+            })
             pos = pos + 8
           }
-          2 => {
+          2 =>
             // Length-delimited
             match decode_varint(data, pos) {
               None => return None
@@ -225,11 +232,14 @@ pub fn decode_message(data : Bytes) -> Array[ProtoField]? {
                 for i = 0; i < ilen; i = i + 1 {
                   buf.push(data[pos + i])
                 }
-                fields.push({ field_number: fn_, wire_type: wt, data: Bytes::from_array(buf) })
+                fields.push({
+                  field_number: fn_,
+                  wire_type: wt,
+                  data: Bytes::from_array(buf),
+                })
                 pos = pos + ilen
               }
             }
-          }
           5 => {
             // 32-bit
             if pos + 4 > data.length() {
@@ -239,7 +249,11 @@ pub fn decode_message(data : Bytes) -> Array[ProtoField]? {
             for i = 0; i < 4; i = i + 1 {
               buf.push(data[pos + i])
             }
-            fields.push({ field_number: fn_, wire_type: wt, data: Bytes::from_array(buf) })
+            fields.push({
+              field_number: fn_,
+              wire_type: wt,
+              data: Bytes::from_array(buf),
+            })
             pos = pos + 4
           }
           _ => return None

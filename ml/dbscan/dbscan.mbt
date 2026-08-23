@@ -257,8 +257,7 @@ fn dbscan_quickselect(
   let mut i = lo
   for j = lo; j < hi; j = j + 1 {
     let idx = indices[j]
-    let val = if idx < points.length() &&
-      axis < points[idx].coords.length() {
+    let val = if idx < points.length() && axis < points[idx].coords.length() {
       points[idx].coords[axis]
     } else {
       0.0
@@ -303,17 +302,12 @@ fn dbscan_kdtree_range_query(
       // Determine which subtree to search first.
       let center_coords = points[center_idx].coords
       let pt_coords = points[pt_idx].coords
-      let diff = if center_coords.length() > axis &&
-        pt_coords.length() > axis {
+      let diff = if center_coords.length() > axis && pt_coords.length() > axis {
         center_coords[axis] - pt_coords[axis]
       } else {
         0.0
       }
-      let (near, far) = if diff < 0.0 {
-        (left, right)
-      } else {
-        (right, left)
-      }
+      let (near, far) = if diff < 0.0 { (left, right) } else { (right, left) }
       // Always search the near subtree.
       dbscan_kdtree_range_query(near, points, center_idx, eps_sq, result)
       // Only search the far subtree if the hypersphere crosses the splitting plane.

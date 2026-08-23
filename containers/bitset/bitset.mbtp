@@ -1,0 +1,5 @@
+///|
+/// BitSet capacity is non-negative.
+predicate bitset_capacity_ok(capacity : Int) {
+  0 <= capacity
+}

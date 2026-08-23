@@ -39,6 +39,7 @@
 // BigInt helpers (local — avoids modifying the bigint package)
 // ---------------------------------------------------------------------------
 
+///|
 /// Convert a byte array (big-endian) to a BigInt.
 fn bytes_to_bigint(data : Bytes) -> @bigint.BigInt {
   let mut result = @bigint.zero()
@@ -50,6 +51,7 @@ fn bytes_to_bigint(data : Bytes) -> @bigint.BigInt {
   result
 }
 
+///|
 /// Convert a BigInt known to be in [0, 255] to an Int.
 /// Uses binary search over pre-computed BigInt values for efficiency.
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
@@ -66,6 +68,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   lo - 1
 }
 
+///|
 /// Convert a BigInt to a fixed-length byte array (big-endian).
 /// Pads with leading zeros to reach `byte_len`. Returns None if the value
 /// does not fit in `byte_len` bytes.
@@ -95,6 +98,7 @@ fn bigint_to_bytes(n : @bigint.BigInt, byte_len : Int) -> Bytes? {
   Some(Bytes::from_array(result))
 }
 
+///|
 /// Extended GCD: returns (gcd, x, y) where a*x + b*y = gcd.
 fn extended_gcd(
   a : @bigint.BigInt,
@@ -105,10 +109,13 @@ fn extended_gcd(
   if @bigint.equal(b, zero) {
     return (a, one, zero)
   }
-  let (g, x1, y1) = extended_gcd(b, match @bigint.divmod(a, b) {
-    None => zero
-    Some((_, r)) => r
-  })
+  let (g, x1, y1) = extended_gcd(
+    b,
+    match @bigint.divmod(a, b) {
+      None => zero
+      Some((_, r)) => r
+    },
+  )
   // x = y1, y = x1 - (a / b) * y1
   let q = match @bigint.divmod(a, b) {
     None => zero
@@ -119,6 +126,7 @@ fn extended_gcd(
   (g, x, y)
 }
 
+///|
 /// Compute the modular inverse of `a` mod `m`: returns `a^(-1) mod m`.
 /// Returns None if gcd(a, m) != 1 (inverse does not exist).
 fn mod_inverse(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt? {
@@ -144,6 +152,7 @@ fn mod_inverse(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt? {
 // BigInt-based Miller-Rabin primality test
 // ---------------------------------------------------------------------------
 
+///|
 /// Miller-Rabin primality test for BigInt.
 ///
 /// Returns `true` if `n` is probably prime, `false` if definitely composite.
@@ -249,9 +258,13 @@ fn miller_rabin_bigint(
 // Random BigInt generation
 // ---------------------------------------------------------------------------
 
+///|
 /// Generate a random BigInt of exactly `bits` bits (MSB set).
 /// Uses the ChaCha20 CSPRNG for cryptographic randomness.
-fn random_bigint_bits(bits : Int, rng : @chacha20.ChaCha20Rng) -> @bigint.BigInt? {
+fn random_bigint_bits(
+  bits : Int,
+  rng : @chacha20.ChaCha20Rng,
+) -> @bigint.BigInt? {
   if bits < 2 {
     return None
   }
@@ -274,6 +287,7 @@ fn random_bigint_bits(bits : Int, rng : @chacha20.ChaCha20Rng) -> @bigint.BigInt
   Some(bytes_to_bigint(Bytes::from_array(arr)))
 }
 
+///|
 /// Generate a random prime of exactly `bits` bits that is coprime to `e`.
 ///
 /// Tries up to `max_attempts` random candidates. Each candidate must pass
@@ -442,7 +456,17 @@ pub fn generate_keypair(
     Some(v) => v
   }
   let pubkey : RSAPublicKey = { n, e, bit_len: bits }
-  let privkey : RSAPrivateKey = { n, _e: e, d, p, q, dp, dq, qinv, bit_len: bits }
+  let privkey : RSAPrivateKey = {
+    n,
+    _e: e,
+    d,
+    p,
+    q,
+    dp,
+    dq,
+    qinv,
+    bit_len: bits,
+  }
   Some((pubkey, privkey))
 }
 
@@ -450,6 +474,7 @@ pub fn generate_keypair(
 // Raw RSA operations
 // ---------------------------------------------------------------------------
 
+///|
 /// Raw RSA encryption: c = m^e mod n. No padding.
 fn rsa_encrypt_raw(pubkey : RSAPublicKey, m : @bigint.BigInt) -> @bigint.BigInt {
   match @bigint.mod_pow(m, pubkey.e, pubkey.n) {
@@ -458,6 +483,7 @@ fn rsa_encrypt_raw(pubkey : RSAPublicKey, m : @bigint.BigInt) -> @bigint.BigInt 
   }
 }
 
+///|
 /// Raw RSA decryption using CRT (Chinese Remainder Theorem).
 ///
 /// Instead of computing c^d mod n (which operates on full-size n),
@@ -470,7 +496,10 @@ fn rsa_encrypt_raw(pubkey : RSAPublicKey, m : @bigint.BigInt) -> @bigint.BigInt 
 /// exponentiation is O(k³) in the bit-length of the modulus.
 ///
 /// Falls back to the non-CRT path (c^d mod n) if any CRT step fails.
-fn rsa_decrypt_raw(privkey : RSAPrivateKey, c : @bigint.BigInt) -> @bigint.BigInt {
+fn rsa_decrypt_raw(
+  privkey : RSAPrivateKey,
+  c : @bigint.BigInt,
+) -> @bigint.BigInt {
   // Non-CRT fallback: c^d mod n
   let fallback = fn() -> @bigint.BigInt {
     match @bigint.mod_pow(c, privkey.d, privkey.n) {
@@ -646,11 +675,12 @@ pub fn decrypt(privkey : RSAPrivateKey, ciphertext : Bytes) -> Bytes? {
 // PKCS#1 v1.5 signing (RFC 8017 §8.2)
 // ---------------------------------------------------------------------------
 
+///|
 /// SHA-256 DigestInfo prefix (RFC 8017 §9.2):
 /// SEQUENCE { SEQUENCE { OID 2.16.840.1.101.3.4.2.1, NULL }, OCTET STRING(32) }
 let sha256_digest_info_prefix : Array[Byte] = [
-  0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04,
-  0x02, 0x01, 0x05, 0x00, 0x04, 0x20,
+  0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02,
+  0x01, 0x05, 0x00, 0x04, 0x20,
 ]
 
 ///|
@@ -698,7 +728,11 @@ pub fn sign(privkey : RSAPrivateKey, message : Bytes) -> Bytes? {
 ///
 /// **Constant-time comparison** is used to verify the padding, reducing
 /// timing side-channel risk.
-pub fn verify(pubkey : RSAPublicKey, message : Bytes, signature : Bytes) -> Bool {
+pub fn verify(
+  pubkey : RSAPublicKey,
+  message : Bytes,
+  signature : Bytes,
+) -> Bool {
   let key_bytes = (pubkey.bit_len + 7) / 8
   if signature.length() != key_bytes {
     return false
@@ -1186,7 +1220,8 @@ test "rsa: OAEP encrypt/decrypt round-trip" {
   let label = @utils.string_to_bytes("label")
   let enc_key = Bytes::make(32, b'\x0D')
   let enc_nonce = Bytes::make(12, b'\x0E')
-  let ciphertext = match encrypt_oaep(pubkey, plaintext, label, enc_key, enc_nonce) {
+  let ciphertext = match
+    encrypt_oaep(pubkey, plaintext, label, enc_key, enc_nonce) {
     None => fail("OAEP encryption failed")
     Some(c) => c
   }
@@ -1210,7 +1245,14 @@ test "rsa: OAEP with empty label" {
   }
   let plaintext = @utils.string_to_bytes("Hello OAEP")
   let empty_label = Bytes::make(0, b'\x00')
-  let ciphertext = match encrypt_oaep(pubkey, plaintext, empty_label, Bytes::make(32, b'\x11'), Bytes::make(12, b'\x12')) {
+  let ciphertext = match
+    encrypt_oaep(
+      pubkey,
+      plaintext,
+      empty_label,
+      Bytes::make(32, b'\x11'),
+      Bytes::make(12, b'\x12'),
+    ) {
     None => fail("OAEP encryption failed")
     Some(c) => c
   }
@@ -1235,7 +1277,14 @@ test "rsa: OAEP wrong label fails" {
   let plaintext = @utils.string_to_bytes("Secret")
   let label1 = @utils.string_to_bytes("correct")
   let label2 = @utils.string_to_bytes("wrong")
-  let ciphertext = match encrypt_oaep(pubkey, plaintext, label1, Bytes::make(32, b'\x19'), Bytes::make(12, b'\x1A')) {
+  let ciphertext = match
+    encrypt_oaep(
+      pubkey,
+      plaintext,
+      label1,
+      Bytes::make(32, b'\x19'),
+      Bytes::make(12, b'\x1A'),
+    ) {
     None => fail("OAEP encryption failed")
     Some(c) => c
   }
@@ -1253,7 +1302,14 @@ test "rsa: PSS sign/verify round-trip" {
   }
   let message = @utils.string_to_bytes("PSS test message")
   let salt_len = 32
-  let sig = match sign_pss(privkey, message, Bytes::make(32, b'\x1D'), Bytes::make(12, b'\x1E'), salt_len) {
+  let sig = match
+    sign_pss(
+      privkey,
+      message,
+      Bytes::make(32, b'\x1D'),
+      Bytes::make(12, b'\x1E'),
+      salt_len,
+    ) {
     None => fail("PSS signing failed")
     Some(s) => s
   }
@@ -1272,7 +1328,14 @@ test "rsa: PSS with zero salt length" {
     Some(pair) => pair
   }
   let message = @utils.string_to_bytes("PSS zero salt")
-  let sig = match sign_pss(privkey, message, Bytes::make(32, b'\x21'), Bytes::make(12, b'\x22'), 0) {
+  let sig = match
+    sign_pss(
+      privkey,
+      message,
+      Bytes::make(32, b'\x21'),
+      Bytes::make(12, b'\x22'),
+      0,
+    ) {
     None => fail("PSS signing failed")
     Some(s) => s
   }
@@ -1281,18 +1344,19 @@ test "rsa: PSS with zero salt length" {
 
 ///|
 test "rsa: miller_rabin_bigint on small primes" {
-  let rng = match @chacha20.create_rng(
-    Bytes::from_array([
-      b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-      b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-      b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-      b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
-    ]),
-    Bytes::from_array([
-      b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-      b'\x08', b'\x09', b'\x0a', b'\x0b',
-    ]),
-  ) {
+  let rng = match
+    @chacha20.create_rng(
+      Bytes::from_array([
+        b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+        b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+        b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+        b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+      ]),
+      Bytes::from_array([
+        b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+        b'\x09', b'\x0a', b'\x0b',
+      ]),
+    ) {
     None => fail("Failed to create RNG for test")
     Some(r) => r
   }
@@ -1305,18 +1369,19 @@ test "rsa: miller_rabin_bigint on small primes" {
 
 ///|
 test "rsa: miller_rabin_bigint on composites" {
-  let rng = match @chacha20.create_rng(
-    Bytes::from_array([
-      b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-      b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-      b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-      b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
-    ]),
-    Bytes::from_array([
-      b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-      b'\x08', b'\x09', b'\x0a', b'\x0b',
-    ]),
-  ) {
+  let rng = match
+    @chacha20.create_rng(
+      Bytes::from_array([
+        b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+        b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+        b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+        b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+      ]),
+      Bytes::from_array([
+        b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+        b'\x09', b'\x0a', b'\x0b',
+      ]),
+    ) {
     None => fail("Failed to create RNG for test")
     Some(r) => r
   }
@@ -1329,18 +1394,19 @@ test "rsa: miller_rabin_bigint on composites" {
 
 ///|
 test "rsa: miller_rabin_bigint on larger primes" {
-  let rng = match @chacha20.create_rng(
-    Bytes::from_array([
-      b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-      b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-      b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-      b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
-    ]),
-    Bytes::from_array([
-      b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-      b'\x08', b'\x09', b'\x0a', b'\x0b',
-    ]),
-  ) {
+  let rng = match
+    @chacha20.create_rng(
+      Bytes::from_array([
+        b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+        b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+        b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+        b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+      ]),
+      Bytes::from_array([
+        b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+        b'\x09', b'\x0a', b'\x0b',
+      ]),
+    ) {
     None => fail("Failed to create RNG for test")
     Some(r) => r
   }
@@ -1403,7 +1469,13 @@ test "rsa: keypair generation and encrypt/decrypt" {
   assert_eq(key_size(pubkey), 512)
   // Encrypt and decrypt a short message
   let plaintext = @utils.string_to_bytes("Hello, RSA!")
-  let ciphertext = match encrypt(pubkey, plaintext, Bytes::make(32, b'\x0A'), Bytes::make(12, b'\x0B')) {
+  let ciphertext = match
+    encrypt(
+      pubkey,
+      plaintext,
+      Bytes::make(32, b'\x0A'),
+      Bytes::make(12, b'\x0B'),
+    ) {
     None => fail("encryption failed")
     Some(c) => c
   }
@@ -1462,7 +1534,15 @@ test "rsa: encrypt too long returns None" {
   }
   // 512-bit key = 64 bytes, max plaintext = 64 - 11 = 53 bytes
   let too_long = Bytes::make(100, b'\x41')
-  assert_true(encrypt(pubkey, too_long, Bytes::make(32, b'\x0C'), Bytes::make(12, b'\x0D')) is None)
+  assert_true(
+    encrypt(
+      pubkey,
+      too_long,
+      Bytes::make(32, b'\x0C'),
+      Bytes::make(12, b'\x0D'),
+    )
+    is None,
+  )
 }
 
 ///|

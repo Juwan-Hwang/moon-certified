@@ -375,3 +375,37 @@ test "binomial: large values" {
   // C(34, 17) = 2333606220 (overflows Int32: > 2147483647)
   assert_true(binomial(34, 17) is None)
 }
+
+///|
+/// Verified factorial: result >= 1 for n >= 0.
+/// Uses for...nobreak loop with Z3-verifiable invariant.
+pub fn factorial_int(n : Int) -> Int where {
+  proof_require: 0 <= n,
+  proof_ensure: result => factorial_ok(result),
+} {
+  let mut result = 1
+  for i = 0; i < n; {
+    result = result * (i + 1)
+    continue i + 1
+  } nobreak {
+    result
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= n,
+    proof_invariant: 1 <= result,
+    proof_reasoning: (
+      #| result starts at 1, each step multiplies by (i+1) >= 1,
+      #| so result >= 1 is maintained. At exit i == n.
+    ),
+  }
+}
+
+///|
+test "factorial_int: basic" {
+  assert_eq(factorial_int(0), 1)
+  assert_eq(factorial_int(1), 1)
+  assert_eq(factorial_int(5), 120)
+  assert_eq(factorial_int(10), 3628800)
+  assert_true(factorial_int(0) >= 1)
+  assert_true(factorial_int(10) >= 1)
+}

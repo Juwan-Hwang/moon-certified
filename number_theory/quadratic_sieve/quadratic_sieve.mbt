@@ -94,10 +94,10 @@ fn powmod(base : Int, exp : Int, m : Int) -> Int {
   let mut e = exp
   while e > 0 {
     if (e & 1) == 1 {
-      result = (result * b) % m64
+      result = result * b % m64
     }
     e = e >> 1
-    b = (b * b) % m64
+    b = b * b % m64
   }
   result.to_int()
 }
@@ -109,7 +109,7 @@ fn ext_gcd(a : Int, b : Int) -> (Int, Int, Int) {
     return (a, 1, 0)
   }
   let (g, x1, y1) = ext_gcd(b, a % b)
-  (g, y1, x1 - (a / b) * y1)
+  (g, y1, x1 - a / b * y1)
 }
 
 ///|
@@ -227,7 +227,7 @@ fn tonelli_shanks(n : Int, p : Int) -> Int {
     let r = powmod(n % p, (p + 1) / 4, p)
     let r64 = r.to_int64()
     let p64 = p.to_int64()
-    if (r64 * r64) % p64 == (n % p).to_int64() {
+    if r64 * r64 % p64 == (n % p).to_int64() {
       return r
     }
     return 0
@@ -246,7 +246,7 @@ fn tonelli_shanks(n : Int, p : Int) -> Int {
     let mut i = 0
     let mut temp = t
     while temp != 1 {
-      temp = (temp * temp) % p
+      temp = temp * temp % p
       i = i + 1
       if i == m {
         return 0 // Shouldn't happen if n is a QR
@@ -254,15 +254,15 @@ fn tonelli_shanks(n : Int, p : Int) -> Int {
     }
     // Update
     let b = powmod(c, 1 << (m - i - 1), p)
-    r = (r * b) % p
-    t = (t * b * b) % p
-    c = (b * b) % p
+    r = r * b % p
+    t = t * b * b % p
+    c = b * b % p
     m = i
   }
   let r_final = r
   let r64 = r_final.to_int64()
   let p64 = p.to_int64()
-  if (r64 * r64) % p64 == (n % p).to_int64() {
+  if r64 * r64 % p64 == (n % p).to_int64() {
     r_final
   } else {
     0
@@ -330,7 +330,7 @@ fn is_probable_prime(n : Int) -> Bool {
     let n64 = n.to_int64()
     let mut x64 = x.to_int64()
     for j = 0; j < r - 1; j = j + 1 {
-      x64 = (x64 * x64) % n64
+      x64 = x64 * x64 % n64
       if x64 == n64 - 1L {
         composite = false
         break
@@ -435,10 +435,7 @@ priv struct Relation {
 ///|
 /// Check if a value is B-smooth over the factor base.
 /// Returns the exponent parity vector if smooth, None otherwise.
-fn check_smooth(
-  val_in : Int64,
-  fb : Array[FBPrime],
-) -> Array[Bool]? {
+fn check_smooth(val_in : Int64, fb : Array[FBPrime]) -> Array[Bool]? {
   let mut val = if val_in < 0L { -val_in } else { val_in }
   let parity : Array[Bool] = Array::make(fb.length(), false)
   for i = 0; i < fb.length(); i = i + 1 {
@@ -492,11 +489,7 @@ fn sieve_polynomial(
         }
       } else {
         let target = ((n - b) % 2 + 2) % 2
-        let start = if m % 2 == target {
-          0
-        } else {
-          1
-        }
+        let start = if m % 2 == target { 0 } else { 1 }
         let mut x = start
         while x < sieve_size {
           sieve_arr[x] = sieve_arr[x] + log_p
@@ -512,8 +505,8 @@ fn sieve_polynomial(
     if a_inv == 0 {
       continue // p divides a, skip
     }
-    let r1 = (((fb[i].root1 - b % p + p) % p) * a_inv) % p
-    let r2 = (((fb[i].root2 - b % p + p) % p) * a_inv) % p
+    let r1 = (fb[i].root1 - b % p + p) % p * a_inv % p
+    let r2 = (fb[i].root2 - b % p + p) % p * a_inv % p
     // Sieve: add log_p at x ≡ r1 (mod p) and x ≡ r2 (mod p)
     // x ranges from -m to m-1, stored at index x + m
     // Find first x >= -m with x ≡ r1 (mod p)
@@ -556,9 +549,7 @@ fn sieve_polynomial(
     let ax_b = a.to_int64() * x.to_int64() + b.to_int64()
     let q_val = ax_b * ax_b - n.to_int64()
     match check_smooth(q_val, fb) {
-      Some(parity) => {
-        relations.push({ ax_b, parity })
-      }
+      Some(parity) => relations.push({ ax_b, parity })
       None => continue
     }
   }
@@ -695,10 +686,7 @@ pub fn factor(n : Int) -> Int? {
   // Trial division for small factors
   let trial_limit = isqrt(isqrt(n)) + 1
   match trial_division(n, trial_limit * 100) {
-    Some(d) =>
-      if d < n {
-        return Some(d)
-      }
+    Some(d) => if d < n { return Some(d) }
     None => ()
   }
   // Check if n is prime
@@ -718,13 +706,7 @@ pub fn factor(n : Int) -> Int? {
     return fermat_factor(n)
   }
   // Sieve parameters
-  let m = if n < 100000 {
-    500
-  } else if n < 10000000 {
-    2000
-  } else {
-    5000
-  }
+  let m = if n < 100000 { 500 } else if n < 10000000 { 2000 } else { 5000 }
   let log_n = ln_approx(n.to_double())
   let threshold = log_n * 0.5
   // Collect relations
@@ -735,14 +717,12 @@ pub fn factor(n : Int) -> Int? {
   let mut found = false
   let mut result = 0
   // Use q values from the factor base (skip very small primes)
-  let start_q_idx = if fb.length() > 10 {
-    fb.length() / 3
-  } else {
-    1
-  }
+  let start_q_idx = if fb.length() > 10 { fb.length() / 3 } else { 1 }
   let max_polynomials = 200
   let mut poly_count = 0
-  for qi = start_q_idx; qi < fb.length() && poly_count < max_polynomials; qi = qi + 1 {
+  for qi = start_q_idx
+      qi < fb.length() && poly_count < max_polynomials
+      qi = qi + 1 {
     if found {
       break
     }
@@ -763,9 +743,9 @@ pub fn factor(n : Int) -> Int? {
     // → root² + 2*root*k*q ≡ n (mod q²)
     // → k ≡ (n - root²) / (2*root*q) (mod q)
     let n_mod_q2 = n % a
-    let root_sq = (root_mod_q * root_mod_q) % a
+    let root_sq = root_mod_q * root_mod_q % a
     let diff = (n_mod_q2 - root_sq + a) % a
-    let denom = (2 * root_mod_q * q) % a
+    let denom = 2 * root_mod_q * q % a
     let denom_q = denom / q
     if denom_q == 0 {
       continue
@@ -774,7 +754,7 @@ pub fn factor(n : Int) -> Int? {
     if k_inv == 0 {
       continue
     }
-    let k = ((diff / q) * k_inv) % q
+    let k = diff / q * k_inv % q
     let b = root_mod_q + k * q
     // Two polynomials: (a, b) and (a, a-b)
     let bs = [b, a - b]
@@ -791,12 +771,11 @@ pub fn factor(n : Int) -> Int? {
       // Try to find a factor once we have enough relations
       if all_relations.length() >= needed {
         match try_find_factor(n, fb, all_relations) {
-          Some(f) => {
+          Some(f) =>
             if f > 1 && f < n {
               found = true
               result = f
             }
-          }
           None => continue
         }
       }
@@ -807,10 +786,7 @@ pub fn factor(n : Int) -> Int? {
   }
   // Last attempt with all collected relations
   match try_find_factor(n, fb, all_relations) {
-    Some(f) =>
-      if f > 1 && f < n {
-        return Some(f)
-      }
+    Some(f) => if f > 1 && f < n { return Some(f) }
     None => ()
   }
   // Fall back to Fermat factorization
@@ -868,7 +844,7 @@ fn try_find_factor(
       let total_exp : Array[Int] = Array::make(n_cols, 0)
       for i = 0; i < n_rels; i = i + 1 {
         if dependent[i] {
-          x_prod = (x_prod * relations[i].ax_b) % n.to_int64()
+          x_prod = x_prod * relations[i].ax_b % n.to_int64()
           // Re-derive full exponents by trial division of |Q(x)|
           let q_val = relations[i].ax_b * relations[i].ax_b - n.to_int64()
           let mut val = if q_val < 0L { -q_val } else { q_val }
@@ -888,15 +864,11 @@ fn try_find_factor(
         let half = total_exp[j] / 2
         let p64 = fb[j].p.to_int64()
         for k = 0; k < half; k = k + 1 {
-          y_prod = (y_prod * p64) % n64
+          y_prod = y_prod * p64 % n64
         }
       }
       // Compute gcd(|x - y|, n) and gcd(|x + y|, n)
-      let diff = if x_prod > y_prod {
-        x_prod - y_prod
-      } else {
-        y_prod - x_prod
-      }
+      let diff = if x_prod > y_prod { x_prod - y_prod } else { y_prod - x_prod }
       let g1 = gcd64(diff % n64, n64)
       let sum = (x_prod + y_prod) % n64
       let g2 = gcd64(sum, n64)

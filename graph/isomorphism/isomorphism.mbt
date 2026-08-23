@@ -165,17 +165,7 @@ pub fn is_isomorphic(
   let mapping = Array::make(n1, -1)
   let used = Array::make(n1, false)
   backtrack_isomorphism(
-    0,
-    n1,
-    order,
-    mat1,
-    mat2,
-    mapping,
-    used,
-    colors1,
-    colors2,
-    deg1,
-    deg2,
+    0, n1, order, mat1, mat2, mapping, used, colors1, colors2, deg1, deg2,
   )
 }
 
@@ -208,15 +198,7 @@ fn wl_coloring(
       for j = 0; j < adj[v].length(); j = j + 1 {
         sig.push(colors[adj[v][j]])
       }
-      sig.sort_by(fn(a, b) {
-        if a < b {
-          -1
-        } else if a > b {
-          1
-        } else {
-          0
-        }
-      })
+      sig.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
       sigs.push(sig)
     }
     // Canonicalize: assign new color IDs based on sorted unique signatures
@@ -260,11 +242,7 @@ fn canonicalize_sigs(n : Int, sigs : Array[Array[Int]]) -> Array[Int] {
 fn compare_int_arrays(a : Array[Int], b : Array[Int]) -> Int {
   let la = a.length()
   let lb = b.length()
-  let min_len = if la < lb {
-    la
-  } else {
-    lb
-  }
+  let min_len = if la < lb { la } else { lb }
   for i = 0; i < min_len; i = i + 1 {
     if a[i] < b[i] {
       return -1
@@ -320,18 +298,18 @@ fn backtrack_isomorphism(
         mapping[u] = v
         used[v] = true
         if backtrack_isomorphism(
-          depth + 1,
-          n,
-          order,
-          mat1,
-          mat2,
-          mapping,
-          used,
-          colors1,
-          colors2,
-          deg1,
-          deg2,
-        ) {
+            depth + 1,
+            n,
+            order,
+            mat1,
+            mat2,
+            mapping,
+            used,
+            colors1,
+            colors2,
+            deg1,
+            deg2,
+          ) {
           return true
         }
         mapping[u] = -1
@@ -421,22 +399,8 @@ test "isomorphism: disconnected graphs" {
 test "isomorphism: K3,3 vs triangular prism" {
   // Both are 3-regular on 6 vertices, 9 edges.
   // K3,3 is bipartite (no triangles); prism has two triangles.
-  let k33 = [
-    [3, 4, 5],
-    [3, 4, 5],
-    [3, 4, 5],
-    [0, 1, 2],
-    [0, 1, 2],
-    [0, 1, 2],
-  ]
-  let prism = [
-    [1, 2, 3],
-    [0, 2, 4],
-    [0, 1, 5],
-    [0, 4, 5],
-    [1, 3, 5],
-    [2, 3, 4],
-  ]
+  let k33 = [[3, 4, 5], [3, 4, 5], [3, 4, 5], [0, 1, 2], [0, 1, 2], [0, 1, 2]]
+  let prism = [[1, 2, 3], [0, 2, 4], [0, 1, 5], [0, 4, 5], [1, 3, 5], [2, 3, 4]]
   assert_false(is_isomorphic(6, k33, 6, prism))
 }
 

@@ -494,12 +494,7 @@ test "sa: converges (reaches min_temp)" {
     cooling: Geometric(0.9),
     seed: 1UL,
   }
-  let result = optimize(
-    config,
-    0.0,
-    fn(x) { x * x },
-    fn(x, _) { x + 0.1 },
-  )
+  let result = optimize(config, 0.0, fn(x) { x * x }, fn(x, _) { x + 0.1 })
   assert_true(result.converged)
   assert_true(result.iterations < 100000)
 }
@@ -514,12 +509,7 @@ test "sa: hits max_iter limit" {
     cooling: Geometric(0.999),
     seed: 1UL,
   }
-  let result = optimize(
-    config,
-    0.0,
-    fn(x) { x * x },
-    fn(x, _) { x + 0.1 },
-  )
+  let result = optimize(config, 0.0, fn(x) { x * x }, fn(x, _) { x + 0.1 })
   assert_false(result.converged)
   assert_eq(result.iterations, 100)
 }
@@ -534,12 +524,7 @@ test "sa: linear cooling schedule" {
     cooling: Linear(1.0),
     seed: 1UL,
   }
-  let result = optimize(
-    config,
-    10.0,
-    fn(x) { x * x },
-    fn(x, _) { x - 0.1 },
-  )
+  let result = optimize(config, 10.0, fn(x) { x * x }, fn(x, _) { x - 0.1 })
   // Linear cooling: 100 steps (100/1), 10 iter each = 1000 total
   assert_true(result.converged)
 }
@@ -554,16 +539,11 @@ test "sa: logarithmic cooling schedule" {
     cooling: Logarithmic(50.0),
     seed: 1UL,
   }
-  let result = optimize(
-    config,
-    5.0,
-    fn(x) { x * x },
-    fn(x, temp) {
-      let rng = xs64_new(1UL + temp.reinterpret_as_uint64())
-      let r = xs64_next_double(rng) - 0.5
-      x + r
-    },
-  )
+  let result = optimize(config, 5.0, fn(x) { x * x }, fn(x, temp) {
+    let rng = xs64_new(1UL + temp.reinterpret_as_uint64())
+    let r = xs64_next_double(rng) - 0.5
+    x + r
+  })
   assert_true(result.best_cost < 30.0)
 }
 

@@ -189,12 +189,7 @@ priv struct OLSResult {
 /// - `k`: Number of regressors (including constant if present).
 ///
 /// Returns coefficients, t-statistics, and R².
-fn ols(
-  x : Array[Double],
-  y : Array[Double],
-  n : Int,
-  k : Int,
-) -> OLSResult {
+fn ols(x : Array[Double], y : Array[Double], n : Int, k : Int) -> OLSResult {
   // X'X  (k × k)
   let xtx : Array[Double] = Array::make(k * k, 0.0)
   for i = 0; i < k; i = i + 1 {
@@ -416,12 +411,7 @@ pub struct ARIMAModel {
 /// - `q`: MA order (0 = pure ARIMA(p,d,0)).
 ///
 /// Returns the fitted `ARIMAModel`.
-pub fn fit_arima(
-  data : Array[Double],
-  p : Int,
-  d : Int,
-  q : Int,
-) -> ARIMAModel {
+pub fn fit_arima(data : Array[Double], p : Int, d : Int, q : Int) -> ARIMAModel {
   let diff_data = difference(data, d)
   let n = diff_data.length()
   // Degenerate cases: no data or pure AR (q == 0).
@@ -432,16 +422,8 @@ pub fn fit_arima(
     { ar_model, theta: [], d, q, residuals: resid }
   } else {
     // --- Step 1: Long AR to get estimated residuals ---
-    let long_ar_order = if p + q + 10 < n / 4 {
-      p + q + 10
-    } else {
-      p + q + 3
-    }
-    let long_ar_order = if long_ar_order >= n {
-      n - 2
-    } else {
-      long_ar_order
-    }
+    let long_ar_order = if p + q + 10 < n / 4 { p + q + 10 } else { p + q + 3 }
+    let long_ar_order = if long_ar_order >= n { n - 2 } else { long_ar_order }
     let long_ar_order = if long_ar_order < 1 { 1 } else { long_ar_order }
     let long_model = fit_ar(diff_data, long_ar_order)
     let eps_hat = compute_ar_residuals(long_model, diff_data)
@@ -733,8 +715,8 @@ fn garch_log_likelihood(
     if sigma2 <= 0.0 {
       return -1.0e300
     }
-    ll = ll - 0.5 *
-      (ln2pi + @math.ln(sigma2) + residuals[t] * residuals[t] / sigma2)
+    ll = ll -
+      0.5 * (ln2pi + @math.ln(sigma2) + residuals[t] * residuals[t] / sigma2)
   }
   ll
 }
@@ -953,7 +935,11 @@ pub fn adf_test(data : Array[Double], max_lags : Int) -> ADFResult {
     // Schwert criterion: floor(12 * (n/100)^0.25)
     let sc = 12.0 * @math.pow(n.to_double() / 100.0, 0.25)
     let p_sc = @math.floor(sc).to_int()
-    if p_sc > n - 5 { n - 5 } else { p_sc }
+    if p_sc > n - 5 {
+      n - 5
+    } else {
+      p_sc
+    }
   } else if max_lags > n - 5 {
     n - 5
   } else {
@@ -1330,9 +1316,7 @@ test "garch: fitted parameters in valid range" {
     let t = i.to_double()
     let hash = @math.sin(t * 3.14159) * 9999.0
     let noise = (hash - @math.floor(hash) - 0.5) * 2.0
-    sigma2 = omega_true +
-      alpha_true * prev_eps * prev_eps +
-      beta_true * sigma2
+    sigma2 = omega_true + alpha_true * prev_eps * prev_eps + beta_true * sigma2
     let eps = noise * sigma2.sqrt()
     returns[i] = eps
     prev_eps = eps

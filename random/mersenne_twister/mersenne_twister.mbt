@@ -69,7 +69,7 @@ pub fn next_int(mt : MT19937, n : Int) -> Int {
   // Rejection sampling: threshold = largest multiple of n ≤ 2³¹.
   let range = 2147483648L // 2³¹
   let n64 = n.to_int64()
-  let threshold = range - (range % n64)
+  let threshold = range - range % n64
   let mut ok = false
   let mut r = 0
   while !ok {

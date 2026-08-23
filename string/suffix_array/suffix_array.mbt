@@ -248,7 +248,11 @@ pub fn search(sa : FixedArray[Int], s : String, pattern : String) -> Int? {
 ///|
 /// Compare two suffixes of `text_bytes` starting at `a` and `b` lexicographically.
 /// Returns < 0, 0, or > 0.
-fn compare_suffixes_bytes(text_bytes : FixedArray[Int], a : Int, b : Int) -> Int {
+fn compare_suffixes_bytes(
+  text_bytes : FixedArray[Int],
+  a : Int,
+  b : Int,
+) -> Int {
   let n = text_bytes.length()
   let mut i = 0
   while a + i < n && b + i < n {

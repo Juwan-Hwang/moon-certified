@@ -534,8 +534,12 @@ test "polygon_boolean: is_convex" {
   assert_true(is_convex(square))
   // L-shaped (non-convex) polygon.
   let l_shape = [
-    ipoint(0, 0), ipoint(2, 0), ipoint(2, 1), ipoint(4, 1),
-    ipoint(4, 4), ipoint(0, 4),
+    ipoint(0, 0),
+    ipoint(2, 0),
+    ipoint(2, 1),
+    ipoint(4, 1),
+    ipoint(4, 4),
+    ipoint(0, 4),
   ]
   assert_false(is_convex(l_shape))
   // Triangle is convex.

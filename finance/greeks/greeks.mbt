@@ -1,3 +1,4 @@
+///|
 /// Option Greeks — Sensitivity Measures for Options.
 ///
 /// Greeks measure the sensitivity of option prices to various parameters.
@@ -60,13 +61,21 @@ fn erf(x : Double) -> Double {
   let a5 = 1.061405429
   let p = 0.3275911
   let t = 1.0 / (1.0 + p * ax)
-  let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
+  let y = 1.0 -
+    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
   sign * y
 }
 
 ///|
 /// Compute d₁.
-fn d1(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+fn d1(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   (@math.ln(s / k) + (r - q + 0.5 * sigma * sigma) * t) / (sigma * sqrt(t))
 }
 
@@ -84,7 +93,14 @@ fn d2(d1_val : Double, sigma : Double, t : Double) -> Double {
 /// Delta of a European call option.
 ///
 /// `Δ_call = e^(-qT) · N(d₁)`
-pub fn call_delta(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn call_delta(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 {
     return if s > k { 1.0 } else { 0.0 }
   }
@@ -99,7 +115,14 @@ pub fn call_delta(s : Double, k : Double, r : Double, q : Double, sigma : Double
 /// Delta of a European put option.
 ///
 /// `Δ_put = e^(-qT) · [N(d₁) - 1] = -e^(-qT) · N(-d₁)`
-pub fn put_delta(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn put_delta(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 {
     return if s < k { -1.0 } else { 0.0 }
   }
@@ -114,7 +137,14 @@ pub fn put_delta(s : Double, k : Double, r : Double, q : Double, sigma : Double,
 /// Gamma of a European option (same for call and put).
 ///
 /// `Γ = e^(-qT) · φ(d₁) / (S·σ·√T)`
-pub fn gamma(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn gamma(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 || s <= 0.0 {
     return 0.0
   }
@@ -126,13 +156,24 @@ pub fn gamma(s : Double, k : Double, r : Double, q : Double, sigma : Double, t :
 /// Theta of a European call option (per year).
 ///
 /// `Θ_call = -S·e^(-qT)·φ(d₁)·σ/(2√T) - r·K·e^(-rT)·N(d₂) + q·S·e^(-qT)·N(d₁)`
-pub fn call_theta(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn call_theta(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let d2_val = d2(d1_val, sigma, t)
-  let term1 = -s * @math.exp(-q * t) * normal_pdf(d1_val) * sigma / (2.0 * sqrt(t))
+  let term1 = -s *
+    @math.exp(-q * t) *
+    normal_pdf(d1_val) *
+    sigma /
+    (2.0 * sqrt(t))
   let term2 = -r * k * @math.exp(-r * t) * normal_cdf(d2_val)
   let term3 = q * s * @math.exp(-q * t) * normal_cdf(d1_val)
   term1 + term2 + term3
@@ -142,13 +183,24 @@ pub fn call_theta(s : Double, k : Double, r : Double, q : Double, sigma : Double
 /// Theta of a European put option (per year).
 ///
 /// `Θ_put = -S·e^(-qT)·φ(d₁)·σ/(2√T) + r·K·e^(-rT)·N(-d₂) - q·S·e^(-qT)·N(-d₁)`
-pub fn put_theta(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn put_theta(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let d2_val = d2(d1_val, sigma, t)
-  let term1 = -s * @math.exp(-q * t) * normal_pdf(d1_val) * sigma / (2.0 * sqrt(t))
+  let term1 = -s *
+    @math.exp(-q * t) *
+    normal_pdf(d1_val) *
+    sigma /
+    (2.0 * sqrt(t))
   let term2 = r * k * @math.exp(-r * t) * normal_cdf(-d2_val)
   let term3 = -q * s * @math.exp(-q * t) * normal_cdf(-d1_val)
   term1 + term2 + term3
@@ -161,7 +213,14 @@ pub fn put_theta(s : Double, k : Double, r : Double, q : Double, sigma : Double,
 /// For sensitivity to a 1% change, divide by 100.
 ///
 /// `ν = S·e^(-qT)·φ(d₁)·√T`
-pub fn vega(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn vega(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 || s <= 0.0 {
     return 0.0
   }
@@ -173,7 +232,14 @@ pub fn vega(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : 
 /// Rho of a European call option (sensitivity to 1.0 change in rate).
 ///
 /// `ρ_call = K·T·e^(-rT)·N(d₂)`
-pub fn call_rho(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn call_rho(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
@@ -186,7 +252,14 @@ pub fn call_rho(s : Double, k : Double, r : Double, q : Double, sigma : Double, 
 /// Rho of a European put option.
 ///
 /// `ρ_put = -K·T·e^(-rT)·N(-d₂)`
-pub fn put_rho(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn put_rho(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
@@ -203,7 +276,14 @@ pub fn put_rho(s : Double, k : Double, r : Double, q : Double, sigma : Double, t
 /// Vanna: ∂²V/∂S∂σ = rate of change of Delta w.r.t. volatility.
 ///
 /// `Vanna = -e^(-qT) · φ(d₁) · d₂ / σ`
-pub fn vanna(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn vanna(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
@@ -216,7 +296,14 @@ pub fn vanna(s : Double, k : Double, r : Double, q : Double, sigma : Double, t :
 /// Volga (Vomma): ∂²V/∂σ² = rate of change of Vega w.r.t. volatility.
 ///
 /// `Volga = vega · d₁ · d₂ / σ`
-pub fn volga(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn volga(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
@@ -231,49 +318,83 @@ pub fn volga(s : Double, k : Double, r : Double, q : Double, sigma : Double, t :
 ///
 /// For calls:
 /// `Charm = -e^(-qT) · [φ(d₁) · (2(r-q)T - d₁·σ√T) / (2·σ·T·√T) - q·N(d₁)]`
-pub fn call_charm(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn call_charm(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let sqrt_t = sqrt(t)
   let phi_d1 = normal_pdf(d1_val)
-  let term1 = phi_d1 * (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) / (2.0 * sigma * t * sqrt_t)
+  let term1 = phi_d1 *
+    (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) /
+    (2.0 * sigma * t * sqrt_t)
   let term2 = q * normal_cdf(d1_val)
   -@math.exp(-q * t) * (term1 - term2)
 }
 
 ///|
 /// Charm for put options.
-pub fn put_charm(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn put_charm(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let sqrt_t = sqrt(t)
   let phi_d1 = normal_pdf(d1_val)
-  let term1 = phi_d1 * (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) / (2.0 * sigma * t * sqrt_t)
+  let term1 = phi_d1 *
+    (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) /
+    (2.0 * sigma * t * sqrt_t)
   let term2 = q * normal_cdf(-d1_val)
   @math.exp(-q * t) * (term1 + term2)
 }
 
 ///|
 /// Color (Gamma decay): ∂Γ/∂t = rate of change of Gamma over time.
-pub fn color(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn color(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 || s <= 0.0 {
     return 0.0
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let sqrt_t = sqrt(t)
   let phi_d1 = normal_pdf(d1_val)
-  let term1 = phi_d1 * (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) / (2.0 * sigma * t * sqrt_t)
+  let term1 = phi_d1 *
+    (2.0 * (r - q) * t - d1_val * sigma * sqrt_t) /
+    (2.0 * sigma * t * sqrt_t)
   let term2 = q * phi_d1
   @math.exp(-q * t) * (term1 - term2) / (s * sigma * sqrt_t)
 }
 
 ///|
 /// Speed: ∂Γ/∂S = rate of change of Gamma w.r.t. underlying price.
-pub fn speed(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn speed(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 || s <= 0.0 {
     return 0.0
   }
@@ -284,7 +405,14 @@ pub fn speed(s : Double, k : Double, r : Double, q : Double, sigma : Double, t :
 
 ///|
 /// Ultima: ∂³V/∂σ³ — third derivative w.r.t. volatility.
-pub fn ultima(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Double {
+pub fn ultima(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Double {
   if t <= 0.0 || sigma <= 0.0 {
     return 0.0
   }
@@ -317,7 +445,14 @@ pub struct Greeks {
 
 ///|
 /// Compute all Greeks for a European call option.
-pub fn call_greeks(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Greeks {
+pub fn call_greeks(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Greeks {
   {
     delta: call_delta(s, k, r, q, sigma, t),
     gamma: gamma(s, k, r, q, sigma, t),
@@ -335,7 +470,14 @@ pub fn call_greeks(s : Double, k : Double, r : Double, q : Double, sigma : Doubl
 
 ///|
 /// Compute all Greeks for a European put option.
-pub fn put_greeks(s : Double, k : Double, r : Double, q : Double, sigma : Double, t : Double) -> Greeks {
+pub fn put_greeks(
+  s : Double,
+  k : Double,
+  r : Double,
+  q : Double,
+  sigma : Double,
+  t : Double,
+) -> Greeks {
   {
     delta: put_delta(s, k, r, q, sigma, t),
     gamma: gamma(s, k, r, q, sigma, t),

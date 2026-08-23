@@ -96,8 +96,16 @@ pub fn one_way_anova(groups : Array[Array[Double]]) -> OneWayAnovaResult {
       ssb: 0.0,
       ssw: 0.0,
       sst: 0.0,
-      df_between: if k > 1 { k - 1 } else { 0 },
-      df_within: if n_total > k { n_total - k } else { 0 },
+      df_between: if k > 1 {
+        k - 1
+      } else {
+        0
+      },
+      df_within: if n_total > k {
+        n_total - k
+      } else {
+        0
+      },
       msb: 0.0,
       msw: 0.0,
       f_statistic: @double.not_a_number,
@@ -184,7 +192,7 @@ pub struct TwoWayAnovaResult {
 /// Returns a [`TwoWayAnovaResult`] with `NaN` statistics when the design is
 /// too small (`a < 2` or `b < 2`) or a row/column has a mismatched length.
 pub fn two_way_anova_no_replication(
-  data : Array[Array[Double]]
+  data : Array[Array[Double]],
 ) -> TwoWayAnovaResult {
   let a = data.length()
   // Degenerate: need at least 2 rows.
@@ -343,7 +351,7 @@ fn f_distribution_cdf(x : Double, d1 : Double, d2 : Double) -> Double {
   if x <= 0.0 || d1 <= 0.0 || d2 <= 0.0 {
     return 0.0
   }
-  let z = (d1 * x) / (d1 * x + d2)
+  let z = d1 * x / (d1 * x + d2)
   regularized_incomplete_beta(z, d1 / 2.0, d2 / 2.0)
 }
 
@@ -353,11 +361,7 @@ fn f_distribution_cdf(x : Double, d1 : Double, d2 : Double) -> Double {
 /// Uses the continued-fraction representation of the incomplete beta,
 /// selecting the direct or complementary branch via the standard symmetry
 /// test `x < (a+1)/(a+b+2)` to maximise convergence.
-fn regularized_incomplete_beta(
-  x : Double,
-  a : Double,
-  b : Double
-) -> Double {
+fn regularized_incomplete_beta(x : Double, a : Double, b : Double) -> Double {
   if x <= 0.0 {
     return 0.0
   }
@@ -439,9 +443,21 @@ fn degenerate_two_way(a : Int, b : Int) -> TwoWayAnovaResult {
     ss_b: 0.0,
     ss_error: 0.0,
     ss_total: 0.0,
-    df_a: if a > 1 { a - 1 } else { 0 },
-    df_b: if b > 1 { b - 1 } else { 0 },
-    df_error: if a > 1 && b > 1 { (a - 1) * (b - 1) } else { 0 },
+    df_a: if a > 1 {
+      a - 1
+    } else {
+      0
+    },
+    df_b: if b > 1 {
+      b - 1
+    } else {
+      0
+    },
+    df_error: if a > 1 && b > 1 {
+      (a - 1) * (b - 1)
+    } else {
+      0
+    },
     ms_a: 0.0,
     ms_b: 0.0,
     ms_error: 0.0,

@@ -119,13 +119,7 @@ fn sigmoid(z : Double) -> Double {
 ///|
 /// Logit p → log(p/(1−p)), with `p` clamped into the open interval (0,1).
 fn logit(p : Double) -> Double {
-  let q = if p <= 0.0 {
-    1.0e-10
-  } else if p >= 1.0 {
-    1.0 - 1.0e-10
-  } else {
-    p
-  }
+  let q = if p <= 0.0 { 1.0e-10 } else if p >= 1.0 { 1.0 - 1.0e-10 } else { p }
   ln_double(q / (1.0 - q))
 }
 
@@ -228,9 +222,9 @@ fn best_split(
         continue
       }
       let child = (
-        nl.to_double() * variance_d(left_y) +
-        nr.to_double() * variance_d(right_y)
-      ) /
+          nl.to_double() * variance_d(left_y) +
+          nr.to_double() * variance_d(right_y)
+        ) /
         n.to_double()
       let gain = parent_var - child
       if gain > best_gain {
@@ -286,7 +280,14 @@ fn build_tree(
         feature: feat,
         threshold: thresh,
         left: Some(
-          build_tree(left_x, left_y, n_features, depth + 1, max_depth, min_split),
+          build_tree(
+            left_x,
+            left_y,
+            n_features,
+            depth + 1,
+            max_depth,
+            min_split,
+          ),
         ),
         right: Some(
           build_tree(
@@ -357,10 +358,26 @@ pub fn new(
   {
     trees: [],
     init_pred: 0.0,
-    learning_rate: if learning_rate > 0.0 { learning_rate } else { 0.1 },
-    n_estimators: if n_estimators > 0 { n_estimators } else { 100 },
-    max_depth: if max_depth > 0 { max_depth } else { 3 },
-    min_samples_split: if min_samples_split > 1 { min_samples_split } else { 2 },
+    learning_rate: if learning_rate > 0.0 {
+      learning_rate
+    } else {
+      0.1
+    },
+    n_estimators: if n_estimators > 0 {
+      n_estimators
+    } else {
+      100
+    },
+    max_depth: if max_depth > 0 {
+      max_depth
+    } else {
+      3
+    },
+    min_samples_split: if min_samples_split > 1 {
+      min_samples_split
+    } else {
+      2
+    },
     is_classifier: false,
     n_features: 0,
   }
@@ -594,8 +611,14 @@ test "gradient_boosting: probability is in [0,1]" {
 test "gradient_boosting: 2-D linearly separable classification" {
   let gb = new_classifier(0.5, 60, 3, 2)
   let x : Array[Array[Double]] = [
-    [1.0, 1.0], [2.0, 1.0], [1.0, 2.0], [2.0, 2.0],
-    [6.0, 6.0], [7.0, 6.0], [6.0, 7.0], [7.0, 7.0],
+    [1.0, 1.0],
+    [2.0, 1.0],
+    [1.0, 2.0],
+    [2.0, 2.0],
+    [6.0, 6.0],
+    [7.0, 6.0],
+    [6.0, 7.0],
+    [7.0, 7.0],
   ]
   let y = [0, 0, 0, 0, 1, 1, 1, 1]
   fit_classifier(gb, x, y)

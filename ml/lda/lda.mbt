@@ -46,6 +46,7 @@ let lda_default_reg : Double = 1.0e-4
 // Local math helpers
 // ---------------------------------------------------------------------------
 
+///|
 fn lda_sqrt(x : Double) -> Double {
   if x <= 0.0 {
     return 0.0
@@ -60,6 +61,7 @@ fn lda_sqrt(x : Double) -> Double {
   guess
 }
 
+///|
 fn lda_dot(a : Array[Double], b : Array[Double]) -> Double {
   let n = a.length()
   if b.length() != n {
@@ -72,10 +74,12 @@ fn lda_dot(a : Array[Double], b : Array[Double]) -> Double {
   s
 }
 
+///|
 fn lda_l2_norm(v : Array[Double]) -> Double {
   lda_dot(v, v).sqrt()
 }
 
+///|
 fn lda_mat_vec(m : Array[Array[Double]], v : Array[Double]) -> Array[Double] {
   let d = m.length()
   let out = Array::make(d, 0.0)
@@ -90,10 +94,12 @@ fn lda_mat_vec(m : Array[Array[Double]], v : Array[Double]) -> Array[Double] {
   out
 }
 
+///|
 fn lda_rayleigh(m : Array[Array[Double]], v : Array[Double]) -> Double {
   lda_dot(v, lda_mat_vec(m, v))
 }
 
+///|
 fn lda_orthogonalize_in_place(
   v : Array[Double],
   prev : Array[Array[Double]],
@@ -107,6 +113,7 @@ fn lda_orthogonalize_in_place(
   }
 }
 
+///|
 fn lda_normalize_in_place(v : Array[Double]) -> Double {
   let nrm = lda_l2_norm(v)
   if nrm > 0.0 {
@@ -117,6 +124,7 @@ fn lda_normalize_in_place(v : Array[Double]) -> Double {
   nrm
 }
 
+///|
 fn lda_fix_sign(v : Array[Double]) -> Unit {
   let n = v.length()
   if n == 0 {
@@ -145,7 +153,10 @@ fn lda_fix_sign(v : Array[Double]) -> Unit {
 ///|
 /// Invert a `d×d` matrix using Gauss-Jordan elimination with partial pivoting.
 /// Returns `None` if the matrix is (numerically) singular.
-fn lda_matrix_inverse(m : Array[Array[Double]], d : Int) -> Array[Array[Double]]? {
+fn lda_matrix_inverse(
+  m : Array[Array[Double]],
+  d : Int,
+) -> Array[Array[Double]]? {
   // Build augmented [m | I]
   let aug : Array[Array[Double]] = []
   for i = 0; i < d; i = i + 1 {
@@ -232,6 +243,7 @@ fn lda_mat_mul(
 // Power iteration with deflation (same as PCA)
 // ---------------------------------------------------------------------------
 
+///|
 fn lda_power_iteration(
   m : Array[Array[Double]],
   prev : Array[Array[Double]],
@@ -546,7 +558,10 @@ test "lda: two classes 1D, perfect separation" {
   let r = lda(data, labels, 1, 1.0e-4)
   assert_eq(r.scalings.length(), 1)
   // The discriminant axis should be [1.0] (only one feature)
-  assert_true((r.scalings[0][0] - 1.0).abs() < 0.01 || (r.scalings[0][0] + 1.0).abs() < 0.01)
+  assert_true(
+    (r.scalings[0][0] - 1.0).abs() < 0.01 ||
+    (r.scalings[0][0] + 1.0).abs() < 0.01,
+  )
   // Projection of class-0 mean should differ from class-1 mean
   let p0 = lda_transform(r, [0.0])
   let p1 = lda_transform(r, [10.0])
@@ -557,8 +572,12 @@ test "lda: two classes 1D, perfect separation" {
 test "lda: two classes 2D, axis-aligned separation" {
   // Class 0: x varies, y=0; Class 1: x varies, y=5
   let data = [
-    [0.0, 0.0], [1.0, 0.0], [2.0, 0.0],
-    [0.0, 5.0], [1.0, 5.0], [2.0, 5.0],
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [2.0, 0.0],
+    [0.0, 5.0],
+    [1.0, 5.0],
+    [2.0, 5.0],
   ]
   let labels = [0, 0, 0, 1, 1, 1]
   let r = lda(data, labels, 1, 1.0e-4)
@@ -573,9 +592,12 @@ test "lda: two classes 2D, axis-aligned separation" {
 test "lda: n_components clamped to n_classes-1" {
   // 3 classes, 2 features -> max 2 components (min(3-1, 2) = 2)
   let data = [
-    [0.0, 0.0], [1.0, 0.0],
-    [5.0, 5.0], [6.0, 5.0],
-    [0.0, 10.0], [1.0, 10.0],
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [5.0, 5.0],
+    [6.0, 5.0],
+    [0.0, 10.0],
+    [1.0, 10.0],
   ]
   let labels = [0, 0, 1, 1, 2, 2]
   // Ask for 5 components -> should get 2
@@ -586,9 +608,15 @@ test "lda: n_components clamped to n_classes-1" {
 ///|
 test "lda: three classes 2D" {
   let data = [
-    [0.0, 0.0], [0.5, 0.0], [0.0, 0.5],
-    [5.0, 5.0], [5.5, 5.0], [5.0, 5.5],
-    [10.0, 0.0], [10.5, 0.0], [10.0, 0.5],
+    [0.0, 0.0],
+    [0.5, 0.0],
+    [0.0, 0.5],
+    [5.0, 5.0],
+    [5.5, 5.0],
+    [5.0, 5.5],
+    [10.0, 0.0],
+    [10.5, 0.0],
+    [10.0, 0.5],
   ]
   let labels = [0, 0, 0, 1, 1, 1, 2, 2, 2]
   let r = lda(data, labels, 2, 1.0e-4)
@@ -643,9 +671,15 @@ test "lda: label count mismatch returns empty" {
 ///|
 test "lda: explained variance is non-increasing" {
   let data = [
-    [0.0, 0.0], [0.5, 0.1], [1.0, 0.0],
-    [5.0, 5.0], [5.5, 4.9], [6.0, 5.0],
-    [0.0, 10.0], [0.5, 10.1], [1.0, 10.0],
+    [0.0, 0.0],
+    [0.5, 0.1],
+    [1.0, 0.0],
+    [5.0, 5.0],
+    [5.5, 4.9],
+    [6.0, 5.0],
+    [0.0, 10.0],
+    [0.5, 10.1],
+    [1.0, 10.0],
   ]
   let labels = [0, 0, 0, 1, 1, 1, 2, 2, 2]
   let r = lda(data, labels, 2, 1.0e-4)

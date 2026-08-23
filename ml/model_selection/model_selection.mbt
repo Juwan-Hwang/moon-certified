@@ -1,3 +1,4 @@
+///|
 /// Model Selection — Train/Test Split and K-Fold Cross Validation.
 ///
 /// Provides standard data splitting utilities for ML model evaluation:
@@ -23,11 +24,13 @@ priv struct SplitRng {
   mut state : Int
 }
 
+///|
 fn SplitRng::new(seed : Int) -> SplitRng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn SplitRng::next(self : SplitRng) -> Int {
   // xorshift32
   let mut x = self.state
@@ -38,12 +41,17 @@ fn SplitRng::next(self : SplitRng) -> Int {
   self.state
 }
 
+///|
 fn SplitRng::next_int(self : SplitRng, bound : Int) -> Int {
   if bound <= 0 {
     0
   } else {
     let v = (self.next().to_double() / 2147483648.0 * bound.to_double()).to_int()
-    if v >= bound { bound - 1 } else { v }
+    if v >= bound {
+      bound - 1
+    } else {
+      v
+    }
   }
 }
 
@@ -92,7 +100,13 @@ pub fn train_test_split(
     0 // test_size == 0 means no test samples
   } else {
     let nt = (n.to_double() * ts).to_int()
-    if nt < 1 { 1 } else if nt >= n { n - 1 } else { nt }
+    if nt < 1 {
+      1
+    } else if nt >= n {
+      n - 1
+    } else {
+      nt
+    }
   }
   // Build index array
   let indices = Array::makei(n, fn(i) { i })

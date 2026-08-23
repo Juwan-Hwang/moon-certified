@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/math",
+  "moon-certified/math/fft",
+}
+
+options(
+  "proof-enabled": false,
+)

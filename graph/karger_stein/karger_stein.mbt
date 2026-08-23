@@ -1,3 +1,4 @@
+///|
 /// Karger-Stein Global Minimum Cut — a randomized algorithm for finding the
 /// minimum cut in an undirected graph.
 ///
@@ -45,7 +46,6 @@
 ///   problem." *J. ACM*, 43(4), 601–640.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 const INF : Double = 1.0e18
 
 // ---------------------------------------------------------------------------
@@ -196,6 +196,8 @@ fn count_cut(edges : Array[(Int, Int, Double)], uf : UF) -> Double {
 // ---------------------------------------------------------------------------
 
 // sqrt(2) ≈ 1.4142135623730951
+
+///|
 const SQRT2 : Double = 1.4142135623730951
 
 ///|
@@ -387,68 +389,89 @@ fn uw(pairs : Array[(Int, Int)]) -> Array[(Int, Int, Double)] {
   r
 }
 
+///|
 test "karger_stein: empty graph" {
   let result = karger_stein_default(0, [])
   assert_true(result.cut_value == 0.0)
 }
 
+///|
 test "karger_stein: single vertex" {
   let result = karger_stein_default(1, [])
   assert_true(result.cut_value == 0.0)
 }
 
+///|
 test "karger_stein: single edge" {
   let result = karger_stein_default(2, [(0, 1, 1.0)])
   assert_true(result.cut_value == 1.0)
   assert_true(result.partition[0] != result.partition[1])
 }
 
+///|
 test "karger_stein: triangle min cut is 2" {
   let edges = uw([(0, 1), (1, 2), (0, 2)])
   let result = karger_stein(3, edges, 42UL, 50)
   assert_true(result.cut_value == 2.0)
 }
 
+///|
 test "karger_stein: K4 min cut is 3" {
-  let edges = uw([
-    (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3),
-  ])
+  let edges = uw([(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)])
   let result = karger_stein(4, edges, 42UL, 100)
   assert_true(result.cut_value == 3.0)
 }
 
+///|
 test "karger_stein: two triangles bridge min cut is 1" {
   let edges = uw([
-    (0, 1), (1, 2), (0, 2), // triangle A
-    (3, 4), (4, 5), (3, 5), // triangle B
+    (0, 1),
+    (1, 2),
+    (0, 2), // triangle A
+    (3, 4),
+    (4, 5),
+    (3, 5), // triangle B
     (2, 3), // bridge
   ])
   let result = karger_stein(6, edges, 42UL, 200)
   assert_true(result.cut_value == 1.0)
 }
 
+///|
 test "karger_stein: square min cut is 2" {
   let edges = uw([(0, 1), (1, 2), (2, 3), (3, 0)])
   let result = karger_stein(4, edges, 42UL, 100)
   assert_true(result.cut_value == 2.0)
 }
 
+///|
 test "karger_stein: K5 min cut is 4" {
   let edges = uw([
-    (0, 1), (0, 2), (0, 3), (0, 4),
-    (1, 2), (1, 3), (1, 4),
-    (2, 3), (2, 4),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (2, 3),
+    (2, 4),
     (3, 4),
   ])
   let result = karger_stein(5, edges, 42UL, 100)
   assert_true(result.cut_value == 4.0)
 }
 
+///|
 test "karger_stein: weighted graph" {
   // Two triangles connected by a weight-5 bridge
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0),
-    (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0),
+    (0, 1, 1.0),
+    (1, 2, 1.0),
+    (0, 2, 1.0),
+    (3, 4, 1.0),
+    (4, 5, 1.0),
+    (3, 5, 1.0),
     (2, 3, 5.0),
   ]
   let result = karger_stein(6, edges, 42UL, 200)
@@ -456,6 +479,7 @@ test "karger_stein: weighted graph" {
   assert_true(result.cut_value <= 2.0 + 1.0e-10)
 }
 
+///|
 test "karger_stein: disconnected graph" {
   // Two disconnected edges: min cut is 0
   let edges = uw([(0, 1), (2, 3)])
@@ -463,6 +487,7 @@ test "karger_stein: disconnected graph" {
   assert_true(result.cut_value == 0.0)
 }
 
+///|
 test "karger_stein: determinism" {
   let edges = uw([(0, 1), (1, 2), (0, 2), (2, 3), (3, 4), (4, 5), (3, 5)])
   let r1 = karger_stein(6, edges, 123UL, 50)
@@ -471,16 +496,28 @@ test "karger_stein: determinism" {
   assert_eq(r1.partition, r2.partition)
 }
 
+///|
 test "karger_stein: more trials never worse" {
   let edges = uw([
-    (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3),
-    (3, 4), (4, 5), (4, 6), (5, 6), (5, 7), (6, 7),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (1, 2),
+    (1, 3),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (4, 6),
+    (5, 6),
+    (5, 7),
+    (6, 7),
   ])
   let r1 = karger_stein(8, edges, 42UL, 1)
   let r10 = karger_stein(8, edges, 42UL, 10)
   assert_true(r10.cut_value <= r1.cut_value)
 }
 
+///|
 test "karger_stein: partition validity" {
   // The partition should have exactly 2 non-empty sides.
   let edges = uw([(0, 1), (1, 2), (0, 2), (2, 3)])
@@ -499,6 +536,7 @@ test "karger_stein: partition validity" {
   assert_eq(side0 + side1, 4)
 }
 
+///|
 test "karger_stein: path graph min cut is 1" {
   // Path: 0-1-2-3-4, min cut is 1 (any single edge)
   let edges = uw([(0, 1), (1, 2), (2, 3), (3, 4)])
@@ -506,6 +544,7 @@ test "karger_stein: path graph min cut is 1" {
   assert_true(result.cut_value == 1.0)
 }
 
+///|
 test "karger_stein: star graph min cut is 1" {
   // Star: center 0 connected to 1..5, min cut is 1
   let edges = uw([(0, 1), (0, 2), (0, 3), (0, 4), (0, 5)])
@@ -513,6 +552,7 @@ test "karger_stein: star graph min cut is 1" {
   assert_true(result.cut_value == 1.0)
 }
 
+///|
 test "karger_stein: invalid edges skipped" {
   let edges : Array[(Int, Int, Double)] = [
     (0, 1, 1.0), // valid
@@ -528,30 +568,39 @@ test "karger_stein: invalid edges skipped" {
   assert_true(result.cut_value == 2.0)
 }
 
+///|
 test "karger_stein: weighted bridge" {
   // Two K4's connected by a weight-1 bridge
   // Each K4 has min cut 3, bridge has weight 1
   // Global min cut is 1 (cutting the bridge)
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 1.0), (0, 2, 1.0), (0, 3, 1.0),
-    (1, 2, 1.0), (1, 3, 1.0), (2, 3, 1.0),
-    (4, 5, 1.0), (4, 6, 1.0), (4, 7, 1.0),
-    (5, 6, 1.0), (5, 7, 1.0), (6, 7, 1.0),
+    (0, 1, 1.0),
+    (0, 2, 1.0),
+    (0, 3, 1.0),
+    (1, 2, 1.0),
+    (1, 3, 1.0),
+    (2, 3, 1.0),
+    (4, 5, 1.0),
+    (4, 6, 1.0),
+    (4, 7, 1.0),
+    (5, 6, 1.0),
+    (5, 7, 1.0),
+    (6, 7, 1.0),
     (3, 4, 1.0), // bridge
   ]
   let result = karger_stein(8, edges, 42UL, 300)
   assert_true(result.cut_value == 1.0)
 }
 
+///|
 test "karger_stein: cycle graph min cut is 2" {
   // 6-cycle: 0-1-2-3-4-5-0
-  let edges = uw([
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0),
-  ])
+  let edges = uw([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)])
   let result = karger_stein(6, edges, 42UL, 100)
   assert_true(result.cut_value == 2.0)
 }
 
+///|
 test "karger_stein: double edge min cut" {
   // Two vertices connected by 3 parallel edges (represented as weight 3)
   // Plus each connected to a third vertex by 1 edge
@@ -559,7 +608,9 @@ test "karger_stein: double edge min cut" {
   // Min cut: cut {0} from {1,2}: weight 3+1=4, or cut {1} from {0,2}: 3+1=4
   // or cut {2} from {0,1}: 1+1=2
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 3.0), (0, 2, 1.0), (1, 2, 1.0),
+    (0, 1, 3.0),
+    (0, 2, 1.0),
+    (1, 2, 1.0),
   ]
   // Use enough trials to guarantee finding the min cut with high probability.
   // For n=3, each trial has ≥1/3 chance of finding the optimal cut.

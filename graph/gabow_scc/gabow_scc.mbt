@@ -67,10 +67,7 @@ pub struct GabowSCCResult {
 
 ///|
 /// Build an adjacency list from edge pairs.
-fn build_adj_list(
-  n : Int,
-  edges : Array[(Int, Int)],
-) -> Array[Array[Int]] {
+fn build_adj_list(n : Int, edges : Array[(Int, Int)]) -> Array[Array[Int]] {
   let adj : Array[Array[Int]] = Array::makei(n, fn(_) { [] })
   for i = 0; i < edges.length(); i = i + 1 {
     let (u, v) = edges[i]
@@ -96,10 +93,7 @@ fn build_adj_list(
 /// - `stack_s`: vertices on the current DFS path.
 /// - `stack_b`: boundary stack for SCC root candidates.
 /// - `on_stack_s[v]`: whether `v` is currently on `stack_s`.
-fn gabow_scc_core(
-  adj : Array[Array[Int]],
-  n : Int,
-) -> GabowSCCResult {
+fn gabow_scc_core(adj : Array[Array[Int]], n : Int) -> GabowSCCResult {
   let index = Array::make(n, 0) // 0 = unvisited, 1-based discovery order
   let component_id = Array::make(n, -1)
   let stack_s : Array[Int] = []
@@ -138,7 +132,8 @@ fn gabow_scc_core(
         } else if on_stack_s[w] {
           // Back/cross edge to a vertex on the current path.
           // Collapse stack_b until its top has index ≤ index[w].
-          while stack_b.length() > 0 && index[stack_b[stack_b.length() - 1]] > index[w] {
+          while stack_b.length() > 0 &&
+                index[stack_b[stack_b.length() - 1]] > index[w] {
             ignore(stack_b.pop())
           }
         }
@@ -267,8 +262,12 @@ test "gabow_scc: DAG chain" {
 test "gabow_scc: two cycles connected" {
   // Cycle 0->1->2->0, cycle 3->4->5->3, bridge 2->3
   let result = gabow_scc(6, [
-    (0, 1), (1, 2), (2, 0),
-    (3, 4), (4, 5), (5, 3),
+    (0, 1),
+    (1, 2),
+    (2, 0),
+    (3, 4),
+    (4, 5),
+    (5, 3),
     (2, 3),
   ])
   assert_eq(result.num_sccs, 2)
@@ -288,11 +287,7 @@ test "gabow_scc: nested cycles" {
   // 1 -> 3 -> 1 (inner cycle)
   // 2 -> 3 (cross edge)
   // All vertices are in the same SCC because 0->1->2->0 and 1->3->1.
-  let result = gabow_scc(4, [
-    (0, 1), (1, 2), (2, 0),
-    (1, 3), (3, 1),
-    (2, 3),
-  ])
+  let result = gabow_scc(4, [(0, 1), (1, 2), (2, 0), (1, 3), (3, 1), (2, 3)])
   assert_eq(result.num_sccs, 1)
 }
 
@@ -424,7 +419,12 @@ test "gabow_scc: matches tarjan on random DAG" {
   //      v         v
   //      5         6
   let edges : Array[(Int, Int)] = [
-    (0, 1), (1, 2), (2, 3), (3, 4), (1, 5), (3, 6),
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (1, 5),
+    (3, 6),
   ]
   let result = gabow_scc(7, edges)
   assert_eq(result.num_sccs, 7)

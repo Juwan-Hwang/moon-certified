@@ -34,7 +34,11 @@ pub fn wrap(source : ChainError, message : String) -> ChainError {
 
 ///|
 /// Add a key-value context pair to an error.
-pub fn with_context(err : ChainError, key : String, value : String) -> ChainError {
+pub fn with_context(
+  err : ChainError,
+  key : String,
+  value : String,
+) -> ChainError {
   err.context.push((key, value))
   err
 }
@@ -74,7 +78,12 @@ pub fn format_chain(err : ChainError) -> String {
   buf.to_string()
 }
 
-fn format_chain_impl(err : ChainError, indent : Int, buf : StringBuilder) -> Unit {
+///|
+fn format_chain_impl(
+  err : ChainError,
+  indent : Int,
+  buf : StringBuilder,
+) -> Unit {
   for i = 0; i < indent; i = i + 1 {
     buf.write("  ")
   }
@@ -104,11 +113,10 @@ pub fn messages(err : ChainError) -> Array[String] {
   result.push(err.message)
   match err.source {
     None => ()
-    Some(src) => {
+    Some(src) =>
       for m in messages(src) {
         result.push(m)
       }
-    }
   }
   result
 }

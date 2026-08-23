@@ -151,11 +151,7 @@ pub fn gaussian_fit(
   // Apply variance smoothing.
   // When max_var is 0 (degenerate: 1 sample per class), use var_smoothing
   // directly as a minimum variance floor to prevent ln(0) in log_gaussian_pdf.
-  let eps = if max_var > 0.0 {
-    var_smoothing * max_var
-  } else {
-    var_smoothing
-  }
+  let eps = if max_var > 0.0 { var_smoothing * max_var } else { var_smoothing }
   for c = 0; c < n_classes; c = c + 1 {
     for j = 0; j < n_features; j = j + 1 {
       variances[c][j] = variances[c][j] + eps
@@ -200,11 +196,7 @@ pub fn gaussian_predict_log_proba(
   for c = 0; c < n_classes; c = c + 1 {
     let mut lp = model.class_priors[c]
     for j = 0; j < model.n_features; j = j + 1 {
-      lp = lp + log_gaussian_pdf(
-        x[j],
-        model.means[c][j],
-        model.variances[c][j],
-      )
+      lp = lp + log_gaussian_pdf(x[j], model.means[c][j], model.variances[c][j])
     }
     log_probs[c] = lp
   }
@@ -224,7 +216,8 @@ pub fn gaussian_predict_log_proba(
 /// ln(pdf) = -0.5 * ln(2π σ²) - (x-μ)² / (2σ²)
 fn log_gaussian_pdf(x : Double, mean : Double, variance : Double) -> Double {
   let pi = 3.14159265358979323846
-  -0.5 * @math.ln(2.0 * pi * variance) - (x - mean) * (x - mean) / (2.0 * variance)
+  -0.5 * @math.ln(2.0 * pi * variance) -
+  (x - mean) * (x - mean) / (2.0 * variance)
 }
 
 // ---------------------------------------------------------------------------
@@ -295,9 +288,7 @@ pub fn multinomial_fit(
       total = total + feature_counts[c][j] + alpha
     }
     for j = 0; j < n_features; j = j + 1 {
-      feature_log_probs[c][j] = @math.ln(
-        (feature_counts[c][j] + alpha) / total,
-      )
+      feature_log_probs[c][j] = @math.ln((feature_counts[c][j] + alpha) / total)
     }
   }
   { classes, class_log_priors, feature_log_probs, n_features }
@@ -305,10 +296,7 @@ pub fn multinomial_fit(
 
 ///|
 /// Predict the class label for a single sample.
-pub fn multinomial_predict(
-  model : MultinomialNB,
-  x : Array[Double],
-) -> Int {
+pub fn multinomial_predict(model : MultinomialNB, x : Array[Double]) -> Int {
   let (best_label, _) = multinomial_predict_log_proba(model, x)
   best_label
 }
@@ -411,9 +399,15 @@ pub fn bernoulli_fit(
     class_counts[ci] = class_counts[ci] + 1
     for j = 0; j < n_features; j = j + 1 {
       let val = if binarize > 0.0 {
-        if x[i][j] > binarize { 1.0 } else { 0.0 }
+        if x[i][j] > binarize {
+          1.0
+        } else {
+          0.0
+        }
+      } else if x[i][j] > 0.0 {
+        1.0
       } else {
-        if x[i][j] > 0.0 { 1.0 } else { 0.0 }
+        0.0
       }
       feature_true[ci][j] = feature_true[ci][j] + val
     }

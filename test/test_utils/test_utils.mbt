@@ -19,7 +19,7 @@ pub fn str_cmp(a : String, b : String) -> Int {
 /// that every test reports failures uniformly.
 ///
 /// # Example
-/// ```moonbit
+/// ```moonbit nocheck
 /// let s = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
 /// ```
 pub fn[T] expect_some(opt : T?, context : String) -> T raise Failure {

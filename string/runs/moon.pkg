@@ -1,0 +1,8 @@
+import {
+  "moon-certified/string/sa_is",
+  "moon-certified/string/lcp_array",
+}
+
+options(
+  "proof-enabled": false,
+)

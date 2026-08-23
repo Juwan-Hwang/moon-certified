@@ -1,0 +1,5 @@
+///|
+/// Every element in [0, n) is its own parent (singleton sets).
+predicate self_parent(parent : FixedArray[Int], n : Int) {
+  ∀ i : Int, ((0 <= i) && (i < n)) → parent[i] == i
+}

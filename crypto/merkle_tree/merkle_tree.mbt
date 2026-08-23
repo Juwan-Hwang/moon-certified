@@ -93,7 +93,10 @@ fn hash_leaf(data : Bytes) -> Bytes {
 ///|
 /// Hash two child nodes with domain separation (prepend 0x01).
 fn hash_internal(left : Bytes, right : Bytes) -> Bytes {
-  let buf : Array[Byte] = Array::make(left.length() + right.length() + 1, b'\x00')
+  let buf : Array[Byte] = Array::make(
+    left.length() + right.length() + 1,
+    b'\x00',
+  )
   buf[0] = b'\x01'
   for i = 0; i < left.length(); i = i + 1 {
     buf[i + 1] = left[i]
@@ -158,14 +161,7 @@ pub fn build(data_blocks : Array[Bytes]) -> MerkleTree? {
     current_size = next_size
   }
   let root = nodes[nodes.length() - 1]
-  Some({
-    leaves: leaves,
-    nodes: nodes,
-    num_leaves: n,
-    level_offsets: level_offsets,
-    level_sizes: level_sizes,
-    root: root,
-  })
+  Some({ leaves, nodes, num_leaves: n, level_offsets, level_sizes, root })
 }
 
 ///|
@@ -227,7 +223,7 @@ pub fn make_proof(tree : MerkleTree, index : Int) -> MerkleProof? {
     siblings.push((sibling_hash, is_right))
     idx = idx / 2
   }
-  Some({ siblings: siblings })
+  Some({ siblings, })
 }
 
 ///|
@@ -273,8 +269,7 @@ fn constant_time_eq_bytes(a : Bytes, b : Bytes) -> Bool {
 /// Convert a 32-byte hash to a lowercase hex string.
 pub fn hash_to_hex(hash : Bytes) -> String {
   let hex_digits : FixedArray[Char] = FixedArray::from_array([
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e',
-    'f',
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ])
   let buf = StringBuilder()
   for i = 0; i < hash.length(); i = i + 1 {
@@ -289,6 +284,7 @@ pub fn hash_to_hex(hash : Bytes) -> String {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "build: single leaf" {
   let data = [b"hello"]
   let tree_opt = build(data)
@@ -300,6 +296,7 @@ test "build: single leaf" {
   assert_eq(root.length(), 32)
 }
 
+///|
 test "build: two leaves" {
   let data = [b"a", b"b"]
   let tree = build(data).unwrap()
@@ -319,6 +316,7 @@ test "build: two leaves" {
   assert_true(verify_proof(leaf_a, make_proof(tree, 0).unwrap(), expected))
 }
 
+///|
 test "build: odd number of leaves" {
   let data = [b"x", b"y", b"z"]
   let tree = build(data).unwrap()
@@ -328,11 +326,13 @@ test "build: odd number of leaves" {
   assert_eq(root.length(), 32)
 }
 
+///|
 test "build: empty data returns None" {
   let tree = build([])
   assert_true(tree is None)
 }
 
+///|
 test "proof: valid proof verifies" {
   let data = [b"block0", b"block1", b"block2", b"block3", b"block4"]
   let tree = build(data).unwrap()
@@ -344,6 +344,7 @@ test "proof: valid proof verifies" {
   }
 }
 
+///|
 test "proof: invalid proof rejected" {
   let data = [b"block0", b"block1", b"block2", b"block3"]
   let tree = build(data).unwrap()
@@ -353,6 +354,7 @@ test "proof: invalid proof rejected" {
   assert_false(verify_proof(wrong_leaf, proof, root))
 }
 
+///|
 test "proof: out of bounds returns None" {
   let data = [b"a", b"b"]
   let tree = build(data).unwrap()
@@ -360,6 +362,7 @@ test "proof: out of bounds returns None" {
   assert_true(make_proof(tree, -1) is None)
 }
 
+///|
 test "root: deterministic" {
   let data = [b"a", b"b", b"c"]
   let tree1 = build(data).unwrap()
@@ -367,6 +370,7 @@ test "root: deterministic" {
   assert_eq(root_hash(tree1), root_hash(tree2))
 }
 
+///|
 test "root: different data different roots" {
   let d1 = [b"a", b"b"]
   let d2 = [b"a", b"c"]
@@ -375,6 +379,7 @@ test "root: different data different roots" {
   assert_not_eq(root_hash(t1), root_hash(t2))
 }
 
+///|
 test "root: order matters" {
   let d1 = [b"a", b"b"]
   let d2 = [b"b", b"a"]
@@ -383,6 +388,7 @@ test "root: order matters" {
   assert_not_eq(root_hash(t1), root_hash(t2))
 }
 
+///|
 test "hash_to_hex: correct hex" {
   let data = [b"test"]
   let tree = build(data).unwrap()
@@ -394,6 +400,7 @@ test "hash_to_hex: correct hex" {
   }
 }
 
+///|
 test "domain separation: leaf vs internal" {
   let data = b"abc"
   let leaf = hash_leaf(data)
@@ -401,6 +408,7 @@ test "domain separation: leaf vs internal" {
   assert_not_eq(leaf, internal)
 }
 
+///|
 test "large tree: 100 leaves" {
   let data : Array[Bytes] = []
   for i = 0; i < 100; i = i + 1 {
@@ -417,6 +425,7 @@ test "large tree: 100 leaves" {
   }
 }
 
+///|
 test "tampered root: verification fails" {
   let data = [b"a", b"b", b"c", b"d"]
   let tree = build(data).unwrap()

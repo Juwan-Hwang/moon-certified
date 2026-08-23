@@ -165,18 +165,12 @@ fn hchacha20(key : Bytes, nonce16 : Bytes) -> Bytes {
 ///   a subkey; the last 8 bytes are used as the ChaCha20 nonce.
 /// - Up to 256 GiB of data can be encrypted per (key, nonce) pair.
 /// - For authenticated encryption, use XChaCha20-Poly1305 instead.
-pub fn xchacha20_encrypt(
-  key : Bytes,
-  nonce : Bytes,
-  data : Bytes,
-) -> Bytes? {
+pub fn xchacha20_encrypt(key : Bytes, nonce : Bytes, data : Bytes) -> Bytes? {
   if key.length() != 32 || nonce.length() != 24 {
     return None
   }
   // Step 1: Derive subkey via HChaCha20.
-  let nonce16 = Bytes::from_array(
-    Array::makei(16, fn(i) { nonce[i] }),
-  )
+  let nonce16 = Bytes::from_array(Array::makei(16, fn(i) { nonce[i] }))
   let subkey = hchacha20(key, nonce16)
   // Step 2: Build 12-byte ChaCha20 nonce: \x00\x00\x00\x00 ++ nonce[16:24]
   let chacha_nonce : Array[Byte] = Array::make(12, b'\x00')
@@ -198,11 +192,7 @@ pub fn xchacha20_encrypt(
 ///
 /// ChaCha20 is a stream cipher, so encryption and decryption are the
 /// same operation (XOR with keystream).
-pub fn xchacha20_decrypt(
-  key : Bytes,
-  nonce : Bytes,
-  data : Bytes,
-) -> Bytes? {
+pub fn xchacha20_decrypt(key : Bytes, nonce : Bytes, data : Bytes) -> Bytes? {
   xchacha20_encrypt(key, nonce, data)
 }
 

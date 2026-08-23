@@ -42,7 +42,11 @@ fn m_sqrt(x : Double) -> Double {
 ///|
 /// Resample `data` with replacement, writing into `out`.
 /// Uses the PRNG to draw indices uniformly in `[0, n)`.
-fn resample(rng : @utils.SplitMix64, data : Array[Double], out : Array[Double]) -> Unit {
+fn resample(
+  rng : @utils.SplitMix64,
+  data : Array[Double],
+  out : Array[Double],
+) -> Unit {
   let n = data.length()
   for i = 0; i < n; i = i + 1 {
     let u = rng.next_double()
@@ -159,15 +163,7 @@ pub fn percentile_ci(
     estimates[b] = statistic(resample_buf)
   }
   // Sort to compute quantiles.
-  estimates.sort_by(fn(a, b) {
-    if a < b {
-      -1
-    } else if a > b {
-      1
-    } else {
-      0
-    }
-  })
+  estimates.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
   let alpha = 1.0 - confidence
   let lo = quantile_sorted(estimates, alpha / 2.0)
   let hi = quantile_sorted(estimates, 1.0 - alpha / 2.0)
@@ -184,7 +180,13 @@ pub fn mean_percentile_ci(
   seed : UInt64,
   n_bootstrap : Int,
 ) -> (Double, Double) {
-  percentile_ci(data, fn(d) { @descriptive.mean(d) }, confidence, seed, n_bootstrap)
+  percentile_ci(
+    data,
+    fn(d) { @descriptive.mean(d) },
+    confidence,
+    seed,
+    n_bootstrap,
+  )
 }
 
 ///|
@@ -197,7 +199,13 @@ pub fn median_percentile_ci(
   seed : UInt64,
   n_bootstrap : Int,
 ) -> (Double, Double) {
-  percentile_ci(data, fn(d) { @descriptive.median(d) }, confidence, seed, n_bootstrap)
+  percentile_ci(
+    data,
+    fn(d) { @descriptive.median(d) },
+    confidence,
+    seed,
+    n_bootstrap,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -238,15 +246,7 @@ pub fn bca_ci(
     estimates[b] = statistic(resample_buf)
   }
   // Sort bootstrap estimates.
-  estimates.sort_by(fn(a, b) {
-    if a < b {
-      -1
-    } else if a > b {
-      1
-    } else {
-      0
-    }
-  })
+  estimates.sort_by(fn(a, b) { if a < b { -1 } else if a > b { 1 } else { 0 } })
   // Bias correction factor z₀.
   // z₀ = Φ⁻¹(#{θ*_b < θ_hat} / B)
   let mut count_below = 0
@@ -348,10 +348,12 @@ fn normal_cdf_approx(z : Double) -> Double {
   let sign = if x < 0.0 { -1.0 } else { 1.0 }
   let ax = x.abs()
   let t = 1.0 / (1.0 + 0.3275911 * ax)
-  let poly = t * (0.254829592 +
-    t * (-0.284496736 +
-      t * (1.421413741 +
-        t * (-1.453152027 + t * 1.061405429))))
+  let poly = t *
+    (
+      0.254829592 +
+      t *
+      (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429)))
+    )
   let erf_val = sign * (1.0 - poly * @math.exp(-ax * ax))
   0.5 * (1.0 + erf_val)
 }
@@ -367,20 +369,19 @@ fn normal_inv_cdf_approx(p : Double) -> Double {
     return @double.infinity
   }
   let a = [
-    -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02,
-    1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00,
+    -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02,
+    -3.066479806614716e+01, 2.506628277459239e+00,
   ]
   let b = [
-    -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02,
-    6.680131188771972e+01, -1.328068155288572e+01,
+    -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01,
+    -1.328068155288572e+01,
   ]
   let c = [
-    -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
-    -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00,
+    -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00,
+    4.374664141464968e+00, 2.938163982698783e+00,
   ]
   let d = [
-    7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00,
-    3.754408661907416e+00,
+    7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00,
   ]
   let plow = 0.02425
   let phigh = 1.0 - plow
@@ -408,8 +409,8 @@ fn normal_inv_cdf_approx(p : Double) -> Double {
 ///|
 test "bootstrap: mean percentile CI contains sample mean" {
   let data = [
-    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9,
-    12.1, 11.7, 10.6,
+    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9, 12.1,
+    11.7, 10.6,
   ]
   let (lo, hi) = mean_percentile_ci(data, 0.95, 42UL, 2000)
   let m = @descriptive.mean(data)
@@ -421,8 +422,8 @@ test "bootstrap: mean percentile CI contains sample mean" {
 ///|
 test "bootstrap: median percentile CI" {
   let data = [
-    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9,
-    12.1, 11.7, 10.6,
+    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9, 12.1,
+    11.7, 10.6,
   ]
   let (lo, hi) = median_percentile_ci(data, 0.95, 42UL, 2000)
   let med = @descriptive.median(data)
@@ -434,8 +435,8 @@ test "bootstrap: median percentile CI" {
 ///|
 test "bootstrap: BCa CI for mean" {
   let data = [
-    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9,
-    12.1, 11.7, 10.6,
+    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9, 12.1,
+    11.7, 10.6,
   ]
   let (lo, hi) = mean_bca_ci(data, 0.95, 42UL, 2000)
   let m = @descriptive.mean(data)
@@ -447,8 +448,8 @@ test "bootstrap: BCa CI for mean" {
 ///|
 test "bootstrap: BCa CI for median" {
   let data = [
-    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9,
-    12.1, 11.7, 10.6,
+    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9, 12.1,
+    11.7, 10.6,
   ]
   let (lo, hi) = median_bca_ci(data, 0.95, 42UL, 2000)
   assert_true(hi > lo)
@@ -457,8 +458,8 @@ test "bootstrap: BCa CI for median" {
 ///|
 test "bootstrap: wider confidence gives wider interval" {
   let data = [
-    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9,
-    12.1, 11.7, 10.6,
+    10.0, 12.0, 11.0, 13.0, 10.5, 11.5, 12.5, 10.8, 11.2, 12.0, 11.3, 10.9, 12.1,
+    11.7, 10.6,
   ]
   let (lo95, hi95) = mean_percentile_ci(data, 0.95, 42UL, 2000)
   let (lo99, hi99) = mean_percentile_ci(data, 0.99, 42UL, 2000)

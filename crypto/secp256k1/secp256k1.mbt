@@ -30,6 +30,7 @@
 // Curve parameters: secp256k1
 // ---------------------------------------------------------------------------
 
+///|
 /// Parse a BigInt from a decimal string, aborting with a descriptive
 /// message if the string is invalid. Used exclusively for fixed RFC
 /// curve constants that are guaranteed correct by construction.
@@ -40,12 +41,14 @@ fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
   }
 }
 
+///|
 /// Prime p = 2^256 - 2^32 - 977
 let p : @bigint.BigInt = parse_curve_const(
   "115792089237316195423570985008687907853269984665640564039457584007908834671663",
   "secp256k1 prime p",
 )
 
+///|
 /// Curve order n
 let n_order : @bigint.BigInt = parse_curve_const(
   "115792089237316195423570985008687907852837564279074904382605163141518161494337",
@@ -54,15 +57,18 @@ let n_order : @bigint.BigInt = parse_curve_const(
 
 /// Curve coefficient a = 0
 
+///|
 /// Curve coefficient b = 7
 let b_coeff : @bigint.BigInt = @bigint.from_int_value(7)
 
+///|
 /// Generator x-coordinate
 let gx : @bigint.BigInt = parse_curve_const(
   "55066263022277343669578718895168534326250603453777594175500187360389116729240",
   "secp256k1 generator Gx",
 )
 
+///|
 /// Generator y-coordinate
 let gy : @bigint.BigInt = parse_curve_const(
   "32670510020758816978083085130507043184471273380659243275938904335757337482424",
@@ -73,8 +79,13 @@ let gy : @bigint.BigInt = parse_curve_const(
 // Modular arithmetic helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// (a + b) mod m
-fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_add(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let sum = @bigint.add(a, b)
   match @bigint.divmod(sum, m) {
     Some((_, r)) => r
@@ -82,8 +93,13 @@ fn mod_add(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a - b) mod m (result always non-negative)
-fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_sub(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   let diff = @bigint.sub(a, b)
   if @bigint.compare(diff, @bigint.zero()) < 0 {
     @bigint.add(diff, m)
@@ -92,14 +108,20 @@ fn mod_sub(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigin
   }
 }
 
+///|
 /// (a * b) mod m
-fn mod_mul(a : @bigint.BigInt, b : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
+fn mod_mul(
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+  m : @bigint.BigInt,
+) -> @bigint.BigInt {
   match @bigint.divmod(@bigint.mul(a, b), m) {
     Some((_, r)) => r
     None => @bigint.zero()
   }
 }
 
+///|
 /// a^(-1) mod m using Fermat's little theorem (for prime m)
 fn mod_inv(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
   let exp = @bigint.sub(m, @bigint.from_int_value(2))
@@ -109,21 +131,25 @@ fn mod_inv(a : @bigint.BigInt, m : @bigint.BigInt) -> @bigint.BigInt {
   }
 }
 
+///|
 /// (a * b) mod p (field multiplication)
 fn fe_mul(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_mul(a, b, p)
 }
 
+///|
 /// (a + b) mod p (field addition)
 fn fe_add(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_add(a, b, p)
 }
 
+///|
 /// (a - b) mod p (field subtraction)
 fn fe_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   mod_sub(a, b, p)
 }
 
+///|
 /// a^(-1) mod p (field inversion)
 fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
   mod_inv(a, p)
@@ -133,6 +159,7 @@ fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
 // BigInt <-> bytes (big-endian) conversion
 // ---------------------------------------------------------------------------
 
+///|
 fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   let result : Array[Byte] = Array::make(len, b'\x00')
   let mut temp = n
@@ -151,6 +178,7 @@ fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   let mut result = @bigint.zero()
   let base = @bigint.from_int_value(256)
@@ -163,6 +191,7 @@ fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   result
 }
 
+///|
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   let mut lo = 0
   let mut hi = 256
@@ -181,6 +210,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
 // Point representation (Jacobian projective coordinates)
 // ---------------------------------------------------------------------------
 
+///|
 /// Jacobian projective coordinates (X, Y, Z) with x = X/Z^2, y = Y/Z^3.
 /// The point at infinity is represented as Z = 0.
 priv struct Point {
@@ -189,16 +219,19 @@ priv struct Point {
   z : @bigint.BigInt
 }
 
+///|
 /// Point at infinity (Z = 0).
 fn point_infinity() -> Point {
   { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
 }
 
+///|
 /// Check if a point is the point at infinity.
 fn is_infinity(pt : Point) -> Bool {
   @bigint.equal(pt.z, @bigint.zero())
 }
 
+///|
 /// Point doubling in Jacobian coordinates (general formula for a = 0).
 /// Since a = 0 for secp256k1, the formula simplifies:
 ///   if Y == 0: return infinity
@@ -223,11 +256,15 @@ fn point_double(pt : Point) -> Point {
   let m = fe_mul(@bigint.from_int_value(3), fe_mul(x, x))
   let x3 = fe_sub(fe_mul(m, m), fe_mul(@bigint.from_int_value(2), s))
   let y4 = fe_mul(y2, y2)
-  let y3 = fe_sub(fe_mul(m, fe_sub(s, x3)), fe_mul(@bigint.from_int_value(8), y4))
+  let y3 = fe_sub(
+    fe_mul(m, fe_sub(s, x3)),
+    fe_mul(@bigint.from_int_value(8), y4),
+  )
   let z3 = fe_mul(fe_mul(@bigint.from_int_value(2), y), z)
   { x: x3, y: y3, z: z3 }
 }
 
+///|
 /// Point addition in Jacobian coordinates.
 fn point_add(p1 : Point, p2 : Point) -> Point {
   if is_infinity(p1) {
@@ -266,14 +303,12 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
     fe_sub(fe_mul(r, r), h_3),
     fe_mul(@bigint.from_int_value(2), u1_h_2),
   )
-  let y3 = fe_sub(
-    fe_mul(r, fe_sub(u1_h_2, x3)),
-    fe_mul(s1, h_3),
-  )
+  let y3 = fe_sub(fe_mul(r, fe_sub(u1_h_2, x3)), fe_mul(s1, h_3))
   let z3 = fe_mul(fe_mul(z1, z2), h)
   { x: x3, y: y3, z: z3 }
 }
 
+///|
 /// Conditional swap for Montgomery ladder.
 fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
   if swap {
@@ -283,6 +318,7 @@ fn cswap(swap : Bool, r0 : Point, r1 : Point) -> (Point, Point) {
   }
 }
 
+///|
 /// Scalar multiplication: k * P using the Montgomery ladder.
 ///
 /// Constant-time at the algorithm level: always performs one point_add
@@ -309,6 +345,7 @@ fn scalar_mult(k : @bigint.BigInt, pt : Point) -> Point {
   r0
 }
 
+///|
 /// Convert a Jacobian point to affine coordinates.
 fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt)? {
   if is_infinity(pt) {
@@ -322,6 +359,7 @@ fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt)? {
   Some((x, y))
 }
 
+///|
 /// Generator point G in Jacobian coordinates (Z = 1).
 let generator : Point = { x: gx, y: gy, z: @bigint.one() }
 
@@ -329,6 +367,7 @@ let generator : Point = { x: gx, y: gy, z: @bigint.one() }
 // Point encoding / decoding (SEC1 format)
 // ---------------------------------------------------------------------------
 
+///|
 /// Encode a public key point as 65 bytes (uncompressed SEC1):
 /// 04 || x (32 bytes, big-endian) || y (32 bytes, big-endian)
 fn point_encode_uncompressed(pt : Point) -> Bytes {
@@ -351,6 +390,7 @@ fn point_encode_uncompressed(pt : Point) -> Bytes {
   }
 }
 
+///|
 /// Encode a public key point as 33 bytes (compressed SEC1):
 /// 02/03 || x (32 bytes, big-endian)
 /// Prefix is 02 if y is even, 03 if y is odd.
@@ -379,6 +419,7 @@ fn point_encode_compressed(pt : Point) -> Bytes {
   }
 }
 
+///|
 /// Decode a 65-byte uncompressed public key.
 fn point_decode_uncompressed(data : Bytes) -> Point? {
   if data.length() != 65 || data[0] != b'\x04' {
@@ -407,6 +448,7 @@ fn point_decode_uncompressed(data : Bytes) -> Point? {
   Some({ x, y, z: @bigint.one() })
 }
 
+///|
 /// Decode a 33-byte compressed public key.
 fn point_decode_compressed(data : Bytes) -> Point? {
   if data.length() != 33 || (data[0] != b'\x02' && data[0] != b'\x03') {
@@ -424,9 +466,10 @@ fn point_decode_compressed(data : Bytes) -> Point? {
   let x3 = fe_mul(fe_mul(x, x), x)
   let y2 = fe_add(x3, b_coeff)
   // Compute y = y2^((p+1)/4) mod p (since p ≡ 3 mod 4)
-  let exp = match @bigint.from_string(
-    "28948022309329048855892746252171976963317496166410141009864396001977208667916",
-  ) {
+  let exp = match
+    @bigint.from_string(
+      "28948022309329048855892746252171976963317496166410141009864396001977208667916",
+    ) {
     Some(v) => v
     None => return None
   }
@@ -455,6 +498,7 @@ fn point_decode_compressed(data : Bytes) -> Point? {
   }
 }
 
+///|
 /// Decode a public key (compressed or uncompressed).
 fn point_decode(data : Bytes) -> Point? {
   if data.length() == 65 {
@@ -470,10 +514,12 @@ fn point_decode(data : Bytes) -> Point? {
 // RFC 6979 deterministic nonce generation
 // ---------------------------------------------------------------------------
 
+///|
 fn bits2int(data : Bytes) -> @bigint.BigInt {
   bytes_to_bigint_be(data)
 }
 
+///|
 fn int2octets(x : @bigint.BigInt) -> Bytes {
   let z = match @bigint.divmod(x, n_order) {
     Some((_, r)) => r
@@ -482,6 +528,7 @@ fn int2octets(x : @bigint.BigInt) -> Bytes {
   bigint_to_bytes_be(z, 32)
 }
 
+///|
 fn bits2octets(data : Bytes) -> Bytes {
   let z1 = bits2int(data)
   let z2 = match @bigint.divmod(z1, n_order) {
@@ -491,15 +538,22 @@ fn bits2octets(data : Bytes) -> Bytes {
   int2octets(z2)
 }
 
+///|
 fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
   let v_init = Bytes::make(32, b'\x01')
   let k_init = Bytes::make(32, b'\x00')
   let x_bytes = int2octets(x)
   let h1_bytes = bits2octets(hash)
-  let msg_d = concat_bytes(concat_bytes(concat_bytes(v_init, bytes_single(b'\x00')), x_bytes), h1_bytes)
+  let msg_d = concat_bytes(
+    concat_bytes(concat_bytes(v_init, bytes_single(b'\x00')), x_bytes),
+    h1_bytes,
+  )
   let k1 = @hmac.hmac_sha256(k_init, msg_d)
   let v1 = @hmac.hmac_sha256(k1, v_init)
-  let msg_f = concat_bytes(concat_bytes(concat_bytes(v1, bytes_single(b'\x01')), x_bytes), h1_bytes)
+  let msg_f = concat_bytes(
+    concat_bytes(concat_bytes(v1, bytes_single(b'\x01')), x_bytes),
+    h1_bytes,
+  )
   let k2 = @hmac.hmac_sha256(k1, msg_f)
   let v2 = @hmac.hmac_sha256(k2, v1)
   let mut k_current = k2
@@ -509,10 +563,8 @@ fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
     v_current = @hmac.hmac_sha256(k_current, v_current)
     let t = v_current
     let k_candidate = bits2int(t)
-    if @bigint.compare(k_candidate, zero) > 0 && @bigint.compare(
-      k_candidate,
-      n_order,
-    ) < 0 {
+    if @bigint.compare(k_candidate, zero) > 0 &&
+      @bigint.compare(k_candidate, n_order) < 0 {
       return k_candidate
     }
     let msg_k = concat_bytes(v_current, bytes_single(b'\x00'))
@@ -522,6 +574,7 @@ fn rfc6979_generate_k(x : @bigint.BigInt, hash : Bytes) -> @bigint.BigInt {
   zero
 }
 
+///|
 fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   let result : Array[Byte] = []
   for i = 0; i < a.length(); i = i + 1 {
@@ -533,6 +586,7 @@ fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 fn bytes_single(b : Byte) -> Bytes {
   Bytes::from_array([b])
 }
@@ -658,6 +712,7 @@ pub fn verify(public_key : Bytes, message : Bytes, signature : Bytes) -> Bool {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Build a 32-byte private key with a given last byte.
 fn make_key(last_byte : Byte) -> Bytes {
   let arr : Array[Byte] = Array::make(32, b'\x00')
@@ -665,6 +720,7 @@ fn make_key(last_byte : Byte) -> Bytes {
   Bytes::from_array(arr)
 }
 
+///|
 test "secp256k1: generator is on curve" {
   // y^2 = x^3 + 7
   let lhs = fe_mul(gy, gy)
@@ -673,6 +729,7 @@ test "secp256k1: generator is on curve" {
   assert_true(@bigint.equal(lhs, rhs))
 }
 
+///|
 test "secp256k1: derive public key" {
   // Known test vector: private key = 1
   let priv_key = make_key(b'\x01')
@@ -680,15 +737,46 @@ test "secp256k1: derive public key" {
   assert_eq(pub_key.length(), 65)
   assert_eq(pub_key[0], b'\x04')
   // Public key for privkey=1 should be the generator
-  let pub_x = bytes_to_bigint_be(Bytes::from_array([
-    pub_key[1], pub_key[2], pub_key[3], pub_key[4], pub_key[5], pub_key[6], pub_key[7], pub_key[8],
-    pub_key[9], pub_key[10], pub_key[11], pub_key[12], pub_key[13], pub_key[14], pub_key[15], pub_key[16],
-    pub_key[17], pub_key[18], pub_key[19], pub_key[20], pub_key[21], pub_key[22], pub_key[23], pub_key[24],
-    pub_key[25], pub_key[26], pub_key[27], pub_key[28], pub_key[29], pub_key[30], pub_key[31], pub_key[32],
-  ]))
+  let pub_x = bytes_to_bigint_be(
+    Bytes::from_array([
+      pub_key[1],
+      pub_key[2],
+      pub_key[3],
+      pub_key[4],
+      pub_key[5],
+      pub_key[6],
+      pub_key[7],
+      pub_key[8],
+      pub_key[9],
+      pub_key[10],
+      pub_key[11],
+      pub_key[12],
+      pub_key[13],
+      pub_key[14],
+      pub_key[15],
+      pub_key[16],
+      pub_key[17],
+      pub_key[18],
+      pub_key[19],
+      pub_key[20],
+      pub_key[21],
+      pub_key[22],
+      pub_key[23],
+      pub_key[24],
+      pub_key[25],
+      pub_key[26],
+      pub_key[27],
+      pub_key[28],
+      pub_key[29],
+      pub_key[30],
+      pub_key[31],
+      pub_key[32],
+    ]),
+  )
   assert_true(@bigint.equal(pub_x, gx))
 }
 
+///|
 test "secp256k1: sign and verify" {
   // Use a known private key
   let priv_key = make_key(b'\x42') // private key = 0x42
@@ -699,6 +787,7 @@ test "secp256k1: sign and verify" {
   assert_true(verify(pub_key, message, signature))
 }
 
+///|
 test "secp256k1: verify rejects wrong message" {
   let priv_key = make_key(b'\x42')
   let pub_key = derive_public_key(priv_key)
@@ -708,6 +797,7 @@ test "secp256k1: verify rejects wrong message" {
   assert_false(verify(pub_key, wrong_message, signature))
 }
 
+///|
 test "secp256k1: verify rejects wrong key" {
   let priv_key1 = make_key(b'\x42')
   let priv_key2 = make_key(b'\x43')
@@ -717,6 +807,7 @@ test "secp256k1: verify rejects wrong key" {
   assert_false(verify(pub_key2, message, signature))
 }
 
+///|
 test "secp256k1: deterministic signing" {
   let priv_key = make_key(b'\x99')
   let message = @utils.string_to_bytes("Deterministic test")
@@ -726,6 +817,7 @@ test "secp256k1: deterministic signing" {
   assert_eq(sig1, sig2)
 }
 
+///|
 test "secp256k1: compressed public key" {
   let priv_key = make_key(b'\x01')
   let compressed = derive_public_key_compressed(priv_key)
@@ -737,12 +829,14 @@ test "secp256k1: compressed public key" {
   assert_true(verify(compressed, message, signature))
 }
 
+///|
 test "secp256k1: point at infinity for n*G" {
   // n * G should be the point at infinity
   let result = scalar_mult(n_order, generator)
   assert_true(is_infinity(result))
 }
 
+///|
 test "secp256k1: 2G = G + G" {
   let g2_double = point_double(generator)
   let g2_add = point_add(generator, generator)
@@ -758,6 +852,7 @@ test "secp256k1: 2G = G + G" {
   }
 }
 
+///|
 test "secp256k1: low-S normalisation" {
   // After BIP 62, s should be <= n/2
   let priv_key = make_key(b'\x77')

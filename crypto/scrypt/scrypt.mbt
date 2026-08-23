@@ -95,7 +95,7 @@ fn salsa20_8_core(x : FixedArray[Int]) -> Unit {
   // right shift, producing incorrect rotation for values with bit 31 set.
   fn rotl(v : Int, n : Int) -> Int {
     let vu = v.reinterpret_as_uint()
-    (((vu << n) | (vu >> (32 - n)))).reinterpret_as_int()
+    ((vu << n) | (vu >> (32 - n))).reinterpret_as_int()
   }
   // Helper: quarter round on (a, b, c, d).
   fn quarter_round(a : Int, b : Int, c : Int, d : Int) -> Unit {
@@ -168,7 +168,7 @@ fn block_mix(
   // Interleave: even blocks first, then odd blocks.
   let result : FixedArray[Int] = FixedArray::make(total_words, 0)
   for i = 0; i < r; i = i + 1 {
-    let even_src = (2 * i) * words_per_block
+    let even_src = 2 * i * words_per_block
     let odd_src = (2 * i + 1) * words_per_block
     let even_dst = i * words_per_block
     let odd_dst = (r + i) * words_per_block
@@ -224,7 +224,10 @@ fn ro_mix(
 ) -> FixedArray[Int] {
   let words_per_block = 32 * r
   // V: array of N blocks, each 32*r words.
-  let v : FixedArray[FixedArray[Int]] = FixedArray::make(n, FixedArray::make(0, 0))
+  let v : FixedArray[FixedArray[Int]] = FixedArray::make(
+    n,
+    FixedArray::make(0, 0),
+  )
   let x = FixedArray::make(words_per_block, 0)
   for i = 0; i < words_per_block; i = i + 1 {
     x[i] = b[i]
@@ -460,9 +463,7 @@ test "scrypt: RFC 7914 test vector 2" {
   let password = Bytes::from_array([
     b'\x70', b'\x61', b'\x73', b'\x73', b'\x77', b'\x6f', b'\x72', b'\x64',
   ])
-  let salt = Bytes::from_array([
-    b'\x4e', b'\x61', b'\x43', b'\x6c',
-  ])
+  let salt = Bytes::from_array([b'\x4e', b'\x61', b'\x43', b'\x6c'])
   let result = scrypt(password, salt, 1024, 8, 16, 64)
   assert_true(result is Some(_))
   let dk = result.unwrap()
@@ -523,27 +524,41 @@ test "scrypt: invalid parameters return None" {
 test "scrypt: checked function rejects weak parameters" {
   let pw = Bytes::from_array([b'\x70'])
   // Short salt
-  assert_true(scrypt_checked(pw, Bytes::from_array(Array::make(8, b'\x42')), 16, 1, 1, 32) is None)
+  assert_true(
+    scrypt_checked(pw, Bytes::from_array(Array::make(8, b'\x42')), 16, 1, 1, 32)
+    is None,
+  )
   // Short output
-  assert_true(scrypt_checked(pw, Bytes::from_array(Array::make(16, b'\x42')), 16, 1, 1, 8) is None)
+  assert_true(
+    scrypt_checked(pw, Bytes::from_array(Array::make(16, b'\x42')), 16, 1, 1, 8)
+    is None,
+  )
   // Empty password
-  assert_true(scrypt_checked(Bytes::from_array([]), Bytes::from_array(Array::make(16, b'\x42')), 16, 1, 1, 32) is None)
+  assert_true(
+    scrypt_checked(
+      Bytes::from_array([]),
+      Bytes::from_array(Array::make(16, b'\x42')),
+      16,
+      1,
+      1,
+      32,
+    )
+    is None,
+  )
 }
 
 ///|
 test "scrypt: salsa20/8 core is deterministic" {
   // Verify Salsa20/8 core produces deterministic output.
   let x1 : FixedArray[Int] = FixedArray::from_array([
-    0x76657469, 0x6d612e67, 0x6e696e65, 0x6c656172,
-    0x44206f66, 0x2070656f, 0x6c652073, 0x6b696e67,
-    0x73206f74, 0x68656172, 0x20746865, 0x6d757369,
-    0x63206f66, 0x4a6f686e, 0x20506172, 0x6b657220,
+    0x76657469, 0x6d612e67, 0x6e696e65, 0x6c656172, 0x44206f66, 0x2070656f, 0x6c652073,
+    0x6b696e67, 0x73206f74, 0x68656172, 0x20746865, 0x6d757369, 0x63206f66, 0x4a6f686e,
+    0x20506172, 0x6b657220,
   ])
   let x2 : FixedArray[Int] = FixedArray::from_array([
-    0x76657469, 0x6d612e67, 0x6e696e65, 0x6c656172,
-    0x44206f66, 0x2070656f, 0x6c652073, 0x6b696e67,
-    0x73206f74, 0x68656172, 0x20746865, 0x6d757369,
-    0x63206f66, 0x4a6f686e, 0x20506172, 0x6b657220,
+    0x76657469, 0x6d612e67, 0x6e696e65, 0x6c656172, 0x44206f66, 0x2070656f, 0x6c652073,
+    0x6b696e67, 0x73206f74, 0x68656172, 0x20746865, 0x6d757369, 0x63206f66, 0x4a6f686e,
+    0x20506172, 0x6b657220,
   ])
   salsa20_8_core(x1)
   salsa20_8_core(x2)

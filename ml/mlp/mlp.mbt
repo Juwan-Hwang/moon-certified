@@ -139,20 +139,24 @@ priv struct Rng {
   mut state : Int
 }
 
+///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn Rng::next(self : Rng) -> Int {
   self.state = (self.state * 1103515245 + 12345) & 0x7FFFFFFF
   self.state
 }
 
+///|
 fn Rng::next_double(self : Rng) -> Double {
   self.next().to_double() / 2147483648.0
 }
 
+///|
 fn Rng::next_int(self : Rng, bound : Int) -> Int {
   if bound <= 0 {
     0
@@ -173,7 +177,7 @@ fn Rng::next_int(self : Rng, bound : Int) -> Int {
 ///|
 /// Optimizer type for MLP training.
 pub enum OptimizerType {
-  SGD  // Stochastic Gradient Descent
+  SGD // Stochastic Gradient Descent
   Adam // Adaptive Moment Estimation
 } derive(Eq, Debug)
 
@@ -224,12 +228,9 @@ fn init_weights(mlp : MLP) -> Unit {
     let n_in = mlp.layers[l]
     let n_out = mlp.layers[l + 1]
     let scale = (2.0 / n_in.to_double()).sqrt()
-    let w : Array[Array[Double]] = Array::makei(
-      n_out,
-      fn(_i) {
-        Array::makei(n_in, fn(_j) { (rng.next_double() * 2.0 - 1.0) * scale })
-      },
-    )
+    let w : Array[Array[Double]] = Array::makei(n_out, fn(_i) {
+      Array::makei(n_in, fn(_j) { (rng.next_double() * 2.0 - 1.0) * scale })
+    })
     mlp.weights.push(w)
     mlp.biases.push(Array::make(n_out, 0.0))
   }
@@ -254,9 +255,21 @@ pub fn new_regression(
     weights: [],
     biases: [],
     layers: Array::copy(layers),
-    lr: if lr > 0.0 { lr } else { 0.01 },
-    epochs: if epochs > 0 { epochs } else { 100 },
-    batch_size: if batch_size > 0 { batch_size } else { 1 },
+    lr: if lr > 0.0 {
+      lr
+    } else {
+      0.01
+    },
+    epochs: if epochs > 0 {
+      epochs
+    } else {
+      100
+    },
+    batch_size: if batch_size > 0 {
+      batch_size
+    } else {
+      1
+    },
     is_classifier: false,
     hidden_is_relu: true,
     seed,
@@ -293,9 +306,21 @@ pub fn new_classifier(
     weights: [],
     biases: [],
     layers: Array::copy(layers),
-    lr: if lr > 0.0 { lr } else { 0.01 },
-    epochs: if epochs > 0 { epochs } else { 100 },
-    batch_size: if batch_size > 0 { batch_size } else { 1 },
+    lr: if lr > 0.0 {
+      lr
+    } else {
+      0.01
+    },
+    epochs: if epochs > 0 {
+      epochs
+    } else {
+      100
+    },
+    batch_size: if batch_size > 0 {
+      batch_size
+    } else {
+      1
+    },
     is_classifier: true,
     hidden_is_relu: true,
     seed,
@@ -372,32 +397,14 @@ pub fn set_dropout(mlp : MLP, rate : Double) -> Unit {
 /// Initialise Adam moment arrays to match current weights/biases.
 fn init_adam_state(mlp : MLP) -> Unit {
   let nl = n_weight_layers(mlp)
-  mlp.m_w = Array::makei(
-    nl,
-    fn(l) {
-      Array::makei(
-        mlp.layers[l + 1],
-        fn(_i) { Array::make(mlp.layers[l], 0.0) },
-      )
-    },
-  )
-  mlp.v_w = Array::makei(
-    nl,
-    fn(l) {
-      Array::makei(
-        mlp.layers[l + 1],
-        fn(_i) { Array::make(mlp.layers[l], 0.0) },
-      )
-    },
-  )
-  mlp.m_b = Array::makei(
-    nl,
-    fn(l) { Array::make(mlp.layers[l + 1], 0.0) },
-  )
-  mlp.v_b = Array::makei(
-    nl,
-    fn(l) { Array::make(mlp.layers[l + 1], 0.0) },
-  )
+  mlp.m_w = Array::makei(nl, fn(l) {
+    Array::makei(mlp.layers[l + 1], fn(_i) { Array::make(mlp.layers[l], 0.0) })
+  })
+  mlp.v_w = Array::makei(nl, fn(l) {
+    Array::makei(mlp.layers[l + 1], fn(_i) { Array::make(mlp.layers[l], 0.0) })
+  })
+  mlp.m_b = Array::makei(nl, fn(l) { Array::make(mlp.layers[l + 1], 0.0) })
+  mlp.v_b = Array::makei(nl, fn(l) { Array::make(mlp.layers[l + 1], 0.0) })
   mlp.adam_t = 0
 }
 
@@ -574,16 +581,12 @@ fn zero_grads(
   layers : Array[Int],
 ) -> (Array[Array[Array[Double]]], Array[Array[Double]]) {
   let nl = layers.length() - 1
-  let gw : Array[Array[Array[Double]]] = Array::makei(
-    nl,
-    fn(li) {
-      Array::makei(layers[li + 1], fn(_i) { Array::make(layers[li], 0.0) })
-    },
-  )
-  let gb : Array[Array[Double]] = Array::makei(
-    nl,
-    fn(li) { Array::make(layers[li + 1], 0.0) },
-  )
+  let gw : Array[Array[Array[Double]]] = Array::makei(nl, fn(li) {
+    Array::makei(layers[li + 1], fn(_i) { Array::make(layers[li], 0.0) })
+  })
+  let gb : Array[Array[Double]] = Array::makei(nl, fn(li) {
+    Array::make(layers[li + 1], 0.0)
+  })
   (gw, gb)
 }
 
@@ -638,7 +641,7 @@ pub fn fit(
       }
       // Parameter update
       match mlp.optimizer {
-        SGD => {
+        SGD =>
           for l = 0; l < nl; l = l + 1 {
             let n_out = mlp.layers[l + 1]
             let n_in = mlp.layers[l]
@@ -650,7 +653,6 @@ pub fn fit(
               mlp.biases[l][i] = mlp.biases[l][i] - mlp.lr * grad_b[l][i] / bs
             }
           }
-        }
         Adam => {
           mlp.adam_t = mlp.adam_t + 1
           let t_dbl = mlp.adam_t.to_double()
@@ -674,7 +676,8 @@ pub fn fit(
               }
               let gb = grad_b[l][i] / bs
               mlp.m_b[l][i] = mlp.beta1 * mlp.m_b[l][i] + (1.0 - mlp.beta1) * gb
-              mlp.v_b[l][i] = mlp.beta2 * mlp.v_b[l][i] + (1.0 - mlp.beta2) * gb * gb
+              mlp.v_b[l][i] = mlp.beta2 * mlp.v_b[l][i] +
+                (1.0 - mlp.beta2) * gb * gb
               let m_hat_b = mlp.m_b[l][i] / bc1
               let v_hat_b = mlp.v_b[l][i] / bc2
               mlp.biases[l][i] = mlp.biases[l][i] -
@@ -704,10 +707,9 @@ pub fn fit_classifier(
     return
   }
   let n_out = mlp.layers[mlp.layers.length() - 1]
-  let targets : Array[Array[Double]] = Array::makei(
-    n,
-    fn(_i) { Array::make(n_out, 0.0) },
-  )
+  let targets : Array[Array[Double]] = Array::makei(n, fn(_i) {
+    Array::make(n_out, 0.0)
+  })
   for i = 0; i < n; i = i + 1 {
     if n_out == 1 {
       targets[i][0] = y[i].to_double()
@@ -831,7 +833,10 @@ pub fn cross_entropy_loss(
 test "mlp: XOR with ReLU hidden" {
   let mlp = new_classifier([2, 16, 1], 0.3, 3000, 4, 7)
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)
@@ -846,7 +851,10 @@ test "mlp: XOR with sigmoid hidden" {
   let mlp = new_classifier([2, 8, 1], 0.5, 4000, 4, 123)
   set_hidden_sigmoid(mlp)
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)
@@ -956,7 +964,10 @@ test "mlp: Adam optimizer converges on XOR" {
   let mlp = new_classifier([2, 16, 1], 0.01, 500, 4, 42)
   set_optimizer_adam(mlp)
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)
@@ -999,7 +1010,10 @@ test "mlp: Adam with custom hyperparameters" {
   let mlp = new_classifier([2, 12, 1], 0.005, 800, 4, 333)
   set_optimizer_adam_custom(mlp, 0.9, 0.999, 1.0e-8)
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)
@@ -1013,7 +1027,10 @@ test "mlp: dropout does not break training" {
   set_optimizer_adam(mlp)
   set_dropout(mlp, 0.3) // 30% dropout
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)
@@ -1068,7 +1085,10 @@ test "mlp: SGD still works (backward compat)" {
   let mlp = new_classifier([2, 16, 1], 0.3, 3000, 4, 7)
   // Default optimizer is SGD, no need to call set_optimizer_sgd
   let x : Array[Array[Double]] = [
-    [0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0],
   ]
   let y = [0, 1, 1, 0]
   fit_classifier(mlp, x, y)

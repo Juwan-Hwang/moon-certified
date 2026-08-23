@@ -178,12 +178,18 @@ test "logistic_regression: multi-feature classification" {
   // 2-feature linearly separable: class 1 when x0 + x1 > 5
   let x_data : Array[Array[Double]] = []
   let y_labels : Array[Int] = []
-  x_data.push([1.0, 1.0]); y_labels.push(0)
-  x_data.push([2.0, 2.0]); y_labels.push(0)
-  x_data.push([3.0, 2.0]); y_labels.push(0)
-  x_data.push([4.0, 3.0]); y_labels.push(1)
-  x_data.push([5.0, 4.0]); y_labels.push(1)
-  x_data.push([6.0, 5.0]); y_labels.push(1)
+  x_data.push([1.0, 1.0])
+  y_labels.push(0)
+  x_data.push([2.0, 2.0])
+  y_labels.push(0)
+  x_data.push([3.0, 2.0])
+  y_labels.push(0)
+  x_data.push([4.0, 3.0])
+  y_labels.push(1)
+  x_data.push([5.0, 4.0])
+  y_labels.push(1)
+  x_data.push([6.0, 5.0])
+  y_labels.push(1)
   fit(model, x_data, y_labels)
   assert_eq(predict(model, [1.0, 1.0]), 0)
   assert_eq(predict(model, [6.0, 5.0]), 1)
@@ -194,8 +200,10 @@ test "logistic_regression: weights and bias accessible" {
   let model = new(0.1, 50)
   let x_data : Array[Array[Double]] = []
   let y_labels : Array[Int] = []
-  x_data.push([1.0]); y_labels.push(0)
-  x_data.push([2.0]); y_labels.push(1)
+  x_data.push([1.0])
+  y_labels.push(0)
+  x_data.push([2.0])
+  y_labels.push(1)
   fit(model, x_data, y_labels)
   let w = get_weights(model)
   assert_true(w.length() == 1)
@@ -208,8 +216,10 @@ test "logistic_regression: deterministic training" {
     let model = new(0.1, 100)
     let x_data : Array[Array[Double]] = []
     let y_labels : Array[Int] = []
-    x_data.push([0.0]); y_labels.push(0)
-    x_data.push([1.0]); y_labels.push(1)
+    x_data.push([0.0])
+    y_labels.push(0)
+    x_data.push([1.0])
+    y_labels.push(1)
     fit(model, x_data, y_labels)
     predict(model, [0.5])
   }

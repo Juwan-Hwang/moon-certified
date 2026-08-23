@@ -86,7 +86,7 @@ pub fn next_int(x : Xoshiro256, n : Int) -> Int {
   // Rejection sampling: threshold = largest multiple of n ≤ 2³².
   let nu = n.to_uint64()
   let range = 4294967296UL // 2³²
-  let threshold = (range / nu) * nu
+  let threshold = range / nu * nu
   let mut ok = false
   let mut result = 0
   while !ok {

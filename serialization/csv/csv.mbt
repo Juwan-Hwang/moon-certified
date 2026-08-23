@@ -152,7 +152,8 @@ pub fn parse(input : String, config : CsvConfig) -> Array[CsvRow] {
     }
   }
   // Handle the last field/row if there's no trailing newline.
-  if field_started || current_field.to_string().length() > 0 ||
+  if field_started ||
+    current_field.to_string().length() > 0 ||
     current_row.length() > 0 {
     current_row.push(current_field.to_string())
     rows.push(Array::copy(current_row))
@@ -323,10 +324,7 @@ test "csv: parse empty input" {
 ///|
 test "csv: write simple" {
   let config = default_config()
-  let rows : Array[CsvRow] = [
-    ["a", "b", "c"],
-    ["1", "2", "3"],
-  ]
+  let rows : Array[CsvRow] = [["a", "b", "c"], ["1", "2", "3"]]
   let result = write(rows, config)
   assert_eq(result, "a,b,c\r\n1,2,3")
 }
@@ -334,9 +332,7 @@ test "csv: write simple" {
 ///|
 test "csv: write quoted fields" {
   let config = default_config()
-  let rows : Array[CsvRow] = [
-    ["hello, world", "foo"],
-  ]
+  let rows : Array[CsvRow] = [["hello, world", "foo"]]
   let result = write(rows, config)
   assert_eq(result, "\"hello, world\",foo")
 }
@@ -344,9 +340,7 @@ test "csv: write quoted fields" {
 ///|
 test "csv: write escaped quotes" {
   let config = default_config()
-  let rows : Array[CsvRow] = [
-    ["She said \"hi\"", "ok"],
-  ]
+  let rows : Array[CsvRow] = [["She said \"hi\"", "ok"]]
   let result = write(rows, config)
   assert_eq(result, "\"She said \"\"hi\"\"\",ok")
 }
@@ -354,9 +348,7 @@ test "csv: write escaped quotes" {
 ///|
 test "csv: write with embedded newline" {
   let config = default_config()
-  let rows : Array[CsvRow] = [
-    ["line1\nline2", "x"],
-  ]
+  let rows : Array[CsvRow] = [["line1\nline2", "x"]]
   let result = write(rows, config)
   assert_eq(result, "\"line1\nline2\",x")
 }
@@ -386,10 +378,7 @@ test "csv: round-trip complex data" {
 test "csv: write with header" {
   let config = default_config()
   let header : CsvRow = ["name", "age"]
-  let rows : Array[CsvRow] = [
-    ["Alice", "30"],
-    ["Bob", "25"],
-  ]
+  let rows : Array[CsvRow] = [["Alice", "30"], ["Bob", "25"]]
   let result = write_with_header(header, rows, config)
   assert_eq(result, "name,age\r\nAlice,30\r\nBob,25")
 }
@@ -397,10 +386,7 @@ test "csv: write with header" {
 ///|
 test "csv: TSV round-trip" {
   let config = tsv_config()
-  let rows : Array[CsvRow] = [
-    ["a", "b\tc", "d"],
-    ["1", "2", "3"],
-  ]
+  let rows : Array[CsvRow] = [["a", "b\tc", "d"], ["1", "2", "3"]]
   let tsv_str = write(rows, config)
   let parsed = parse(tsv_str, config)
   assert_eq(parsed.length(), 2)
@@ -421,10 +407,7 @@ test "csv: single column" {
 ///|
 test "csv: round-trip empty fields and rows" {
   let config = default_config()
-  let rows : Array[CsvRow] = [
-    ["", "a", ""],
-    ["b", "", "c"],
-  ]
+  let rows : Array[CsvRow] = [["", "a", ""], ["b", "", "c"]]
   let csv_str = write(rows, config)
   let parsed = parse(csv_str, config)
   assert_eq(parsed.length(), 2)

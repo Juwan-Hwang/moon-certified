@@ -285,11 +285,7 @@ test "k_shortest_paths: multiple equal-weight paths" {
 
 ///|
 test "k_shortest_paths: k larger than available paths" {
-  let adj : Array[Array[KEdge]] = [
-    [k_edge(1, 5)],
-    [k_edge(2, 3)],
-    [],
-  ]
+  let adj : Array[Array[KEdge]] = [[k_edge(1, 5)], [k_edge(2, 3)], []]
   let paths = k_shortest_paths(3, adj, 0, 2, 10)
   assert_true(paths.length() <= 10)
   assert_true(paths.length() >= 1)
@@ -298,10 +294,7 @@ test "k_shortest_paths: k larger than available paths" {
 
 ///|
 test "k_shortest_paths: self-loop source" {
-  let adj : Array[Array[KEdge]] = [
-    [k_edge(0, 1), k_edge(1, 5)],
-    [],
-  ]
+  let adj : Array[Array[KEdge]] = [[k_edge(0, 1), k_edge(1, 5)], []]
   let paths = k_shortest_paths(2, adj, 0, 1, 1)
   assert_eq(paths.length(), 1)
   assert_eq(paths[0].0, 5)

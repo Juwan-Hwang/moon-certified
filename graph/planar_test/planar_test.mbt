@@ -130,7 +130,7 @@ fn find_pieces(
   n : Int,
   adj : Array[Array[Int]],
   embedded : Map[(Int, Int), Unit],
-  boundary_vertices : Map[Int, Unit]
+  boundary_vertices : Map[Int, Unit],
 ) -> Array[Piece] {
   let visited = Array::make(n, false)
   let pieces : Array[Piece] = []
@@ -174,11 +174,9 @@ fn find_pieces(
             if u < v {
               comp_edges.push((u, v))
             }
-          } else {
             // Both endpoints already in component — edge within piece.
-            if u < v {
-              comp_edges.push((u, v))
-            }
+          } else if u < v {
+            comp_edges.push((u, v))
           }
           if !visited[v] {
             visited[v] = true
@@ -239,7 +237,7 @@ fn find_path_in_piece(
   start : Int,
   end : Int,
   adj : Array[Array[Int]],
-  embedded : Map[(Int, Int), Unit]
+  embedded : Map[(Int, Int), Unit],
 ) -> Array[Int]? raise Failure {
   let in_piece = piece.vertices
   let visited : Map[Int, Unit] = Map([])
@@ -291,7 +289,10 @@ fn find_path_in_piece(
 ///
 /// face1 = path + face_boundary_forward(end → start, exclusive both)
 /// face2 = [start] + face_boundary_forward(start → end, exclusive both) + [end] + reversed_path_internal
-fn split_face(face : Array[Int], path : Array[Int]) -> (Array[Int], Array[Int]) raise Failure {
+fn split_face(
+  face : Array[Int],
+  path : Array[Int],
+) -> (Array[Int], Array[Int]) raise Failure {
   let start = path[0]
   let endp = path[path.length() - 1]
   // Find positions of start and end on the face boundary.
@@ -350,7 +351,7 @@ fn split_face(face : Array[Int], path : Array[Int]) -> (Array[Int], Array[Int]) 
 /// Returns an array of components, each being a list of vertex indices.
 fn find_connected_components(
   n : Int,
-  adj : Array[Array[Int]]
+  adj : Array[Array[Int]],
 ) -> Array[Array[Int]] {
   let visited = Array::make(n, false)
   let components : Array[Array[Int]] = []
@@ -388,10 +389,7 @@ fn find_connected_components(
 ///
 /// The component is described by its adjacency list (using original vertex
 /// indices). We find a cycle within the component and run the DMP loop.
-fn dmp_connected(
-  n : Int,
-  adj : Array[Array[Int]]
-) -> Bool raise Failure {
+fn dmp_connected(n : Int, adj : Array[Array[Int]]) -> Bool raise Failure {
   // Necessary condition: E <= 3V - 6 (for V >= 3)
   let m = {
     let mut count = 0
@@ -476,13 +474,14 @@ fn dmp_connected(
     let mut path_found = false
     for i = 0; i < piece.attachments.length() && !path_found; i = i + 1 {
       for j = i + 1; j < piece.attachments.length() && !path_found; j = j + 1 {
-        match find_path_in_piece(
-          piece,
-          piece.attachments[i],
-          piece.attachments[j],
-          adj,
-          embedded
-        ) {
+        match
+          find_path_in_piece(
+            piece,
+            piece.attachments[i],
+            piece.attachments[j],
+            adj,
+            embedded,
+          ) {
           Some(path) => {
             // Embed the path edges.
             for k = 0; k < path.length() - 1; k = k + 1 {
@@ -591,127 +590,210 @@ pub fn is_planar(n : Int, edges : Array[(Int, Int)]) -> Bool raise Failure {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "planar_test: K4 is planar" {
   let edges = [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
   assert_true(is_planar(4, edges))
 }
 
+///|
 test "planar_test: K5 is not planar" {
   let edges = [
-    (0, 1), (0, 2), (0, 3), (0, 4),
-    (1, 2), (1, 3), (1, 4),
-    (2, 3), (2, 4),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (2, 3),
+    (2, 4),
     (3, 4),
   ]
   assert_false(is_planar(5, edges))
 }
 
+///|
 test "planar_test: K3,3 is not planar" {
   let edges = [
-    (0, 3), (0, 4), (0, 5),
-    (1, 3), (1, 4), (1, 5),
-    (2, 3), (2, 4), (2, 5),
+    (0, 3),
+    (0, 4),
+    (0, 5),
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (2, 3),
+    (2, 4),
+    (2, 5),
   ]
   assert_false(is_planar(6, edges))
 }
 
+///|
 test "planar_test: tree is planar" {
   let edges = [(0, 1), (1, 2), (1, 3), (0, 4), (4, 5)]
   assert_true(is_planar(6, edges))
 }
 
+///|
 test "planar_test: cycle is planar" {
   let edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 0)]
   assert_true(is_planar(5, edges))
 }
 
+///|
 test "planar_test: single edge" {
   assert_true(is_planar(2, [(0, 1)]))
 }
 
+///|
 test "planar_test: too many edges" {
   // 7 nodes, 16 edges: 3*7-6=15, so 16 > 15 => not planar
   let edges = [
-    (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6),
-    (1, 2), (1, 3), (1, 4), (1, 5),
-    (2, 3), (2, 4), (2, 5),
-    (3, 4), (3, 5),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (0, 5),
+    (0, 6),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (2, 3),
+    (2, 4),
+    (2, 5),
+    (3, 4),
+    (3, 5),
     (4, 5),
   ]
   assert_false(is_planar(7, edges))
 }
 
+///|
 test "planar_test: K5 subdivision is not planar" {
   // K5 with one edge (0-1) replaced by path 0-5-1.
   // This is a subdivision of K5, so it's non-planar.
   // The old subgraph check would miss this because there's no K5 subgraph.
   let edges = [
-    (0, 5), (5, 1), // path replacing edge 0-1
-    (0, 2), (0, 3), (0, 4),
-    (1, 2), (1, 3), (1, 4),
-    (2, 3), (2, 4),
+    (0, 5),
+    (5, 1), // path replacing edge 0-1
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (2, 3),
+    (2, 4),
     (3, 4),
   ]
   assert_false(is_planar(6, edges))
 }
 
+///|
 test "planar_test: K3,3 subdivision is not planar" {
   // K3,3 with one edge (0-3) replaced by path 0-6-3.
   // This is a subdivision of K3,3, so it's non-planar.
   let edges = [
-    (0, 6), (6, 3), // path replacing edge 0-3
-    (0, 4), (0, 5),
-    (1, 3), (1, 4), (1, 5),
-    (2, 3), (2, 4), (2, 5),
+    (0, 6),
+    (6, 3), // path replacing edge 0-3
+    (0, 4),
+    (0, 5),
+    (1, 3),
+    (1, 4),
+    (1, 5),
+    (2, 3),
+    (2, 4),
+    (2, 5),
   ]
   assert_false(is_planar(7, edges))
 }
 
+///|
 test "planar_test: planar graph with degree-2 vertices" {
   // A square with a diagonal, plus some degree-2 vertices on edges.
   // This is planar.
   let edges = [
-    (0, 1), (1, 2), (2, 3), (3, 0), // square
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 0), // square
     (0, 2), // diagonal
-    (1, 4), (4, 3), // path from 1 to 3 via 4
+    (1, 4),
+    (4, 3), // path from 1 to 3 via 4
   ]
   assert_true(is_planar(5, edges))
 }
 
+///|
 test "planar_test: Petersen graph is not planar" {
   // Petersen graph: 10 vertices, 15 edges, non-planar.
   let edges = [
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 0), // outer cycle
-    (0, 5), (1, 6), (2, 7), (3, 8), (4, 9), // spokes
-    (5, 7), (7, 9), (9, 6), (6, 8), (8, 5), // inner pentagram
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 0), // outer cycle
+    (0, 5),
+    (1, 6),
+    (2, 7),
+    (3, 8),
+    (4, 9), // spokes
+    (5, 7),
+    (7, 9),
+    (9, 6),
+    (6, 8),
+    (8, 5), // inner pentagram
   ]
   assert_false(is_planar(10, edges))
 }
 
+///|
 test "planar_test: triangular prism is planar" {
   // Triangular prism: 6 vertices, 9 edges, planar.
   let edges = [
-    (0, 1), (1, 2), (2, 0), // top triangle
-    (3, 4), (4, 5), (5, 3), // bottom triangle
-    (0, 3), (1, 4), (2, 5), // vertical edges
+    (0, 1),
+    (1, 2),
+    (2, 0), // top triangle
+    (3, 4),
+    (4, 5),
+    (5, 3), // bottom triangle
+    (0, 3),
+    (1, 4),
+    (2, 5), // vertical edges
   ]
   assert_true(is_planar(6, edges))
 }
 
+///|
 test "planar_test: disconnected planar graph" {
   let edges = [
-    (0, 1), (1, 2), (2, 0), // triangle
-    (3, 4), (4, 5), (5, 3), // another triangle
+    (0, 1),
+    (1, 2),
+    (2, 0), // triangle
+    (3, 4),
+    (4, 5),
+    (5, 3), // another triangle
   ]
   assert_true(is_planar(6, edges))
 }
 
+///|
 test "planar_test: disconnected with non-planar component" {
   let edges = [
-    (0, 1), (1, 2), (2, 0), // triangle (planar)
-    (3, 4), (3, 5), (3, 6), (3, 7), // K5 part 1
-    (4, 5), (4, 6), (4, 7),
-    (5, 6), (5, 7),
+    (0, 1),
+    (1, 2),
+    (2, 0), // triangle (planar)
+    (3, 4),
+    (3, 5),
+    (3, 6),
+    (3, 7), // K5 part 1
+    (4, 5),
+    (4, 6),
+    (4, 7),
+    (5, 6),
+    (5, 7),
     (6, 7),
   ]
   assert_false(is_planar(8, edges))

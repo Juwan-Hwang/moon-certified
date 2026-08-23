@@ -191,9 +191,8 @@ fn one_level(
       }
       // Find best community: maximize k_{i,C} − γ · σ_tot,C · k_i / (2m).
       let mut best_comm = old_comm
-      let mut best_gain = k_ic[old_comm] - resolution * sigma_tot[old_comm] *
-        ki /
-        two_m
+      let mut best_gain = k_ic[old_comm] -
+        resolution * sigma_tot[old_comm] * ki / two_m
       for t = 0; t < touched.length(); t = t + 1 {
         let c = touched[t]
         if c == old_comm {
@@ -322,7 +321,13 @@ fn aggregate(
     }
     new_degree[i] = d
   }
-  { n: num_comm, adj: new_adj, self_loop: new_self_loop, m: total_weight, degree: new_degree }
+  {
+    n: num_comm,
+    adj: new_adj,
+    self_loop: new_self_loop,
+    m: total_weight,
+    degree: new_degree,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -468,7 +473,12 @@ pub fn louvain(
   let mod = compute_modularity(original_graph, mapping, resolution)
   // Count distinct communities.
   let (final_comm, num_comm) = renumber(mapping)
-  { communities: final_comm, num_communities: num_comm, modularity: mod, levels }
+  {
+    communities: final_comm,
+    num_communities: num_comm,
+    modularity: mod,
+    levels,
+  }
 }
 
 ///|
@@ -522,6 +532,7 @@ fn unweighted(pairs : Array[(Int, Int)]) -> Array[(Int, Int, Double)] {
   result
 }
 
+///|
 test "louvain: empty graph" {
   let result = louvain_default(0, [])
   assert_eq(result.communities.length(), 0)
@@ -529,12 +540,14 @@ test "louvain: empty graph" {
   assert_true(result.modularity == 0.0)
 }
 
+///|
 test "louvain: single node" {
   let result = louvain_default(1, [])
   assert_eq(result.communities, [0])
   assert_eq(result.num_communities, 1)
 }
 
+///|
 test "louvain: two disconnected nodes" {
   let result = louvain_default(2, [])
   assert_eq(result.num_communities, 2)
@@ -542,12 +555,14 @@ test "louvain: two disconnected nodes" {
   assert_eq(result.communities[1], 1)
 }
 
+///|
 test "louvain: two connected nodes" {
   let result = louvain_default(2, [(0, 1, 1.0)])
   assert_eq(result.num_communities, 1)
   assert_eq(result.communities[0], result.communities[1])
 }
 
+///|
 test "louvain: triangle is one community" {
   let edges = unweighted([(0, 1), (1, 2), (0, 2)])
   let result = louvain_default(3, edges)
@@ -556,11 +571,16 @@ test "louvain: triangle is one community" {
   assert_eq(result.communities[1], result.communities[2])
 }
 
+///|
 test "louvain: two triangles connected by bridge" {
   // Triangle A: 0-1-2, Triangle B: 3-4-5, Bridge: 2-3
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2), // Triangle A
-    (3, 4), (4, 5), (3, 5), // Triangle B
+    (0, 1),
+    (1, 2),
+    (0, 2), // Triangle A
+    (3, 4),
+    (4, 5),
+    (3, 5), // Triangle B
     (2, 3), // Bridge
   ])
   let result = louvain_default(6, edges)
@@ -576,11 +596,16 @@ test "louvain: two triangles connected by bridge" {
   assert_true(result.communities[0] != result.communities[3])
 }
 
+///|
 test "louvain: two triangles with strong internal weights" {
   // Same structure but internal edges have weight 5, bridge weight 1
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 5.0), (1, 2, 5.0), (0, 2, 5.0),
-    (3, 4, 5.0), (4, 5, 5.0), (3, 5, 5.0),
+    (0, 1, 5.0),
+    (1, 2, 5.0),
+    (0, 2, 5.0),
+    (3, 4, 5.0),
+    (4, 5, 5.0),
+    (3, 5, 5.0),
     (2, 3, 1.0),
   ]
   let result = louvain_default(6, edges)
@@ -594,12 +619,19 @@ test "louvain: two triangles with strong internal weights" {
   assert_true(result.modularity > 0.3)
 }
 
+///|
 test "louvain: complete graph is one community" {
   // K5: complete graph on 5 nodes
   let edges = unweighted([
-    (0, 1), (0, 2), (0, 3), (0, 4),
-    (1, 2), (1, 3), (1, 4),
-    (2, 3), (2, 4),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (1, 2),
+    (1, 3),
+    (1, 4),
+    (2, 3),
+    (2, 4),
     (3, 4),
   ])
   let result = louvain_default(5, edges)
@@ -609,11 +641,18 @@ test "louvain: complete graph is one community" {
   }
 }
 
+///|
 test "louvain: ring graph" {
   // 8-node ring: 0-1-2-3-4-5-6-7-0
   let edges = unweighted([
-    (0, 1), (1, 2), (2, 3), (3, 4),
-    (4, 5), (5, 6), (6, 7), (7, 0),
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (5, 6),
+    (6, 7),
+    (7, 0),
   ])
   let result = louvain_default(8, edges)
   // A ring has weak community structure; Louvain should still find
@@ -622,24 +661,28 @@ test "louvain: ring graph" {
   assert_true(result.num_communities >= 1)
 }
 
+///|
 test "louvain: star graph" {
   // Star: center 0 connected to 1..6
-  let edges = unweighted([
-    (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6),
-  ])
+  let edges = unweighted([(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6)])
   let result = louvain_default(7, edges)
   // Star has no community structure; modularity should be near 0 or negative.
   assert_true(result.num_communities >= 1)
 }
 
+///|
 test "louvain: weighted graph" {
   // Two communities with weighted edges
   // Community A: 0-1 (weight 10), 1-2 (weight 10), 0-2 (weight 10)
   // Community B: 3-4 (weight 10), 4-5 (weight 10), 3-5 (weight 10)
   // Bridge: 2-3 (weight 1)
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 10.0), (1, 2, 10.0), (0, 2, 10.0),
-    (3, 4, 10.0), (4, 5, 10.0), (3, 5, 10.0),
+    (0, 1, 10.0),
+    (1, 2, 10.0),
+    (0, 2, 10.0),
+    (3, 4, 10.0),
+    (4, 5, 10.0),
+    (3, 5, 10.0),
     (2, 3, 1.0),
   ]
   let result = louvain_default(6, edges)
@@ -651,13 +694,18 @@ test "louvain: weighted graph" {
   assert_true(result.communities[0] != result.communities[3])
 }
 
+///|
 test "louvain: self-loop" {
   // Node with self-loop plus two connected triangles.
   // Self-loop weight is modest (1.0) to avoid dominating the degree.
   let edges : Array[(Int, Int, Double)] = [
     (0, 0, 1.0), // self-loop on node 0
-    (0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0), // triangle 0-1-2
-    (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0), // triangle 3-4-5
+    (0, 1, 1.0),
+    (1, 2, 1.0),
+    (0, 2, 1.0), // triangle 0-1-2
+    (3, 4, 1.0),
+    (4, 5, 1.0),
+    (3, 5, 1.0), // triangle 3-4-5
     (2, 3, 1.0), // bridge
   ]
   let result = louvain_default(6, edges)
@@ -669,10 +717,15 @@ test "louvain: self-loop" {
   assert_true(result.communities[0] != result.communities[3])
 }
 
+///|
 test "louvain: determinism" {
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2),
-    (3, 4), (4, 5), (3, 5),
+    (0, 1),
+    (1, 2),
+    (0, 2),
+    (3, 4),
+    (4, 5),
+    (3, 5),
     (2, 3),
   ])
   let r1 = louvain_default(6, edges)
@@ -684,11 +737,16 @@ test "louvain: determinism" {
   }
 }
 
+///|
 test "louvain: modularity computation" {
   // Two triangles connected by bridge
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2),
-    (3, 4), (4, 5), (3, 5),
+    (0, 1),
+    (1, 2),
+    (0, 2),
+    (3, 4),
+    (4, 5),
+    (3, 5),
     (2, 3),
   ])
   // Correct partition: {0,1,2} and {3,4,5}
@@ -703,6 +761,7 @@ test "louvain: modularity computation" {
   assert_true(q_good > 0.0)
 }
 
+///|
 test "louvain: modularity range" {
   // For any partition, modularity is in [-1, 1]
   let edges = unweighted([(0, 1), (1, 2), (0, 2)])
@@ -714,11 +773,16 @@ test "louvain: modularity range" {
   assert_true(q_all_same > q_all_diff)
 }
 
+///|
 test "louvain: resolution parameter" {
   // Higher resolution → more (smaller) communities
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2),
-    (3, 4), (4, 5), (3, 5),
+    (0, 1),
+    (1, 2),
+    (0, 2),
+    (3, 4),
+    (4, 5),
+    (3, 5),
     (2, 3),
   ])
   let low_res = louvain(6, edges, 0.5, 100, 100, 1.0e-6)
@@ -727,16 +791,28 @@ test "louvain: resolution parameter" {
   assert_true(high_res.num_communities >= low_res.num_communities)
 }
 
+///|
 test "louvain: four cliques" {
   // Four K3 cliques connected in a ring by single edges
   // Clique A: 0-1-2, B: 3-4-5, C: 6-7-8, D: 9-10-11
   // Bridges: 2-3, 5-6, 8-9, 11-0
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2), // A
-    (3, 4), (4, 5), (3, 5), // B
-    (6, 7), (7, 8), (6, 8), // C
-    (9, 10), (10, 11), (9, 11), // D
-    (2, 3), (5, 6), (8, 9), (11, 0), // ring of bridges
+    (0, 1),
+    (1, 2),
+    (0, 2), // A
+    (3, 4),
+    (4, 5),
+    (3, 5), // B
+    (6, 7),
+    (7, 8),
+    (6, 8), // C
+    (9, 10),
+    (10, 11),
+    (9, 11), // D
+    (2, 3),
+    (5, 6),
+    (8, 9),
+    (11, 0), // ring of bridges
   ])
   let result = louvain_default(12, edges)
   // Should find 4 communities (one per clique).
@@ -763,10 +839,15 @@ test "louvain: four cliques" {
   assert_true(c1 != c3)
 }
 
+///|
 test "louvain: levels executed" {
   let edges = unweighted([
-    (0, 1), (1, 2), (0, 2),
-    (3, 4), (4, 5), (3, 5),
+    (0, 1),
+    (1, 2),
+    (0, 2),
+    (3, 4),
+    (4, 5),
+    (3, 5),
     (2, 3),
   ])
   let result = louvain_default(6, edges)
@@ -774,6 +855,7 @@ test "louvain: levels executed" {
   assert_true(result.levels >= 1)
 }
 
+///|
 test "louvain: stress test 100 nodes" {
   // 10 groups of 10 nodes, each group is a clique, connected by single edges
   let edges : Array[(Int, Int, Double)] = []
@@ -805,6 +887,7 @@ test "louvain: stress test 100 nodes" {
   assert_true(result.modularity > 0.5)
 }
 
+///|
 test "louvain: no edges returns each node as community" {
   let result = louvain_default(5, [])
   assert_eq(result.num_communities, 5)
@@ -814,6 +897,7 @@ test "louvain: no edges returns each node as community" {
   assert_true(result.modularity == 0.0)
 }
 
+///|
 test "louvain: invalid edges are skipped" {
   // Edges with negative nodes, out-of-range nodes, or non-positive weights
   let edges : Array[(Int, Int, Double)] = [
@@ -829,17 +913,26 @@ test "louvain: invalid edges are skipped" {
   assert_eq(result.num_communities, 1)
 }
 
+///|
 test "louvain: two-community asymmetric" {
   // Asymmetric: large dense community (0-4) and small dense community (5-7)
   // connected by one weak edge
   let edges : Array[(Int, Int, Double)] = [
     // Large community: K5 on nodes 0-4
-    (0, 1, 1.0), (0, 2, 1.0), (0, 3, 1.0), (0, 4, 1.0),
-    (1, 2, 1.0), (1, 3, 1.0), (1, 4, 1.0),
-    (2, 3, 1.0), (2, 4, 1.0),
+    (0, 1, 1.0),
+    (0, 2, 1.0),
+    (0, 3, 1.0),
+    (0, 4, 1.0),
+    (1, 2, 1.0),
+    (1, 3, 1.0),
+    (1, 4, 1.0),
+    (2, 3, 1.0),
+    (2, 4, 1.0),
     (3, 4, 1.0),
     // Small community: K3 on nodes 5-7
-    (5, 6, 1.0), (5, 7, 1.0), (6, 7, 1.0),
+    (5, 6, 1.0),
+    (5, 7, 1.0),
+    (6, 7, 1.0),
     // Bridge
     (4, 5, 1.0),
   ]

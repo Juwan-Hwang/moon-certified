@@ -50,7 +50,10 @@ pub fn poly_gcd(a : Array[Double], b : Array[Double]) -> Array[Double] {
 ///|
 /// Polynomial division: a / b = quotient, remainder.
 /// Returns (quotient, remainder).
-pub fn poly_divmod(a : Array[Double], b : Array[Double]) -> (Array[Double], Array[Double]) {
+pub fn poly_divmod(
+  a : Array[Double],
+  b : Array[Double],
+) -> (Array[Double], Array[Double]) {
   let p = trim(a)
   let q = trim(b)
   let pn = p.length()
@@ -106,7 +109,9 @@ pub fn poly_derivative(p : Array[Double]) -> Array[Double] {
 /// Square-free factorization.
 ///
 /// Returns list of (factor, multiplicity) pairs.
-pub fn square_free_factorization(p : Array[Double]) -> Array[(Array[Double], Int)] {
+pub fn square_free_factorization(
+  p : Array[Double],
+) -> Array[(Array[Double], Int)] {
   let f = trim(p)
   if f.length() <= 1 {
     return []
@@ -147,7 +152,11 @@ pub fn square_free_factorization(p : Array[Double]) -> Array[(Array[Double], Int
 /// Reduce a modulo p, returning a value in [0, p).
 fn mod_pos(a : Int, p : Int) -> Int {
   let r = a % p
-  if r < 0 { r + p } else { r }
+  if r < 0 {
+    r + p
+  } else {
+    r
+  }
 }
 
 ///|
@@ -216,7 +225,7 @@ fn poly_mul_mod(a : Array[Int], b : Array[Int], p : Int) -> Array[Int] {
   let p64 = p.to_int64()
   for i = 0; i < an; i = i + 1 {
     for j = 0; j < bn; j = j + 1 {
-      let prod = (a[i].to_int64() * b[j].to_int64()) % p64
+      let prod = a[i].to_int64() * b[j].to_int64() % p64
       result[i + j] = mod_pos(result[i + j] + prod.to_int(), p)
     }
   }
@@ -240,7 +249,11 @@ fn poly_sub_mod(a : Array[Int], b : Array[Int], p : Int) -> Array[Int] {
 
 ///|
 /// Polynomial division over GF(p): a / b = (quotient, remainder).
-fn poly_divmod_mod(a : Array[Int], b : Array[Int], p : Int) -> (Array[Int], Array[Int]) {
+fn poly_divmod_mod(
+  a : Array[Int],
+  b : Array[Int],
+  p : Int,
+) -> (Array[Int], Array[Int]) {
   let aa = trim_mod(a, p)
   let bb = trim_mod(b, p)
   let pn = aa.length()
@@ -291,7 +304,7 @@ fn poly_powmod_mod(
   base : Array[Int],
   exp : Int,
   f : Array[Int],
-  p : Int
+  p : Int,
 ) -> Array[Int] {
   let (_, base_mod) = poly_divmod_mod(base, f, p)
   let mut current = base_mod
@@ -320,7 +333,7 @@ fn poly_powmod_mod(
 /// Frobenius (f(x) = g(x^p) ⟹ f = g^p).
 fn square_free_factorization_mod(
   f : Array[Int],
-  p : Int
+  p : Int,
 ) -> Array[(Array[Int], Int)] {
   let f_monic = make_monic_mod(f, p)
   let n = f_monic.length()
@@ -383,7 +396,7 @@ fn square_free_factorization_mod(
 /// polynomials over GF(p) whose degree divides d.
 fn distinct_degree_factorization(
   f : Array[Int],
-  p : Int
+  p : Int,
 ) -> Array[(Array[Int], Int)] {
   let result : Array[(Array[Int], Int)] = []
   let mut current = make_monic_mod(f, p)
@@ -420,12 +433,7 @@ fn distinct_degree_factorization(
 /// Uses the norm map to avoid computing the large exponent (p^d-1)/2
 /// directly: a^((p^d-1)/2) = prod_{i=0}^{d-1} (a^((p-1)/2))^(p^i),
 /// since (p-1)/2 * sum_{i=0}^{d-1} p^i = (p^d - 1)/2.
-fn norm_power(
-  a : Array[Int],
-  d : Int,
-  f : Array[Int],
-  p : Int
-) -> Array[Int] {
+fn norm_power(a : Array[Int], d : Int, f : Array[Int], p : Int) -> Array[Int] {
   let half_exp = (p - 1) / 2
   let mut t = poly_powmod_mod(a, half_exp, f, p) // a^((p-1)/2) mod f
   let mut result = t
@@ -451,7 +459,7 @@ fn cantor_zassenhaus_split(
   f : Array[Int],
   d : Int,
   p : Int,
-  seed : Int64
+  seed : Int64,
 ) -> Array[Array[Int]] {
   let n = f.length() - 1 // degree of f
   if n <= d {
@@ -464,7 +472,8 @@ fn cantor_zassenhaus_split(
     // Generate random polynomial a of degree < n.
     let a : Array[Int] = []
     for i = 0; i < n; i = i + 1 {
-      rng = (rng * 6364136223846793005L + 1442695040888963407L) & 0x7FFFFFFFFFFFFFFFL
+      rng = (rng * 6364136223846793005L + 1442695040888963407L) &
+        0x7FFFFFFFFFFFFFFFL
       a.push((rng % p64).to_int())
     }
     let a_t = trim_mod(a, p)
@@ -546,6 +555,7 @@ pub fn factor_mod_p(f : Array[Int], p : Int) -> Array[Array[Int]] {
   result
 }
 
+///|
 test "polynomial_factor: gcd of coprime" {
   // gcd(x+1, x-1) = 1
   let g = poly_gcd([1.0, 1.0], [-1.0, 1.0])
@@ -553,6 +563,7 @@ test "polynomial_factor: gcd of coprime" {
   assert_true((g[0] - 1.0).abs() < 1.0e-10)
 }
 
+///|
 test "polynomial_factor: gcd with common factor" {
   // gcd((x-1)*(x+2), (x-1)*(x-3)) = x-1
   // (x-1)*(x+2) = x^2 + x - 2
@@ -564,6 +575,7 @@ test "polynomial_factor: gcd with common factor" {
   assert_true((g[1] - 1.0).abs() < 1.0e-10)
 }
 
+///|
 test "polynomial_factor: derivative" {
   // d/dx(3x^3 + 2x^2 + x + 5) = 9x^2 + 4x + 1
   let d = poly_derivative([5.0, 1.0, 2.0, 3.0])
@@ -573,6 +585,7 @@ test "polynomial_factor: derivative" {
   assert_true((d[2] - 9.0).abs() < 1.0e-10)
 }
 
+///|
 test "polynomial_factor: divmod exact" {
   // (x^2 - 1) / (x - 1) = (x + 1), remainder 0
   let (q, r) = poly_divmod([-1.0, 0.0, 1.0], [-1.0, 1.0])
@@ -583,6 +596,7 @@ test "polynomial_factor: divmod exact" {
   assert_true(r[0].abs() < 1.0e-10)
 }
 
+///|
 test "polynomial_factor: square-free of (x-1)^2" {
   // (x-1)^2 = x^2 - 2x + 1
   let factors = square_free_factorization([1.0, -2.0, 1.0])
@@ -593,6 +607,7 @@ test "polynomial_factor: square-free of (x-1)^2" {
   assert_true((f[1] - 1.0).abs() < 1.0e-10)
 }
 
+///|
 test "polynomial_factor: square-free of (x-1)(x-2)" {
   // (x-1)(x-2) = x^2 - 3x + 2
   let factors = square_free_factorization([2.0, -3.0, 1.0])
@@ -605,6 +620,7 @@ test "polynomial_factor: square-free of (x-1)(x-2)" {
 // Cantor-Zassenhaus tests over GF(p)
 // ---------------------------------------------------------------------------
 
+///|
 /// Helper: multiply all factors together over GF(p).
 fn poly_product(factors : Array[Array[Int]], p : Int) -> Array[Int] {
   let mut prod : Array[Int] = [1]
@@ -614,6 +630,7 @@ fn poly_product(factors : Array[Array[Int]], p : Int) -> Array[Int] {
   prod
 }
 
+///|
 test "polynomial_factor: factor x^2-1 mod 5" {
   // x^2 - 1 = (x-1)(x+1) over GF(5)
   let factors = factor_mod_p([4, 0, 1], 5)
@@ -622,6 +639,7 @@ test "polynomial_factor: factor x^2-1 mod 5" {
   assert_eq(prod, [4, 0, 1])
 }
 
+///|
 test "polynomial_factor: factor x^2+1 mod 5" {
   // x^2 + 1 = (x-2)(x+2) over GF(5), since 2^2 = 4 ≡ -1 mod 5
   let factors = factor_mod_p([1, 0, 1], 5)
@@ -630,6 +648,7 @@ test "polynomial_factor: factor x^2+1 mod 5" {
   assert_eq(prod, [1, 0, 1])
 }
 
+///|
 test "polynomial_factor: factor x^3-x mod 5" {
   // x^3 - x = x(x-1)(x+1) over GF(5)
   // x^3 - x = [0, 4, 0, 1] mod 5
@@ -639,6 +658,7 @@ test "polynomial_factor: factor x^3-x mod 5" {
   assert_eq(prod, [0, 4, 0, 1])
 }
 
+///|
 test "polynomial_factor: factor x^4-1 mod 5" {
   // x^4 - 1 = (x-1)(x+1)(x-2)(x+2) over GF(5)
   // x^4 - 1 = [4, 0, 0, 0, 1] mod 5
@@ -648,6 +668,7 @@ test "polynomial_factor: factor x^4-1 mod 5" {
   assert_eq(prod, [4, 0, 0, 0, 1])
 }
 
+///|
 test "polynomial_factor: irreducible x^2+x+1 mod 5" {
   // x^2 + x + 1 is irreducible over GF(5) (discriminant -3 ≡ 2, not a QR mod 5)
   let factors = factor_mod_p([1, 1, 1], 5)
@@ -655,6 +676,7 @@ test "polynomial_factor: irreducible x^2+x+1 mod 5" {
   assert_eq(factors[0], [1, 1, 1])
 }
 
+///|
 test "polynomial_factor: irreducible x^3+x+1 mod 5" {
   // x^3 + x + 1 is irreducible over GF(5) (no roots: f(0..4) ≠ 0)
   let factors = factor_mod_p([1, 1, 0, 1], 5)
@@ -662,6 +684,7 @@ test "polynomial_factor: irreducible x^3+x+1 mod 5" {
   assert_eq(factors[0], [1, 1, 0, 1])
 }
 
+///|
 test "polynomial_factor: repeated factor (x-1)^2*(x-2) mod 5" {
   // (x-1)^2 * (x-2) = x^3 + x^2 + 3 mod 5
   // factor_mod_p returns distinct irreducible factors (no multiplicities):
@@ -673,6 +696,7 @@ test "polynomial_factor: repeated factor (x-1)^2*(x-2) mod 5" {
   assert_eq(prod, [2, 2, 1])
 }
 
+///|
 test "polynomial_factor: factor mod 7" {
   // x^2 - 2 = (x-3)(x+3) over GF(7), since 3^2 = 9 ≡ 2 mod 7
   // x^2 - 2 = [5, 0, 1] mod 7
@@ -682,6 +706,7 @@ test "polynomial_factor: factor mod 7" {
   assert_eq(prod, [5, 0, 1])
 }
 
+///|
 test "polynomial_factor: factor mod 11" {
   // x^2 + 1 = (x-5)(x+5) over GF(11), since 5^2 = 25 ≡ 3... no
   // Actually 5^2 = 25 ≡ 3 mod 11, not -1.
@@ -693,6 +718,7 @@ test "polynomial_factor: factor mod 11" {
   assert_eq(factors[0], [1, 0, 1])
 }
 
+///|
 test "polynomial_factor: factor degree-4 mod 7" {
   // x^4 - 1 = (x-1)(x+1)(x-6)(x+6) over GF(7)
   // since x^4 - 1 = (x^2-1)(x^2+1) and x^2+1 = (x-6)(x+6) mod 7

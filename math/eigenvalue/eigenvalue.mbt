@@ -28,10 +28,10 @@
 /// - `eigenvectors[i*n + j]` is the j-th component of the i-th eigenvector
 ///
 /// For non-symmetric input, behavior is undefined (may not converge).
-pub fn symmetric_eig(n : Int, a : Array[Double]) -> (
-  Array[Double],
-  Array[Double],
-) {
+pub fn symmetric_eig(
+  n : Int,
+  a : Array[Double],
+) -> (Array[Double], Array[Double]) {
   if n <= 0 {
     return ([], [])
   }
@@ -119,6 +119,7 @@ pub fn symmetric_eigenvalues(n : Int, a : Array[Double]) -> Array[Double] {
   vals
 }
 
+///|
 test "eigenvalue: 2x2 diagonal" {
   let a = [3.0, 0.0, 0.0, 7.0]
   let (vals, _) = symmetric_eig(2, a)
@@ -137,6 +138,7 @@ test "eigenvalue: 2x2 diagonal" {
   assert_true((max_v - 7.0).abs() < 1.0e-10)
 }
 
+///|
 test "eigenvalue: 2x2 symmetric" {
   let a = [2.0, 1.0, 1.0, 2.0]
   let vals = symmetric_eigenvalues(2, a)
@@ -155,6 +157,7 @@ test "eigenvalue: 2x2 symmetric" {
   assert_true((max_v - 3.0).abs() < 1.0e-10)
 }
 
+///|
 test "eigenvalue: 3x3 identity" {
   let a = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
   let vals = symmetric_eigenvalues(3, a)
@@ -163,6 +166,7 @@ test "eigenvalue: 3x3 identity" {
   }
 }
 
+///|
 test "eigenvalue: 3x3 symmetric" {
   let a = [4.0, 1.0, 1.0, 1.0, 4.0, 1.0, 1.0, 1.0, 4.0]
   let vals = symmetric_eigenvalues(3, a)
@@ -187,12 +191,14 @@ test "eigenvalue: 3x3 symmetric" {
   }
 }
 
+///|
 test "eigenvalue: 1x1" {
   let a = [42.0]
   let vals = symmetric_eigenvalues(1, a)
   assert_true((vals[0] - 42.0).abs() < 1.0e-10)
 }
 
+///|
 test "eigenvalue: eigenvectors orthonormal" {
   let a = [2.0, 1.0, 1.0, 2.0]
   let (vals, vecs) = symmetric_eig(2, a)
@@ -213,4 +219,3 @@ test "eigenvalue: eigenvectors orthonormal" {
   assert_true((av0_0 - lambda * vecs[0]).abs() < 1.0e-10)
   assert_true((av0_1 - lambda * vecs[2]).abs() < 1.0e-10)
 }
-

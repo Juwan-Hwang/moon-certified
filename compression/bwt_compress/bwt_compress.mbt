@@ -198,9 +198,9 @@ pub fn compress(data : Bytes) -> Bytes {
   if data.length() == 0 {
     return Bytes::from_array([
       b'\x00', b'\x00', b'\x00', b'\x00', // orig_len = 0
-      b'\x00', b'\x00', b'\x00', b'\x00', // primary_index = 0
-      b'\x00', b'\x00', b'\x00', b'\x00', // tree_bit_count = 0
-      b'\x00', b'\x00', b'\x00', b'\x00', // data_bit_count = 0
+       b'\x00', b'\x00', b'\x00', b'\x00', // primary_index = 0
+       b'\x00', b'\x00', b'\x00', b'\x00', // tree_bit_count = 0
+       b'\x00', b'\x00', b'\x00', b'\x00', // data_bit_count = 0
     ])
   }
   // Apply sentinel-free BWT.
@@ -301,10 +301,8 @@ pub fn decompress(data : Bytes) -> Bytes? {
   for i = 0; i < tree_byte_count; i = i + 1 {
     tree_packed[i] = data[12 + i]
   }
-  let tree = match @huffman.deserialize_tree(
-    Bytes::from_array(tree_packed),
-    tree_bit_count,
-  ) {
+  let tree = match
+    @huffman.deserialize_tree(Bytes::from_array(tree_packed), tree_bit_count) {
     None => return None
     Some(t) => t
   }
@@ -353,7 +351,7 @@ fn pack_bits(bits : Array[Bool]) -> Bytes {
   let result : Array[Byte] = Array::make(byte_len, b'\x00')
   for i = 0; i < bits.length(); i = i + 1 {
     if bits[i] {
-      result[i / 8] = result[i / 8] | (1 << (7 - (i % 8))).to_byte()
+      result[i / 8] = result[i / 8] | (1 << (7 - i % 8)).to_byte()
     }
   }
   Bytes::from_array(result)
@@ -365,7 +363,7 @@ fn unpack_bits(data : Bytes, count : Int) -> Array[Bool] {
   let result : Array[Bool] = Array::make(count, false)
   for i = 0; i < count; i = i + 1 {
     let byte = data[i / 8]
-    result[i] = (byte & (1 << (7 - (i % 8))).to_byte()) != b'\x00'
+    result[i] = (byte & (1 << (7 - i % 8)).to_byte()) != b'\x00'
   }
   result
 }
@@ -406,7 +404,9 @@ test "bwt_compress: MTF round-trip" {
 
 ///|
 test "bwt_compress: pack/unpack bits" {
-  let bits : Array[Bool] = [true, false, true, true, false, false, true, false, true]
+  let bits : Array[Bool] = [
+    true, false, true, true, false, false, true, false, true,
+  ]
   let packed = pack_bits(bits)
   let unpacked = unpack_bits(packed, bits.length())
   assert_eq(unpacked.length(), bits.length())
@@ -481,10 +481,10 @@ test "bwt_compress: compress/decompress binary data" {
 ///|
 test "bwt_compress: compress/decompress random-looking data" {
   let arr : Array[Byte] = [
-    b'\xFF', b'\x00', b'\x80', b'\x7F', b'\xFE', b'\x01', b'\x81', b'\x7E',
-    b'\xFD', b'\x02', b'\x82', b'\x7D', b'\xFC', b'\x03', b'\x83', b'\x7C',
-    b'\xFB', b'\x04', b'\x84', b'\x7B', b'\xFA', b'\x05', b'\x85', b'\x7A',
-    b'\xF9', b'\x06', b'\x86', b'\x79', b'\xF8', b'\x07', b'\x87', b'\x78',
+    b'\xFF', b'\x00', b'\x80', b'\x7F', b'\xFE', b'\x01', b'\x81', b'\x7E', b'\xFD',
+    b'\x02', b'\x82', b'\x7D', b'\xFC', b'\x03', b'\x83', b'\x7C', b'\xFB', b'\x04',
+    b'\x84', b'\x7B', b'\xFA', b'\x05', b'\x85', b'\x7A', b'\xF9', b'\x06', b'\x86',
+    b'\x79', b'\xF8', b'\x07', b'\x87', b'\x78',
   ]
   let data = Bytes::from_array(arr)
   let compressed = compress(data)
@@ -502,8 +502,8 @@ test "bwt_compress: corrupt data returns None" {
   // Valid header but truncated data.
   let bad = Bytes::from_array([
     b'\x00', b'\x00', b'\x00', b'\x10', // orig_len = 16
-    b'\x00', b'\x00', b'\x00', b'\x00', // primary_index = 0
-    b'\x00', b'\x00', b'\x00', b'\x00', // tree_bit_count = 0
+     b'\x00', b'\x00', b'\x00', b'\x00', // primary_index = 0
+     b'\x00', b'\x00', b'\x00', b'\x00', // tree_bit_count = 0
     // Missing data bit count and data.
   ])
   assert_true(decompress(bad) is None)

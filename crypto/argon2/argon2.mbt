@@ -92,12 +92,42 @@ pub fn params(
   parallelism : Int,
   hash_len : Int,
 ) -> Argon2Params {
-  let p = if parallelism < 1 { 1 } else { if parallelism > 64 { 64 } else { parallelism } }
-  let tc = if time_cost < 1 { 1 } else { if time_cost > 100 { 100 } else { time_cost } }
+  let p = if parallelism < 1 {
+    1
+  } else if parallelism > 64 {
+    64
+  } else {
+    parallelism
+  }
+  let tc = if time_cost < 1 {
+    1
+  } else if time_cost > 100 {
+    100
+  } else {
+    time_cost
+  }
   let mc_min = 8 * p
-  let mc = if memory_cost < mc_min { mc_min } else { if memory_cost > 4194304 { 4194304 } else { memory_cost } }
-  let hl = if hash_len < 4 { 4 } else { if hash_len > 1024 { 1024 } else { hash_len } }
-  { time_cost: tc, memory_cost: mc, parallelism: p, hash_len: hl, version: ARGON2_VERSION }
+  let mc = if memory_cost < mc_min {
+    mc_min
+  } else if memory_cost > 4194304 {
+    4194304
+  } else {
+    memory_cost
+  }
+  let hl = if hash_len < 4 {
+    4
+  } else if hash_len > 1024 {
+    1024
+  } else {
+    hash_len
+  }
+  {
+    time_cost: tc,
+    memory_cost: mc,
+    parallelism: p,
+    hash_len: hl,
+    version: ARGON2_VERSION,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -188,13 +218,7 @@ fn hi32(x : UInt64) -> UInt64 {
 ///
 /// Each G application performs two rounds of mixing using 64-bit multiply-low
 /// operations (RFC 9106 §3.5).
-fn gb_4(
-  r : FixedArray[UInt64],
-  ia : Int,
-  ib : Int,
-  ic : Int,
-  id : Int,
-) -> Unit {
+fn gb_4(r : FixedArray[UInt64], ia : Int, ib : Int, ic : Int, id : Int) -> Unit {
   let mut a = r[ia]
   let mut b = r[ib]
   let mut c = r[ic]
@@ -272,20 +296,44 @@ fn p_permutation(r : FixedArray[UInt64]) -> Unit {
     let base = 16 * i
     blake2_round_nomsg(
       r,
-      base + 0, base + 1, base + 2, base + 3,
-      base + 4, base + 5, base + 6, base + 7,
-      base + 8, base + 9, base + 10, base + 11,
-      base + 12, base + 13, base + 14, base + 15,
+      base + 0,
+      base + 1,
+      base + 2,
+      base + 3,
+      base + 4,
+      base + 5,
+      base + 6,
+      base + 7,
+      base + 8,
+      base + 9,
+      base + 10,
+      base + 11,
+      base + 12,
+      base + 13,
+      base + 14,
+      base + 15,
     )
   }
   // Column pass: process each column pair.
   for i = 0; i < 8; i = i + 1 {
     blake2_round_nomsg(
       r,
-      2 * i + 0, 2 * i + 1, 2 * i + 16, 2 * i + 17,
-      2 * i + 32, 2 * i + 33, 2 * i + 48, 2 * i + 49,
-      2 * i + 64, 2 * i + 65, 2 * i + 80, 2 * i + 81,
-      2 * i + 96, 2 * i + 97, 2 * i + 112, 2 * i + 113,
+      2 * i + 0,
+      2 * i + 1,
+      2 * i + 16,
+      2 * i + 17,
+      2 * i + 32,
+      2 * i + 33,
+      2 * i + 48,
+      2 * i + 49,
+      2 * i + 64,
+      2 * i + 65,
+      2 * i + 80,
+      2 * i + 81,
+      2 * i + 96,
+      2 * i + 97,
+      2 * i + 112,
+      2 * i + 113,
     )
   }
 }
@@ -491,10 +539,16 @@ fn block_offset(lane : Int, col : Int, cols_per_lane : Int) -> Int {
 ///
 /// ## Example
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let p = @argon2.params(3, 4096, 1, 32)
-/// let hash = @argon2.hash(@utils.string_to_bytes("password"),
-///   @utils.string_to_bytes("somesalt"), p, b"", b"")
+///
+/// let hash = @argon2.hash(
+///   @utils.string_to_bytes("password"),
+///   @utils.string_to_bytes("somesalt"),
+///   p,
+///   b"",
+///   b"",
+/// )
 /// ```
 pub fn hash(
   password : Bytes,
@@ -620,8 +674,14 @@ pub fn hash(
       for lane = 0; lane < p; lane = lane + 1 {
         let data_independent = pass == 0 && slice < SYNC_POINTS / 2
         // Set up input_block for data-independent addressing
-        let input_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
-        let address_block : FixedArray[UInt64] = FixedArray::make(BLOCK_WORDS, 0UL)
+        let input_block : FixedArray[UInt64] = FixedArray::make(
+          BLOCK_WORDS,
+          0UL,
+        )
+        let address_block : FixedArray[UInt64] = FixedArray::make(
+          BLOCK_WORDS,
+          0UL,
+        )
         if data_independent {
           input_block[0] = pass.to_uint64()
           input_block[1] = lane.to_uint64()
@@ -779,8 +839,20 @@ test "argon2: basic hash produces correct length" {
 ///|
 test "argon2: different passwords produce different hashes" {
   let p = params(1, 64, 1, 32)
-  let h1 = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("salt"), p, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("password2"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h1 = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("password2"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   let mut diff = false
   for i = 0; i < 32; i = i + 1 {
     if h1[i] != h2[i] {
@@ -794,8 +866,20 @@ test "argon2: different passwords produce different hashes" {
 ///|
 test "argon2: different salts produce different hashes" {
   let p = params(1, 64, 1, 32)
-  let h1 = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("salt1"), p, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("salt2"), p, b"", b"")
+  let h1 = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("salt1"),
+    p,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("salt2"),
+    p,
+    b"",
+    b"",
+  )
   let mut diff = false
   for i = 0; i < 32; i = i + 1 {
     if h1[i] != h2[i] {
@@ -809,29 +893,77 @@ test "argon2: different salts produce different hashes" {
 ///|
 test "argon2: deterministic output" {
   let p = params(1, 64, 1, 32)
-  let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h1 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   assert_eq(h1, h2)
 }
 
 ///|
 test "argon2: verify correct password" {
   let p = params(1, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("mypassword"), @utils.string_to_bytes("mysalt"), p, b"", b"")
-  assert_true(verify(@utils.string_to_bytes("mypassword"), @utils.string_to_bytes("mysalt"), p, h, b"", b""))
+  let h = hash(
+    @utils.string_to_bytes("mypassword"),
+    @utils.string_to_bytes("mysalt"),
+    p,
+    b"",
+    b"",
+  )
+  assert_true(
+    verify(
+      @utils.string_to_bytes("mypassword"),
+      @utils.string_to_bytes("mysalt"),
+      p,
+      h,
+      b"",
+      b"",
+    ),
+  )
 }
 
 ///|
 test "argon2: verify wrong password" {
   let p = params(1, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("mypassword"), @utils.string_to_bytes("mysalt"), p, b"", b"")
-  assert_true(!verify(@utils.string_to_bytes("wrongpassword"), @utils.string_to_bytes("mysalt"), p, h, b"", b""))
+  let h = hash(
+    @utils.string_to_bytes("mypassword"),
+    @utils.string_to_bytes("mysalt"),
+    p,
+    b"",
+    b"",
+  )
+  assert_true(
+    !verify(
+      @utils.string_to_bytes("wrongpassword"),
+      @utils.string_to_bytes("mysalt"),
+      p,
+      h,
+      b"",
+      b"",
+    ),
+  )
 }
 
 ///|
 test "argon2: hash_hex produces valid hex" {
   let p = params(1, 64, 1, 32)
-  let hex = hash_hex(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let hex = hash_hex(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   assert_eq(hex.length(), 64)
   for c in hex {
     assert_true((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'))
@@ -841,7 +973,13 @@ test "argon2: hash_hex produces valid hex" {
 ///|
 test "argon2: multi-lane produces correct length" {
   let p = params(1, 128, 2, 16)
-  let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   assert_eq(h.length(), 16)
 }
 
@@ -850,8 +988,20 @@ test "argon2: multi-lane affects computation (not just memory)" {
   // Same total memory (256 KiB) but different parallelism.
   let p1 = params(1, 256, 1, 32)
   let p2 = params(1, 256, 2, 32)
-  let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p1, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p2, b"", b"")
+  let h1 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p1,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p2,
+    b"",
+    b"",
+  )
   let mut diff = false
   for i = 0; i < 32; i = i + 1 {
     if h1[i] != h2[i] {
@@ -865,16 +1015,40 @@ test "argon2: multi-lane affects computation (not just memory)" {
 ///|
 test "argon2: multi-lane deterministic" {
   let p = params(2, 128, 4, 32)
-  let h1 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h1 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   assert_eq(h1, h2)
 }
 
 ///|
 test "argon2: with secret (pepper)" {
   let p = params(1, 64, 1, 32)
-  let h1 = hash(@utils.string_to_bytes("pw"), @utils.string_to_bytes("s"), p, b"", b"")
-  let h2 = hash(@utils.string_to_bytes("pw"), @utils.string_to_bytes("s"), p, @utils.string_to_bytes("pepper"), b"")
+  let h1 = hash(
+    @utils.string_to_bytes("pw"),
+    @utils.string_to_bytes("s"),
+    p,
+    b"",
+    b"",
+  )
+  let h2 = hash(
+    @utils.string_to_bytes("pw"),
+    @utils.string_to_bytes("s"),
+    p,
+    @utils.string_to_bytes("pepper"),
+    b"",
+  )
   let mut diff = false
   for i = 0; i < 32; i = i + 1 {
     if h1[i] != h2[i] {
@@ -888,7 +1062,13 @@ test "argon2: with secret (pepper)" {
 ///|
 test "argon2: multiple passes" {
   let p = params(3, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("salt"), p, b"", b"")
+  let h = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("salt"),
+    p,
+    b"",
+    b"",
+  )
   assert_eq(h.length(), 32)
 }
 
@@ -948,7 +1128,9 @@ test "argon2: RFC 9106 vector 1 (t=3,m=64,p=1,tau=32)" {
   let salt = Bytes::make(8, b'\x02')
   let p = params(3, 64, 1, 32)
   let h = hash(pwd, salt, p, b"", b"")
-  let expected = hex_to_bytes("e597a7ca0a127a42cf629fc66c3113cab68af48c3140605539ad4a2d7d7fd643")
+  let expected = hex_to_bytes(
+    "e597a7ca0a127a42cf629fc66c3113cab68af48c3140605539ad4a2d7d7fd643",
+  )
   assert_eq(h, expected)
 }
 
@@ -959,7 +1141,9 @@ test "argon2: RFC 9106 vector 2 (t=3,m=64,p=2,tau=32)" {
   let salt = Bytes::make(8, b'\x02')
   let p = params(3, 64, 2, 32)
   let h = hash(pwd, salt, p, b"", b"")
-  let expected = hex_to_bytes("85688bad75c9523513842e0125fb4c4be7c0934b5e06ac404fc446ce845fa032")
+  let expected = hex_to_bytes(
+    "85688bad75c9523513842e0125fb4c4be7c0934b5e06ac404fc446ce845fa032",
+  )
   assert_eq(h, expected)
 }
 
@@ -967,8 +1151,16 @@ test "argon2: RFC 9106 vector 2 (t=3,m=64,p=2,tau=32)" {
 test "argon2: RFC 9106 vector 3 (t=1,m=64,p=1,tau=32)" {
   // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=32
   let p = params(1, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("729c7a54441bc13559bdca71348c4e554599e719c08a952601ed5c83618c1bbd")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "729c7a54441bc13559bdca71348c4e554599e719c08a952601ed5c83618c1bbd",
+  )
   assert_eq(h, expected)
 }
 
@@ -976,8 +1168,16 @@ test "argon2: RFC 9106 vector 3 (t=1,m=64,p=1,tau=32)" {
 test "argon2: RFC 9106 vector 4 (t=2,m=64,p=1,tau=32)" {
   // Password = "password", Salt = "somesalt", t=2, m=64, p=1, tau=32
   let p = params(2, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("16a1a498734609dd01456da406de9f3d9da93e6c86c300a12fc1465214ce4922")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "16a1a498734609dd01456da406de9f3d9da93e6c86c300a12fc1465214ce4922",
+  )
   assert_eq(h, expected)
 }
 
@@ -987,7 +1187,9 @@ test "argon2: RFC 9106 vector 5 (empty pwd, t=1,m=8,p=1,tau=32)" {
   let salt = Bytes::make(16, b'\x00')
   let p = params(1, 8, 1, 32)
   let h = hash(b"", salt, p, b"", b"")
-  let expected = hex_to_bytes("cfa0d2d242da6703d311d7eefc922e39cc60c9f4ec93a67d20995be541a06be4")
+  let expected = hex_to_bytes(
+    "cfa0d2d242da6703d311d7eefc922e39cc60c9f4ec93a67d20995be541a06be4",
+  )
   assert_eq(h, expected)
 }
 
@@ -995,8 +1197,16 @@ test "argon2: RFC 9106 vector 5 (empty pwd, t=1,m=8,p=1,tau=32)" {
 test "argon2: RFC 9106 vector 6 (tau=64)" {
   // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=64
   let p = params(1, 64, 1, 64)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("5c6bf55c8656e969fc02abfef931c6a52e6c34e83d1cd32d6da544b30daa3ef2ec357847e038df39ddf38526b8300cca72bdf872dd6ac1ae6fd6c0b59b836eba")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "5c6bf55c8656e969fc02abfef931c6a52e6c34e83d1cd32d6da544b30daa3ef2ec357847e038df39ddf38526b8300cca72bdf872dd6ac1ae6fd6c0b59b836eba",
+  )
   assert_eq(h, expected)
 }
 
@@ -1004,8 +1214,16 @@ test "argon2: RFC 9106 vector 6 (tau=64)" {
 test "argon2: RFC 9106 vector 7 (t=2,m=128,p=4,tau=32)" {
   // Password = "test", Salt = "somesalt", t=2, m=128, p=4, tau=32
   let p = params(2, 128, 4, 32)
-  let h = hash(@utils.string_to_bytes("test"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("62bc768edae0bd07480fabb9ab0f52bd21b22ae990b782afdebcec5adce34815")
+  let h = hash(
+    @utils.string_to_bytes("test"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "62bc768edae0bd07480fabb9ab0f52bd21b22ae990b782afdebcec5adce34815",
+  )
   assert_eq(h, expected)
 }
 
@@ -1013,7 +1231,13 @@ test "argon2: RFC 9106 vector 7 (t=2,m=128,p=4,tau=32)" {
 test "argon2: RFC 9106 vector 8 (tau=16)" {
   // Password = "password", Salt = "somesalt", t=1, m=64, p=1, tau=16
   let p = params(1, 64, 1, 16)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
   let expected = hex_to_bytes("a4c9703acfe09fecddbe807f00689134")
   assert_eq(h, expected)
 }
@@ -1022,8 +1246,16 @@ test "argon2: RFC 9106 vector 8 (tau=16)" {
 test "argon2: ref vector 9 (t=3,m=64,p=1,tau=32)" {
   // Multiple passes: t=3, m=64, p=1
   let p = params(3, 64, 1, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("b9e3bfda58fb95f1e1e479af4e01bfade5a0dba34d400a254f770462674169e6")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "b9e3bfda58fb95f1e1e479af4e01bfade5a0dba34d400a254f770462674169e6",
+  )
   assert_eq(h, expected)
 }
 
@@ -1031,8 +1263,16 @@ test "argon2: ref vector 9 (t=3,m=64,p=1,tau=32)" {
 test "argon2: ref vector 10 (t=1,m=64,p=2,tau=32)" {
   // Multi-lane: t=1, m=64, p=2
   let p = params(1, 64, 2, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("7ee97262358926f30e4431533d4ab811ab69977948b628b123dc4cf41e9e6f5d")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "7ee97262358926f30e4431533d4ab811ab69977948b628b123dc4cf41e9e6f5d",
+  )
   assert_eq(h, expected)
 }
 
@@ -1040,8 +1280,16 @@ test "argon2: ref vector 10 (t=1,m=64,p=2,tau=32)" {
 test "argon2: ref vector 11 (t=1,m=256,p=1,tau=32)" {
   // Higher memory: t=1, m=256, p=1
   let p = params(1, 256, 1, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("024ec0c1ac65d08d95f1e46fcc33801dc5dcee045470e74765b7f7381b50ecd5")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "024ec0c1ac65d08d95f1e46fcc33801dc5dcee045470e74765b7f7381b50ecd5",
+  )
   assert_eq(h, expected)
 }
 
@@ -1049,8 +1297,16 @@ test "argon2: ref vector 11 (t=1,m=256,p=1,tau=32)" {
 test "argon2: ref vector 12 (t=1,m=256,p=4,tau=32)" {
   // Higher memory + multi-lane: t=1, m=256, p=4
   let p = params(1, 256, 4, 32)
-  let h = hash(@utils.string_to_bytes("password"), @utils.string_to_bytes("somesalt"), p, b"", b"")
-  let expected = hex_to_bytes("445897f117bb4c5a1dd14f65658e5c52612b1ab7d1badcd8fd6492191db418a1")
+  let h = hash(
+    @utils.string_to_bytes("password"),
+    @utils.string_to_bytes("somesalt"),
+    p,
+    b"",
+    b"",
+  )
+  let expected = hex_to_bytes(
+    "445897f117bb4c5a1dd14f65658e5c52612b1ab7d1badcd8fd6492191db418a1",
+  )
   assert_eq(h, expected)
 }
 
@@ -1060,6 +1316,8 @@ test "argon2: ref vector 13 (empty pwd, t=2,m=8,p=1,tau=32)" {
   let salt = Bytes::make(16, b'\x00')
   let p = params(2, 8, 1, 32)
   let h = hash(b"", salt, p, b"", b"")
-  let expected = hex_to_bytes("2bf798a872dd5ac068d555d2ff67c372afac0d28630353c885f080a114329a2c")
+  let expected = hex_to_bytes(
+    "2bf798a872dd5ac068d555d2ff67c372afac0d28630353c885f080a114329a2c",
+  )
   assert_eq(h, expected)
 }

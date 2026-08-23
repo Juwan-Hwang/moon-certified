@@ -113,7 +113,7 @@ fn build_affinity(
     w.push(Array::make(n, 0.0))
   }
   match mode {
-    RBF => {
+    RBF =>
       for i = 0; i < n; i = i + 1 {
         for j = i + 1; j < n; j = j + 1 {
           let sq_d = sc_sq_dist(data[i], data[j])
@@ -122,7 +122,6 @@ fn build_affinity(
           w[j][i] = val
         }
       }
-    }
     KNN => {
       // For each point, find n_neighbors nearest neighbors
       let k = if n_neighbors > 0 && n_neighbors < n {
@@ -220,10 +219,7 @@ fn normalized_affinity(w : Array[Array[Double]]) -> Array[Array[Double]] {
 
 ///|
 /// Matrix-vector product `out = M · v`.
-fn sc_mat_vec(
-  m : Array[Array[Double]],
-  v : Array[Double],
-) -> Array[Double] {
+fn sc_mat_vec(m : Array[Array[Double]], v : Array[Double]) -> Array[Double] {
   let n = m.length()
   let out = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
@@ -239,10 +235,7 @@ fn sc_mat_vec(
 
 ///|
 /// In-place Gram-Schmidt orthogonalization against previously found vectors.
-fn sc_orthogonalize(
-  v : Array[Double],
-  prev : Array[Array[Double]],
-) -> Unit {
+fn sc_orthogonalize(v : Array[Double], prev : Array[Array[Double]]) -> Unit {
   for k = 0; k < prev.length(); k = k + 1 {
     let u = prev[k]
     let proj = sc_dot(v, u)
@@ -427,10 +420,7 @@ pub fn SpectralConfig::default(
 
 ///|
 /// Create an RBF configuration with a specific gamma.
-pub fn spectral_rbf_config(
-  n_clusters : Int,
-  gamma : Double,
-) -> SpectralConfig {
+pub fn spectral_rbf_config(n_clusters : Int, gamma : Double) -> SpectralConfig {
   {
     n_clusters,
     affinity: RBF,
@@ -647,11 +637,7 @@ test "spectral: two well-separated blobs" {
 
 ///|
 test "spectral: single cluster" {
-  let data = [
-    [1.0, 2.0],
-    [1.1, 2.0],
-    [1.0, 2.1],
-  ]
+  let data = [[1.0, 2.0], [1.1, 2.0], [1.0, 2.1]]
   let config = spectral_rbf_config(1, 1.0)
   let result = spectral_clustering(data, config)
   assert_eq(result.labels.length(), 3)
@@ -725,12 +711,7 @@ test "spectral: KNN affinity" {
 
 ///|
 test "spectral: embedding has correct dimensions" {
-  let data = [
-    [0.0, 0.0],
-    [1.0, 1.0],
-    [5.0, 5.0],
-    [6.0, 6.0],
-  ]
+  let data = [[0.0, 0.0], [1.0, 1.0], [5.0, 5.0], [6.0, 6.0]]
   let config = spectral_rbf_config(2, 0.5)
   let result = spectral_clustering(data, config)
   // Embedding should be n × k = 4 × 2
@@ -747,11 +728,7 @@ test "spectral: embedding has correct dimensions" {
 
 ///|
 test "spectral: affinity matrix is symmetric" {
-  let data = [
-    [0.0, 0.0],
-    [1.0, 0.0],
-    [0.0, 1.0],
-  ]
+  let data = [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]
   let config = spectral_rbf_config(2, 1.0)
   let result = spectral_clustering(data, config)
   let w = result.affinity_matrix
@@ -783,12 +760,7 @@ test "spectral: eigenvalues sorted descending" {
 
 ///|
 test "spectral: deterministic (same seed)" {
-  let data = [
-    [0.0, 0.0],
-    [0.1, 0.0],
-    [5.0, 5.0],
-    [5.1, 5.0],
-  ]
+  let data = [[0.0, 0.0], [0.1, 0.0], [5.0, 5.0], [5.1, 5.0]]
   let config = spectral_rbf_config(2, 1.0)
   let r1 = spectral_clustering(data, config)
   let r2 = spectral_clustering(data, config)
@@ -799,14 +771,7 @@ test "spectral: deterministic (same seed)" {
 
 ///|
 test "spectral: 1D data" {
-  let data = [
-    [0.0],
-    [0.5],
-    [1.0],
-    [8.0],
-    [8.5],
-    [9.0],
-  ]
+  let data = [[0.0], [0.5], [1.0], [8.0], [8.5], [9.0]]
   let config = spectral_rbf_config(2, 1.0)
   let result = spectral_clustering(data, config)
   assert_eq(result.labels.length(), 6)
@@ -841,10 +806,7 @@ test "spectral: default config with auto gamma" {
 
 ///|
 test "spectral: n_clusters >= n (each point own cluster)" {
-  let data = [
-    [0.0, 0.0],
-    [5.0, 5.0],
-  ]
+  let data = [[0.0, 0.0], [5.0, 5.0]]
   let config = spectral_rbf_config(5, 1.0) // k > n
   let result = spectral_clustering(data, config)
   assert_eq(result.labels.length(), 2)

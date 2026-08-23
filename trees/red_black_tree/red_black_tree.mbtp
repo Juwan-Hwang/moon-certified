@@ -1,0 +1,7 @@
+///|
+/// Red-Black Tree verified predicates.
+///
+/// Note: Full BST property and red-black invariants (no two consecutive reds,
+/// equal black height) require inductive proofs over recursive insert/delete
+/// operations that exceed Z3's automatic proving capability.
+/// Only empty() and size() properties are formally verified.

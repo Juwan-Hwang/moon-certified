@@ -1,0 +1,11 @@
+///|
+/// Identity matrix: result.length() == n * n
+predicate identity_matrix_ok(result : FixedArray[Int], n : Int) {
+  result.length() == n * n
+}
+
+///|
+/// Transpose result length: result.length() == n * m
+predicate transpose_length_ok(n : Int, m : Int, result : FixedArray[Int]) {
+  result.length() == n * m
+}

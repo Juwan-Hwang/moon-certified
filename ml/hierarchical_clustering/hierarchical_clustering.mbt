@@ -72,6 +72,7 @@ pub struct HierarchicalResult {
 // Distance helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Squared Euclidean distance between two points.
 fn sq_euclidean(a : Array[Double], b : Array[Double]) -> Double {
   let n = a.length()
@@ -83,6 +84,7 @@ fn sq_euclidean(a : Array[Double], b : Array[Double]) -> Double {
   sum
 }
 
+///|
 /// Euclidean distance between two points.
 fn euclidean(a : Array[Double], b : Array[Double]) -> Double {
   let s = sq_euclidean(a, b)
@@ -117,7 +119,13 @@ pub fn cluster(
   num_clusters : Int,
 ) -> HierarchicalResult {
   let n = data.length()
-  let k = if num_clusters < 1 { 1 } else if num_clusters > n { n } else { num_clusters }
+  let k = if num_clusters < 1 {
+    1
+  } else if num_clusters > n {
+    n
+  } else {
+    num_clusters
+  }
   // Special case: empty or single point
   if n <= 1 {
     let labels : Array[Int] = []
@@ -184,7 +192,12 @@ pub fn cluster(
     let cj = active[best_j]
     let merged_size = sizes[ci] + sizes[cj]
     // Record the merge
-    merges.push({ cluster_a: ci, cluster_b: cj, distance: best_dist, size: merged_size })
+    merges.push({
+      cluster_a: ci,
+      cluster_b: cj,
+      distance: best_dist,
+      size: merged_size,
+    })
     // Update distances using Lance-Williams formula
     let si = sizes[ci].to_double()
     let sj = sizes[cj].to_double()
@@ -201,7 +214,12 @@ pub fn cluster(
         Average => (dik * si + djk * sj) / (si + sj)
         Ward =>
           // Lance-Williams Ward: ((si+sk)*dik + (sj+sk)*djk - sk*dij) / (si+sj+sk)
-          (dik * (si + sizes[ck].to_double()) + djk * (sj + sizes[ck].to_double()) - sizes[ck].to_double() * best_dist) / (si + sj + sizes[ck].to_double())
+          (
+            dik * (si + sizes[ck].to_double()) +
+            djk * (sj + sizes[ck].to_double()) -
+            sizes[ck].to_double() * best_dist
+          ) /
+          (si + sj + sizes[ck].to_double())
       }
       dist[ci][ck] = new_d
       dist[ck][ci] = new_d

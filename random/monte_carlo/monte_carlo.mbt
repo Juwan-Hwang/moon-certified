@@ -90,7 +90,7 @@ pub fn XorShift64::rand_int64(self : XorShift64, n : Int64) -> Int64 {
   if n <= 2147483648L {
     let n_int = n.to_int()
     let range = 2147483648L // 2³¹
-    let threshold = range - (range % n)
+    let threshold = range - range % n
     let mut ok = false
     let mut result = 0L
     while !ok {

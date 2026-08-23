@@ -16,9 +16,7 @@
 // Callers of `box_muller`/`gaussian_sample` may supply any uniform [0, 1) rng.
 fn make_rng(seed : Int64) -> () -> Double {
   let rng = @utils.XorShift64::new(seed.reinterpret_as_uint64())
-  fn() {
-    rng.next_double()
-  }
+  fn() { rng.next_double() }
 }
 
 ///|

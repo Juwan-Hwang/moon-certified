@@ -50,7 +50,7 @@
 ///
 /// ## Pattern
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let lock = RwLock::new(42)
 /// // Read
 /// let v = RwLock::read(lock)
@@ -265,7 +265,7 @@ pub fn Semaphore::max_permits(sem : Semaphore) -> Int {
 ///
 /// ## Pattern
 ///
-/// ```moonbit
+/// ```moonbit nocheck
 /// let cv = ConditionVariable::new()
 /// // ... some condition becomes true ...
 /// ConditionVariable::signal(cv)

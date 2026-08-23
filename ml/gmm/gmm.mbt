@@ -1,3 +1,4 @@
+///|
 /// Gaussian Mixture Model (GMM) with Expectation-Maximization.
 ///
 /// Fits a mixture of multivariate Gaussian distributions to data using
@@ -31,21 +32,23 @@
 // Internal RNG (delegates to @utils)
 // ---------------------------------------------------------------------------
 
-
 priv struct Rng {
   mut state : Int
 }
 
+///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
   { state: if s == 0 { 1 } else { s } }
 }
 
+///|
 fn Rng::next(self : Rng) -> Int {
   self.state = @utils.lcg_next(self.state)
   self.state
 }
 
+///|
 fn Rng::next_double(self : Rng) -> Double {
   self.next().to_double() / 2147483648.0
 }
@@ -54,6 +57,7 @@ fn Rng::next_double(self : Rng) -> Double {
 // Math helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// Natural log approximation (Borchardt's algorithm via AGM).
 fn ln(x : Double) -> Double {
   if x <= 0.0 {
@@ -91,6 +95,7 @@ fn ln(x : Double) -> Double {
   e.to_double() * 0.6931471805599453 + 2.0 * sum
 }
 
+///|
 /// Exponential via Taylor series with range reduction.
 fn exp(x : Double) -> Double {
   if x < -700.0 {
@@ -262,7 +267,10 @@ pub fn fit(
           let diff = data[i][j] - components[c].mean[j]
           mahal = mahal + diff * diff / (if v < 1.0e-12 { 1.0e-12 } else { v })
         }
-        let lp = ln(components[c].weight) - 0.5 * d.to_double() * log_2pi - 0.5 * log_det - 0.5 * mahal
+        let lp = ln(components[c].weight) -
+          0.5 * d.to_double() * log_2pi -
+          0.5 * log_det -
+          0.5 * mahal
         log_probs[c] = lp
         if lp > max_log {
           max_log = lp
@@ -327,7 +335,10 @@ pub fn fit(
 ///
 /// Returns an n×k matrix where entry (i, c) is the posterior probability
 /// that point i belongs to component c.
-pub fn predict_proba(result : GMMResult, data : Array[Array[Double]]) -> Array[Array[Double]] {
+pub fn predict_proba(
+  result : GMMResult,
+  data : Array[Array[Double]],
+) -> Array[Array[Double]] {
   let n = data.length()
   let kk = result.components.length()
   let d = if n > 0 { data[0].length() } else { 0 }
@@ -350,7 +361,10 @@ pub fn predict_proba(result : GMMResult, data : Array[Array[Double]]) -> Array[A
         let diff = data[i][j] - result.components[c].mean[j]
         mahal = mahal + diff * diff / safe_v
       }
-      let lp = ln(result.components[c].weight) - 0.5 * d.to_double() * log_2pi - 0.5 * log_det - 0.5 * mahal
+      let lp = ln(result.components[c].weight) -
+        0.5 * d.to_double() * log_2pi -
+        0.5 * log_det -
+        0.5 * mahal
       log_probs[c] = lp
       if lp > max_log {
         max_log = lp
@@ -392,6 +406,7 @@ pub fn predict(result : GMMResult, data : Array[Array[Double]]) -> Array[Int] {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+///|
 fn sq_dist(a : Array[Double], b : Array[Double]) -> Double {
   let n = a.length()
   let mut sum = 0.0
@@ -402,6 +417,7 @@ fn sq_dist(a : Array[Double], b : Array[Double]) -> Double {
   sum
 }
 
+///|
 fn copy_vec(v : Array[Double]) -> Array[Double] {
   let r : Array[Double] = []
   for i = 0; i < v.length(); i = i + 1 {

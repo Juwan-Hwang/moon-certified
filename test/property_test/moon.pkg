@@ -2,11 +2,12 @@ import {
   "moon-certified/utils",
 }
 
-options(
-  "proof-enabled": false,
-)
-
 // Suppress false-positive unused_package warning: @utils.SplitMix64 is used
 // in generator function signatures and SplitMix64::new constructor calls,
 // but the compiler's unused_package analysis misses type-only references.
+
 warnings = "-unused_package"
+
+options(
+  "proof-enabled": false,
+)

@@ -1,3 +1,4 @@
+///|
 /// Gaussian Process Regression.
 ///
 /// Implements GP regression with the Radial Basis Function (RBF / squared
@@ -68,6 +69,7 @@ fn exp_(x : Double) -> Double {
   result
 }
 
+///|
 fn sq_dist(a : Array[Double], b : Array[Double]) -> Double {
   let n = a.length()
   let mut sum = 0.0
@@ -117,6 +119,7 @@ pub struct GPPrediction {
 // Kernel computation
 // ---------------------------------------------------------------------------
 
+///|
 /// Evaluate the kernel function at two points.
 fn kernel_eval(k : Kernel, a : Array[Double], b : Array[Double]) -> Double {
   match k {
@@ -131,6 +134,7 @@ fn kernel_eval(k : Kernel, a : Array[Double], b : Array[Double]) -> Double {
 // Cholesky decomposition (lower triangular L such that A = L · L^T)
 // ---------------------------------------------------------------------------
 
+///|
 /// Cholesky decomposition of a symmetric positive-definite matrix.
 /// Returns the lower-triangular factor L, or an empty array if the
 /// matrix is not positive-definite.
@@ -164,8 +168,13 @@ fn cholesky(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
   l
 }
 
+///|
 /// Solve L · y = b (forward substitution, L lower-triangular).
-fn forward_sub(l : Array[Array[Double]], b : Array[Double], n : Int) -> Array[Double] {
+fn forward_sub(
+  l : Array[Array[Double]],
+  b : Array[Double],
+  n : Int,
+) -> Array[Double] {
   let y : Array[Double] = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
     let mut sum = b[i]
@@ -178,8 +187,13 @@ fn forward_sub(l : Array[Array[Double]], b : Array[Double], n : Int) -> Array[Do
   y
 }
 
+///|
 /// Solve L^T · x = y (back substitution, L^T upper-triangular).
-fn back_sub(l : Array[Array[Double]], y : Array[Double], n : Int) -> Array[Double] {
+fn back_sub(
+  l : Array[Array[Double]],
+  y : Array[Double],
+  n : Int,
+) -> Array[Double] {
   let x : Array[Double] = Array::make(n, 0.0)
   for i = n - 1; i >= 0; i = i - 1 {
     let mut sum = y[i]
@@ -264,7 +278,10 @@ pub fn predict(model : GPModel, x_test : Array[Double]) -> GPPrediction {
 
 ///|
 /// Predict at multiple test points.
-pub fn predict_batch(model : GPModel, x_test : Array[Array[Double]]) -> Array[GPPrediction] {
+pub fn predict_batch(
+  model : GPModel,
+  x_test : Array[Array[Double]],
+) -> Array[GPPrediction] {
   let result : Array[GPPrediction] = []
   for i = 0; i < x_test.length(); i = i + 1 {
     result.push(predict(model, x_test[i]))

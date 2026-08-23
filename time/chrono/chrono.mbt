@@ -198,7 +198,7 @@ fn days_to_date(days : Int) -> Date {
   let mp = (5 * doy + 2) / 153 // [0, 11]
   let d = doy - (153 * mp + 2) / 5 + 1 // [1, 31]
   let m = if mp < 10 { mp + 3 } else { mp - 9 } // [1, 12]
-  { year: (if m <= 2 { y + 1 } else { y }), month: m, day: d }
+  { year: if m <= 2 { y + 1 } else { y }, month: m, day: d }
 }
 
 ///|
@@ -208,7 +208,7 @@ fn days_to_date(days : Int) -> Date {
 pub fn weekday(date : Date) -> Int {
   let days = date_to_days(date.year, date.month, date.day)
   // 1970-01-01 (day 0) was Thursday = 4 in ISO (Mon=1..Sun=7).
-  let wd = ((days % 7) + 4 + 7) % 7 // 0=Sunday..6=Saturday
+  let wd = (days % 7 + 4 + 7) % 7 // 0=Sunday..6=Saturday
   if wd == 0 {
     7 // Sunday
   } else {
@@ -285,7 +285,7 @@ pub fn sub_days(d : Date, n : Int) -> Date {
 ///
 /// For example, adding 1 month to January 31 yields February 28 (or 29).
 pub fn add_months(d : Date, n : Int) -> Date {
-  let total = (d.year * 12 + (d.month - 1)) + n
+  let total = d.year * 12 + (d.month - 1) + n
   let new_year = total / 12
   let new_month = total % 12 + 1
   let max_day = days_in_month(new_year, new_month)
@@ -318,12 +318,7 @@ pub fn days_between(start : Date, end : Date) -> Int {
 /// Create a `Time` from hour, minute, second, and nanosecond.
 ///
 /// Returns `None` if any value is out of range.
-pub fn time(
-  hour : Int,
-  minute : Int,
-  second : Int,
-  nanosecond : Int
-) -> Time? {
+pub fn time(hour : Int, minute : Int, second : Int, nanosecond : Int) -> Time? {
   if hour < 0 || hour > 23 {
     return None
   }
@@ -512,10 +507,14 @@ pub fn time_of(dt : DateTime) -> Time {
   let local_ns = dt.timestamp_ns +
     dt.offset_minutes.to_int64() * SECS_PER_MIN * NS_PER_SEC
   let day_ns = local_ns % (SECS_PER_DAY * NS_PER_SEC)
-  let day_ns_pos = if day_ns < 0L { day_ns + SECS_PER_DAY * NS_PER_SEC } else { day_ns }
+  let day_ns_pos = if day_ns < 0L {
+    day_ns + SECS_PER_DAY * NS_PER_SEC
+  } else {
+    day_ns
+  }
   let total_secs = day_ns_pos / NS_PER_SEC
   let h = (total_secs / SECS_PER_HOUR).to_int()
-  let m = ((total_secs % SECS_PER_HOUR) / SECS_PER_MIN).to_int()
+  let m = (total_secs % SECS_PER_HOUR / SECS_PER_MIN).to_int()
   let s = (total_secs % SECS_PER_MIN).to_int()
   let ns = (day_ns_pos % NS_PER_SEC).to_int()
   { hour: h, minute: m, second: s, nanosecond: ns }
@@ -608,11 +607,7 @@ fn pad(n : Int, width : Int) -> String {
 /// Years are zero-padded to 4 digits (5 for negative years with a
 /// leading `-`).
 pub fn format_date(d : Date) -> String {
-  let y = if d.year >= 0 {
-    pad(d.year, 4)
-  } else {
-    "-" + pad(-d.year, 4)
-  }
+  let y = if d.year >= 0 { pad(d.year, 4) } else { "-" + pad(-d.year, 4) }
   y + "-" + pad(d.month, 2) + "-" + pad(d.day, 2)
 }
 
@@ -642,7 +637,11 @@ fn format_offset(offset_minutes : Int) -> String {
     return "Z"
   }
   let sign = if offset_minutes >= 0 { "+" } else { "-" }
-  let abs_min = if offset_minutes >= 0 { offset_minutes } else { -offset_minutes }
+  let abs_min = if offset_minutes >= 0 {
+    offset_minutes
+  } else {
+    -offset_minutes
+  }
   let h = abs_min / 60
   let m = abs_min % 60
   sign + pad(h, 2) + ":" + pad(m, 2)

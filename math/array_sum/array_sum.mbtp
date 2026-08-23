@@ -1,7 +1,37 @@
+///|
+/// Postcondition: result is non-negative.
 predicate sum_nonneg_ok(result : Int) {
   0 <= result
 }
 
+///|
+/// Postcondition: count is between 0 and array length.
 predicate count_nonneg_ok(xs : FixedArray[Int], result : Int) {
   0 <= result && result <= xs.length()
+}
+
+///|
+/// Precondition: all elements of xs are in [lo, hi].
+predicate in_range(xs : FixedArray[Int], lo : Int, hi : Int) {
+  ∀ i : Int, ((0 <= i) && (i < xs.length())) →
+    ((lo <= xs[i]) && (xs[i] <= hi))
+}
+
+///|
+/// Postcondition: sum is bounded by [lo * n, hi * n].
+predicate sum_bounded(n : Int, lo : Int, hi : Int, result : Int) {
+  n * lo <= result && result <= n * hi
+}
+
+///|
+/// Precondition: all elements equal val.
+predicate all_equal(xs : FixedArray[Int], val : Int) {
+  ∀ i : Int, ((0 <= i) && (i < xs.length())) →
+    xs[i] == val
+}
+
+///|
+/// Postcondition: uniform sum equals n * val.
+predicate uniform_sum_ok(n : Int, val : Int, result : Int) {
+  result == n * val
 }

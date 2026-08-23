@@ -103,11 +103,7 @@ fn branch_and_bound(
   for i = 0; i < n_vars; i = i + 1 {
     let frac = lp_sol[i] - lp_sol[i].floor()
     if frac > 1.0e-6 && frac < 1.0 - 1.0e-6 {
-      let dist = if frac < 0.5 {
-        frac
-      } else {
-        1.0 - frac
-      }
+      let dist = if frac < 0.5 { frac } else { 1.0 - frac }
       if dist > best_frac {
         best_frac = dist
         frac_var = i
@@ -134,7 +130,14 @@ fn branch_and_bound(
   ub[frac_var] = floor_val
   if ub[frac_var] >= lb[frac_var] {
     branch_and_bound(
-      n_vars, c, constraints, lb, ub, state, max_iter, iter_count + 1,
+      n_vars,
+      c,
+      constraints,
+      lb,
+      ub,
+      state,
+      max_iter,
+      iter_count + 1,
     )
   }
   ub[frac_var] = old_ub
@@ -143,7 +146,14 @@ fn branch_and_bound(
   lb[frac_var] = ceil_val
   if ub[frac_var] >= lb[frac_var] {
     branch_and_bound(
-      n_vars, c, constraints, lb, ub, state, max_iter, iter_count + 1,
+      n_vars,
+      c,
+      constraints,
+      lb,
+      ub,
+      state,
+      max_iter,
+      iter_count + 1,
     )
   }
   lb[frac_var] = old_lb
@@ -232,7 +242,7 @@ fn simplex_solve(
   let n_ub = n_vars
   let total_cons = n_cons + n_ub
   let total_vars = n_vars + total_cons
-    // structural + slack for constraints + slack for upper bounds
+  // structural + slack for constraints + slack for upper bounds
 
   // Build tableau: total_cons rows x (total_vars + 1) columns (last = RHS)
   let tableau : Array[Array[Double]] = []
@@ -474,19 +484,15 @@ test "ilp: multi-constraint" {
   // 6x + 4y <= 24
   // x + 2y <= 6
   let c = [5.0, 4.0]
-  let constraints = [
-    ([6.0, 4.0], 24.0),
-    ([1.0, 2.0], 6.0),
-  ]
+  let constraints = [([6.0, 4.0], 24.0), ([1.0, 2.0], 6.0)]
   match solve_ilp(2, c, constraints, 2000) {
-    Some((val, _sol)) => {
+    Some((val, _sol)) =>
       // LP optimum is (3, 1.5) = 21.0; ILP optimum is (3, 1) = 19 or (2, 3) = 22
       // Actually: x=3,y=1: 6*3+4*1=22<=24, 3+2=5<=6, obj=19
       // x=2,y=3: 6*2+4*3=24<=24, 2+6=8>6 infeasible
       // x=3,y=1: obj=19, x=4,y=0: 24<=24, 4<=6, obj=20
       // x=4,y=0: obj=20 — this is optimal
       assert_true(val >= 19.0)
-    }
     None => assert_true(false)
   }
 }
@@ -512,10 +518,9 @@ test "ilp: three variables" {
     ([0.0, 1.0, 0.0], 3.0),
   ]
   match solve_ilp(3, c, constraints, 2000) {
-    Some((val, _sol)) => {
+    Some((val, _sol)) =>
       // Optimal: x=4, y=3, z=3, obj=4+6+9=19
       assert_true(val >= 18.0)
-    }
     None => assert_true(false)
   }
 }

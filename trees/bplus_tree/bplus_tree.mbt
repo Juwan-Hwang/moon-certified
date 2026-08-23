@@ -66,11 +66,7 @@ pub struct BPTree[K, V] {
 /// For `Int` keys, pass `fn(a, b) { a - b }` or use the `new_int` convenience
 /// constructor.
 pub fn[K, V] new(cmp_fn : (K, K) -> Int) -> BPTree[K, V] {
-  {
-    root: Leaf({ keys: [], values: [], next: None }),
-    size: 0,
-    cmp_fn,
-  }
+  { root: Leaf({ keys: [], values: [], next: None }), size: 0, cmp_fn }
 }
 
 ///|
@@ -136,7 +132,12 @@ fn[K, V] insert_child(
       while idx < node.keys.length() && cmp_fn(key, node.keys[idx]) >= 0 {
         idx = idx + 1
       }
-      let (new_child, is_new) = insert_child(node.children[idx], key, value, cmp_fn)
+      let (new_child, is_new) = insert_child(
+        node.children[idx],
+        key,
+        value,
+        cmp_fn,
+      )
       node.children[idx] = new_child
       // Check if the child split.
       match new_child {
@@ -186,7 +187,9 @@ fn[K, V] insert_leaf(
 
 ///|
 /// Split a leaf node into two. Returns (left, right, separator_key).
-fn[K, V] split_leaf(leaf : BPTreeLeaf[K, V]) -> (BPTreeLeaf[K, V], BPTreeLeaf[K, V], K) {
+fn[K, V] split_leaf(
+  leaf : BPTreeLeaf[K, V],
+) -> (BPTreeLeaf[K, V], BPTreeLeaf[K, V], K) {
   let mid = leaf.keys.length() / 2
   let right : BPTreeLeaf[K, V] = { keys: [], values: [], next: leaf.next }
   for i = mid; i < leaf.keys.length(); i = i + 1 {
@@ -206,7 +209,7 @@ fn[K, V] split_leaf(leaf : BPTreeLeaf[K, V]) -> (BPTreeLeaf[K, V], BPTreeLeaf[K,
 ///|
 /// Split an internal node. Returns (left, right, separator_key).
 fn[K, V] split_node(
-  node : BPTreeNode[K, V]
+  node : BPTreeNode[K, V],
 ) -> (BPTreeNode[K, V], BPTreeNode[K, V], K) {
   let mid = node.keys.length() / 2
   let sep = node.keys[mid]
@@ -934,11 +937,15 @@ test "bptree: generic string keys" {
 
 ///|
 test "bptree: generic int64 keys" {
-  let tree : BPTree[Int64, String] = new(
-    fn(a, b) {
-      if a < b { -1 } else if a > b { 1 } else { 0 }
-    },
-  )
+  let tree : BPTree[Int64, String] = new(fn(a, b) {
+    if a < b {
+      -1
+    } else if a > b {
+      1
+    } else {
+      0
+    }
+  })
   insert(tree, 100L, "hundred")
   insert(tree, 50L, "fifty")
   insert(tree, 200L, "two hundred")

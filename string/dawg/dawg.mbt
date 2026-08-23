@@ -320,16 +320,14 @@ pub fn minimize(dawg : DAWG) -> Unit {
     for key_idx = 0; key_idx < keys.length(); key_idx = key_idx + 1 {
       let k = keys[key_idx]
       match state.transitions.get(k) {
-        Some(child) => {
+        Some(child) =>
           match canonical_map.get(child.id) {
-            Some(canonical) => {
+            Some(canonical) =>
               if canonical.id != child.id {
                 state.transitions[k] = canonical
               }
-            }
             None => ()
           }
-        }
         None => ()
       }
     }

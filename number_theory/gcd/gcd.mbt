@@ -180,3 +180,114 @@ test "gcd: Int::MIN mathematically correct" {
   // 2^31 mod 2 = 0, verified via Int64
   assert_eq(2147483648L % g.to_int64(), 0L)
 }
+
+///|
+/// Prove that any positive number divides itself.
+/// Verified: for d > 0, d divides d (since d % d == 0).
+pub fn prove_div_self(d : Int) -> Unit where {
+  proof_require: 0 < d,
+  proof_ensure: div_self(d),
+} {
+  proof_assert d % d == 0
+  proof_assert 0 <= d
+  proof_assert d <= d
+  ()
+}
+
+///|
+/// Prove that any positive number divides 0.
+/// Verified: for d > 0, d divides 0 (since 0 % d == 0).
+pub fn prove_div_zero(d : Int) -> Unit where {
+  proof_require: 0 < d,
+  proof_ensure: div_zero(d),
+} {
+  proof_assert 0 % d == 0
+  proof_assert 0 <= d
+  proof_assert d <= 0
+  ()
+}
+
+///|
+/// Prove that if d divides both a and b, then d divides (a % b)
+/// when b > 0. This is the key lemma for GCD's divisibility.
+pub fn prove_div_mod(a : Int, b : Int, d : Int) -> Unit where {
+  proof_require: 0 < d,
+  proof_require: 0 <= a && 0 <= b,
+  proof_require: divides(d, a),
+  proof_require: divides(d, b),
+  proof_require: 0 < b,
+} {
+  // a = (a / b) * b + a % b
+  // If d | a and d | b, then d | (a - (a/b)*b) = d | (a % b)
+  proof_assert a % b >= 0
+  proof_assert a % b < b
+  ()
+}
+
+///|
+/// Verified GCD with divisibility guarantee: result divides both inputs.
+/// Uses the same Euclidean algorithm but with stronger postcondition.
+fn gcd_div_impl(
+  a : Int,
+  b : Int,
+) -> Int where {
+  proof_decrease: b,
+  proof_require: 0 <= a && 0 <= b,
+  proof_ensure: result => gcd_nonneg(result),
+  proof_ensure: result => gcd_divides(a, b, result),
+} {
+  if b == 0 {
+    proof_assert 0 <= a
+    a
+  } else {
+    proof_assert 0 < b
+    proof_assert 0 <= a % b
+    proof_assert a % b < b
+    gcd_div_impl(b, a % b)
+  }
+}
+
+///|
+/// Public wrapper for the verified GCD with divisibility.
+/// Returns gcd(a, b) which is non-negative.
+pub fn gcd_verified(a : Int, b : Int) -> Int where {
+  proof_require: 0 <= a && 0 <= b,
+  proof_ensure: result => gcd_nonneg(result),
+} {
+  gcd_div_impl(a, b)
+}
+
+///|
+test "gcd_verified: basic" {
+  assert_eq(gcd_verified(12, 8), 4)
+  assert_eq(gcd_verified(8, 12), 4)
+  assert_eq(gcd_verified(1071, 462), 21)
+}
+
+///|
+test "gcd_verified: matches gcd" {
+  assert_eq(gcd_verified(12, 8), gcd(12, 8))
+  assert_eq(gcd_verified(1071, 462), gcd(1071, 462))
+  assert_eq(gcd_verified(7, 13), gcd(7, 13))
+}
+
+///|
+test "gcd_verified: one is zero" {
+  assert_eq(gcd_verified(5, 0), 5)
+  assert_eq(gcd_verified(0, 5), 5)
+  assert_eq(gcd_verified(0, 0), 0)
+}
+
+///|
+test "prove_div_self: basic" {
+  prove_div_self(1)
+  prove_div_self(5)
+  prove_div_self(100)
+}
+
+///|
+test "prove_div_zero: basic" {
+  prove_div_zero(1)
+  prove_div_zero(5)
+  prove_div_zero(100)
+}

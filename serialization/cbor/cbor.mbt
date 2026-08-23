@@ -42,13 +42,14 @@ pub fn encode(v : CborValue) -> Bytes {
   Bytes::from_array(buf)
 }
 
+///|
 fn encode_value(v : CborValue, buf : Array[Byte]) -> Unit {
   match v {
     CborUInt(n) => encode_head(0, n.to_uint64(), buf)
     CborNInt(n) => {
       // CBOR negative: argument = -(value) - 1
       // For n = -100, arg = 99
-      let arg = (-(n) - 1).to_uint64()
+      let arg = (-n - 1).to_uint64()
       encode_head(1, arg, buf)
     }
     CborBytes(b) => {
@@ -94,21 +95,21 @@ fn encode_value(v : CborValue, buf : Array[Byte]) -> Unit {
 fn encode_head(major : Int, arg : UInt64, buf : Array[Byte]) -> Unit {
   let m = major.reinterpret_as_uint()
   if arg < 24UL {
-    buf.push(((m << 5).lor(arg.to_uint())).to_byte())
+    buf.push((m << 5).lor(arg.to_uint()).to_byte())
   } else if arg < 0x100UL {
-    buf.push(((m << 5).lor(24U)).to_byte())
+    buf.push((m << 5).lor(24U).to_byte())
     buf.push(arg.to_byte())
   } else if arg < 0x10000UL {
-    buf.push(((m << 5).lor(25U)).to_byte())
+    buf.push((m << 5).lor(25U).to_byte())
     buf.push(((arg >> 8) & 0xFFUL).to_byte())
     buf.push((arg & 0xFFUL).to_byte())
   } else if arg < 0x100000000UL {
-    buf.push(((m << 5).lor(26U)).to_byte())
+    buf.push((m << 5).lor(26U).to_byte())
     for i = 0; i < 4; i = i + 1 {
       buf.push(((arg >> ((3 - i) * 8)) & 0xFFUL).to_byte())
     }
   } else {
-    buf.push(((m << 5).lor(27U)).to_byte())
+    buf.push((m << 5).lor(27U).to_byte())
     for i = 0; i < 8; i = i + 1 {
       buf.push(((arg >> ((7 - i) * 8)) & 0xFFUL).to_byte())
     }
@@ -126,6 +127,7 @@ pub fn decode(data : Bytes) -> CborValue? {
   Some(v)
 }
 
+///|
 fn decode_value(data : Bytes, pos : Int) -> (CborValue, Int)? {
   if pos >= data.length() {
     return None
@@ -148,7 +150,7 @@ fn decode_value(data : Bytes, pos : Int) -> (CborValue, Int)? {
         Some(x) => x
       }
       // value = -(arg) - 1
-      let val = -(arg.to_int()) - 1
+      let val = -arg.to_int() - 1
       Some((CborNInt(val), np))
     }
     2 => {
@@ -289,6 +291,7 @@ fn decode_arg(data : Bytes, pos : Int, info : Int) -> (UInt64, Int)? {
   }
 }
 
+///|
 fn bytes_to_string(data : Bytes, offset : Int, len : Int) -> String {
   let arr : Array[Byte] = []
   for i = 0; i < len; i = i + 1 {

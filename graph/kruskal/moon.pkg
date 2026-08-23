@@ -3,5 +3,5 @@ import {
 }
 
 options(
-  "proof-enabled": false,
+  "proof-enabled": true,
 )

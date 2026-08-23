@@ -296,7 +296,9 @@ pub fn fixed_bps_slippage(bps : Double) -> (Double, Double, Double) -> Double {
 ///
 /// - `coefficient`: Impact coefficient (e.g. 0.5 for liquid stocks).
 /// - `adv`: Average daily volume (passed per-fill via the slippage callback).
-pub fn sqrt_impact_slippage(coefficient : Double) -> (Double, Double, Double) -> Double {
+pub fn sqrt_impact_slippage(
+  coefficient : Double,
+) -> (Double, Double, Double) -> Double {
   fn(qty : Double, price : Double, adv : Double) -> Double {
     if adv <= 0.0 || qty == 0.0 {
       return price
@@ -321,7 +323,9 @@ pub fn sqrt_impact_slippage(coefficient : Double) -> (Double, Double, Double) ->
 /// `impact_bps = coefficient · (|qty| / ADV) · 1e4`
 ///
 /// Simpler than square-root but overestimates impact for large orders.
-pub fn linear_impact_slippage(coefficient : Double) -> (Double, Double, Double) -> Double {
+pub fn linear_impact_slippage(
+  coefficient : Double,
+) -> (Double, Double, Double) -> Double {
   fn(qty : Double, price : Double, adv : Double) -> Double {
     if adv <= 0.0 || qty == 0.0 {
       return price
@@ -886,9 +890,7 @@ test "slippage: sqrt impact scales with order size" {
     zero_commission(),
     sqrt_impact_slippage(0.5),
     10000.0, // ADV
-    fn(_step, _prices, _portfolio) {
-      [{ symbol: "AAPL", quantity: 10.0 }]
-    },
+    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 10.0 }] },
   )
   // Large order: 1000 shares (10% of ADV)
   let result_large = run_backtest_with_slippage(
@@ -898,9 +900,7 @@ test "slippage: sqrt impact scales with order size" {
     zero_commission(),
     sqrt_impact_slippage(0.5),
     10000.0, // ADV
-    fn(_step, _prices, _portfolio) {
-      [{ symbol: "AAPL", quantity: 1000.0 }]
-    },
+    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 1000.0 }] },
   )
   // Both buy at step 0, price stays at 100, so equity = cash - cost of buying
   // Large order has more impact → higher fill price → more cost → lower equity
@@ -940,7 +940,7 @@ test "slippage: missing price skips order" {
 ///|
 test "slippage: zero/negative price treated as halt" {
   let market_data : Array[Array[(String, Double)]] = [
-    [("AAPL", 0.0)],  // Trading halt
+    [("AAPL", 0.0)], // Trading halt
     [("AAPL", 100.0)],
   ]
   let result = run_backtest_with_slippage(

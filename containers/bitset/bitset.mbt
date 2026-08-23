@@ -43,7 +43,9 @@ fn popcount64(x : UInt64) -> Int {
 /// Create an empty `BitSet` addressable over `[0, capacity)`. `capacity` is
 /// given in bits; internal storage rounds it up to the next multiple of 64. A
 /// negative capacity is clamped to 0 (an empty set with no storage).
-pub fn bitset_new(capacity : Int) -> BitSet {
+pub fn bitset_new(capacity : Int) -> BitSet where {
+  proof_ensure: result => bitset_capacity_ok(result.capacity),
+} {
   let cap = if capacity < 0 { 0 } else { capacity }
   let num_words = (cap + 63) / 64
   { bits: FixedArray::make(num_words, 0UL), capacity: cap }

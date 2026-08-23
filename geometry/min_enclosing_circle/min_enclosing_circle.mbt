@@ -153,8 +153,14 @@ test "min_enclosing_circle: collinear points" {
 test "min_enclosing_circle: all points inside" {
   // Outer points define the circle, inner points are irrelevant
   let pts = [
-    (5.0, 0.0), (-5.0, 0.0), (0.0, 5.0), (0.0, -5.0),
-    (1.0, 1.0), (-1.0, -1.0), (0.0, 0.0), (2.0, 0.0),
+    (5.0, 0.0),
+    (-5.0, 0.0),
+    (0.0, 5.0),
+    (0.0, -5.0),
+    (1.0, 1.0),
+    (-1.0, -1.0),
+    (0.0, 0.0),
+    (2.0, 0.0),
   ]
   let c = min_enclosing_circle(pts)
   assert_true(c.cx.abs() < 1.0e-10)

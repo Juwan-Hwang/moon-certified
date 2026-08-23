@@ -37,7 +37,8 @@ fn compute_dp(
       m[i][j] = INF
       for k in i..<j {
         // Compute cost in Int64 to prevent overflow.
-        let cost = m[i][k] + m[k + 1][j] +
+        let cost = m[i][k] +
+          m[k + 1][j] +
           dims[i].to_int64() * dims[k + 1].to_int64() * dims[j + 1].to_int64()
         if cost < m[i][j] {
           m[i][j] = cost

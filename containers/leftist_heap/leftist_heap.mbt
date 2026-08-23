@@ -215,24 +215,22 @@ fn[T] merge_nodes(
     (_, None) => a
     (Some(na), Some(nb)) => {
       // Ensure na has the smaller root (min-heap).
-      let (smaller, larger) =
-        if compare(na.val, nb.val) <= 0 {
-          (na, nb)
-        } else {
-          (nb, na)
-        }
+      let (smaller, larger) = if compare(na.val, nb.val) <= 0 {
+        (na, nb)
+      } else {
+        (nb, na)
+      }
       // Recursively merge the larger tree into the right subtree of smaller.
       let merged_right = merge_nodes(smaller.right, Some(larger), compare)
       // Set children: left stays, right becomes the merged result.
       let left = smaller.left
       // Enforce leftist property: npl(left) >= npl(right).
       // If violated, swap children.
-      let (new_left, new_right) =
-        if npl_of(left) >= npl_of(merged_right) {
-          (left, merged_right)
-        } else {
-          (merged_right, left)
-        }
+      let (new_left, new_right) = if npl_of(left) >= npl_of(merged_right) {
+        (left, merged_right)
+      } else {
+        (merged_right, left)
+      }
       // Update npl: 1 + min(npl(left), npl(right)) = 1 + npl(right) since
       // leftist property guarantees npl(left) >= npl(right).
       let new_npl = 1 + npl_of(new_right)
@@ -296,16 +294,16 @@ fn[T] verify_heap_property(
   match node {
     None => true
     Some(n) => {
-      let left_ok =
-        match n.left {
-          None => true
-          Some(l) => compare(n.val, l.val) <= 0 && verify_heap_property(Some(l), compare)
-        }
-      let right_ok =
-        match n.right {
-          None => true
-          Some(r) => compare(n.val, r.val) <= 0 && verify_heap_property(Some(r), compare)
-        }
+      let left_ok = match n.left {
+        None => true
+        Some(l) =>
+          compare(n.val, l.val) <= 0 && verify_heap_property(Some(l), compare)
+      }
+      let right_ok = match n.right {
+        None => true
+        Some(r) =>
+          compare(n.val, r.val) <= 0 && verify_heap_property(Some(r), compare)
+      }
       left_ok && right_ok
     }
   }
@@ -324,6 +322,7 @@ fn[T] count_nodes(node : LeftistNode[T]?) -> Int {
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "leftist_heap: empty heap" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   assert_true(h.is_empty())
@@ -332,6 +331,7 @@ test "leftist_heap: empty heap" {
   assert_true(h.extract_min() is None)
 }
 
+///|
 test "leftist_heap: single insert and extract" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   h.insert(42)
@@ -343,6 +343,7 @@ test "leftist_heap: single insert and extract" {
   assert_eq(h.size(), 0)
 }
 
+///|
 test "leftist_heap: insert multiple and find_min" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   h.insert(5)
@@ -354,6 +355,7 @@ test "leftist_heap: insert multiple and find_min" {
   assert_eq(h.find_min(), Some(1))
 }
 
+///|
 test "leftist_heap: extract all in sorted order" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   let input = [7, 3, 9, 1, 5, 8, 2, 6, 4, 0]
@@ -368,6 +370,7 @@ test "leftist_heap: extract all in sorted order" {
   assert_true(h.is_empty())
 }
 
+///|
 test "leftist_heap: duplicate values" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   h.insert(5)
@@ -384,6 +387,7 @@ test "leftist_heap: duplicate values" {
   assert_true(h.is_empty())
 }
 
+///|
 test "leftist_heap: max-heap via reversed comparator" {
   let h = LeftistHeap::new(fn(a, b) { b - a })
   h.insert(5)
@@ -399,6 +403,7 @@ test "leftist_heap: max-heap via reversed comparator" {
   assert_eq(h.extract_min(), Some(1))
 }
 
+///|
 test "leftist_heap: merge two non-empty heaps" {
   let h1 = LeftistHeap::new(fn(a, b) { a - b })
   h1.insert(1)
@@ -418,6 +423,7 @@ test "leftist_heap: merge two non-empty heaps" {
   }
 }
 
+///|
 test "leftist_heap: merge with empty heap" {
   let h1 = LeftistHeap::new(fn(a, b) { a - b })
   h1.insert(1)
@@ -436,6 +442,7 @@ test "leftist_heap: merge with empty heap" {
   assert_eq(h3.extract_min(), Some(10))
 }
 
+///|
 test "leftist_heap: merge two empty heaps" {
   let h1 = LeftistHeap::new(fn(a, b) { a - b })
   let h2 = LeftistHeap::new(fn(a, b) { a - b })
@@ -444,6 +451,7 @@ test "leftist_heap: merge two empty heaps" {
   assert_eq(h1.size(), 0)
 }
 
+///|
 test "leftist_heap: from_array" {
   let arr = [9, 3, 7, 1, 8, 2, 6, 4, 5, 0]
   let h = LeftistHeap::from_array(arr, fn(a, b) { a - b })
@@ -453,6 +461,7 @@ test "leftist_heap: from_array" {
   }
 }
 
+///|
 test "leftist_heap: leftist property maintained after operations" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   for i = 0; i < 100; i = i + 1 {
@@ -471,6 +480,7 @@ test "leftist_heap: leftist property maintained after operations" {
   assert_eq(count_nodes(h.root), h.size())
 }
 
+///|
 test "leftist_heap: right spine length is O(log n)" {
   // For n = 1023 = 2^10 - 1, right spine should be at most 10.
   let h = LeftistHeap::new(fn(a, b) { a - b })
@@ -492,6 +502,7 @@ test "leftist_heap: right spine length is O(log n)" {
   assert_true(spine_len <= 10)
 }
 
+///|
 test "leftist_heap: merge preserves leftist property" {
   let h1 = LeftistHeap::new(fn(a, b) { a - b })
   let h2 = LeftistHeap::new(fn(a, b) { a - b })
@@ -505,6 +516,7 @@ test "leftist_heap: merge preserves leftist property" {
   assert_true(verify_heap_property(h1.root, h1.compare))
 }
 
+///|
 test "leftist_heap: intermixed insert and extract" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   h.insert(5)
@@ -522,6 +534,7 @@ test "leftist_heap: intermixed insert and extract" {
   assert_true(h.is_empty())
 }
 
+///|
 test "leftist_heap: string values" {
   let h = LeftistHeap::new(fn(a : String, b : String) -> Int {
     let ac = a.to_array()
@@ -530,7 +543,9 @@ test "leftist_heap: string values" {
     let mut i = 0
     while i < n {
       let d = ac[i].to_int() - bc[i].to_int()
-      if d != 0 { return d }
+      if d != 0 {
+        return d
+      }
       i = i + 1
     }
     ac.length() - bc.length()
@@ -545,6 +560,7 @@ test "leftist_heap: string values" {
   assert_eq(h.extract_min(), Some("date"))
 }
 
+///|
 test "leftist_heap: stress test with random-like sequence" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   // Use a simple LCG to generate pseudo-random values
@@ -564,6 +580,7 @@ test "leftist_heap: stress test with random-like sequence" {
   assert_true(h.is_empty())
 }
 
+///|
 test "leftist_heap: repeated merge operations" {
   let heaps : Array[LeftistHeap[Int]] = []
   for k = 0; k < 10; k = k + 1 {
@@ -586,6 +603,7 @@ test "leftist_heap: repeated merge operations" {
   }
 }
 
+///|
 test "leftist_heap: npl correctness after extensive operations" {
   let h = LeftistHeap::new(fn(a, b) { a - b })
   // Insert in sorted order (worst case for some heaps)

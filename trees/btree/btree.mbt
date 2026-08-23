@@ -414,11 +414,7 @@ fn[T] _delete_internal(
 
 ///|
 /// Delete `key` from the subtree rooted at `node` (mutated in place).
-fn[T] _delete(
-  node : BTreeNode[T],
-  key : T,
-  cmp : (T, T) -> Int,
-) -> Unit {
+fn[T] _delete(node : BTreeNode[T], key : T, cmp : (T, T) -> Int) -> Unit {
   let t = node.degree
   let n = node.keys.length()
   // Find the first key >= key.

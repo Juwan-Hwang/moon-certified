@@ -22,9 +22,10 @@ let instance_counter : Ref[Int] = { val: 0 }
 /// Combines a base seed with a monotonically increasing instance counter
 /// so that successive calls return different values:
 ///
-/// ```moonbit
-/// let s1 = fresh_seed(0x1A2B3C4D)  // e.g. 0x1A2B3C4E
-/// let s2 = fresh_seed(0x1A2B3C4D)  // e.g. 0x1A2B3C4F
+/// ```moonbit nocheck
+/// let s1 = fresh_seed(0x1A2B3C4D) // e.g. 0x1A2B3C4E
+///
+/// let s2 = fresh_seed(0x1A2B3C4D) // e.g. 0x1A2B3C4F
 /// ```
 ///
 /// The result is always a positive 31-bit integer (masked to `[1, 2^31)`),
@@ -32,7 +33,11 @@ let instance_counter : Ref[Int] = { val: 0 }
 pub fn fresh_seed(base : Int) -> Int {
   instance_counter.val = instance_counter.val + 1
   let s = (base ^ instance_counter.val) & 0x7FFFFFFF
-  if s == 0 { 1 } else { s }
+  if s == 0 {
+    1
+  } else {
+    s
+  }
 }
 
 ///|

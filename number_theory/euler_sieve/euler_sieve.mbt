@@ -178,7 +178,10 @@ test "euler_sieve: prime count matches known values" {
   let s10 = @test_utils.expect_some(sieve(10), "sieve(10) should succeed")
   let s100 = @test_utils.expect_some(sieve(100), "sieve(100) should succeed")
   let s1000 = @test_utils.expect_some(sieve(1000), "sieve(1000) should succeed")
-  let s10000 = @test_utils.expect_some(sieve(10000), "sieve(10000) should succeed")
+  let s10000 = @test_utils.expect_some(
+    sieve(10000),
+    "sieve(10000) should succeed",
+  )
   assert_eq(prime_count(s10), 4)
   assert_eq(prime_count(s100), 25)
   assert_eq(prime_count(s1000), 168)
@@ -210,7 +213,10 @@ test "euler_sieve: smallest prime factor" {
 ///|
 test "euler_sieve: factorize" {
   let s = @test_utils.expect_some(sieve(10000), "sieve(10000) should succeed")
-  let f = @test_utils.expect_some(factorize(s, 360), "factorize(s, 360) should succeed")
+  let f = @test_utils.expect_some(
+    factorize(s, 360),
+    "factorize(s, 360) should succeed",
+  )
   assert_eq(f.length(), 3)
   assert_eq(f[0], (2, 3))
   assert_eq(f[1], (3, 2))
@@ -220,7 +226,10 @@ test "euler_sieve: factorize" {
 ///|
 test "euler_sieve: factorize prime" {
   let s = @test_utils.expect_some(sieve(1000), "sieve(1000) should succeed")
-  let f = @test_utils.expect_some(factorize(s, 997), "factorize(s, 997) should succeed")
+  let f = @test_utils.expect_some(
+    factorize(s, 997),
+    "factorize(s, 997) should succeed",
+  )
   assert_eq(f.length(), 1)
   assert_eq(f[0], (997, 1))
 }
@@ -228,7 +237,10 @@ test "euler_sieve: factorize prime" {
 ///|
 test "euler_sieve: factorize power of 2" {
   let s = @test_utils.expect_some(sieve(1024), "sieve(1024) should succeed")
-  let f = @test_utils.expect_some(factorize(s, 1024), "factorize(s, 1024) should succeed")
+  let f = @test_utils.expect_some(
+    factorize(s, 1024),
+    "factorize(s, 1024) should succeed",
+  )
   assert_eq(f.length(), 1)
   assert_eq(f[0], (2, 10))
 }

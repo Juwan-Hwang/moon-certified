@@ -19,6 +19,14 @@ _build/verif/
 .DS_Store
 Thumbs.db
 
+# Backup & temp files
+*.bak
+*.tmp
+debug_tmp_test.mbt
+
+# Generated interface files
+pkg.generated.mbti
+
 # Environment
 .env
 .env.local

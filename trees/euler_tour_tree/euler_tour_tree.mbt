@@ -149,11 +149,7 @@ pub fn EulerTourTree::link(self : EulerTourTree, u : Int, v : Int) -> Bool {
   let cv = self.component_id[v]
   let su = self.component_sizes[cu]
   let sv = self.component_sizes[cv]
-  let (from_comp, to_comp) = if su >= sv {
-    (cv, cu)
-  } else {
-    (cu, cv)
-  }
+  let (from_comp, to_comp) = if su >= sv { (cv, cu) } else { (cu, cv) }
   // Relabel all vertices in the smaller component
   for i = 0; i < self.n; i = i + 1 {
     if self.component_id[i] == from_comp {
@@ -262,10 +258,7 @@ pub fn EulerTourTree::euler_tour(
 ///|
 /// Remove the first occurrence of `neighbor` from `neighbors`. Returns
 /// true if found and removed.
-fn remove_neighbor(
-  neighbors : Array[Int],
-  neighbor : Int,
-) -> Bool {
+fn remove_neighbor(neighbors : Array[Int], neighbor : Int) -> Bool {
   let mut i = 0
   while i < neighbors.length() {
     if neighbors[i] == neighbor {
@@ -284,11 +277,7 @@ fn remove_neighbor(
 /// BFS from `start` to find all vertices reachable in the current graph
 /// (after edge removal). Returns a boolean array where visited[i] = true
 /// means vertex i is reachable from start.
-fn bfs_component(
-  adj : Array[Array[Int]],
-  n : Int,
-  start : Int,
-) -> Array[Bool] {
+fn bfs_component(adj : Array[Array[Int]], n : Int, start : Int) -> Array[Bool] {
   let visited = []
   for i = 0; i < n; i = i + 1 {
     visited.push(false)

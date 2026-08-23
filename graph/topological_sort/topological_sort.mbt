@@ -261,3 +261,26 @@ test "topo_sort: two-node cycle" {
   graph[1 * n + 0] = 1
   assert_true(topo_sort(graph, n) is None)
 }
+
+///|
+/// Compute the flat index for adjacency matrix position (i, j) with dimension n.
+/// Verified: result == i * n + j when i, j in [0, n).
+pub fn edge_index(i : Int, j : Int, n : Int) -> Int where {
+  proof_require: 0 <= i,
+  proof_require: i < n,
+  proof_require: 0 <= j,
+  proof_require: j < n,
+  proof_ensure: result => 0 <= result,
+  proof_ensure: result => result < n * n,
+} {
+  i * n + j
+}
+
+///|
+test "edge_index: in bounds" {
+  assert_eq(edge_index(0, 0, 4), 0)
+  assert_eq(edge_index(3, 3, 4), 15)
+  assert_eq(edge_index(1, 2, 4), 6)
+  assert_true(edge_index(0, 0, 4) >= 0)
+  assert_true(edge_index(3, 3, 4) < 16)
+}

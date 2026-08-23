@@ -22,7 +22,11 @@
 ///
 /// Returns `(R, pivots)` where R is upper triangular and pivots is the
 /// permutation array (pivots[j] = original column index at position j).
-pub fn qr_pivoting(m : Int, n : Int, a : Array[Double]) -> (Array[Double], Array[Int]) {
+pub fn qr_pivoting(
+  m : Int,
+  n : Int,
+  a : Array[Double],
+) -> (Array[Double], Array[Int]) {
   let r = Array::make(m * n, 0.0)
   for i = 0; i < m * n; i = i + 1 {
     r[i] = a[i]
@@ -108,14 +112,16 @@ pub fn matrix_rank(m : Int, n : Int, r : Array[Double], tol : Double) -> Int {
   rank
 }
 
+///|
 test "qr_pivoting: 3x2 matrix" {
   let a = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
   let (r, _) = qr_pivoting(3, 2, a)
   // R should be upper triangular (2x2 effective)
   assert_true(r[0 * 2 + 0].abs() > r[1 * 2 + 0].abs())
-  assert_true((r[1 * 2 + 0]).abs() < 1.0e-10)
+  assert_true(r[1 * 2 + 0].abs() < 1.0e-10)
 }
 
+///|
 test "qr_pivoting: identity" {
   let a = [1.0, 0.0, 0.0, 1.0]
   let (r, _) = qr_pivoting(2, 2, a)
@@ -123,6 +129,7 @@ test "qr_pivoting: identity" {
   assert_true((r[3] - 1.0).abs() < 1.0e-10 || (r[3] + 1.0).abs() < 1.0e-10)
 }
 
+///|
 test "qr_pivoting: rank deficient" {
   // Column 2 = 2 * Column 1
   let a = [1.0, 2.0, 3.0, 6.0]
@@ -131,6 +138,7 @@ test "qr_pivoting: rank deficient" {
   assert_eq(rank, 1)
 }
 
+///|
 test "qr_pivoting: full rank" {
   let a = [1.0, 0.0, 0.0, 1.0]
   let (r, _) = qr_pivoting(2, 2, a)
@@ -138,6 +146,7 @@ test "qr_pivoting: full rank" {
   assert_eq(rank, 2)
 }
 
+///|
 test "qr_pivoting: column pivot" {
   // Second column has larger norm, should be pivoted to first
   let a = [1.0, 10.0, 1.0, 10.0]

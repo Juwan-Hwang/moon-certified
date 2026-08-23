@@ -465,8 +465,8 @@ fn long_division(
     // Refine: ensure q_hat is not too large (Knuth Algorithm D, step D3).
     // The test value must be recomputed each iteration because q_hat changes.
     while q_hat >= 0x100000000UL ||
-      q_hat * norm_div[n - 2].to_uint64() >
-      (r_hat << 32) + norm_dividend[j + n - 2].to_uint64() {
+          q_hat * norm_div[n - 2].to_uint64() >
+          (r_hat << 32) + norm_dividend[j + n - 2].to_uint64() {
       q_hat = q_hat - 1UL
       r_hat = r_hat + d_top
       if r_hat >= 0x100000000UL {
@@ -1477,9 +1477,11 @@ test "bigint: large multiply and mod" {
     None => assert_true(false)
   }
   // Test: 2^256 mod p = 2^32 + 977 (secp256k1 prime)
-  let p256 = unwrap(from_string(
-    "115792089237316195423570985008687907853269984665640564039457584007908834671663",
-  ))
+  let p256 = unwrap(
+    from_string(
+      "115792089237316195423570985008687907853269984665640564039457584007908834671663",
+    ),
+  )
   let v256 = add(p256, add(shl(one(), 32), from_int_value(977)))
   match rem(v256, p256) {
     Some(r) => assert_eq(to_string(r), "4294968273")
@@ -1491,9 +1493,11 @@ test "bigint: large multiply and mod" {
     None => assert_true(false)
   }
   // Test: (a * b) / b == a for large values
-  let gy = unwrap(from_string(
-    "32670510020758816978083085130507043184471273380659243275938904335757337482424",
-  ))
+  let gy = unwrap(
+    from_string(
+      "32670510020758816978083085130507043184471273380659243275938904335757337482424",
+    ),
+  )
   match div(mul(gy, gy), gy) {
     Some(q) => assert_eq(to_string(q), to_string(gy))
     None => assert_true(false)

@@ -351,15 +351,23 @@ pub fn decompress(input : Bytes, max_output_size : Int) -> Bytes? {
 ///|
 /// XXHash32 prime constants (from the reference implementation).
 const XXH_PRIME32_1 : UInt = 2654435761U
+
+///|
 const XXH_PRIME32_2 : UInt = 2246822519U
+
+///|
 const XXH_PRIME32_3 : UInt = 3266489917U
+
+///|
 const XXH_PRIME32_4 : UInt = 668265263U
+
+///|
 const XXH_PRIME32_5 : UInt = 374761393U
 
 ///|
 /// Rotate left by `n` bits for `UInt`.
 fn rotl_u32(v : UInt, n : Int) -> UInt {
-  ((v << n) | (v >> (32 - n)))
+  (v << n) | (v >> (32 - n))
 }
 
 ///|
@@ -374,7 +382,7 @@ fn read_u32_le_bytes(data : Bytes, pos : Int) -> UInt {
 ///|
 /// XXHash32 round: mix one 4-byte lane into an accumulator.
 fn xxh_round(acc : UInt, lane : UInt) -> UInt {
-  let acc1 = acc + (lane * XXH_PRIME32_2)
+  let acc1 = acc + lane * XXH_PRIME32_2
   rotl_u32(acc1, 13) * XXH_PRIME32_1
 }
 
@@ -409,13 +417,13 @@ fn xxh32(data : Bytes, seed : UInt) -> UInt {
   hash = hash + len.reinterpret_as_uint()
   // Process remaining 4-byte chunks.
   while pos + 4 <= len {
-    hash = hash + (read_u32_le_bytes(data, pos) * XXH_PRIME32_3)
+    hash = hash + read_u32_le_bytes(data, pos) * XXH_PRIME32_3
     hash = rotl_u32(hash, 17) * XXH_PRIME32_4
     pos = pos + 4
   }
   // Process remaining individual bytes.
   while pos < len {
-    hash = hash + (data[pos].to_uint() * XXH_PRIME32_5)
+    hash = hash + data[pos].to_uint() * XXH_PRIME32_5
     hash = rotl_u32(hash, 11) * XXH_PRIME32_1
     pos = pos + 1
   }
@@ -504,7 +512,7 @@ pub fn frame_compress(data : Bytes) -> Bytes {
     // If compression doesn't help, store uncompressed.
     if compressed.length() >= block_len {
       // Uncompressed block: high bit set.
-      write_u32_le(output, (block_len.reinterpret_as_uint() | 0x80000000U))
+      write_u32_le(output, block_len.reinterpret_as_uint() | 0x80000000U)
       for i = 0; i < block_len; i = i + 1 {
         output.push(data[pos + i])
       }
@@ -760,8 +768,8 @@ test "lz4 frame: multi-block data round-trip" {
 ///|
 test "lz4 frame: corrupt magic returns None" {
   let bad = Bytes::from_array([
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x70', b'\x40', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x70', b'\x40', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
   ])
   assert_true(frame_decompress(bad) is None)
 }

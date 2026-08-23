@@ -39,15 +39,19 @@
 /// Minimum match length (Snappy requires ≥ 4 bytes to emit a copy).
 const MIN_MATCH : Int = 4
 
+///|
 /// Maximum offset for 1-byte copy encoding (12 bits: 4 upper + 8 lower).
 const MAX_OFFSET_1 : Int = 4096
 
+///|
 /// Maximum offset for 2-byte copy encoding (16 bits).
 const MAX_OFFSET_2 : Int = 65536
 
 ///|
 /// Hash table size (2^14 buckets, matching the reference implementation).
 const HASH_BITS : Int = 14
+
+///|
 const HASH_SIZE : Int = 1 << HASH_BITS // 16384
 
 ///|
@@ -94,8 +98,6 @@ fn decode_varint(data : Bytes, pos : Int) -> (Int, Int)? {
 // ---------------------------------------------------------------------------
 // Hash function
 // ---------------------------------------------------------------------------
-
-
 
 ///|
 /// Compute a 14-bit hash of `data[pos..pos+6)` (or fewer bytes at the end).
@@ -168,12 +170,10 @@ pub fn compress(data : Bytes) -> Bytes {
           }
         }
       }
-    } else {
       // Not enough bytes left for a match; just advance.
-      if pos < n {
-        let h = hash_bytes(data, pos)
-        hash_table[h] = pos
-      }
+    } else if pos < n {
+      let h = hash_bytes(data, pos)
+      hash_table[h] = pos
     }
     if !found {
       pos = pos + 1
@@ -492,8 +492,9 @@ test "snappy: long literal (> 60 bytes) round-trip" {
 
 ///|
 test "snappy: binary data with repeated blocks" {
-  let block = [0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE]
-    .map(fn(v) { v.to_byte() })
+  let block = [0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE].map(fn(v) {
+    v.to_byte()
+  })
   let arr : Array[Byte] = []
   for i = 0; i < 50; i = i + 1 {
     for j = 0; j < block.length(); j = j + 1 {
@@ -546,7 +547,7 @@ test "snappy: large input round-trip" {
   let arr : Array[Byte] = []
   for i = 0; i < 5000; i = i + 1 {
     // Mix of repetitive and semi-unique data.
-    arr.push(((i % 256).to_byte()))
+    arr.push((i % 256).to_byte())
   }
   let input = Bytes::from_array(arr)
   let compressed = compress(input)

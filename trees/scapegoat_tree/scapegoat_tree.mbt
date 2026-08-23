@@ -103,13 +103,7 @@ pub fn[T] ScapegoatTree::with_alpha(
   compare : (T, T) -> Int,
   alpha : Double,
 ) -> ScapegoatTree[T] {
-  let a = if alpha <= 0.5 {
-    0.51
-  } else if alpha >= 1.0 {
-    0.99
-  } else {
-    alpha
-  }
+  let a = if alpha <= 0.5 { 0.51 } else if alpha >= 1.0 { 0.99 } else { alpha }
   { root: None, compare, count: 0, max_count: 0, alpha: a }
 }
 
@@ -242,7 +236,11 @@ pub fn[T] ScapegoatTree::insert(self : ScapegoatTree[T], key : T) -> Bool {
     }
   }
   self.count = self.count + 1
-  self.max_count = if self.count > self.max_count { self.count } else { self.max_count }
+  self.max_count = if self.count > self.max_count {
+    self.count
+  } else {
+    self.max_count
+  }
   // Check if the tree is too deep.
   let h_alpha = log_alpha(self.count, self.alpha)
   let depth = path.length() // depth of the new node
@@ -255,15 +253,15 @@ pub fn[T] ScapegoatTree::insert(self : ScapegoatTree[T], key : T) -> Bool {
     while i < path.length() {
       let node = path[i]
       let node_size = size_of(Some(node))
-      let child_size =
-        if i + 1 < path.length() {
-          size_of(Some(path[i + 1]))
-        } else {
-          1 // The newly inserted node
-        }
+      let child_size = if i + 1 < path.length() {
+        size_of(Some(path[i + 1]))
+      } else {
+        1 // The newly inserted node
+      }
       let sibling_size = node_size - child_size - 1
       let threshold = self.alpha * node_size.to_double()
-      if child_size.to_double() > threshold || sibling_size.to_double() > threshold {
+      if child_size.to_double() > threshold ||
+        sibling_size.to_double() > threshold {
         scapegoat_idx = i
         // Keep going to find the HIGHEST (smallest i) scapegoat
         break
@@ -324,11 +322,10 @@ pub fn[T] ScapegoatTree::remove(self : ScapegoatTree[T], key : T) -> Bool {
   if !found {
     return false
   }
-  let node =
-    match cur {
-      Some(n) => n
-      None => return false
-    }
+  let node = match cur {
+    Some(n) => n
+    None => return false
+  }
   // Case 1: Node has two children — replace with in-order successor.
   if node.left is Some(_) && node.right is Some(_) {
     // Find in-order successor (min of right subtree).
@@ -355,15 +352,14 @@ pub fn[T] ScapegoatTree::remove(self : ScapegoatTree[T], key : T) -> Bool {
     }
   } else {
     // Case 2: Node has 0 or 1 child — replace with child.
-    let child =
-      match node.left {
-        Some(l) => Some(l)
-        None =>
-          match node.right {
-            Some(r) => Some(r)
-            None => None
-          }
-      }
+    let child = match node.left {
+      Some(l) => Some(l)
+      None =>
+        match node.right {
+          Some(r) => Some(r)
+          None => None
+        }
+    }
     match parent {
       None => self.root = child
       Some(p) =>
@@ -420,11 +416,7 @@ fn[T] flatten(node : SgNode[T]?, arr : Array[SgNode[T]]) -> Unit {
 ///|
 /// Build a perfectly balanced BST from a sorted array of nodes.
 /// Returns the root of the balanced subtree.
-fn[T] build_balanced(
-  arr : Array[SgNode[T]],
-  lo : Int,
-  hi : Int,
-) -> SgNode[T]? {
+fn[T] build_balanced(arr : Array[SgNode[T]], lo : Int, hi : Int) -> SgNode[T]? {
   if lo > hi {
     return None
   }
@@ -505,6 +497,7 @@ pub fn[T] ScapegoatTree::in_order(
   in_order_rec(self.root, f)
 }
 
+///|
 fn[T] in_order_rec(node : SgNode[T]?, f : (T) -> Unit) -> Unit {
   match node {
     None => ()
@@ -530,25 +523,18 @@ pub fn[T] ScapegoatTree::to_sorted_array(self : ScapegoatTree[T]) -> Array[T] {
 
 ///|
 /// Verify the BST property: left < node < right.
-fn[T] verify_bst(
-  node : SgNode[T]?,
-  compare : (T, T) -> Int,
-) -> Bool {
+fn[T] verify_bst(node : SgNode[T]?, compare : (T, T) -> Int) -> Bool {
   match node {
     None => true
     Some(n) => {
-      let left_ok =
-        match n.left {
-          None => true
-          Some(l) =>
-            compare(l.val, n.val) < 0 && verify_bst(Some(l), compare)
-        }
-      let right_ok =
-        match n.right {
-          None => true
-          Some(r) =>
-            compare(r.val, n.val) > 0 && verify_bst(Some(r), compare)
-        }
+      let left_ok = match n.left {
+        None => true
+        Some(l) => compare(l.val, n.val) < 0 && verify_bst(Some(l), compare)
+      }
+      let right_ok = match n.right {
+        None => true
+        Some(r) => compare(r.val, n.val) > 0 && verify_bst(Some(r), compare)
+      }
       left_ok && right_ok
     }
   }
@@ -556,10 +542,7 @@ fn[T] verify_bst(
 
 ///|
 /// Verify the α-balance property: each subtree size ≤ α · node size.
-fn[T] verify_alpha_balance(
-  node : SgNode[T]?,
-  alpha : Double,
-) -> Bool {
+fn[T] verify_alpha_balance(node : SgNode[T]?, alpha : Double) -> Bool {
   match node {
     None => true
     Some(n) => {
@@ -570,7 +553,8 @@ fn[T] verify_alpha_balance(
       if left_size.to_double() > threshold || right_size.to_double() > threshold {
         false
       } else {
-        verify_alpha_balance(n.left, alpha) && verify_alpha_balance(n.right, alpha)
+        verify_alpha_balance(n.left, alpha) &&
+        verify_alpha_balance(n.right, alpha)
       }
     }
   }
@@ -580,6 +564,7 @@ fn[T] verify_alpha_balance(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "scapegoat_tree: empty tree" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.is_empty())
@@ -589,6 +574,7 @@ test "scapegoat_tree: empty tree" {
   assert_true(t.find_max() is None)
 }
 
+///|
 test "scapegoat_tree: insert and search" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.insert(5))
@@ -604,6 +590,7 @@ test "scapegoat_tree: insert and search" {
   assert_false(t.contains(4))
 }
 
+///|
 test "scapegoat_tree: duplicate insert returns false" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   assert_true(t.insert(5))
@@ -611,6 +598,7 @@ test "scapegoat_tree: duplicate insert returns false" {
   assert_eq(t.size(), 1)
 }
 
+///|
 test "scapegoat_tree: find_min and find_max" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -622,6 +610,7 @@ test "scapegoat_tree: find_min and find_max" {
   assert_eq(t.find_max(), Some(9))
 }
 
+///|
 test "scapegoat_tree: in-order traversal is sorted" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   let input = [7, 3, 9, 1, 5, 8, 2, 6, 4, 0]
@@ -635,6 +624,7 @@ test "scapegoat_tree: in-order traversal is sorted" {
   }
 }
 
+///|
 test "scapegoat_tree: BST property maintained after inserts" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 100; i = i + 1 {
@@ -643,6 +633,7 @@ test "scapegoat_tree: BST property maintained after inserts" {
   assert_true(verify_bst(t.root, t.compare))
 }
 
+///|
 test "scapegoat_tree: insert sorted ascending (worst case)" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 200; i = i + 1 {
@@ -661,6 +652,7 @@ test "scapegoat_tree: insert sorted ascending (worst case)" {
   }
 }
 
+///|
 test "scapegoat_tree: insert sorted descending" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 200; i = i + 1 {
@@ -672,6 +664,7 @@ test "scapegoat_tree: insert sorted descending" {
   assert_true(h <= 20)
 }
 
+///|
 test "scapegoat_tree: remove leaf" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -684,6 +677,7 @@ test "scapegoat_tree: remove leaf" {
   assert_true(t.contains(7))
 }
 
+///|
 test "scapegoat_tree: remove node with one child" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -697,6 +691,7 @@ test "scapegoat_tree: remove node with one child" {
   assert_true(verify_bst(t.root, t.compare))
 }
 
+///|
 test "scapegoat_tree: remove node with two children" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -716,6 +711,7 @@ test "scapegoat_tree: remove node with two children" {
   assert_eq(result, [1, 3, 4, 6, 7, 8])
 }
 
+///|
 test "scapegoat_tree: remove non-existent" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -724,6 +720,7 @@ test "scapegoat_tree: remove non-existent" {
   assert_eq(t.size(), 2)
 }
 
+///|
 test "scapegoat_tree: remove all elements" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 50; i = i + 1 {
@@ -736,6 +733,7 @@ test "scapegoat_tree: remove all elements" {
   assert_true(t.is_empty())
 }
 
+///|
 test "scapegoat_tree: intermixed insert and remove" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   ignore(t.insert(5))
@@ -751,6 +749,7 @@ test "scapegoat_tree: intermixed insert and remove" {
   assert_eq(result, [1, 4, 7, 9])
 }
 
+///|
 test "scapegoat_tree: alpha balance after heavy inserts" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 500; i = i + 1 {
@@ -768,6 +767,7 @@ test "scapegoat_tree: alpha balance after heavy inserts" {
   assert_true(h <= 25)
 }
 
+///|
 test "scapegoat_tree: height is logarithmic" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 1000; i = i + 1 {
@@ -781,6 +781,7 @@ test "scapegoat_tree: height is logarithmic" {
   assert_true(h < 100)
 }
 
+///|
 test "scapegoat_tree: custom alpha" {
   let t = ScapegoatTree::with_alpha(fn(a : Int, b : Int) -> Int { a - b }, 0.6)
   for i = 0; i < 200; i = i + 1 {
@@ -793,6 +794,7 @@ test "scapegoat_tree: custom alpha" {
   assert_true(h <= 18)
 }
 
+///|
 test "scapegoat_tree: full rebuild after deletions" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 100; i = i + 1 {
@@ -809,6 +811,7 @@ test "scapegoat_tree: full rebuild after deletions" {
   assert_true(h <= 15)
 }
 
+///|
 test "scapegoat_tree: alpha balance holds after rebuild" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   for i = 0; i < 100; i = i + 1 {
@@ -826,6 +829,7 @@ test "scapegoat_tree: alpha balance holds after rebuild" {
   assert_true(verify_alpha_balance(t.root, t.alpha))
 }
 
+///|
 test "scapegoat_tree: stress test random operations" {
   let t = ScapegoatTree::new(fn(a : Int, b : Int) -> Int { a - b })
   let mut seed = 42
@@ -844,15 +848,13 @@ test "scapegoat_tree: stress test random operations" {
       } else {
         assert_false(t.insert(val))
       }
-    } else {
       // Remove
-      if present[val] {
-        assert_true(t.remove(val))
-        present[val] = false
-        count = count - 1
-      } else {
-        assert_false(t.remove(val))
-      }
+    } else if present[val] {
+      assert_true(t.remove(val))
+      present[val] = false
+      count = count - 1
+    } else {
+      assert_false(t.remove(val))
     }
     // Periodically verify BST property
     if i % 500 == 499 {
@@ -874,6 +876,7 @@ test "scapegoat_tree: stress test random operations" {
   }
 }
 
+///|
 test "scapegoat_tree: string keys" {
   let t = ScapegoatTree::new(fn(a : String, b : String) -> Int {
     let ac = a.to_array()
@@ -882,7 +885,9 @@ test "scapegoat_tree: string keys" {
     let mut i = 0
     while i < n {
       let d = ac[i].to_int() - bc[i].to_int()
-      if d != 0 { return d }
+      if d != 0 {
+        return d
+      }
       i = i + 1
     }
     ac.length() - bc.length()

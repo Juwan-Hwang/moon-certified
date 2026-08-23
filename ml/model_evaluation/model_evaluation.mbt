@@ -1,3 +1,4 @@
+///|
 /// Model evaluation metrics for machine learning.
 ///
 /// This module provides standard classification and regression metrics used
@@ -84,7 +85,12 @@ pub struct ConfusionMatrix {
 /// Create a confusion matrix from explicit counts.
 ///
 /// Useful for testing or when counts are already known.
-pub fn make_confusion_matrix(tp : Int, fp : Int, tn : Int, fneg : Int) -> ConfusionMatrix {
+pub fn make_confusion_matrix(
+  tp : Int,
+  fp : Int,
+  tn : Int,
+  fneg : Int,
+) -> ConfusionMatrix {
   { tp, fp, tn, fneg }
 }
 
@@ -215,9 +221,7 @@ pub fn mcc(cm : ConfusionMatrix) -> Double {
   let fp = cm.fp.to_double()
   let fneg = cm.fneg.to_double()
   let numerator = tp * tn - fp * fneg
-  let denom = sqrt_double(
-    (tp + fp) * (tp + fneg) * (tn + fp) * (tn + fneg),
-  )
+  let denom = sqrt_double((tp + fp) * (tp + fneg) * (tn + fp) * (tn + fneg))
   if denom == 0.0 {
     return 0.0
   }

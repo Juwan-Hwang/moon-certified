@@ -1,3 +1,4 @@
+///|
 /// Black-Scholes Option Pricing Model.
 ///
 /// The Black-Scholes-Merton model is the industry standard for pricing
@@ -76,7 +77,8 @@ fn erf(x : Double) -> Double {
   let a5 = 1.061405429
   let p = 0.3275911
   let t = 1.0 / (1.0 + p * ax)
-  let y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
+  let y = 1.0 -
+    ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * @math.exp(-ax * ax)
   sign * y
 }
 
@@ -147,7 +149,8 @@ pub fn call_price(
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let d2_val = d2(d1_val, sigma, t)
-  s * @math.exp(-q * t) * normal_cdf(d1_val) - k * @math.exp(-r * t) * normal_cdf(d2_val)
+  s * @math.exp(-q * t) * normal_cdf(d1_val) -
+  k * @math.exp(-r * t) * normal_cdf(d2_val)
 }
 
 ///|
@@ -178,7 +181,8 @@ pub fn put_price(
   }
   let d1_val = d1(s, k, r, q, sigma, t)
   let d2_val = d2(d1_val, sigma, t)
-  k * @math.exp(-r * t) * normal_cdf(-d2_val) - s * @math.exp(-q * t) * normal_cdf(-d1_val)
+  k * @math.exp(-r * t) * normal_cdf(-d2_val) -
+  s * @math.exp(-q * t) * normal_cdf(-d1_val)
 }
 
 // ---------------------------------------------------------------------------
@@ -326,15 +330,19 @@ pub fn american_call(
   let n = steps + 1
   let values : Array[Double] = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
-    let st = s * @math.pow(u, i.to_double()) * @math.pow(d, (steps - i).to_double())
+    let st = s *
+      @math.pow(u, i.to_double()) *
+      @math.pow(d, (steps - i).to_double())
     values[i] = (st - k).max(0.0)
   }
   // Backward induction
   for step = steps - 1; step >= 0; step = step - 1 {
     for i = 0; i <= step; i = i + 1 {
       let cont = disc * (p * values[i + 1] + (1.0 - p) * values[i])
-      let st = s * @math.pow(u, i.to_double()) * @math.pow(d, (step - i).to_double())
-      values[i] = (cont).max((st - k).max(0.0))
+      let st = s *
+        @math.pow(u, i.to_double()) *
+        @math.pow(d, (step - i).to_double())
+      values[i] = cont.max((st - k).max(0.0))
     }
   }
   values[0]
@@ -362,14 +370,18 @@ pub fn american_put(
   let n = steps + 1
   let values : Array[Double] = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
-    let st = s * @math.pow(u, i.to_double()) * @math.pow(d, (steps - i).to_double())
+    let st = s *
+      @math.pow(u, i.to_double()) *
+      @math.pow(d, (steps - i).to_double())
     values[i] = (k - st).max(0.0)
   }
   for step = steps - 1; step >= 0; step = step - 1 {
     for i = 0; i <= step; i = i + 1 {
       let cont = disc * (p * values[i + 1] + (1.0 - p) * values[i])
-      let st = s * @math.pow(u, i.to_double()) * @math.pow(d, (step - i).to_double())
-      values[i] = (cont).max((k - st).max(0.0))
+      let st = s *
+        @math.pow(u, i.to_double()) *
+        @math.pow(d, (step - i).to_double())
+      values[i] = cont.max((k - st).max(0.0))
     }
   }
   values[0]
@@ -446,7 +458,10 @@ test "black_scholes: with dividends" {
 test "black_scholes: implied volatility recovery" {
   let sigma = 0.3
   let price = call_price(100.0, 100.0, 0.05, 0.0, sigma, 1.0)
-  let iv = match implied_volatility_call(price, 100.0, 100.0, 0.05, 0.0, 1.0, 0.2, 100, 1.0e-10) {
+  let iv = match
+    implied_volatility_call(
+      price, 100.0, 100.0, 0.05, 0.0, 1.0, 0.2, 100, 1.0e-10,
+    ) {
     None => -1.0
     Some(v) => v
   }

@@ -276,11 +276,7 @@ pub fn[T] search(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Bool {
 }
 
 ///|
-fn[T] search_node(
-  root : TreapNode[T],
-  key : T,
-  cmp : (T, T) -> Int,
-) -> Bool {
+fn[T] search_node(root : TreapNode[T], key : T, cmp : (T, T) -> Int) -> Bool {
   match root {
     Empty => false
     Node(l, k, _, r, _) => {
@@ -457,11 +453,7 @@ pub fn[T] rank(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Int {
 }
 
 ///|
-fn[T] rank_node(
-  root : TreapNode[T],
-  key : T,
-  cmp : (T, T) -> Int,
-) -> Int {
+fn[T] rank_node(root : TreapNode[T], key : T, cmp : (T, T) -> Int) -> Int {
   match root {
     Empty => 0
     Node(l, k, _, r, _) =>

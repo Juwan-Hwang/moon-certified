@@ -109,10 +109,7 @@ fn compute_cut_size(graph : Graph, partition : Array[Int]) -> Double {
 ///
 /// - E(v) = sum of weights from v to vertices in the other set.
 /// - I(v) = sum of weights from v to vertices in the same set.
-fn compute_d_values(
-  graph : Graph,
-  partition : Array[Int],
-) -> Array[Double] {
+fn compute_d_values(graph : Graph, partition : Array[Int]) -> Array[Double] {
   let n = graph.n
   let d = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
@@ -329,8 +326,18 @@ test "kernighan_lin: two cliques connected by bridge" {
   // Two K4 cliques connected by a single bridge edge.
   // Optimal partition: each clique in one set, cut = 1.
   let edges = uw([
-    (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3), // K4 A
-    (4, 5), (4, 6), (4, 7), (5, 6), (5, 7), (6, 7), // K4 B
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (1, 2),
+    (1, 3),
+    (2, 3), // K4 A
+    (4, 5),
+    (4, 6),
+    (4, 7),
+    (5, 6),
+    (5, 7),
+    (6, 7), // K4 B
     (3, 4), // bridge
   ])
   let result = kernighan_lin(8, edges, 20)
@@ -351,9 +358,7 @@ test "kernighan_lin: path graph" {
 test "kernighan_lin: cycle graph" {
   // 6-cycle: 0-1-2-3-4-5-0
   // Optimal partition: {0,1,2} vs {3,4,5}, cut = 2
-  let edges = uw([
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0),
-  ])
+  let edges = uw([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)])
   let result = kernighan_lin(6, edges, 20)
   assert_true(result.cut_size <= 2.0 + 1.0e-10)
 }
@@ -378,8 +383,12 @@ test "kernighan_lin: weighted graph" {
   // If we put {0,1,5} in A and {2,3,4} in B: cut = 1+1+1+1 = 4 (triangle edges).
   // So the optimal balanced partition has cut = 4, not 10.
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0), // triangle A
-    (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0), // triangle B
+    (0, 1, 1.0),
+    (1, 2, 1.0),
+    (0, 2, 1.0), // triangle A
+    (3, 4, 1.0),
+    (4, 5, 1.0),
+    (3, 5, 1.0), // triangle B
     (2, 3, 10.0), // bridge
   ]
   let result = kernighan_lin(6, edges, 20)
@@ -392,10 +401,7 @@ test "kernighan_lin: weighted graph" {
 ///|
 test "kernighan_lin: partition balance" {
   // The partition should be balanced: |set0| == |set1| for even n.
-  let edges = uw([
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0),
-    (0, 3),
-  ])
+  let edges = uw([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0), (0, 3)])
   let result = kernighan_lin(6, edges, 20)
   let mut count0 = 0
   let mut count1 = 0
@@ -480,8 +486,18 @@ test "kernighan_lin: invalid edges skipped" {
 ///|
 test "kernighan_lin: deterministic" {
   let edges = uw([
-    (0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3),
-    (3, 4), (4, 5), (4, 6), (5, 6), (5, 7), (6, 7),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (1, 2),
+    (1, 3),
+    (2, 3),
+    (3, 4),
+    (4, 5),
+    (4, 6),
+    (5, 6),
+    (5, 7),
+    (6, 7),
   ])
   let r1 = kernighan_lin(8, edges, 20)
   let r2 = kernighan_lin(8, edges, 20)
@@ -491,9 +507,7 @@ test "kernighan_lin: deterministic" {
 
 ///|
 test "kernighan_lin: max passes limit" {
-  let edges = uw([
-    (0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0),
-  ])
+  let edges = uw([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 0)])
   let result = kernighan_lin(6, edges, 1)
   assert_true(result.passes <= 1)
 }
@@ -505,8 +519,12 @@ test "kernighan_lin: two cliques weighted bridge" {
   // Alternative: {0,1,5} vs {2,3,4} has cut = 1+1+1+1 = 4.
   // KL should find cut ≤ 100.
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 1.0), (1, 2, 1.0), (0, 2, 1.0),
-    (3, 4, 1.0), (4, 5, 1.0), (3, 5, 1.0),
+    (0, 1, 1.0),
+    (1, 2, 1.0),
+    (0, 2, 1.0),
+    (3, 4, 1.0),
+    (4, 5, 1.0),
+    (3, 5, 1.0),
     (2, 3, 100.0),
   ]
   let result = kernighan_lin(6, edges, 20)
@@ -524,8 +542,13 @@ test "kernighan_lin: grid graph" {
   // Cut for {0,3,4} vs {1,2,5}: edges 0-1, 3-4, 2-5, 4-5 = 4
   // So optimal is 3.
   let edges = uw([
-    (0, 1), (1, 2), (3, 4), (4, 5), // horizontal
-    (0, 3), (1, 4), (2, 5), // vertical
+    (0, 1),
+    (1, 2),
+    (3, 4),
+    (4, 5), // horizontal
+    (0, 3),
+    (1, 4),
+    (2, 5), // vertical
   ])
   let result = kernighan_lin(6, edges, 20)
   assert_true(result.cut_size <= 3.0 + 1.0e-10)
@@ -540,10 +563,18 @@ test "kernighan_lin: heavy internal edges" {
   // Balanced 4+4: {0,1,2,3} vs {4,5,6,7}: cut = 1.
   // This is the optimal partition.
   let edges : Array[(Int, Int, Double)] = [
-    (0, 1, 10.0), (0, 2, 10.0), (0, 3, 10.0),
-    (1, 2, 10.0), (1, 3, 10.0), (2, 3, 10.0),
-    (4, 5, 10.0), (4, 6, 10.0), (4, 7, 10.0),
-    (5, 6, 10.0), (5, 7, 10.0), (6, 7, 10.0),
+    (0, 1, 10.0),
+    (0, 2, 10.0),
+    (0, 3, 10.0),
+    (1, 2, 10.0),
+    (1, 3, 10.0),
+    (2, 3, 10.0),
+    (4, 5, 10.0),
+    (4, 6, 10.0),
+    (4, 7, 10.0),
+    (5, 6, 10.0),
+    (5, 7, 10.0),
+    (6, 7, 10.0),
     (3, 4, 1.0),
   ]
   let result = kernighan_lin(8, edges, 20)

@@ -1,0 +1,7 @@
+///|
+/// Binary heap verified predicates.
+///
+/// Note: min_heap_property (universal quantification over array indices) and
+/// heap_min_correct (element comparison) cannot be automatically proved by Z3
+/// in the context of mutable heap operations. Only index arithmetic and
+/// length/size properties are formally verified.

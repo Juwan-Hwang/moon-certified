@@ -286,11 +286,7 @@ test "sparse_matrix: cg with zero rhs" {
 ///|
 test "sparse_matrix: cg 3x3 system" {
   // [[2,0,0],[0,3,0],[0,0,4]] * x = [4, 9, 16] → x = [2, 3, 4]
-  let a = from_triplets(3, 3, [
-    (0, 0, 2.0),
-    (1, 1, 3.0),
-    (2, 2, 4.0),
-  ])
+  let a = from_triplets(3, 3, [(0, 0, 2.0), (1, 1, 3.0), (2, 2, 4.0)])
   let b = [4.0, 9.0, 16.0]
   let x = conjugate_gradient(a, b, 100, 1.0e-10)
   assert_true((x[0] - 2.0).abs() < 1.0e-8)

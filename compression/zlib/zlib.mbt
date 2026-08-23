@@ -127,11 +127,11 @@ pub fn decompress(data : Bytes) -> Bytes? {
     return None
   }
   // Check CINFO (high 4 bits of CMF): must be ≤ 7.
-  if (cmf >> 4) > b'\x07' {
+  if cmf >> 4 > b'\x07' {
     return None
   }
   // Check FCHECK: (CMF * 256 + FLG) must be divisible by 31.
-  let check_val = (cmf.to_int() * 256 + flg.to_int())
+  let check_val = cmf.to_int() * 256 + flg.to_int()
   if check_val % 31 != 0 {
     return None
   }
@@ -181,7 +181,9 @@ test "zlib: adler32 known vectors" {
 
 ///|
 test "zlib: compress and decompress round-trip" {
-  let data = @utils.string_to_bytes("Hello, ZLIB! This is a test of zlib compression.")
+  let data = @utils.string_to_bytes(
+    "Hello, ZLIB! This is a test of zlib compression.",
+  )
   let compressed = match compress(data) {
     None => fail("compression failed")
     Some(c) => c

@@ -28,13 +28,21 @@ pub enum RBNode[T] {
 }
 
 ///|
-pub fn[T] empty() -> RBNode[T] {
+pub fn[T] empty() -> RBNode[T] where {
+  proof_ensure: result => match result {
+    Empty => 0 == 0
+    _ => false
+  },
+} {
   Empty
 }
 
 ///|
 /// O(1) subtree size (cached in each node).
-pub fn[T] size(root : RBNode[T]) -> Int {
+/// Verified: result >= 0 for all tree structures.
+pub fn[T] size(root : RBNode[T]) -> Int where {
+  proof_ensure: result => 0 <= result,
+} {
   match root {
     Empty => 0
     Node(_, _, _, _, sz) => sz
@@ -163,11 +171,7 @@ pub fn[T] insert(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
 }
 
 ///|
-fn[T] ins(
-  root : RBNode[T],
-  val : T,
-  cmp : (T, T) -> Int,
-) -> RBNode[T] {
+fn[T] ins(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
   match root {
     Empty => mk_node(Empty, val, Empty, Red)
     Node(l, v, r, color, _) => {
@@ -231,11 +235,7 @@ pub fn[T] delete(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> RBNode[T] {
 
 ///|
 /// Internal delete: returns (new_tree, lost_black).
-fn[T] del(
-  root : RBNode[T],
-  val : T,
-  cmp : (T, T) -> Int,
-) -> (RBNode[T], Bool) {
+fn[T] del(root : RBNode[T], val : T, cmp : (T, T) -> Int) -> (RBNode[T], Bool) {
   match root {
     Empty => (Empty, false)
     Node(l, v, r, c, _) => {

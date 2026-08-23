@@ -117,16 +117,9 @@ fn concat_bytes(parts : Array[Bytes]) -> Bytes {
 ///   if provided_data is non-empty:
 ///     K = HMAC(K, V || 0x01 || provided_data)
 ///     V = HMAC(K, V)
-fn update(
-  state : DrbgState,
-  provided_data : Bytes,
-) -> Unit {
+fn update(state : DrbgState, provided_data : Bytes) -> Unit {
   // Step 1: K = HMAC(K, V || 0x00 || provided_data)
-  let msg1 = concat_bytes([
-    state.v,
-    Bytes::from_array([b'\x00']),
-    provided_data,
-  ])
+  let msg1 = concat_bytes([state.v, Bytes::from_array([b'\x00']), provided_data])
   state.k = @hmac.hmac_sha256(state.k, msg1)
   // Step 2: V = HMAC(K, V)
   state.v = @hmac.hmac_sha256(state.k, state.v)
@@ -268,7 +261,7 @@ pub fn generate_below(state : DrbgState, n : Int) -> Int? {
   // which overflows Int. Handle power-of-2 as a special case.
   let range = 2147483648L
   let n64 = n.to_int64()
-  let threshold64 = range - (range % n64)
+  let threshold64 = range - range % n64
   // Use Int64 comparison to avoid Int overflow when threshold64 == 2^31.
   let mut r = 0
   let mut r64 = 0L
@@ -298,10 +291,10 @@ pub fn generate_below(state : DrbgState, n : Int) -> Int? {
 ///|
 test "csprng: instantiate and generate basic" {
   let entropy = Bytes::from_array([
-    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-    b'\x08', b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f',
-    b'\x10', b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17',
-    b'\x18', b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f',
+    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11',
+    b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a',
+    b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f',
   ])
   let state = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
   let result = generate(state, 32, Bytes::from_array([]))
@@ -321,13 +314,21 @@ test "csprng: instantiate and generate basic" {
 ///|
 test "csprng: deterministic — same seed produces same output" {
   let entropy = Bytes::from_array([
-    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11',
-    b'\x22', b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
-    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11',
-    b'\x22', b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
+    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11', b'\x22',
+    b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99', b'\xaa', b'\xbb',
+    b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11', b'\x22', b'\x33', b'\x44',
+    b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
   ])
-  let state1 = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
-  let state2 = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
+  let state1 = instantiate(
+    entropy,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
+  let state2 = instantiate(
+    entropy,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
   let r1 = generate(state1, 64, Bytes::from_array([])).unwrap()
   let r2 = generate(state2, 64, Bytes::from_array([])).unwrap()
   for i = 0; i < 64; i = i + 1 {
@@ -338,19 +339,27 @@ test "csprng: deterministic — same seed produces same output" {
 ///|
 test "csprng: different seeds produce different output" {
   let entropy1 = Bytes::from_array([
-    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-    b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-    b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+    b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+    b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+    b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
   ])
   let entropy2 = Bytes::from_array([
-    b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
-    b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11',
-    b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19',
-    b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20', b'\x21',
+    b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09', b'\x0a',
+    b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12', b'\x13',
+    b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b', b'\x1c',
+    b'\x1d', b'\x1e', b'\x1f', b'\x20', b'\x21',
   ])
-  let state1 = instantiate(entropy1, Bytes::from_array([]), Bytes::from_array([]))
-  let state2 = instantiate(entropy2, Bytes::from_array([]), Bytes::from_array([]))
+  let state1 = instantiate(
+    entropy1,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
+  let state2 = instantiate(
+    entropy2,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
   let r1 = generate(state1, 32, Bytes::from_array([])).unwrap()
   let r2 = generate(state2, 32, Bytes::from_array([])).unwrap()
   let mut different = false
@@ -365,19 +374,19 @@ test "csprng: different seeds produce different output" {
 ///|
 test "csprng: reseed changes output" {
   let entropy = Bytes::from_array([
-    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07',
-    b'\x08', b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f',
-    b'\x10', b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17',
-    b'\x18', b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f',
+    b'\x00', b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
+    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11',
+    b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a',
+    b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f',
   ])
   let state = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
   let r1 = generate(state, 32, Bytes::from_array([])).unwrap()
   // Reseed with different entropy.
   let new_entropy = Bytes::from_array([
-    b'\xff', b'\xee', b'\xdd', b'\xcc', b'\xbb', b'\xaa', b'\x99', b'\x88',
-    b'\x77', b'\x66', b'\x55', b'\x44', b'\x33', b'\x22', b'\x11', b'\x00',
-    b'\xff', b'\xee', b'\xdd', b'\xcc', b'\xbb', b'\xaa', b'\x99', b'\x88',
-    b'\x77', b'\x66', b'\x55', b'\x44', b'\x33', b'\x22', b'\x11', b'\x00',
+    b'\xff', b'\xee', b'\xdd', b'\xcc', b'\xbb', b'\xaa', b'\x99', b'\x88', b'\x77',
+    b'\x66', b'\x55', b'\x44', b'\x33', b'\x22', b'\x11', b'\x00', b'\xff', b'\xee',
+    b'\xdd', b'\xcc', b'\xbb', b'\xaa', b'\x99', b'\x88', b'\x77', b'\x66', b'\x55',
+    b'\x44', b'\x33', b'\x22', b'\x11', b'\x00',
   ])
   reseed(state, new_entropy, Bytes::from_array([]))
   let r2 = generate(state, 32, Bytes::from_array([])).unwrap()
@@ -393,10 +402,10 @@ test "csprng: reseed changes output" {
 ///|
 test "csprng: generate multiple blocks" {
   let entropy = Bytes::from_array([
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x01',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x01',
   ])
   let state = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
   // Generate 128 bytes (4 blocks of 32).
@@ -428,8 +437,16 @@ test "csprng: generate_below produces values in range" {
 ///|
 test "csprng: additional input affects output" {
   let entropy = Bytes::from_array(Array::make(32, b'\x01'))
-  let state1 = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
-  let state2 = instantiate(entropy, Bytes::from_array([]), Bytes::from_array([]))
+  let state1 = instantiate(
+    entropy,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
+  let state2 = instantiate(
+    entropy,
+    Bytes::from_array([]),
+    Bytes::from_array([]),
+  )
   let add_input = Bytes::from_array([b'\xff', b'\xff', b'\xff', b'\xff'])
   let r1 = generate(state1, 32, Bytes::from_array([])).unwrap()
   let r2 = generate(state2, 32, add_input).unwrap()

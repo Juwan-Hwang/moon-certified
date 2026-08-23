@@ -599,11 +599,10 @@ test "rs: correct error in data region" {
   let data_pos = 2 * t + 2
   codeword[data_pos] = codeword[data_pos] ^ 0xAB
   match rs_decode(gf, codeword, 5, t) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 5; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => assert_true(false)
   }
 }
@@ -622,11 +621,10 @@ test "rs: correct maximum errors" {
   codeword[0] = codeword[0] ^ 0x10
   codeword[3] = codeword[3] ^ 0x20
   match rs_decode(gf, codeword, 4, t) {
-    Some(decoded) => {
+    Some(decoded) =>
       for i = 0; i < 4; i = i + 1 {
         assert_eq(decoded[i], data[i])
       }
-    }
     None => assert_true(false)
   }
 }

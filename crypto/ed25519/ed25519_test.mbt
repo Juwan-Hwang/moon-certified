@@ -1,3 +1,4 @@
+///|
 /// Ed25519 test suite.
 ///
 /// Tests are organised in two groups:
@@ -18,6 +19,7 @@ fn hex2bytes(s : String) -> Bytes {
 // RFC 8032 §7.1 Test Vectors
 // ---------------------------------------------------------------------------
 
+///|
 test "rfc8032 vector 1: empty message" {
   let sk = hex2bytes(
     "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
@@ -37,6 +39,7 @@ test "rfc8032 vector 1: empty message" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "rfc8032 vector 2: one byte message" {
   let sk = hex2bytes(
     "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
@@ -56,6 +59,7 @@ test "rfc8032 vector 2: one byte message" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "rfc8032 vector 3: two byte message" {
   let sk = hex2bytes(
     "c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b4458f7",
@@ -79,12 +83,13 @@ test "rfc8032 vector 3: two byte message" {
 // Round-trip and property tests
 // ---------------------------------------------------------------------------
 
+///|
 test "ed25519: sign and verify round-trip" {
   let sk = Bytes::from_array([
-    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-    b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-    b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+    b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+    b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+    b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
   ])
   let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
   let pk = derive_public_key(sk)
@@ -93,33 +98,37 @@ test "ed25519: sign and verify round-trip" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "ed25519: verify with wrong message fails" {
   let sk = Bytes::from_array([
-    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-    b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-    b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+    b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+    b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+    b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
   ])
   let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
   let pk = derive_public_key(sk)
   let sig = sign(sk, msg)
   assert_true(verify(pk, msg, sig))
-  let other_msg = Bytes::from_array([b'\x77', b'\x6f', b'\x72', b'\x6c', b'\x64'])
+  let other_msg = Bytes::from_array([
+    b'\x77', b'\x6f', b'\x72', b'\x6c', b'\x64',
+  ])
   assert_false(verify(pk, other_msg, sig))
 }
 
+///|
 test "ed25519: verify with wrong public key fails" {
   let sk1 = Bytes::from_array([
-    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08',
-    b'\x09', b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10',
-    b'\x11', b'\x12', b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18',
-    b'\x19', b'\x1a', b'\x1b', b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
+    b'\x01', b'\x02', b'\x03', b'\x04', b'\x05', b'\x06', b'\x07', b'\x08', b'\x09',
+    b'\x0a', b'\x0b', b'\x0c', b'\x0d', b'\x0e', b'\x0f', b'\x10', b'\x11', b'\x12',
+    b'\x13', b'\x14', b'\x15', b'\x16', b'\x17', b'\x18', b'\x19', b'\x1a', b'\x1b',
+    b'\x1c', b'\x1d', b'\x1e', b'\x1f', b'\x20',
   ])
   let sk2 = Bytes::from_array([
-    b'\x21', b'\x22', b'\x23', b'\x24', b'\x25', b'\x26', b'\x27', b'\x28',
-    b'\x29', b'\x2a', b'\x2b', b'\x2c', b'\x2d', b'\x2e', b'\x2f', b'\x30',
-    b'\x31', b'\x32', b'\x33', b'\x34', b'\x35', b'\x36', b'\x37', b'\x38',
-    b'\x39', b'\x3a', b'\x3b', b'\x3c', b'\x3d', b'\x3e', b'\x3f', b'\x40',
+    b'\x21', b'\x22', b'\x23', b'\x24', b'\x25', b'\x26', b'\x27', b'\x28', b'\x29',
+    b'\x2a', b'\x2b', b'\x2c', b'\x2d', b'\x2e', b'\x2f', b'\x30', b'\x31', b'\x32',
+    b'\x33', b'\x34', b'\x35', b'\x36', b'\x37', b'\x38', b'\x39', b'\x3a', b'\x3b',
+    b'\x3c', b'\x3d', b'\x3e', b'\x3f', b'\x40',
   ])
   let msg = Bytes::from_array([b'\x74', b'\x65', b'\x73', b'\x74'])
   let pk1 = derive_public_key(sk1)
@@ -129,12 +138,13 @@ test "ed25519: verify with wrong public key fails" {
   assert_false(verify(pk2, msg, sig))
 }
 
+///|
 test "ed25519: empty message sign and verify" {
   let sk = Bytes::from_array([
-    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11',
-    b'\x22', b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
-    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11',
-    b'\x22', b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
+    b'\xaa', b'\xbb', b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11', b'\x22',
+    b'\x33', b'\x44', b'\x55', b'\x66', b'\x77', b'\x88', b'\x99', b'\xaa', b'\xbb',
+    b'\xcc', b'\xdd', b'\xee', b'\xff', b'\x00', b'\x11', b'\x22', b'\x33', b'\x44',
+    b'\x55', b'\x66', b'\x77', b'\x88', b'\x99',
   ])
   let msg = Bytes::from_array([])
   let pk = derive_public_key(sk)
@@ -143,12 +153,13 @@ test "ed25519: empty message sign and verify" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "ed25519: deterministic signatures" {
   let sk = Bytes::from_array([
-    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
-    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
-    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
-    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
+    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
+    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
+    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
+    b'\x42', b'\x42', b'\x42', b'\x42', b'\x42',
   ])
   let msg = Bytes::from_array([b'\x64', b'\x65', b'\x74', b'\x65', b'\x72'])
   let sig1 = sign(sk, msg)
@@ -156,6 +167,7 @@ test "ed25519: deterministic signatures" {
   assert_true(@hex.encode(sig1) == @hex.encode(sig2))
 }
 
+///|
 test "ed25519: signature size is 64 bytes" {
   let sk = Bytes::make(32, b'\x07')
   let msg = Bytes::from_array([b'\x61'])
@@ -163,12 +175,14 @@ test "ed25519: signature size is 64 bytes" {
   assert_true(sig.length() == 64)
 }
 
+///|
 test "ed25519: public key size is 32 bytes" {
   let sk = Bytes::make(32, b'\x08')
   let pk = derive_public_key(sk)
   assert_true(pk.length() == 32)
 }
 
+///|
 test "ed25519: verify rejects invalid signature length" {
   let sk = Bytes::make(32, b'\x09')
   let pk = derive_public_key(sk)
@@ -177,6 +191,7 @@ test "ed25519: verify rejects invalid signature length" {
   assert_false(verify(pk, msg, short_sig))
 }
 
+///|
 test "ed25519: verify rejects invalid public key length" {
   let sk = Bytes::make(32, b'\x0a')
   let msg = Bytes::from_array([b'\x61'])
@@ -185,6 +200,7 @@ test "ed25519: verify rejects invalid public key length" {
   assert_false(verify(short_pk, msg, sig))
 }
 
+///|
 test "ed25519: multi-block message (200 bytes)" {
   let sk = hex2bytes(
     "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",

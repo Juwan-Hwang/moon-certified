@@ -357,7 +357,9 @@ fn brute_search_all(text : String, pattern : String) -> Array[Int] {
 ///|
 test "boyer_moore: search_all matches brute force" {
   // Cross-check the overlapping-match shift logic against brute force.
-  let texts = ["ababcababc", "mississippi", "aaaaaaaab", "xyzxyzxyz", "ababa", "aabaaabaa"]
+  let texts = [
+    "ababcababc", "mississippi", "aaaaaaaab", "xyzxyzxyz", "ababa", "aabaaabaa",
+  ]
   let patterns = ["ab", "ss", "aaa", "xyz", "z", "abc", "aaaa", "aba", "aa"]
   for t_idx = 0; t_idx < texts.length(); t_idx = t_idx + 1 {
     let text = texts[t_idx]

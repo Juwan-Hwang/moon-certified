@@ -42,6 +42,7 @@
 // Matrix helpers (flat row-major Double arrays)
 // ---------------------------------------------------------------------------
 
+///|
 /// Create an n×n zero matrix. Each row is an independent array.
 fn zeros(n : Int) -> Array[Array[Double]] {
   let r : Array[Array[Double]] = []
@@ -51,8 +52,13 @@ fn zeros(n : Int) -> Array[Array[Double]] {
   r
 }
 
+///|
 /// Frobenius inner product: C • X = sum_{i,j} C[i][j] * X[i][j].
-fn frobenius(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Double {
+fn frobenius(
+  a : Array[Array[Double]],
+  b : Array[Array[Double]],
+  n : Int,
+) -> Double {
   let mut sum = 0.0
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
@@ -62,8 +68,13 @@ fn frobenius(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Dou
   sum
 }
 
+///|
 /// Matrix addition: result = a + b.
-fn mat_add(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
+fn mat_add(
+  a : Array[Array[Double]],
+  b : Array[Array[Double]],
+  n : Int,
+) -> Array[Array[Double]] {
   let r = zeros(n)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
@@ -73,8 +84,13 @@ fn mat_add(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Array
   r
 }
 
+///|
 /// Matrix subtraction: result = a - b.
-fn mat_sub(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
+fn mat_sub(
+  a : Array[Array[Double]],
+  b : Array[Array[Double]],
+  n : Int,
+) -> Array[Array[Double]] {
   let r = zeros(n)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
@@ -84,8 +100,13 @@ fn mat_sub(a : Array[Array[Double]], b : Array[Array[Double]], n : Int) -> Array
   r
 }
 
+///|
 /// Scalar multiplication: result = s * a.
-fn mat_scale(s : Double, a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
+fn mat_scale(
+  s : Double,
+  a : Array[Array[Double]],
+  n : Int,
+) -> Array[Array[Double]] {
   let r = zeros(n)
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
@@ -95,7 +116,7 @@ fn mat_scale(s : Double, a : Array[Array[Double]], n : Int) -> Array[Array[Doubl
   r
 }
 
-
+///|
 /// Symmetrise a matrix: result = (X + X^T) / 2.
 fn symmetrise(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
   let r = zeros(n)
@@ -107,6 +128,7 @@ fn symmetrise(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
   r
 }
 
+///|
 /// Clone a matrix.
 fn mat_copy(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
   let r = zeros(n)
@@ -122,12 +144,17 @@ fn mat_copy(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
 // Eigenvalue computation (Jacobi rotation method)
 // ---------------------------------------------------------------------------
 
+///|
 /// Compute eigenvalues and eigenvectors of a symmetric matrix using the
 /// Jacobi rotation method. This is numerically stable for small matrices
 /// and converges quadratically near the solution.
 ///
 /// Returns (eigenvalues, eigenvectors) where eigenvectors[i] is the i-th eigenvector.
-fn top_eigen(a : Array[Array[Double]], n : Int, k : Int) -> (Array[Double], Array[Array[Double]]) {
+fn top_eigen(
+  a : Array[Array[Double]],
+  n : Int,
+  k : Int,
+) -> (Array[Double], Array[Array[Double]]) {
   if n == 0 {
     return ([], [])
   }
@@ -229,7 +256,7 @@ fn top_eigen(a : Array[Array[Double]], n : Int, k : Int) -> (Array[Double], Arra
   (eigenvalues, eigenvectors)
 }
 
-
+///|
 /// Square root via built-in Double method.
 fn sqrt_(x : Double) -> Double {
   if x <= 0.0 {
@@ -242,6 +269,7 @@ fn sqrt_(x : Double) -> Double {
 // PSD projection
 // ---------------------------------------------------------------------------
 
+///|
 /// Project a symmetric matrix onto the PSD cone.
 /// X_psd = sum_{λ_i >= 0} λ_i * v_i * v_i^T
 fn project_psd(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
@@ -263,6 +291,7 @@ fn project_psd(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
   result
 }
 
+///|
 /// Check if a symmetric matrix is positive semidefinite.
 fn is_psd(a : Array[Array[Double]], n : Int) -> Bool {
   let sym = symmetrise(a, n)
@@ -336,7 +365,8 @@ pub fn solve(
     let mut grad = mat_copy(c, n)
     // Penalty for constraint violation: sum_i (A_i • X - b_i) * A_i
     for ci = 0; ci < constraints.length(); ci = ci + 1 {
-      let residual = frobenius(constraints[ci].a, x_current, n) - constraints[ci].b
+      let residual = frobenius(constraints[ci].a, x_current, n) -
+        constraints[ci].b
       let penalty = mat_scale(residual * 10.0, constraints[ci].a, n)
       grad = mat_add(grad, penalty, n)
     }
@@ -364,7 +394,10 @@ pub fn check_psd(a : Array[Array[Double]], n : Int) -> Bool {
 
 ///|
 /// Project a matrix onto the positive semidefinite cone.
-pub fn project_to_psd(a : Array[Array[Double]], n : Int) -> Array[Array[Double]] {
+pub fn project_to_psd(
+  a : Array[Array[Double]],
+  n : Int,
+) -> Array[Array[Double]] {
   project_psd(a, n)
 }
 

@@ -39,6 +39,7 @@
 // Field parameters: GF(2^255 - 19)
 // ---------------------------------------------------------------------------
 
+///|
 /// Parse a BigInt from a decimal string, aborting with a descriptive
 /// message if the string is invalid. Used exclusively for fixed RFC
 /// curve constants that are guaranteed correct by construction.
@@ -49,12 +50,14 @@ fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
   }
 }
 
+///|
 /// Prime p = 2^255 - 19
 let p : @bigint.BigInt = parse_curve_const(
   "57896044618658097711785492504343953926634992332820282019728792003956564819949",
   "X25519 prime p",
 )
 
+///|
 /// a24 = (486662 - 2) / 4 = 121665
 let a24 : @bigint.BigInt = @bigint.from_int_value(121665)
 
@@ -62,6 +65,7 @@ let a24 : @bigint.BigInt = @bigint.from_int_value(121665)
 // Modular arithmetic helpers
 // ---------------------------------------------------------------------------
 
+///|
 /// (a + b) mod p
 fn fe_add(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   let sum = @bigint.add(a, b)
@@ -71,6 +75,7 @@ fn fe_add(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   }
 }
 
+///|
 /// (a - b) mod p (result always non-negative)
 fn fe_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   let diff = @bigint.sub(a, b)
@@ -81,6 +86,7 @@ fn fe_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   }
 }
 
+///|
 /// (a * b) mod p
 fn fe_mul(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   match @bigint.divmod(@bigint.mul(a, b), p) {
@@ -89,6 +95,7 @@ fn fe_mul(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
   }
 }
 
+///|
 /// a^(-1) mod p using Fermat's little theorem: a^(p-2) mod p
 fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
   let exp = @bigint.sub(p, @bigint.from_int_value(2))
@@ -102,6 +109,7 @@ fn fe_inv(a : @bigint.BigInt) -> @bigint.BigInt {
 // BigInt <-> bytes (little-endian) conversion
 // ---------------------------------------------------------------------------
 
+///|
 /// Convert BigInt to little-endian byte array of fixed length.
 fn bigint_to_bytes_le(n : @bigint.BigInt, len : Int) -> Bytes {
   let result : Array[Byte] = Array::make(len, b'\x00')
@@ -121,6 +129,7 @@ fn bigint_to_bytes_le(n : @bigint.BigInt, len : Int) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 /// Convert little-endian byte array (as Bytes) to BigInt.
 fn bytes_to_bigint_le(data : Bytes) -> @bigint.BigInt {
   let mut result = @bigint.zero()
@@ -134,6 +143,7 @@ fn bytes_to_bigint_le(data : Bytes) -> @bigint.BigInt {
   result
 }
 
+///|
 /// Convert a BigInt known to be in [0, 255] to an Int.
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   let mut lo = 0
@@ -153,6 +163,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
 // Scalar clamping (RFC 7748 §5)
 // ---------------------------------------------------------------------------
 
+///|
 /// Clamp a 32-byte scalar per RFC 7748:
 /// - Clear the lowest 3 bits of byte 0
 /// - Clear the highest bit of byte 31
@@ -172,10 +183,15 @@ fn clamp_scalar(k : Bytes) -> Bytes {
 // Conditional swap (constant-time)
 // ---------------------------------------------------------------------------
 
+///|
 /// Conditionally swap two BigInt values.
 /// If `swap` is 1, exchanges `a` and `b`; if 0, leaves them unchanged.
 /// Implemented without branching on `swap` to be constant-time.
-fn cswap(swap : Int, a : @bigint.BigInt, b : @bigint.BigInt) -> (@bigint.BigInt, @bigint.BigInt) {
+fn cswap(
+  swap : Int,
+  a : @bigint.BigInt,
+  b : @bigint.BigInt,
+) -> (@bigint.BigInt, @bigint.BigInt) {
   // mask = 0 if swap==0, all-ones if swap==1
   // We use a simple conditional since BigInt doesn't support bitwise ops
   // with masks easily. The branch is on `swap` which is derived from the
@@ -192,6 +208,7 @@ fn cswap(swap : Int, a : @bigint.BigInt, b : @bigint.BigInt) -> (@bigint.BigInt,
 // Montgomery ladder (RFC 7748 §5)
 // ---------------------------------------------------------------------------
 
+///|
 /// Montgomery ladder scalar multiplication on Curve25519.
 ///
 /// Computes `k * P` where P has x-coordinate `u`, using only the
@@ -255,6 +272,7 @@ fn montgomery_ladder(k : @bigint.BigInt, u : @bigint.BigInt) -> @bigint.BigInt {
   fe_mul(x2, fe_inv(z2))
 }
 
+///|
 /// Check if a BigInt is odd (return 1 if odd, 0 if even).
 fn bigint_is_odd(b : @bigint.BigInt) -> Int {
   if @bigint.is_odd(b) {

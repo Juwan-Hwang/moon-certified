@@ -1,3 +1,4 @@
+///|
 /// TSP Heuristics — Christofides approximation + 2-Opt / Or-Opt local search.
 ///
 /// This package provides heuristic algorithms for the **Traveling Salesman
@@ -67,7 +68,6 @@
 ///   Northwestern University.
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
-
 const INF : Double = 1.0e18
 
 // ---------------------------------------------------------------------------
@@ -429,14 +429,10 @@ pub fn two_opt_with_iterations(
         if i == 0 && j == n - 1 {
           continue
         }
-        let old_cost = dist(current[i], current[i + 1]) + dist(
-          current[j],
-          current[(j + 1) % n],
-        )
-        let new_cost = dist(current[i], current[j]) + dist(
-          current[i + 1],
-          current[(j + 1) % n],
-        )
+        let old_cost = dist(current[i], current[i + 1]) +
+          dist(current[j], current[(j + 1) % n])
+        let new_cost = dist(current[i], current[j]) +
+          dist(current[i + 1], current[(j + 1) % n])
         if new_cost < old_cost - 1.0e-10 {
           reverse_segment(current, i + 1, j)
           improved = true
@@ -489,10 +485,9 @@ pub fn or_opt_with_iterations(
         let first = current[i]
         let last = current[i + seg_len - 1]
         let next_i = current[i + seg_len]
-        let remove_gain = dist(prev_i, first) + dist(last, next_i) - dist(
-          prev_i,
-          next_i,
-        )
+        let remove_gain = dist(prev_i, first) +
+          dist(last, next_i) -
+          dist(prev_i, next_i)
         for j = 1; j <= n - seg_len; j = j + 1 {
           if j == i {
             continue // No-op: inserting at the same position.
@@ -503,10 +498,9 @@ pub fn or_opt_with_iterations(
           } else {
             (current[j + seg_len - 1], current[(j + seg_len) % n])
           }
-          let insert_cost = dist(v_before, first) + dist(last, v_after) - dist(
-            v_before,
-            v_after,
-          )
+          let insert_cost = dist(v_before, first) +
+            dist(last, v_after) -
+            dist(v_before, v_after)
           let gain = remove_gain - insert_cost
           if gain > 1.0e-10 {
             current = or_opt_move(current, i, seg_len, j)
@@ -709,12 +703,7 @@ test "tsp: tour_cost basic" {
   // 4-city tour: 0 → 1 → 2 → 3 → 0
   // Distances: d(0,1)=10, d(1,2)=20, d(2,3)=30, d(3,0)=40
   let dist = fn(a : Int, b : Int) -> Double {
-    let m = [
-      [0, 10, 25, 40],
-      [10, 0, 20, 35],
-      [25, 20, 0, 30],
-      [40, 35, 30, 0],
-    ]
+    let m = [[0, 10, 25, 40], [10, 0, 20, 35], [25, 20, 0, 30], [40, 35, 30, 0]]
     m[a][b].to_double()
   }
   let tour = [0, 1, 2, 3]
@@ -764,13 +753,7 @@ test "tsp: christofides 4-city square" {
 ///|
 test "tsp: christofides 5-city" {
   // 5 cities with Euclidean distances (metric TSP).
-  let coords = [
-    (0.0, 0.0),
-    (2.0, 0.0),
-    (2.0, 2.0),
-    (0.0, 2.0),
-    (1.0, 1.0),
-  ]
+  let coords = [(0.0, 0.0), (2.0, 0.0), (2.0, 2.0), (0.0, 2.0), (1.0, 1.0)]
   let dist = fn(a : Int, b : Int) -> Double {
     let (ax, ay) = coords[a]
     let (bx, by) = coords[b]
@@ -788,9 +771,7 @@ test "tsp: christofides 5-city" {
 test "tsp: 2-opt improves tour" {
   // 6 cities on a line: 0-1-2-3-4-5
   // A bad tour zigzags; 2-Opt should straighten it.
-  let dist = fn(a : Int, b : Int) -> Double {
-    (a - b).to_double().abs()
-  }
+  let dist = fn(a : Int, b : Int) -> Double { (a - b).to_double().abs() }
   // Deliberately bad tour: 0,5,1,4,2,3
   let bad_tour = [0, 5, 1, 4, 2, 3]
   let bad_cost = tour_cost(bad_tour, dist)
@@ -857,9 +838,7 @@ test "tsp: or-opt improves tour" {
 ///|
 test "tsp: nearest_neighbor basic" {
   // 4 cities on a line: 0-1-2-3
-  let dist = fn(a : Int, b : Int) -> Double {
-    (a - b).to_double().abs()
-  }
+  let dist = fn(a : Int, b : Int) -> Double { (a - b).to_double().abs() }
   let tour = nearest_neighbor(4, dist)
   assert_true(is_valid_tour(tour, 4))
   // From 0, nearest is 1, then 2, then 3.
@@ -1017,9 +996,7 @@ test "tsp: or-opt moves single vertex" {
   // Tour where moving one vertex improves the cost.
   // Cities on a line: 0, 1, 2, 3, 4
   // Tour: 0 → 2 → 1 → 3 → 4 (vertex 2 is out of place)
-  let dist = fn(a : Int, b : Int) -> Double {
-    (a - b).to_double().abs()
-  }
+  let dist = fn(a : Int, b : Int) -> Double { (a - b).to_double().abs() }
   let tour = [0, 2, 1, 3, 4]
   let original_cost = tour_cost(tour, dist)
   let improved = or_opt(tour, dist)
@@ -1059,9 +1036,7 @@ test "tsp: matching_greedy basic" {
   for i = 0; i < 22; i = i + 1 {
     odd.push(i)
   }
-  let dist = fn(a : Int, b : Int) -> Double {
-    (a - b).to_double().abs()
-  }
+  let dist = fn(a : Int, b : Int) -> Double { (a - b).to_double().abs() }
   let matching = min_weight_perfect_matching(odd, dist)
   assert_true(matching.length() == 11)
   // Verify all vertices are matched.

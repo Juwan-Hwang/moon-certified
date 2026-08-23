@@ -11,9 +11,7 @@
 // Test PRNG: uses @utils.XorShift64 for uniform Double in [0, 1).
 fn make_rng(seed : Int64) -> () -> Double {
   let rng = @utils.XorShift64::new(seed.reinterpret_as_uint64())
-  fn() {
-    rng.next_double()
-  }
+  fn() { rng.next_double() }
 }
 
 ///|

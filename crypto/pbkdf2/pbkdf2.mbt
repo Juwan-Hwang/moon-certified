@@ -91,7 +91,7 @@ let pbkdf2_hlen : Int = 32
 /// `Array[Byte]` so it can be cleared after use.
 ///
 /// **Usage pattern**:
-/// ```moonbit
+/// ```moonbit nocheck
 /// let password : Array[Byte] = [b'p', b'w', ...]
 /// let pw_bytes = Bytes::from_array(password)
 /// let derived = pbkdf2_sha256_checked(pw_bytes, salt, 600_000, 32)
@@ -247,9 +247,7 @@ test "pbkdf2: raw function invalid parameters return None" {
 test "pbkdf2: checked function rejects low iterations" {
   // 1 iteration is below OWASP minimum (600,000).
   let salt = Bytes::from_array(Array::make(16, b'\x42'))
-  assert_true(
-    pbkdf2_sha256_checked(b"password", salt, 1, 32) is None,
-  )
+  assert_true(pbkdf2_sha256_checked(b"password", salt, 1, 32) is None)
 }
 
 ///|
@@ -264,9 +262,7 @@ test "pbkdf2: checked function rejects short salt" {
 ///|
 test "pbkdf2: checked function rejects short dklen" {
   let salt = Bytes::from_array(Array::make(16, b'\x42'))
-  assert_true(
-    pbkdf2_sha256_checked(b"password", salt, 600_000, 8) is None,
-  )
+  assert_true(pbkdf2_sha256_checked(b"password", salt, 600_000, 8) is None)
 }
 
 ///|

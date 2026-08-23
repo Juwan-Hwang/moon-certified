@@ -1,3 +1,4 @@
+///|
 test "push_relabel: simple path" {
   let pr = new(4)
   pr.add_edge(0, 1, 3)
@@ -6,6 +7,7 @@ test "push_relabel: simple path" {
   assert_eq(pr.max_flow(0, 3), 1L)
 }
 
+///|
 test "push_relabel: diamond network" {
   let pr = new(4)
   pr.add_edge(0, 1, 100)
@@ -15,6 +17,7 @@ test "push_relabel: diamond network" {
   assert_eq(pr.max_flow(0, 3), 200L)
 }
 
+///|
 test "push_relabel: bottleneck" {
   let pr = new(4)
   pr.add_edge(0, 1, 10)
@@ -25,12 +28,14 @@ test "push_relabel: bottleneck" {
   assert_eq(pr.max_flow(0, 3), 10L)
 }
 
+///|
 test "push_relabel: no path" {
   let pr = new(3)
   pr.add_edge(0, 1, 5)
   assert_eq(pr.max_flow(0, 2), 0L)
 }
 
+///|
 test "push_relabel: CLRS example" {
   let pr = new(6)
   pr.add_edge(0, 1, 16)
@@ -46,6 +51,7 @@ test "push_relabel: CLRS example" {
   assert_eq(pr.max_flow(0, 5), 23L)
 }
 
+///|
 test "push_relabel: invalid input" {
   let pr = new(3)
   pr.add_edge(0, 1, 5)

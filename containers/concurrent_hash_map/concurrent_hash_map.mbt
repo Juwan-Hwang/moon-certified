@@ -10,12 +10,15 @@
 ///
 /// `proof-enabled` is `false`; correctness is backed by the test suite.
 
+///|
 /// Slot state: empty (no key has ever been inserted here).
 const SLOT_EMPTY : Int = 0
 
+///|
 /// Slot state: occupied (holds a valid key-value pair).
 const SLOT_OCCUPIED : Int = 1
 
+///|
 /// Slot state: tombstone (was occupied, now deleted).
 const SLOT_TOMBSTONE : Int = 2
 

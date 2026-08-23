@@ -66,6 +66,7 @@ const HASH_SIZE : Int = 16384
 // LZ77 token types
 // ---------------------------------------------------------------------------
 
+///|
 priv enum Token {
   Literal(Byte)
   Match(Int, Int)
@@ -75,11 +76,16 @@ priv enum Token {
 // Hash table and match finding
 // ---------------------------------------------------------------------------
 
+///|
 fn hash4(data : Bytes, pos : Int) -> Int {
-  let h = (data[pos].to_int64() << 24) | (data[pos + 1].to_int64() << 16) | (data[pos + 2].to_int64() << 8) | data[pos + 3].to_int64()
+  let h = (data[pos].to_int64() << 24) |
+    (data[pos + 1].to_int64() << 16) |
+    (data[pos + 2].to_int64() << 8) |
+    data[pos + 3].to_int64()
   (((h * 2654435761L) >> 18) & (HASH_SIZE - 1).to_int64()).to_int()
 }
 
+///|
 fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
   if pos + MIN_MATCH > data.length() {
     return (0, 0)
@@ -91,7 +97,11 @@ fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
     return (0, 0)
   }
   let mut len = 0
-  let max_len = if data.length() - pos < 255 + MIN_MATCH { data.length() - pos } else { 255 + MIN_MATCH }
+  let max_len = if data.length() - pos < 255 + MIN_MATCH {
+    data.length() - pos
+  } else {
+    255 + MIN_MATCH
+  }
   while len < max_len && data[candidate + len] == data[pos + len] {
     len = len + 1
   }
@@ -102,6 +112,7 @@ fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
   }
 }
 
+///|
 fn lz77_compress(data : Bytes) -> Array[Token] {
   let tokens : Array[Token] = []
   let n = data.length()
@@ -220,7 +231,10 @@ pub fn decompress(data : Bytes) -> Bytes? {
     }
   }
   // Read frame header
-  let content_size = data[4].to_int() | (data[5].to_int() << 8) | (data[6].to_int() << 16) | (data[7].to_int() << 24)
+  let content_size = data[4].to_int() |
+    (data[5].to_int() << 8) |
+    (data[6].to_int() << 16) |
+    (data[7].to_int() << 24)
   let mut pos = 9
   let output : Array[Byte] = []
   // Read blocks
@@ -229,7 +243,9 @@ pub fn decompress(data : Bytes) -> Bytes? {
       break
     }
     let block_type = data[pos].to_int()
-    let block_size = data[pos + 1].to_int() | (data[pos + 2].to_int() << 8) | (data[pos + 3].to_int() << 16)
+    let block_size = data[pos + 1].to_int() |
+      (data[pos + 2].to_int() << 8) |
+      (data[pos + 3].to_int() << 16)
     pos = pos + 4
     // Boundary check: block_size must not exceed remaining data
     if block_size < 0 || pos + block_size > data.length() {
@@ -364,7 +380,9 @@ test "zstd: round-trip long text" {
 
 ///|
 test "zstd: invalid magic" {
-  let bad = Bytes::from_array([b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00'])
+  let bad = Bytes::from_array([
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  ])
   match decompress(bad) {
     Some(_) => assert_true(false)
     None => assert_true(true)
@@ -376,7 +394,12 @@ test "zstd: does not use standard zstd magic" {
   let data = @utils.string_to_bytes("test")
   let compressed = compress(data)
   // Verify we do NOT use the standard Zstd magic 0xFD2FB528 (LE: 28 B5 2F FD)
-  assert_true(!(compressed[0] == b'\x28' && compressed[1] == b'\xB5' && compressed[2] == b'\x2F' && compressed[3] == b'\xFD'))
+  assert_true(
+    !(compressed[0] == b'\x28' &&
+    compressed[1] == b'\xB5' &&
+    compressed[2] == b'\x2F' &&
+    compressed[3] == b'\xFD'),
+  )
 }
 
 ///|
@@ -404,7 +427,21 @@ test "zstd: all same byte" {
 test "zstd: malformed compressed data returns None" {
   // Valid magic but truncated block
   let mb = magic_bytes()
-  let bad = Bytes::from_array([mb[0], mb[1], mb[2], mb[3], b'\x10', b'\x00', b'\x00', b'\x00', b'\x00', b'\x02', b'\xFF', b'\xFF', b'\xFF'])
+  let bad = Bytes::from_array([
+    mb[0],
+    mb[1],
+    mb[2],
+    mb[3],
+    b'\x10',
+    b'\x00',
+    b'\x00',
+    b'\x00',
+    b'\x00',
+    b'\x02',
+    b'\xFF',
+    b'\xFF',
+    b'\xFF',
+  ])
   match decompress(bad) {
     Some(_) => assert_true(false)
     None => assert_true(true)

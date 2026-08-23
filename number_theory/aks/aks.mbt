@@ -116,7 +116,7 @@ fn multiplicative_order(n : Int, r : Int) -> Int {
   let mut k = 1
   let mut val = n % r
   while val != 1 {
-    val = (val * (n % r)) % r
+    val = val * (n % r) % r
     k = k + 1
     if k > r {
       return r + 1 // order doesn't exist or > r
@@ -151,6 +151,7 @@ fn euler_phi(n : Int) -> Int {
 /// (x + a)^n mod (n, x^r - 1) check.
 /// We represent polynomials as arrays of coefficients mod n.
 
+///|
 /// Multiply two polynomials modulo (n, x^r - 1), writing the result into the
 /// pre-allocated `out` buffer. This avoids allocating a new array per call,
 /// reducing GC pressure during the O(log n) repeated squaring in `poly_pow_mod`.

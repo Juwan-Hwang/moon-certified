@@ -50,6 +50,7 @@ let b32_hex_decode : FixedArray[Int] = FixedArray::make(128, -1)
 /// Flag to ensure tables are initialised exactly once.
 let b32_tables_init : Ref[Bool] = { val: false }
 
+///|
 /// Initialise decode tables. Idempotent.
 fn init_decode_tables() -> Unit {
   if b32_tables_init.val {
@@ -102,11 +103,9 @@ pub fn encode_hex(data : Bytes) -> String {
   encode_with_alphabet(data, b32_hex_alphabet)
 }
 
+///|
 /// Internal: encode with a given alphabet.
-fn encode_with_alphabet(
-  data : Bytes,
-  alphabet : FixedArray[Char],
-) -> String {
+fn encode_with_alphabet(data : Bytes, alphabet : FixedArray[Char]) -> String {
   let n = data.length()
   if n == 0 {
     return ""
@@ -135,7 +134,7 @@ fn encode_with_alphabet(
     let mut shifted = buffer
     // Emit characters.
     for _ in 0..<chars_to_emit {
-      let idx = ((shifted >> 35).to_int()) & 0x1F
+      let idx = (shifted >> 35).to_int() & 0x1F
       buf.write_char(alphabet[idx])
       shifted = shifted << 5
     }
@@ -182,11 +181,9 @@ pub fn decode_hex(s : String) -> Bytes? {
   decode_with_table(s, b32_hex_decode)
 }
 
+///|
 /// Internal: decode using a pre-filled lookup table.
-fn decode_with_table(
-  s : String,
-  table : FixedArray[Int],
-) -> Bytes? {
+fn decode_with_table(s : String, table : FixedArray[Int]) -> Bytes? {
   // Collect valid Base32 characters (skip '=' padding).
   let chars : Array[Int] = []
   for c in s.iter() {
@@ -242,24 +239,19 @@ test "base32: encode RFC 4648 vectors" {
   assert_eq(encode(Bytes::from_array([])), "")
   assert_eq(encode(Bytes::from_array([b'\x66'])), "MY======")
   assert_eq(encode(Bytes::from_array([b'\x66', b'\x6f'])), "MZXQ====")
-  assert_eq(
-    encode(Bytes::from_array([b'\x66', b'\x6f', b'\x6f'])),
-    "MZXW6===",
-  )
+  assert_eq(encode(Bytes::from_array([b'\x66', b'\x6f', b'\x6f'])), "MZXW6===")
   assert_eq(
     encode(Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62'])),
     "MZXW6YQ=",
   )
   assert_eq(
-    encode(Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61',
-    ])),
+    encode(Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61'])),
     "MZXW6YTB",
   )
   assert_eq(
-    encode(Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72',
-    ])),
+    encode(
+      Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72']),
+    ),
     "MZXW6YTBOI======",
   )
 }
@@ -268,10 +260,7 @@ test "base32: encode RFC 4648 vectors" {
 test "base32: decode RFC 4648 vectors" {
   assert_eq(decode("").unwrap(), Bytes::from_array([]))
   assert_eq(decode("MY======").unwrap(), Bytes::from_array([b'\x66']))
-  assert_eq(
-    decode("MZXQ====").unwrap(),
-    Bytes::from_array([b'\x66', b'\x6f']),
-  )
+  assert_eq(decode("MZXQ====").unwrap(), Bytes::from_array([b'\x66', b'\x6f']))
   assert_eq(
     decode("MZXW6===").unwrap(),
     Bytes::from_array([b'\x66', b'\x6f', b'\x6f']),
@@ -286,19 +275,14 @@ test "base32: decode RFC 4648 vectors" {
   )
   assert_eq(
     decode("MZXW6YTBOI======").unwrap(),
-    Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72',
-    ]),
+    Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61', b'\x72']),
   )
 }
 
 ///|
 test "base32: decode without padding" {
   assert_eq(decode("MY").unwrap(), Bytes::from_array([b'\x66']))
-  assert_eq(
-    decode("MZXQ").unwrap(),
-    Bytes::from_array([b'\x66', b'\x6f']),
-  )
+  assert_eq(decode("MZXQ").unwrap(), Bytes::from_array([b'\x66', b'\x6f']))
   assert_eq(
     decode("MZXW6").unwrap(),
     Bytes::from_array([b'\x66', b'\x6f', b'\x6f']),
@@ -353,24 +337,17 @@ test "base32: hex encode/decode round-trip" {
 test "base32: hex RFC 4648 vectors" {
   assert_eq(encode_hex(Bytes::from_array([])), "")
   assert_eq(encode_hex(Bytes::from_array([b'\x66'])), "CO======")
-  assert_eq(
-    encode_hex(Bytes::from_array([b'\x66', b'\x6f'])),
-    "CPNG====",
-  )
+  assert_eq(encode_hex(Bytes::from_array([b'\x66', b'\x6f'])), "CPNG====")
   assert_eq(
     encode_hex(Bytes::from_array([b'\x66', b'\x6f', b'\x6f'])),
     "CPNMU===",
   )
   assert_eq(
-    encode_hex(Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62',
-    ])),
+    encode_hex(Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62'])),
     "CPNMUOG=",
   )
   assert_eq(
-    encode_hex(Bytes::from_array([
-      b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61',
-    ])),
+    encode_hex(Bytes::from_array([b'\x66', b'\x6f', b'\x6f', b'\x62', b'\x61'])),
     "CPNMUOJ1",
   )
 }

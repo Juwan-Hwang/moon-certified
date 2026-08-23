@@ -372,7 +372,10 @@ test "rtree: large scale insert and query" {
     for j = 0; j < 10; j = j + 1 {
       let x = i.to_double() * 10.0
       let y = j.to_double() * 10.0
-      t.insert({ min_x: x, min_y: y, max_x: x + 8.0, max_y: y + 8.0 }, i * 10 + j)
+      t.insert(
+        { min_x: x, min_y: y, max_x: x + 8.0, max_y: y + 8.0 },
+        i * 10 + j,
+      )
     }
   }
   // Query a region covering roughly 2x2 grid cells

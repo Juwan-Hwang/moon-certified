@@ -24,8 +24,8 @@
 ///|
 /// BLAKE3 initialization vector (same as SHA-256 IV).
 let blake3_iv : Array[UInt] = [
-  0x6A09E667U, 0xBB67AE85U, 0x3C6EF372U, 0xA54FF53AU,
-  0x510E527FU, 0x9B05688CU, 0x1F83D9ABU, 0x5BE0CD19U,
+  0x6A09E667U, 0xBB67AE85U, 0x3C6EF372U, 0xA54FF53AU, 0x510E527FU, 0x9B05688CU, 0x1F83D9ABU,
+  0x5BE0CD19U,
 ]
 
 ///|
@@ -43,11 +43,23 @@ let blake3_msg_schedule : Array[Array[Int]] = [
 ///|
 /// Domain separation flags.
 const BLAKE3_CHUNK_START : UInt = 1U
+
+///|
 const BLAKE3_CHUNK_END : UInt = 2U
+
+///|
 const BLAKE3_PARENT : UInt = 4U
+
+///|
 const BLAKE3_ROOT : UInt = 8U
+
+///|
 let _BLAKE3_KEYED_HASH : UInt = 16U
+
+///|
 let _BLAKE3_DERIVE_KEY_CONTEXT : UInt = 32U
+
+///|
 let _BLAKE3_DERIVE_KEY_MATERIAL : UInt = 64U
 
 ///|
@@ -161,7 +173,8 @@ fn read_block_words(data : Bytes, offset : Int, block_len : Int) -> Array[UInt] 
   while i < block_len {
     let word_idx = i / 4
     let byte_idx = i % 4
-    words[word_idx] = words[word_idx] | (data[offset + i].to_uint() << (byte_idx * 8))
+    words[word_idx] = words[word_idx] |
+      (data[offset + i].to_uint() << (byte_idx * 8))
     i = i + 1
   }
   words
@@ -209,7 +222,13 @@ fn chunk_cv(
       block_flags = block_flags | BLAKE3_CHUNK_END
     }
     let words = read_block_words(data, block_offset, block_len)
-    let result = blake3_compress(cv, words, chunk_index, block_len.reinterpret_as_uint(), block_flags)
+    let result = blake3_compress(
+      cv,
+      words,
+      chunk_index,
+      block_len.reinterpret_as_uint(),
+      block_flags,
+    )
     for j = 0; j < 8; j = j + 1 {
       cv[j] = result[j]
     }
@@ -296,7 +315,13 @@ fn root_output(data : Bytes, key : Array[UInt], flags : UInt) -> Array[UInt] {
         block_flags = block_flags | BLAKE3_CHUNK_END | BLAKE3_ROOT
       }
       let words = read_block_words(data, block_offset, block_len)
-      let result = blake3_compress(cv, words, 0UL, block_len.reinterpret_as_uint(), block_flags)
+      let result = blake3_compress(
+        cv,
+        words,
+        0UL,
+        block_len.reinterpret_as_uint(),
+        block_flags,
+      )
       if block_i < num_blocks - 1 {
         for j = 0; j < 8; j = j + 1 {
           cv[j] = result[j]
@@ -488,20 +513,29 @@ test "blake3: 'abc' input" {
   let h = blake3_256(input)
   assert_eq(h.length(), 32)
   // BLAKE3("abc") = 6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85
-  assert_eq(blake3_256_hex(input), "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85")
+  assert_eq(
+    blake3_256_hex(input),
+    "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85",
+  )
 }
 
 ///|
 test "blake3: single zero byte" {
   let input = Bytes::from_array([b'\x00'])
   // BLAKE3(0x00) = 2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213
-  assert_eq(blake3_256_hex(input), "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213")
+  assert_eq(
+    blake3_256_hex(input),
+    "2d3adedff11b61f14c886e35afa036736dcd87a74d27b5c1510225d0f592e213",
+  )
 }
 
 ///|
 test "blake3: abc from array" {
   let input = Bytes::from_array([b'\x61', b'\x62', b'\x63'])
-  assert_eq(blake3_256_hex(input), "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85")
+  assert_eq(
+    blake3_256_hex(input),
+    "6437b3ac38465133ffb63b75273a8db548c558465d79db03fd359c6cd5bd9d85",
+  )
 }
 
 ///|
@@ -601,7 +635,9 @@ test "blake3: 64-byte output (XOF) known vector" {
 
 ///|
 test "blake3: extendable output > 64 bytes" {
-  let data = @utils.string_to_bytes("The quick brown fox jumps over the lazy dog")
+  let data = @utils.string_to_bytes(
+    "The quick brown fox jumps over the lazy dog",
+  )
   let h64 = blake3(data, 64)
   let h128 = blake3(data, 128)
   // First 64 bytes of h128 must match h64

@@ -185,6 +185,7 @@ test "transposition_table: hit rate" {
   assert_true(rate > 0.6 && rate < 0.7)
 }
 
+///|
 test "transposition_table: upper bound entry" {
   let tt = new()
   store(tt, 42, 3, 150.0, UpperBound, Some(7))

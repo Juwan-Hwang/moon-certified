@@ -220,7 +220,11 @@ pub fn new(n_estimators : Int) -> AdaBoost {
   {
     stumps: [],
     alphas: [],
-    n_estimators: if n_estimators > 0 { n_estimators } else { 50 },
+    n_estimators: if n_estimators > 0 {
+      n_estimators
+    } else {
+      50
+    },
     n_features: 0,
   }
 }
@@ -248,11 +252,7 @@ pub fn fit(ab : AdaBoost, x : Array[Array[Double]], y : Array[Int]) -> Unit {
     let mut z = 0.0
     for i = 0; i < n; i = i + 1 {
       let correct = stump_predict(s, x[i]) == y[i]
-      let factor = if correct {
-        exp_double(-alpha)
-      } else {
-        exp_double(alpha)
-      }
+      let factor = if correct { exp_double(-alpha) } else { exp_double(alpha) }
       w[i] = w[i] * factor
       z = z + w[i]
     }
@@ -319,8 +319,14 @@ test "adaboost: linearly separable 1-D threshold" {
 test "adaboost: 2-D linearly separable clusters" {
   let ab = new(20)
   let x : Array[Array[Double]] = [
-    [1.0, 1.0], [1.5, 0.5], [0.5, 1.5], [2.0, 1.0],
-    [6.0, 6.0], [6.5, 5.5], [5.5, 6.5], [7.0, 6.0],
+    [1.0, 1.0],
+    [1.5, 0.5],
+    [0.5, 1.5],
+    [2.0, 1.0],
+    [6.0, 6.0],
+    [6.5, 5.5],
+    [5.5, 6.5],
+    [7.0, 6.0],
   ]
   let y = [-1, -1, -1, -1, 1, 1, 1, 1]
   fit(ab, x, y)

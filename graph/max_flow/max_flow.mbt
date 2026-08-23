@@ -259,11 +259,7 @@ fn bfs_adj_list(
 ///
 /// Time complexity: O(VE²) — same Edmonds-Karp algorithm, but with
 /// better constant factors on sparse graphs.
-pub fn max_flow_adj_list(
-  graph : FlowGraph,
-  src : Int,
-  sink : Int,
-) -> Int64? {
+pub fn max_flow_adj_list(graph : FlowGraph, src : Int, sink : Int) -> Int64? {
   let n = graph.n
   if n <= 0 || src < 0 || src >= n || sink < 0 || sink >= n || src == sink {
     return None

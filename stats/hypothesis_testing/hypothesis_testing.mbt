@@ -420,7 +420,7 @@ test "stats: pearson correlation negative" {
   let x = [1.0, 2.0, 3.0, 4.0, 5.0]
   let y = [5.0, 4.0, 3.0, 2.0, 1.0]
   let r = pearson_correlation(x, y)
-  assert_true((r - (-1.0)).abs() < 0.001)
+  assert_true((r - -1.0).abs() < 0.001)
 }
 
 ///|

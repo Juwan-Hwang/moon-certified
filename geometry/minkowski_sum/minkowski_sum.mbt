@@ -140,7 +140,8 @@ pub fn minkowski_sum(
       let next_b = b_ccw[(ib + j + 1) % nb]
       { x: next_b.x - pb.x, y: next_b.y - pb.y }
     }
-    let c = ea.x.to_int64() * eb.y.to_int64() - ea.y.to_int64() * eb.x.to_int64()
+    let c = ea.x.to_int64() * eb.y.to_int64() -
+      ea.y.to_int64() * eb.x.to_int64()
     if c > 0L {
       i = i + 1
     } else if c < 0L {

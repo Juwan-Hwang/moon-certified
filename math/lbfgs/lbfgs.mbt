@@ -101,22 +101,12 @@ pub enum LbfgsResult {
   /// Converged: gradient norm fell below `tol`.
   ///
   /// Fields: `(x, fval, iterations, grad_norm)`.
-  Converged(
-    Array[Double],
-    Double,
-    Int,
-    Double,
-  )
+  Converged(Array[Double], Double, Int, Double)
   /// Reached the iteration limit without converging. The returned point is
   /// the best found so far.
   ///
   /// Fields: `(x, fval, iterations, grad_norm)`.
-  MaxIterations(
-    Array[Double],
-    Double,
-    Int,
-    Double,
-  )
+  MaxIterations(Array[Double], Double, Int, Double)
   /// Dimension mismatch or invalid input.
   InvalidInput
 }
@@ -140,7 +130,9 @@ pub fn minimize(
   grad : (Array[Double]) -> Array[Double],
   x0 : Array[Double],
 ) -> LbfgsResult {
-  minimize_with(f, grad, x0, lbfgs_default_tol, lbfgs_default_max_iter, lbfgs_default_m)
+  minimize_with(
+    f, grad, x0, lbfgs_default_tol, lbfgs_default_max_iter, lbfgs_default_m,
+  )
 }
 
 ///|
@@ -216,7 +208,11 @@ fn _minimize_impl(
   }
   for iter = 0; iter < max_iter; iter = iter + 1 {
     // --- Line search (Armijo backtracking) ---
-    let mut alpha = if iter == 0 { 1.0 / _vec_norm(d, n) } else { lbfgs_alpha_init }
+    let mut alpha = if iter == 0 {
+      1.0 / _vec_norm(d, n)
+    } else {
+      lbfgs_alpha_init
+    }
     let dg = _dot(g, d, n) // directional derivative (should be < 0)
     if dg >= 0.0 {
       // Not a descent direction — reset to steepest descent.
@@ -322,11 +318,7 @@ fn _two_loop_recursion(
   // Apply initial Hessian H⁰ = γI.
   let last_entry = history[h - 1]
   let yy = _dot(last_entry.y, last_entry.y, n)
-  let gamma = if yy > 1.0e-30 {
-    last_ys / yy
-  } else {
-    1.0
-  }
+  let gamma = if yy > 1.0e-30 { last_ys / yy } else { 1.0 }
   for i = 0; i < n; i = i + 1 {
     d[i] = gamma * q[i]
   }
@@ -349,6 +341,7 @@ fn _two_loop_recursion(
 // Line search
 // ---------------------------------------------------------------------------
 
+///|
 priv struct LineSearchResult {
   success : Bool
   alpha : Double
@@ -482,12 +475,8 @@ test "lbfgs: minimize Booth function" {
 
 ///|
 test "lbfgs: already at minimum" {
-  let f = fn(x : Array[Double]) -> Double {
-    x[0] * x[0] + x[1] * x[1]
-  }
-  let grad = fn(_x : Array[Double]) -> Array[Double] {
-    [0.0, 0.0]
-  }
+  let f = fn(x : Array[Double]) -> Double { x[0] * x[0] + x[1] * x[1] }
+  let grad = fn(_x : Array[Double]) -> Array[Double] { [0.0, 0.0] }
   match minimize(f, grad, [0.0, 0.0]) {
     Converged(x, _fval, iter, _gn) => {
       assert_true(iter == 0)

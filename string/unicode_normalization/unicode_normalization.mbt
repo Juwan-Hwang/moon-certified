@@ -51,18 +51,84 @@
 fn ccc(cp : Int) -> Int {
   match cp {
     // 230 — Above
-    0x0300 | 0x0301 | 0x0302 | 0x0303 | 0x0304 | 0x0305 | 0x0306 | 0x0307 |
-    0x0308 | 0x0309 | 0x030A | 0x030B | 0x030C | 0x030D | 0x030E | 0x030F |
-    0x0310 | 0x0311 | 0x0312 | 0x0313 | 0x0314 | 0x033B | 0x033C | 0x033D |
-    0x033E | 0x033F | 0x0342 | 0x0346 | 0x034A | 0x034B | 0x034C |
-    0x0350 | 0x0351 | 0x0352 | 0x0357 | 0x0358 => 230
+    0x0300
+    | 0x0301
+    | 0x0302
+    | 0x0303
+    | 0x0304
+    | 0x0305
+    | 0x0306
+    | 0x0307
+    | 0x0308
+    | 0x0309
+    | 0x030A
+    | 0x030B
+    | 0x030C
+    | 0x030D
+    | 0x030E
+    | 0x030F
+    | 0x0310
+    | 0x0311
+    | 0x0312
+    | 0x0313
+    | 0x0314
+    | 0x033B
+    | 0x033C
+    | 0x033D
+    | 0x033E
+    | 0x033F
+    | 0x0342
+    | 0x0346
+    | 0x034A
+    | 0x034B
+    | 0x034C
+    | 0x0350
+    | 0x0351
+    | 0x0352
+    | 0x0357
+    | 0x0358 => 230
     // 220 — Below
-    0x0316 | 0x0317 | 0x0318 | 0x0319 | 0x031C | 0x031D | 0x031E | 0x031F |
-    0x0320 | 0x0323 | 0x0324 | 0x0325 | 0x0326 | 0x0329 | 0x032A | 0x032B |
-    0x032C | 0x032D | 0x032E | 0x032F | 0x0330 | 0x0331 | 0x0332 | 0x0333 |
-    0x0339 | 0x0340 | 0x0341 | 0x0343 | 0x0344 | 0x0345 | 0x0347 | 0x0348 |
-    0x0349 | 0x034D | 0x034E | 0x0353 | 0x0354 | 0x0355 | 0x0356 | 0x0359 |
-    0x035A => 220
+    0x0316
+    | 0x0317
+    | 0x0318
+    | 0x0319
+    | 0x031C
+    | 0x031D
+    | 0x031E
+    | 0x031F
+    | 0x0320
+    | 0x0323
+    | 0x0324
+    | 0x0325
+    | 0x0326
+    | 0x0329
+    | 0x032A
+    | 0x032B
+    | 0x032C
+    | 0x032D
+    | 0x032E
+    | 0x032F
+    | 0x0330
+    | 0x0331
+    | 0x0332
+    | 0x0333
+    | 0x0339
+    | 0x0340
+    | 0x0341
+    | 0x0343
+    | 0x0344
+    | 0x0345
+    | 0x0347
+    | 0x0348
+    | 0x0349
+    | 0x034D
+    | 0x034E
+    | 0x0353
+    | 0x0354
+    | 0x0355
+    | 0x0356
+    | 0x0359
+    | 0x035A => 220
     // 1 — Overlay
     0x0334 | 0x0335 | 0x0336 | 0x0337 | 0x0338 => 1
     // 232 — Above (attached, specific to Greek)
@@ -72,8 +138,16 @@ fn ccc(cp : Int) -> Int {
     // 7 — Nukta (Devanagari etc.)
     0x093C | 0x09BC | 0x0A3C | 0x0ABC | 0x0B3C | 0x0CBC | 0x0D4B => 7
     // 9 — Virama
-    0x094D | 0x09CD | 0x0A4D | 0x0ACD | 0x0B4D | 0x0BCD | 0x0C4D | 0x0CCD |
-    0x0D4D | 0x0DCA => 9
+    0x094D
+    | 0x09CD
+    | 0x0A4D
+    | 0x0ACD
+    | 0x0B4D
+    | 0x0BCD
+    | 0x0C4D
+    | 0x0CCD
+    | 0x0D4D
+    | 0x0DCA => 9
     _ => 0
   }
 }
@@ -130,15 +204,32 @@ fn canonical_ordering(cps : Array[Int]) -> Array[Int] {
 // Hangul Algorithmic Decomposition
 // ---------------------------------------------------------------------------
 
+///|
 /// Hangul syllable constants (Unicode Standard §3.12).
 let hangul_sbase : Int = 0xAC00
+
+///|
 let hangul_lbase : Int = 0x1100
+
+///|
 let hangul_vbase : Int = 0x1161
+
+///|
 let hangul_tbase : Int = 0x11A7
+
+///|
 let hangul_lcount : Int = 19
+
+///|
 let hangul_vcount : Int = 21
+
+///|
 let hangul_tcount : Int = 28
+
+///|
 let hangul_ncount : Int = 588 // VCount * TCount
+
+///|
 let hangul_scount : Int = 11172 // LCount * NCount
 
 ///|
@@ -151,7 +242,7 @@ fn decompose_hangul(cp : Int) -> Array[Int]? {
     return None
   }
   let l = hangul_lbase + sindex / hangul_ncount
-  let v = hangul_vbase + (sindex % hangul_ncount) / hangul_tcount
+  let v = hangul_vbase + sindex % hangul_ncount / hangul_tcount
   let t = hangul_tbase + sindex % hangul_tcount
   let result : Array[Int] = [l, v]
   if t != hangul_tbase {
@@ -166,15 +257,19 @@ fn decompose_hangul(cp : Int) -> Array[Int]? {
 /// Jamo that can compose, `None` otherwise.
 fn compose_hangul(a : Int, b : Int) -> Int? {
   // L + V → LV
-  if a >= hangul_lbase && a < hangul_lbase + hangul_lcount &&
-     b >= hangul_vbase && b < hangul_vbase + hangul_vcount {
+  if a >= hangul_lbase &&
+    a < hangul_lbase + hangul_lcount &&
+    b >= hangul_vbase &&
+    b < hangul_vbase + hangul_vcount {
     let lindex = a - hangul_lbase
     let vindex = b - hangul_vbase
     let lvindex = lindex * hangul_ncount + vindex * hangul_tcount
     Some(hangul_sbase + lvindex)
-  } else if a >= hangul_sbase && a < hangul_sbase + hangul_scount &&
-            (a - hangul_sbase) % hangul_tcount == 0 &&
-            b > hangul_tbase && b < hangul_tbase + hangul_tcount {
+  } else if a >= hangul_sbase &&
+    a < hangul_sbase + hangul_scount &&
+    (a - hangul_sbase) % hangul_tcount == 0 &&
+    b > hangul_tbase &&
+    b < hangul_tbase + hangul_tcount {
     // LV + T → LVT
     Some(a + (b - hangul_tbase))
   } else {
@@ -201,189 +296,734 @@ fn decompose_canonical(cp : Int) -> Array[Int] {
   let result : Array[Int] = []
   match cp {
     // === Latin-1 Supplement (U+00C0–U+00FF) ===
-    0x00C0 => { result.push(0x0041); result.push(0x0300) }
-    0x00C1 => { result.push(0x0041); result.push(0x0301) }
-    0x00C2 => { result.push(0x0041); result.push(0x0302) }
-    0x00C3 => { result.push(0x0041); result.push(0x0303) }
-    0x00C4 => { result.push(0x0041); result.push(0x0308) }
-    0x00C5 => { result.push(0x0041); result.push(0x030A) }
-    0x00C7 => { result.push(0x0043); result.push(0x0327) }
-    0x00C8 => { result.push(0x0045); result.push(0x0300) }
-    0x00C9 => { result.push(0x0045); result.push(0x0301) }
-    0x00CA => { result.push(0x0045); result.push(0x0302) }
-    0x00CB => { result.push(0x0045); result.push(0x0308) }
-    0x00CC => { result.push(0x0049); result.push(0x0300) }
-    0x00CD => { result.push(0x0049); result.push(0x0301) }
-    0x00CE => { result.push(0x0049); result.push(0x0302) }
-    0x00CF => { result.push(0x0049); result.push(0x0308) }
-    0x00D1 => { result.push(0x004E); result.push(0x0303) }
-    0x00D2 => { result.push(0x004F); result.push(0x0300) }
-    0x00D3 => { result.push(0x004F); result.push(0x0301) }
-    0x00D4 => { result.push(0x004F); result.push(0x0302) }
-    0x00D5 => { result.push(0x004F); result.push(0x0303) }
-    0x00D6 => { result.push(0x004F); result.push(0x0308) }
-    0x00D9 => { result.push(0x0055); result.push(0x0300) }
-    0x00DA => { result.push(0x0055); result.push(0x0301) }
-    0x00DB => { result.push(0x0055); result.push(0x0302) }
-    0x00DC => { result.push(0x0055); result.push(0x0308) }
-    0x00DD => { result.push(0x0059); result.push(0x0301) }
-    0x00E0 => { result.push(0x0061); result.push(0x0300) }
-    0x00E1 => { result.push(0x0061); result.push(0x0301) }
-    0x00E2 => { result.push(0x0061); result.push(0x0302) }
-    0x00E3 => { result.push(0x0061); result.push(0x0303) }
-    0x00E4 => { result.push(0x0061); result.push(0x0308) }
-    0x00E5 => { result.push(0x0061); result.push(0x030A) }
-    0x00E7 => { result.push(0x0063); result.push(0x0327) }
-    0x00E8 => { result.push(0x0065); result.push(0x0300) }
-    0x00E9 => { result.push(0x0065); result.push(0x0301) }
-    0x00EA => { result.push(0x0065); result.push(0x0302) }
-    0x00EB => { result.push(0x0065); result.push(0x0308) }
-    0x00EC => { result.push(0x0069); result.push(0x0300) }
-    0x00ED => { result.push(0x0069); result.push(0x0301) }
-    0x00EE => { result.push(0x0069); result.push(0x0302) }
-    0x00EF => { result.push(0x0069); result.push(0x0308) }
-    0x00F1 => { result.push(0x006E); result.push(0x0303) }
-    0x00F2 => { result.push(0x006F); result.push(0x0300) }
-    0x00F3 => { result.push(0x006F); result.push(0x0301) }
-    0x00F4 => { result.push(0x006F); result.push(0x0302) }
-    0x00F5 => { result.push(0x006F); result.push(0x0303) }
-    0x00F6 => { result.push(0x006F); result.push(0x0308) }
-    0x00F9 => { result.push(0x0075); result.push(0x0300) }
-    0x00FA => { result.push(0x0075); result.push(0x0301) }
-    0x00FB => { result.push(0x0075); result.push(0x0302) }
-    0x00FC => { result.push(0x0075); result.push(0x0308) }
-    0x00FD => { result.push(0x0079); result.push(0x0301) }
-    0x00FF => { result.push(0x0079); result.push(0x0308) }
+    0x00C0 => {
+      result.push(0x0041)
+      result.push(0x0300)
+    }
+    0x00C1 => {
+      result.push(0x0041)
+      result.push(0x0301)
+    }
+    0x00C2 => {
+      result.push(0x0041)
+      result.push(0x0302)
+    }
+    0x00C3 => {
+      result.push(0x0041)
+      result.push(0x0303)
+    }
+    0x00C4 => {
+      result.push(0x0041)
+      result.push(0x0308)
+    }
+    0x00C5 => {
+      result.push(0x0041)
+      result.push(0x030A)
+    }
+    0x00C7 => {
+      result.push(0x0043)
+      result.push(0x0327)
+    }
+    0x00C8 => {
+      result.push(0x0045)
+      result.push(0x0300)
+    }
+    0x00C9 => {
+      result.push(0x0045)
+      result.push(0x0301)
+    }
+    0x00CA => {
+      result.push(0x0045)
+      result.push(0x0302)
+    }
+    0x00CB => {
+      result.push(0x0045)
+      result.push(0x0308)
+    }
+    0x00CC => {
+      result.push(0x0049)
+      result.push(0x0300)
+    }
+    0x00CD => {
+      result.push(0x0049)
+      result.push(0x0301)
+    }
+    0x00CE => {
+      result.push(0x0049)
+      result.push(0x0302)
+    }
+    0x00CF => {
+      result.push(0x0049)
+      result.push(0x0308)
+    }
+    0x00D1 => {
+      result.push(0x004E)
+      result.push(0x0303)
+    }
+    0x00D2 => {
+      result.push(0x004F)
+      result.push(0x0300)
+    }
+    0x00D3 => {
+      result.push(0x004F)
+      result.push(0x0301)
+    }
+    0x00D4 => {
+      result.push(0x004F)
+      result.push(0x0302)
+    }
+    0x00D5 => {
+      result.push(0x004F)
+      result.push(0x0303)
+    }
+    0x00D6 => {
+      result.push(0x004F)
+      result.push(0x0308)
+    }
+    0x00D9 => {
+      result.push(0x0055)
+      result.push(0x0300)
+    }
+    0x00DA => {
+      result.push(0x0055)
+      result.push(0x0301)
+    }
+    0x00DB => {
+      result.push(0x0055)
+      result.push(0x0302)
+    }
+    0x00DC => {
+      result.push(0x0055)
+      result.push(0x0308)
+    }
+    0x00DD => {
+      result.push(0x0059)
+      result.push(0x0301)
+    }
+    0x00E0 => {
+      result.push(0x0061)
+      result.push(0x0300)
+    }
+    0x00E1 => {
+      result.push(0x0061)
+      result.push(0x0301)
+    }
+    0x00E2 => {
+      result.push(0x0061)
+      result.push(0x0302)
+    }
+    0x00E3 => {
+      result.push(0x0061)
+      result.push(0x0303)
+    }
+    0x00E4 => {
+      result.push(0x0061)
+      result.push(0x0308)
+    }
+    0x00E5 => {
+      result.push(0x0061)
+      result.push(0x030A)
+    }
+    0x00E7 => {
+      result.push(0x0063)
+      result.push(0x0327)
+    }
+    0x00E8 => {
+      result.push(0x0065)
+      result.push(0x0300)
+    }
+    0x00E9 => {
+      result.push(0x0065)
+      result.push(0x0301)
+    }
+    0x00EA => {
+      result.push(0x0065)
+      result.push(0x0302)
+    }
+    0x00EB => {
+      result.push(0x0065)
+      result.push(0x0308)
+    }
+    0x00EC => {
+      result.push(0x0069)
+      result.push(0x0300)
+    }
+    0x00ED => {
+      result.push(0x0069)
+      result.push(0x0301)
+    }
+    0x00EE => {
+      result.push(0x0069)
+      result.push(0x0302)
+    }
+    0x00EF => {
+      result.push(0x0069)
+      result.push(0x0308)
+    }
+    0x00F1 => {
+      result.push(0x006E)
+      result.push(0x0303)
+    }
+    0x00F2 => {
+      result.push(0x006F)
+      result.push(0x0300)
+    }
+    0x00F3 => {
+      result.push(0x006F)
+      result.push(0x0301)
+    }
+    0x00F4 => {
+      result.push(0x006F)
+      result.push(0x0302)
+    }
+    0x00F5 => {
+      result.push(0x006F)
+      result.push(0x0303)
+    }
+    0x00F6 => {
+      result.push(0x006F)
+      result.push(0x0308)
+    }
+    0x00F9 => {
+      result.push(0x0075)
+      result.push(0x0300)
+    }
+    0x00FA => {
+      result.push(0x0075)
+      result.push(0x0301)
+    }
+    0x00FB => {
+      result.push(0x0075)
+      result.push(0x0302)
+    }
+    0x00FC => {
+      result.push(0x0075)
+      result.push(0x0308)
+    }
+    0x00FD => {
+      result.push(0x0079)
+      result.push(0x0301)
+    }
+    0x00FF => {
+      result.push(0x0079)
+      result.push(0x0308)
+    }
     // === Latin Extended-A (U+0100–U+017F) ===
-    0x0100 => { result.push(0x0041); result.push(0x0304) }
-    0x0101 => { result.push(0x0061); result.push(0x0304) }
-    0x0102 => { result.push(0x0041); result.push(0x0306) }
-    0x0103 => { result.push(0x0061); result.push(0x0306) }
-    0x0104 => { result.push(0x0041); result.push(0x0328) }
-    0x0105 => { result.push(0x0061); result.push(0x0328) }
-    0x0106 => { result.push(0x0043); result.push(0x0301) }
-    0x0107 => { result.push(0x0063); result.push(0x0301) }
-    0x0108 => { result.push(0x0043); result.push(0x0302) }
-    0x0109 => { result.push(0x0063); result.push(0x0302) }
-    0x010A => { result.push(0x0043); result.push(0x0307) }
-    0x010B => { result.push(0x0063); result.push(0x0307) }
-    0x010C => { result.push(0x0043); result.push(0x030C) }
-    0x010D => { result.push(0x0063); result.push(0x030C) }
-    0x010E => { result.push(0x0044); result.push(0x030C) }
-    0x010F => { result.push(0x0064); result.push(0x030C) }
-    0x0112 => { result.push(0x0045); result.push(0x0304) }
-    0x0113 => { result.push(0x0065); result.push(0x0304) }
-    0x0114 => { result.push(0x0045); result.push(0x0306) }
-    0x0115 => { result.push(0x0065); result.push(0x0306) }
-    0x0116 => { result.push(0x0045); result.push(0x0307) }
-    0x0117 => { result.push(0x0065); result.push(0x0307) }
-    0x0118 => { result.push(0x0045); result.push(0x0328) }
-    0x0119 => { result.push(0x0065); result.push(0x0328) }
-    0x011A => { result.push(0x0045); result.push(0x030C) }
-    0x011B => { result.push(0x0065); result.push(0x030C) }
-    0x011C => { result.push(0x0047); result.push(0x0302) }
-    0x011D => { result.push(0x0067); result.push(0x0302) }
-    0x011E => { result.push(0x0047); result.push(0x0306) }
-    0x011F => { result.push(0x0067); result.push(0x0306) }
-    0x0120 => { result.push(0x0047); result.push(0x0307) }
-    0x0121 => { result.push(0x0067); result.push(0x0307) }
-    0x0122 => { result.push(0x0047); result.push(0x0327) }
-    0x0123 => { result.push(0x0067); result.push(0x0327) }
-    0x0124 => { result.push(0x0048); result.push(0x0302) }
-    0x0125 => { result.push(0x0068); result.push(0x0302) }
-    0x0128 => { result.push(0x0049); result.push(0x0303) }
-    0x0129 => { result.push(0x0069); result.push(0x0303) }
-    0x012A => { result.push(0x0049); result.push(0x0304) }
-    0x012B => { result.push(0x0069); result.push(0x0304) }
-    0x012C => { result.push(0x0049); result.push(0x0306) }
-    0x012D => { result.push(0x0069); result.push(0x0306) }
-    0x012E => { result.push(0x0049); result.push(0x0328) }
-    0x012F => { result.push(0x0069); result.push(0x0328) }
-    0x0130 => { result.push(0x0049); result.push(0x0307) }
-    0x0134 => { result.push(0x004A); result.push(0x0302) }
-    0x0135 => { result.push(0x006A); result.push(0x0302) }
-    0x0136 => { result.push(0x004B); result.push(0x0327) }
-    0x0137 => { result.push(0x006B); result.push(0x0327) }
-    0x0139 => { result.push(0x004C); result.push(0x0301) }
-    0x013A => { result.push(0x006C); result.push(0x0301) }
-    0x013B => { result.push(0x004C); result.push(0x0327) }
-    0x013C => { result.push(0x006C); result.push(0x0327) }
-    0x013D => { result.push(0x004C); result.push(0x030C) }
-    0x013E => { result.push(0x006C); result.push(0x030C) }
-    0x0143 => { result.push(0x004E); result.push(0x0301) }
-    0x0144 => { result.push(0x006E); result.push(0x0301) }
-    0x0145 => { result.push(0x004E); result.push(0x0327) }
-    0x0146 => { result.push(0x006E); result.push(0x0327) }
-    0x0147 => { result.push(0x004E); result.push(0x030C) }
-    0x0148 => { result.push(0x006E); result.push(0x030C) }
-    0x014C => { result.push(0x004F); result.push(0x0304) }
-    0x014D => { result.push(0x006F); result.push(0x0304) }
-    0x014E => { result.push(0x004F); result.push(0x0306) }
-    0x014F => { result.push(0x006F); result.push(0x0306) }
-    0x0150 => { result.push(0x004F); result.push(0x030B) }
-    0x0151 => { result.push(0x006F); result.push(0x030B) }
-    0x0154 => { result.push(0x0052); result.push(0x0301) }
-    0x0155 => { result.push(0x0072); result.push(0x0301) }
-    0x0156 => { result.push(0x0052); result.push(0x0327) }
-    0x0157 => { result.push(0x0072); result.push(0x0327) }
-    0x0158 => { result.push(0x0052); result.push(0x030C) }
-    0x0159 => { result.push(0x0072); result.push(0x030C) }
-    0x015A => { result.push(0x0053); result.push(0x0301) }
-    0x015B => { result.push(0x0073); result.push(0x0301) }
-    0x015C => { result.push(0x0053); result.push(0x0302) }
-    0x015D => { result.push(0x0073); result.push(0x0302) }
-    0x015E => { result.push(0x0053); result.push(0x0327) }
-    0x015F => { result.push(0x0073); result.push(0x0327) }
-    0x0160 => { result.push(0x0053); result.push(0x030C) }
-    0x0161 => { result.push(0x0073); result.push(0x030C) }
-    0x0162 => { result.push(0x0054); result.push(0x0327) }
-    0x0163 => { result.push(0x0074); result.push(0x0327) }
-    0x0164 => { result.push(0x0054); result.push(0x030C) }
-    0x0165 => { result.push(0x0074); result.push(0x030C) }
-    0x0168 => { result.push(0x0055); result.push(0x0303) }
-    0x0169 => { result.push(0x0075); result.push(0x0303) }
-    0x016A => { result.push(0x0055); result.push(0x0304) }
-    0x016B => { result.push(0x0075); result.push(0x0304) }
-    0x016C => { result.push(0x0055); result.push(0x0306) }
-    0x016D => { result.push(0x0075); result.push(0x0306) }
-    0x016E => { result.push(0x0055); result.push(0x030A) }
-    0x016F => { result.push(0x0075); result.push(0x030A) }
-    0x0170 => { result.push(0x0055); result.push(0x030B) }
-    0x0171 => { result.push(0x0075); result.push(0x030B) }
-    0x0172 => { result.push(0x0055); result.push(0x0328) }
-    0x0173 => { result.push(0x0075); result.push(0x0328) }
-    0x0174 => { result.push(0x0057); result.push(0x0302) }
-    0x0175 => { result.push(0x0077); result.push(0x0302) }
-    0x0176 => { result.push(0x0059); result.push(0x0302) }
-    0x0177 => { result.push(0x0079); result.push(0x0302) }
-    0x0178 => { result.push(0x0059); result.push(0x0308) }
-    0x0179 => { result.push(0x005A); result.push(0x0301) }
-    0x017A => { result.push(0x007A); result.push(0x0301) }
-    0x017B => { result.push(0x005A); result.push(0x0307) }
-    0x017C => { result.push(0x007A); result.push(0x0307) }
-    0x017D => { result.push(0x005A); result.push(0x030C) }
-    0x017E => { result.push(0x007A); result.push(0x030C) }
+    0x0100 => {
+      result.push(0x0041)
+      result.push(0x0304)
+    }
+    0x0101 => {
+      result.push(0x0061)
+      result.push(0x0304)
+    }
+    0x0102 => {
+      result.push(0x0041)
+      result.push(0x0306)
+    }
+    0x0103 => {
+      result.push(0x0061)
+      result.push(0x0306)
+    }
+    0x0104 => {
+      result.push(0x0041)
+      result.push(0x0328)
+    }
+    0x0105 => {
+      result.push(0x0061)
+      result.push(0x0328)
+    }
+    0x0106 => {
+      result.push(0x0043)
+      result.push(0x0301)
+    }
+    0x0107 => {
+      result.push(0x0063)
+      result.push(0x0301)
+    }
+    0x0108 => {
+      result.push(0x0043)
+      result.push(0x0302)
+    }
+    0x0109 => {
+      result.push(0x0063)
+      result.push(0x0302)
+    }
+    0x010A => {
+      result.push(0x0043)
+      result.push(0x0307)
+    }
+    0x010B => {
+      result.push(0x0063)
+      result.push(0x0307)
+    }
+    0x010C => {
+      result.push(0x0043)
+      result.push(0x030C)
+    }
+    0x010D => {
+      result.push(0x0063)
+      result.push(0x030C)
+    }
+    0x010E => {
+      result.push(0x0044)
+      result.push(0x030C)
+    }
+    0x010F => {
+      result.push(0x0064)
+      result.push(0x030C)
+    }
+    0x0112 => {
+      result.push(0x0045)
+      result.push(0x0304)
+    }
+    0x0113 => {
+      result.push(0x0065)
+      result.push(0x0304)
+    }
+    0x0114 => {
+      result.push(0x0045)
+      result.push(0x0306)
+    }
+    0x0115 => {
+      result.push(0x0065)
+      result.push(0x0306)
+    }
+    0x0116 => {
+      result.push(0x0045)
+      result.push(0x0307)
+    }
+    0x0117 => {
+      result.push(0x0065)
+      result.push(0x0307)
+    }
+    0x0118 => {
+      result.push(0x0045)
+      result.push(0x0328)
+    }
+    0x0119 => {
+      result.push(0x0065)
+      result.push(0x0328)
+    }
+    0x011A => {
+      result.push(0x0045)
+      result.push(0x030C)
+    }
+    0x011B => {
+      result.push(0x0065)
+      result.push(0x030C)
+    }
+    0x011C => {
+      result.push(0x0047)
+      result.push(0x0302)
+    }
+    0x011D => {
+      result.push(0x0067)
+      result.push(0x0302)
+    }
+    0x011E => {
+      result.push(0x0047)
+      result.push(0x0306)
+    }
+    0x011F => {
+      result.push(0x0067)
+      result.push(0x0306)
+    }
+    0x0120 => {
+      result.push(0x0047)
+      result.push(0x0307)
+    }
+    0x0121 => {
+      result.push(0x0067)
+      result.push(0x0307)
+    }
+    0x0122 => {
+      result.push(0x0047)
+      result.push(0x0327)
+    }
+    0x0123 => {
+      result.push(0x0067)
+      result.push(0x0327)
+    }
+    0x0124 => {
+      result.push(0x0048)
+      result.push(0x0302)
+    }
+    0x0125 => {
+      result.push(0x0068)
+      result.push(0x0302)
+    }
+    0x0128 => {
+      result.push(0x0049)
+      result.push(0x0303)
+    }
+    0x0129 => {
+      result.push(0x0069)
+      result.push(0x0303)
+    }
+    0x012A => {
+      result.push(0x0049)
+      result.push(0x0304)
+    }
+    0x012B => {
+      result.push(0x0069)
+      result.push(0x0304)
+    }
+    0x012C => {
+      result.push(0x0049)
+      result.push(0x0306)
+    }
+    0x012D => {
+      result.push(0x0069)
+      result.push(0x0306)
+    }
+    0x012E => {
+      result.push(0x0049)
+      result.push(0x0328)
+    }
+    0x012F => {
+      result.push(0x0069)
+      result.push(0x0328)
+    }
+    0x0130 => {
+      result.push(0x0049)
+      result.push(0x0307)
+    }
+    0x0134 => {
+      result.push(0x004A)
+      result.push(0x0302)
+    }
+    0x0135 => {
+      result.push(0x006A)
+      result.push(0x0302)
+    }
+    0x0136 => {
+      result.push(0x004B)
+      result.push(0x0327)
+    }
+    0x0137 => {
+      result.push(0x006B)
+      result.push(0x0327)
+    }
+    0x0139 => {
+      result.push(0x004C)
+      result.push(0x0301)
+    }
+    0x013A => {
+      result.push(0x006C)
+      result.push(0x0301)
+    }
+    0x013B => {
+      result.push(0x004C)
+      result.push(0x0327)
+    }
+    0x013C => {
+      result.push(0x006C)
+      result.push(0x0327)
+    }
+    0x013D => {
+      result.push(0x004C)
+      result.push(0x030C)
+    }
+    0x013E => {
+      result.push(0x006C)
+      result.push(0x030C)
+    }
+    0x0143 => {
+      result.push(0x004E)
+      result.push(0x0301)
+    }
+    0x0144 => {
+      result.push(0x006E)
+      result.push(0x0301)
+    }
+    0x0145 => {
+      result.push(0x004E)
+      result.push(0x0327)
+    }
+    0x0146 => {
+      result.push(0x006E)
+      result.push(0x0327)
+    }
+    0x0147 => {
+      result.push(0x004E)
+      result.push(0x030C)
+    }
+    0x0148 => {
+      result.push(0x006E)
+      result.push(0x030C)
+    }
+    0x014C => {
+      result.push(0x004F)
+      result.push(0x0304)
+    }
+    0x014D => {
+      result.push(0x006F)
+      result.push(0x0304)
+    }
+    0x014E => {
+      result.push(0x004F)
+      result.push(0x0306)
+    }
+    0x014F => {
+      result.push(0x006F)
+      result.push(0x0306)
+    }
+    0x0150 => {
+      result.push(0x004F)
+      result.push(0x030B)
+    }
+    0x0151 => {
+      result.push(0x006F)
+      result.push(0x030B)
+    }
+    0x0154 => {
+      result.push(0x0052)
+      result.push(0x0301)
+    }
+    0x0155 => {
+      result.push(0x0072)
+      result.push(0x0301)
+    }
+    0x0156 => {
+      result.push(0x0052)
+      result.push(0x0327)
+    }
+    0x0157 => {
+      result.push(0x0072)
+      result.push(0x0327)
+    }
+    0x0158 => {
+      result.push(0x0052)
+      result.push(0x030C)
+    }
+    0x0159 => {
+      result.push(0x0072)
+      result.push(0x030C)
+    }
+    0x015A => {
+      result.push(0x0053)
+      result.push(0x0301)
+    }
+    0x015B => {
+      result.push(0x0073)
+      result.push(0x0301)
+    }
+    0x015C => {
+      result.push(0x0053)
+      result.push(0x0302)
+    }
+    0x015D => {
+      result.push(0x0073)
+      result.push(0x0302)
+    }
+    0x015E => {
+      result.push(0x0053)
+      result.push(0x0327)
+    }
+    0x015F => {
+      result.push(0x0073)
+      result.push(0x0327)
+    }
+    0x0160 => {
+      result.push(0x0053)
+      result.push(0x030C)
+    }
+    0x0161 => {
+      result.push(0x0073)
+      result.push(0x030C)
+    }
+    0x0162 => {
+      result.push(0x0054)
+      result.push(0x0327)
+    }
+    0x0163 => {
+      result.push(0x0074)
+      result.push(0x0327)
+    }
+    0x0164 => {
+      result.push(0x0054)
+      result.push(0x030C)
+    }
+    0x0165 => {
+      result.push(0x0074)
+      result.push(0x030C)
+    }
+    0x0168 => {
+      result.push(0x0055)
+      result.push(0x0303)
+    }
+    0x0169 => {
+      result.push(0x0075)
+      result.push(0x0303)
+    }
+    0x016A => {
+      result.push(0x0055)
+      result.push(0x0304)
+    }
+    0x016B => {
+      result.push(0x0075)
+      result.push(0x0304)
+    }
+    0x016C => {
+      result.push(0x0055)
+      result.push(0x0306)
+    }
+    0x016D => {
+      result.push(0x0075)
+      result.push(0x0306)
+    }
+    0x016E => {
+      result.push(0x0055)
+      result.push(0x030A)
+    }
+    0x016F => {
+      result.push(0x0075)
+      result.push(0x030A)
+    }
+    0x0170 => {
+      result.push(0x0055)
+      result.push(0x030B)
+    }
+    0x0171 => {
+      result.push(0x0075)
+      result.push(0x030B)
+    }
+    0x0172 => {
+      result.push(0x0055)
+      result.push(0x0328)
+    }
+    0x0173 => {
+      result.push(0x0075)
+      result.push(0x0328)
+    }
+    0x0174 => {
+      result.push(0x0057)
+      result.push(0x0302)
+    }
+    0x0175 => {
+      result.push(0x0077)
+      result.push(0x0302)
+    }
+    0x0176 => {
+      result.push(0x0059)
+      result.push(0x0302)
+    }
+    0x0177 => {
+      result.push(0x0079)
+      result.push(0x0302)
+    }
+    0x0178 => {
+      result.push(0x0059)
+      result.push(0x0308)
+    }
+    0x0179 => {
+      result.push(0x005A)
+      result.push(0x0301)
+    }
+    0x017A => {
+      result.push(0x007A)
+      result.push(0x0301)
+    }
+    0x017B => {
+      result.push(0x005A)
+      result.push(0x0307)
+    }
+    0x017C => {
+      result.push(0x007A)
+      result.push(0x0307)
+    }
+    0x017D => {
+      result.push(0x005A)
+      result.push(0x030C)
+    }
+    0x017E => {
+      result.push(0x007A)
+      result.push(0x030C)
+    }
     // === Greek and Coptic (U+0386–U+03CE) ===
-    0x0386 => { result.push(0x0391); result.push(0x0301) }
-    0x0388 => { result.push(0x0395); result.push(0x0301) }
-    0x0389 => { result.push(0x0397); result.push(0x0301) }
-    0x038A => { result.push(0x0399); result.push(0x0301) }
-    0x038C => { result.push(0x039F); result.push(0x0301) }
-    0x038E => { result.push(0x03A5); result.push(0x0301) }
-    0x038F => { result.push(0x03A9); result.push(0x0301) }
-    0x0390 => { result.push(0x03B9); result.push(0x0308); result.push(0x0301) }
-    0x03AA => { result.push(0x0399); result.push(0x0308) }
-    0x03AB => { result.push(0x03A5); result.push(0x0308) }
-    0x03AC => { result.push(0x03B1); result.push(0x0301) }
-    0x03AD => { result.push(0x03B5); result.push(0x0301) }
-    0x03AE => { result.push(0x03B7); result.push(0x0301) }
-    0x03AF => { result.push(0x03B9); result.push(0x0301) }
-    0x03B0 => { result.push(0x03C5); result.push(0x0308); result.push(0x0301) }
-    0x03CA => { result.push(0x03B9); result.push(0x0308) }
-    0x03CB => { result.push(0x03C5); result.push(0x0308) }
-    0x03CC => { result.push(0x03BF); result.push(0x0301) }
-    0x03CD => { result.push(0x03C5); result.push(0x0301) }
-    0x03CE => { result.push(0x03C9); result.push(0x0301) }
+    0x0386 => {
+      result.push(0x0391)
+      result.push(0x0301)
+    }
+    0x0388 => {
+      result.push(0x0395)
+      result.push(0x0301)
+    }
+    0x0389 => {
+      result.push(0x0397)
+      result.push(0x0301)
+    }
+    0x038A => {
+      result.push(0x0399)
+      result.push(0x0301)
+    }
+    0x038C => {
+      result.push(0x039F)
+      result.push(0x0301)
+    }
+    0x038E => {
+      result.push(0x03A5)
+      result.push(0x0301)
+    }
+    0x038F => {
+      result.push(0x03A9)
+      result.push(0x0301)
+    }
+    0x0390 => {
+      result.push(0x03B9)
+      result.push(0x0308)
+      result.push(0x0301)
+    }
+    0x03AA => {
+      result.push(0x0399)
+      result.push(0x0308)
+    }
+    0x03AB => {
+      result.push(0x03A5)
+      result.push(0x0308)
+    }
+    0x03AC => {
+      result.push(0x03B1)
+      result.push(0x0301)
+    }
+    0x03AD => {
+      result.push(0x03B5)
+      result.push(0x0301)
+    }
+    0x03AE => {
+      result.push(0x03B7)
+      result.push(0x0301)
+    }
+    0x03AF => {
+      result.push(0x03B9)
+      result.push(0x0301)
+    }
+    0x03B0 => {
+      result.push(0x03C5)
+      result.push(0x0308)
+      result.push(0x0301)
+    }
+    0x03CA => {
+      result.push(0x03B9)
+      result.push(0x0308)
+    }
+    0x03CB => {
+      result.push(0x03C5)
+      result.push(0x0308)
+    }
+    0x03CC => {
+      result.push(0x03BF)
+      result.push(0x0301)
+    }
+    0x03CD => {
+      result.push(0x03C5)
+      result.push(0x0301)
+    }
+    0x03CE => {
+      result.push(0x03C9)
+      result.push(0x0301)
+    }
     _ => result.push(cp)
   }
   result
@@ -433,11 +1073,28 @@ fn decompose_compatibility(cp : Int) -> Array[Int] {
     0x2088 => result.push(0x0038)
     0x2089 => result.push(0x0039)
     // Latin ligatures
-    0xFB00 => { result.push(0x0066); result.push(0x0066) } // ﬀ → ff
-    0xFB01 => { result.push(0x0066); result.push(0x0069) } // ﬁ → fi
-    0xFB02 => { result.push(0x0066); result.push(0x006C) } // ﬂ → fl
-    0xFB03 => { result.push(0x0066); result.push(0x0066); result.push(0x0069) } // ﬃ → ffi
-    0xFB04 => { result.push(0x0066); result.push(0x0066); result.push(0x006C) } // ﬄ → ffl
+    0xFB00 => {
+      result.push(0x0066)
+      result.push(0x0066)
+    } // ﬀ → ff
+    0xFB01 => {
+      result.push(0x0066)
+      result.push(0x0069)
+    } // ﬁ → fi
+    0xFB02 => {
+      result.push(0x0066)
+      result.push(0x006C)
+    } // ﬂ → fl
+    0xFB03 => {
+      result.push(0x0066)
+      result.push(0x0066)
+      result.push(0x0069)
+    } // ﬃ → ffi
+    0xFB04 => {
+      result.push(0x0066)
+      result.push(0x0066)
+      result.push(0x006C)
+    } // ﬄ → ffl
     // CJK Compatibility Forms (U+FE30–U+FE4F)
     0xFE49 | 0xFE4A | 0xFE4B | 0xFE4C => result.push(0x203E) // ﹉﹊﹋﹌ → ‾
     0xFE4D | 0xFE4E | 0xFE4F => result.push(0x005F) // ﹍﹎﹏ → _
@@ -500,9 +1157,18 @@ fn decompose_compatibility(cp : Int) -> Array[Int] {
     0xFF9C => result.push(0x30EF) // ﾜ → ワ
     0xFF9D => result.push(0x30F3) // ﾝ → ン
     // Letterlike symbols
-    0x2103 => { result.push(0x00B0); result.push(0x0043) } // ℃ → °C
-    0x2122 => { result.push(0x0054); result.push(0x004D) } // ™ → TM
-    0x2109 => { result.push(0x00B0); result.push(0x0046) } // ℉ → °F
+    0x2103 => {
+      result.push(0x00B0)
+      result.push(0x0043)
+    } // ℃ → °C
+    0x2122 => {
+      result.push(0x0054)
+      result.push(0x004D)
+    } // ™ → TM
+    0x2109 => {
+      result.push(0x00B0)
+      result.push(0x0046)
+    } // ℉ → °F
     // No compatibility decomposition — fall back to canonical.
     _ => {
       let canon = decompose_canonical(cp)

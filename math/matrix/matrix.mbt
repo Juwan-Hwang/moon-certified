@@ -28,12 +28,21 @@
 ///
 /// The diagonal is `1`, every off-diagonal entry is `0`. For `n <= 0` an
 /// empty array is returned.
-pub fn identity_int(n : Int) -> FixedArray[Int] {
+pub fn identity_int(n : Int) -> FixedArray[Int] where {
+  proof_require: 0 <= n,
+  proof_ensure: result => identity_matrix_ok(result, n),
+} {
   let r = FixedArray::make(n * n, 0)
-  for i = 0; i < n; i = i + 1 {
+  for i = 0; i < n; {
     r[i * n + i] = 1
+    continue i + 1
+  } nobreak {
+    r
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= n,
+    proof_invariant: r.length() == n * n,
   }
-  r
 }
 
 ///|
@@ -58,14 +67,28 @@ pub fn transpose_int(
   mat : FixedArray[Int],
   n : Int,
   m : Int,
-) -> FixedArray[Int] {
+) -> FixedArray[Int] where {
+  proof_require: 0 <= n,
+  proof_require: 0 <= m,
+  proof_require: mat.length() == n * m,
+  proof_ensure: result => transpose_length_ok(n, m, result),
+} {
   let r = FixedArray::make(n * m, 0)
-  for i = 0; i < n; i = i + 1 {
-    for j = 0; j < m; j = j + 1 {
+  for i = 0; i < n; {
+    for j = 0; j < m; {
       r[j * n + i] = mat[i * m + j]
+      continue j + 1
+    } nobreak {
+      ()
     }
+    continue i + 1
+  } nobreak {
+    r
+  } where {
+    proof_invariant: 0 <= i,
+    proof_invariant: i <= n,
+    proof_invariant: r.length() == n * m,
   }
-  r
 }
 
 ///|
@@ -891,3 +914,5 @@ test "determinant_int64: input not modified" {
   assert_eq(m[2], 6L)
   assert_eq(m[3], 3L)
 }
+
+

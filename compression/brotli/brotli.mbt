@@ -65,6 +65,7 @@ const HASH_SIZE : Int = 16384
 // LZ77 token types
 // ---------------------------------------------------------------------------
 
+///|
 priv enum Token {
   Literal(Byte)
   Match(Int, Int)
@@ -74,11 +75,16 @@ priv enum Token {
 // Hash table and match finding
 // ---------------------------------------------------------------------------
 
+///|
 fn hash4(data : Bytes, pos : Int) -> Int {
-  let h = (data[pos].to_int64() << 24) | (data[pos + 1].to_int64() << 16) | (data[pos + 2].to_int64() << 8) | data[pos + 3].to_int64()
+  let h = (data[pos].to_int64() << 24) |
+    (data[pos + 1].to_int64() << 16) |
+    (data[pos + 2].to_int64() << 8) |
+    data[pos + 3].to_int64()
   (((h * 2654435761L) >> 18) & (HASH_SIZE - 1).to_int64()).to_int()
 }
 
+///|
 fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
   if pos + MIN_MATCH > data.length() {
     return (0, 0)
@@ -90,7 +96,11 @@ fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
     return (0, 0)
   }
   let mut len = 0
-  let max_len = if data.length() - pos < 255 + MIN_MATCH { data.length() - pos } else { 255 + MIN_MATCH }
+  let max_len = if data.length() - pos < 255 + MIN_MATCH {
+    data.length() - pos
+  } else {
+    255 + MIN_MATCH
+  }
   while len < max_len && data[candidate + len] == data[pos + len] {
     len = len + 1
   }
@@ -101,6 +111,7 @@ fn find_match(data : Bytes, pos : Int, hash_table : Array[Int]) -> (Int, Int) {
   }
 }
 
+///|
 fn lz77_compress(data : Bytes) -> Array[Token] {
   let tokens : Array[Token] = []
   let n = data.length()
@@ -132,6 +143,7 @@ fn lz77_compress(data : Bytes) -> Array[Token] {
 // Variable-length integer encoding
 // ---------------------------------------------------------------------------
 
+///|
 /// Encode a non-negative integer as a variable-length byte sequence.
 /// Uses continuation bits: high bit = 1 means more bytes follow.
 fn encode_varint(value : Int, output : Array[Byte]) -> Unit {
@@ -143,6 +155,7 @@ fn encode_varint(value : Int, output : Array[Byte]) -> Unit {
   output.push(v.to_byte())
 }
 
+///|
 /// Decode a varint. Returns (value, bytes_consumed) or None.
 fn decode_varint(data : Bytes, pos : Int) -> (Int, Int)? {
   let mut result = 0
@@ -254,7 +267,10 @@ pub fn decompress(data : Bytes) -> Bytes? {
     }
   }
   // Read content size
-  let content_size = data[4].to_int() | (data[5].to_int() << 8) | (data[6].to_int() << 16) | (data[7].to_int() << 24)
+  let content_size = data[4].to_int() |
+    (data[5].to_int() << 8) |
+    (data[6].to_int() << 16) |
+    (data[7].to_int() << 24)
   let mut pos = 8
   let output : Array[Byte] = []
   // Read blocks
@@ -263,7 +279,9 @@ pub fn decompress(data : Bytes) -> Bytes? {
       break
     }
     let block_type = data[pos].to_int()
-    let block_size = data[pos + 1].to_int() | (data[pos + 2].to_int() << 8) | (data[pos + 3].to_int() << 16)
+    let block_size = data[pos + 1].to_int() |
+      (data[pos + 2].to_int() << 8) |
+      (data[pos + 3].to_int() << 16)
     pos = pos + 4
     // Boundary check: block_size must not exceed remaining data
     if block_size < 0 || pos + block_size > data.length() {
@@ -406,7 +424,9 @@ test "brotli: round-trip long text" {
 
 ///|
 test "brotli: invalid magic" {
-  let bad = Bytes::from_array([b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00'])
+  let bad = Bytes::from_array([
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  ])
   match decompress(bad) {
     Some(_) => assert_true(false)
     None => assert_true(true)
@@ -418,7 +438,12 @@ test "brotli: does not use fake brotli magic" {
   let data = @utils.string_to_bytes("test")
   let compressed = compress(data)
   // Verify we do NOT use the fake magic 0xCEB22CF1 (LE: F1 2C B2 CE)
-  assert_true(!(compressed[0] == b'\xF1' && compressed[1] == b'\x2C' && compressed[2] == b'\xB2' && compressed[3] == b'\xCE'))
+  assert_true(
+    !(compressed[0] == b'\xF1' &&
+    compressed[1] == b'\x2C' &&
+    compressed[2] == b'\xB2' &&
+    compressed[3] == b'\xCE'),
+  )
 }
 
 ///|
@@ -461,7 +486,20 @@ test "brotli: large data with patterns" {
 test "brotli: malformed compressed data returns None" {
   let mb = magic_bytes()
   // Valid magic but block_size exceeds remaining data
-  let bad = Bytes::from_array([mb[0], mb[1], mb[2], mb[3], b'\x10', b'\x00', b'\x00', b'\x00', b'\x01', b'\xFF', b'\xFF', b'\xFF'])
+  let bad = Bytes::from_array([
+    mb[0],
+    mb[1],
+    mb[2],
+    mb[3],
+    b'\x10',
+    b'\x00',
+    b'\x00',
+    b'\x00',
+    b'\x01',
+    b'\xFF',
+    b'\xFF',
+    b'\xFF',
+  ])
   match decompress(bad) {
     Some(_) => assert_true(false)
     None => assert_true(true)
