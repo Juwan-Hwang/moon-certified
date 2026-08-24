@@ -47,18 +47,18 @@ fn split_dot(s : String) -> Array[String] {
   let chars = s.to_array()
   for i = 0; i < chars.length(); i = i + 1 {
     if chars[i] == '.' {
-      result.push(s.substring(start~, end=i))
+      result.push(s[start:i].to_owned())
       start = i + 1
     }
   }
-  result.push(s.substring(start~, end=chars.length()))
+  result.push(s[start:chars.length()].to_owned())
   result
 }
 
 ///|
 /// Initialize the bas1.0e64url alphabet (called once at module load).
 fn init_b64url_alphabet() -> FixedArray[Char] {
-  let a = FixedArray::make(64, '\x00')
+  let a = FixedArray::make(64, '\u0000')
   let s = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
   let chars = s.to_array()
   for i = 0; i < 64 && i < chars.length(); i = i + 1 {
@@ -825,7 +825,7 @@ test "jose: b64url encode/decode round-trip" {
   ])
   let encoded = b64url_encode(data)
   let decoded = b64url_decode(encoded)
-  assert_true(decoded is Some)
+  assert_true(decoded is Some(_))
   match decoded {
     Some(d) => {
       assert_eq(d.length(), data.length())
@@ -939,7 +939,7 @@ test "jose: jws_verify rejects algorithm confusion" {
   }
   // Should fail because header alg (HS256) ≠ expected_alg (none)
   let result = jws_verify(token, key, "none")
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => assert_false(r.valid)
     None => ()

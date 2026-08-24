@@ -29,7 +29,7 @@ const TAG_INTEGER : Int = 0x02
 const TAG_BIT_STRING : Int = 0x03
 
 ///|
-const TAG_OCTET_STRING : Int = 0x04
+let _TAG_OCTET_STRING : Int = 0x04
 
 ///|
 const TAG_NULL : Int = 0x05
@@ -38,19 +38,19 @@ const TAG_NULL : Int = 0x05
 const TAG_OID : Int = 0x06
 
 ///|
-const TAG_UTF8_STRING : Int = 0x0C
+let _TAG_UTF8_STRING : Int = 0x0C
 
 ///|
-const TAG_PRINTABLE_STRING : Int = 0x13
+let _TAG_PRINTABLE_STRING : Int = 0x13
 
 ///|
-const TAG_IA5_STRING : Int = 0x16
+let _TAG_IA5_STRING : Int = 0x16
 
 ///|
-const TAG_UTCTIME : Int = 0x17
+let _TAG_UTCTIME : Int = 0x17
 
 ///|
-const TAG_GENERALIZEDTIME : Int = 0x18
+let _TAG_GENERALIZEDTIME : Int = 0x18
 
 ///|
 const TAG_SEQUENCE : Int = 0x30
@@ -159,7 +159,7 @@ fn DerCursor::read_integer(self : DerCursor) -> Int {
 }
 
 ///|
-fn DerCursor::read_big_integer_bytes(self : DerCursor) -> Bytes {
+fn DerCursor::_read_big_integer_bytes(self : DerCursor) -> Bytes {
   let tag = self.read_tag()
   if tag != TAG_INTEGER {
     abort("DER: expected INTEGER tag")
@@ -489,7 +489,7 @@ fn parse_subject_public_key_info(cursor : DerCursor) -> SubjectPublicKeyInfo {
 
 ///|
 fn parse_extensions(cursor : DerCursor) -> Array[Extension] {
-  let tag = cursor.read_tag()
+  let _tag = cursor.read_tag()
   // Extensions is [3] EXPLICIT SEQUENCE
   let _ = cursor.read_length()
   let seq_tag = cursor.read_tag()

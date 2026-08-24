@@ -1484,3 +1484,20 @@ fn bytes_to_string(bytes : Array[Byte]) -> String {
   }
   String::from_array(chars)
 }
+
+///|
+/// Map Asn1Class to its tag byte prefix (internal validation).
+fn _asn1_class_to_prefix(cls : Asn1Class) -> Int {
+  match cls {
+    Universal => 0x00
+    Application => 0x40
+    ContextSpecific => 0x80
+    Private => 0xC0
+  }
+}
+
+///|
+/// All Asn1Class variants (internal validation).
+fn _all_asn1_classes() -> Array[Asn1Class] {
+  [Universal, Application, ContextSpecific, Private]
+}

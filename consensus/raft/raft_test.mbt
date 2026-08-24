@@ -114,11 +114,11 @@ test "raft: single node becomes leader" {
   // leader after one election timeout.
   let node = raft_node_create(0, 1, 42)
   // Tick until election timeout
-  let mut msgs : Array[RaftMessage] = []
+  let mut _msgs : Array[RaftMessage] = []
   for i = 0; i < 20; i = i + 1 {
     let m = raft_tick(node)
     if m.length() > 0 {
-      msgs = m
+      _msgs = m
     }
   }
   // Single node: RequestVote is sent to 0 peers, but the node votes for
@@ -240,7 +240,7 @@ test "raft: heartbeat without entries" {
   // Leader sends empty AppendEntries (heartbeat)
   let n0 = raft_node_create(0, 3, 100)
   let n1 = raft_node_create(1, 3, 200)
-  let nodes = [n0, n1]
+  let _nodes = [n0, n1]
   // Elect n0 (simplified: manually set up)
   for i = 0; i < 20; i = i + 1 {
     let m = raft_tick(n0)
@@ -280,7 +280,7 @@ test "raft: election restriction stale log" {
   // Give n0 some log entries (term 1)
   raft_test_add_log_entry(n0, 1, 10)
   raft_test_add_log_entry(n0, 1, 20)
-  let n1 = raft_node_create(1, 3, 200)
+  let _n1 = raft_node_create(1, 3, 200)
   // n1 has no entries beyond sentinel
   // n1 tries to become candidate with a stale log
   let resp = handle_request_vote(n0, 1, 2, 0, 0)

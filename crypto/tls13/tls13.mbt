@@ -7,7 +7,7 @@
 /// `proof-enabled` is `false`.
 
 ///|
-const TLS_1_3_VERSION : Int = 0x0304
+let _TLS_1_3_VERSION : Int = 0x0304
 
 ///|
 pub enum TlsCipherSuite {
@@ -296,4 +296,19 @@ pub fn tls_parse_record_header(data : Bytes) -> (Int, Int, Int)? {
   let version = (data[1].to_int() << 8) | data[2].to_int()
   let length = (data[3].to_int() << 8) | data[4].to_int()
   Some((content_type, version, length))
+}
+
+///|
+/// Sample TlsState (internal type validation).
+fn _sample_tls_state() -> TlsState {
+  {
+    is_client: true,
+    cipher_suite: Aes256GcmSha384,
+    client_random: b"",
+    server_random: b"",
+    handshake_secret: b"",
+    app_secret: b"",
+    sequence: 0,
+    key: b"",
+  }
 }

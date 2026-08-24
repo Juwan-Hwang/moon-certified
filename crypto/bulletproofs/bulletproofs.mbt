@@ -53,7 +53,7 @@ fn mod_pow(base : Int, exp : Int, m : Int) -> Int {
 }
 
 ///|
-fn mod_inv(a : Int, m : Int) -> Int {
+fn _mod_inv(a : Int, m : Int) -> Int {
   mod_pow(a, m - 2, m)
 }
 

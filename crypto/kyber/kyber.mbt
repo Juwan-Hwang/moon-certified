@@ -11,7 +11,7 @@ const KYBER_Q : Int = 3329
 const KYBER_N : Int = 256
 
 ///|
-const KYBER_K : Int = 2
+let _KYBER_K : Int = 2
 
 ///|
 const KYBER_ETA : Int = 2

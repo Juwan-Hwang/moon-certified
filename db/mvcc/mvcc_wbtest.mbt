@@ -80,7 +80,7 @@ test "mvcc_get_txn" {
   let s = MvccStore::new()
   let t1 = s.begin_txn()
   let got = s.get_txn(t1)
-  assert_true(got is Some)
+  assert_true(got is Some(_))
   match got {
     Some(tx) => assert_eq(tx.txn_id, t1)
     None => abort("expected Some txn")

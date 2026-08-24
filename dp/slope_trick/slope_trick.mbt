@@ -256,7 +256,7 @@ pub fn SlopeTrick::prefix_min(self : SlopeTrick) -> Unit {
 ///
 /// This flattens the function to the left of the minimum, removing the
 /// leftmost breakpoint. After this operation, `f` is non-increasing.
-pub fn SlopeTrick::suffix_min(self : SlopeTrick) -> Unit {
+pub fn SlopeTrick::suffix_min(_self : SlopeTrick) -> Unit {
   // To do suffix-min, we need to remove the smallest breakpoint.
   // Since we have a max-heap, this is expensive (O(n)).
   // For the common case where we only need prefix_min, this is fine.

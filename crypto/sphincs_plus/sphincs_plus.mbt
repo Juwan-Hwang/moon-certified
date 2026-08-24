@@ -19,12 +19,12 @@ priv struct Xorshift64 {
 }
 
 ///|
-fn Xorshift64::new(seed : Int) -> Xorshift64 {
+fn Xorshift64::_new(seed : Int) -> Xorshift64 {
   { state: (seed.to_int64() | 1L) & 0x7FFFFFFFFFFFFFFFL }
 }
 
 ///|
-fn Xorshift64::next(self : Xorshift64) -> Int {
+fn Xorshift64::_next(self : Xorshift64) -> Int {
   let mut x = self.state
   x = x ^ (x << 13)
   x = x ^ (x >> 7)

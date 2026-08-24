@@ -131,7 +131,7 @@ fn RangeEncoder::shift_low(self : RangeEncoder) -> Unit {
 }
 
 ///|
-fn RangeEncoder::encode_bit(self : RangeEncoder, prob : Int, bit : Int) -> Unit {
+fn RangeEncoder::_encode_bit(self : RangeEncoder, prob : Int, bit : Int) -> Unit {
   let bound = ((self.range.to_uint64() * prob.to_uint64()) >> NUM_PROB_BITS).to_uint()
   if bit != 0 {
     self.low = self.low + bound.to_uint64()
@@ -260,7 +260,7 @@ priv struct RangeDecoder {
 }
 
 ///|
-fn RangeDecoder::new(data : Bytes) -> RangeDecoder {
+fn RangeDecoder::_new(data : Bytes) -> RangeDecoder {
   let rd = { range: 0xFFFFFFFFU, code: 0U, data, pos: 1 }
   for _i = 0; _i < 4; _i = _i + 1 {
     rd.code = (rd.code << 8) | rd.next_byte()
@@ -887,7 +887,6 @@ priv struct LzmaEncoder {
   rep_dists : FixedArray[Int]
   mut pos : Int
   data : Bytes
-  props : LzmaEncProps
 }
 
 ///|
@@ -907,7 +906,6 @@ pub fn compress_with_props(data : Bytes, props : LzmaEncProps) -> Bytes {
     rep_dists: FixedArray::make(4, 0),
     pos: 0,
     data,
-    props,
   }
   let mf = MatchFinder::new(
     data,
@@ -996,7 +994,7 @@ fn encode_normal_match(
   dist : Int,
   len : Int,
   pos_state : Int,
-  props : LzmaEncProps,
+  _props : LzmaEncProps,
 ) -> Unit {
   enc.rc.encode_bit_prob(enc.probs.is_rep, enc.state, 0)
   encode_length(enc.rc, enc.probs, pos_state, len, false)

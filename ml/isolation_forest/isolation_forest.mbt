@@ -74,7 +74,7 @@ priv struct Rng {
 fn rng_new(seed : Int64) -> Rng {
   // Fold the 64-bit seed into a 32-bit state
   let lo = (seed & 0xFFFFFFFFL).to_int()
-  let hi = seed.lsr(32).to_int()
+  let hi = (seed.reinterpret_as_uint64() >> 32).to_int()
   let s = lo ^ hi
   { state: if s == 0 { 1 } else { s } }
 }

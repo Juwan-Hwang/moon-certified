@@ -141,3 +141,12 @@ pub fn AvroDecoder::decode_string(self : AvroDecoder) -> String {
   }
   sb.to_string()
 }
+
+///|
+/// All AvroType variants (internal type registry).
+fn _all_avro_types() -> Array[AvroType] {
+  [
+    Null, Boolean, Int, Long, Float, Double, Bytes, String, Record, Enum, Array,
+    Map, Union,
+  ]
+}

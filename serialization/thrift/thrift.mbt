@@ -74,7 +74,7 @@ pub fn ThriftEncoder::new() -> ThriftEncoder {
 ///|
 /// Write a struct begin.
 pub fn ThriftEncoder::write_struct_begin(
-  self : ThriftEncoder,
+  _self : ThriftEncoder,
   name : String,
 ) -> Unit {
   // No-op for binary protocol

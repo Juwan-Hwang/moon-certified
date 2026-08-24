@@ -23,7 +23,6 @@ struct MassLeaf {
   keys : Array[Int]
   values : Array[Int]
   mut count : Int
-  next : Int
 }
 
 ///|
@@ -49,7 +48,6 @@ fn MassLeaf::new() -> MassLeaf {
     keys: Array::make(MASS_FANOUT, 0),
     values: Array::make(MASS_FANOUT, 0),
     count: 0,
-    next: -1,
   }
 }
 

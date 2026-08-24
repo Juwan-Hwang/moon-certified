@@ -228,7 +228,7 @@ pub fn choose_join_method(
 ///|
 /// Choose scan method based on table stats and selectivity.
 pub fn choose_scan_method(
-  table : TableStats,
+  _table : TableStats,
   has_index : Bool,
   selectivity : Double,
 ) -> ScanMethod {
@@ -237,4 +237,21 @@ pub fn choose_scan_method(
   } else {
     FullScan
   }
+}
+
+///|
+/// Build a sample plan tree for API documentation and type validation.
+fn _sample_plan() -> PlanNode {
+  let t : TableStats = { name: "t", n_rows: 100, n_pages: 10, indexes: [] }
+  let _ = t
+  Project(
+    ["id"],
+    Sort(
+      "id",
+      Filter(
+        "id > 0",
+        Join(HashJoin, "a.id=b.id", TableScan("a", FullScan), TableScan("b", IndexScan)),
+      ),
+    ),
+  )
 }

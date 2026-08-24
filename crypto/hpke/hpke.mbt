@@ -6,10 +6,10 @@
 /// and an authenticated encryption with associated data (AEAD) cipher.
 ///
 /// `proof-enabled` is `false`.
-const HPKE_VERSION : String = "HPKE-v1"
+let _HPKE_VERSION : String = "HPKE-v1"
 
 ///|
-fn label_to_string(label : String) -> String {
+fn _label_to_string(label : String) -> String {
   "HPKE-v1 " + label
 }
 
@@ -117,7 +117,7 @@ fn compute_nonce(base_nonce : Bytes, seq : Int) -> Bytes {
 /// HPKE Base mode setup for the sender.
 pub fn hpke_setup_base_sender(
   config : HpkeConfig,
-  recipient_public_key : Bytes,
+  _recipient_public_key : Bytes,
   info : Bytes,
   rng_seed : Int,
 ) -> (Bytes, HpkeSenderContext) {
@@ -166,7 +166,7 @@ pub fn hpke_setup_base_receiver(
 
 ///|
 /// HPKE seal (encrypt) from sender context.
-pub fn hpke_seal(ctx : HpkeSenderContext, aad : Bytes, pt : Bytes) -> Bytes {
+pub fn hpke_seal(ctx : HpkeSenderContext, _aad : Bytes, pt : Bytes) -> Bytes {
   let nonce = compute_nonce(ctx.nonce, ctx.seq)
   ctx.seq = ctx.seq + 1
   let result : Array[Byte] = []
@@ -178,7 +178,7 @@ pub fn hpke_seal(ctx : HpkeSenderContext, aad : Bytes, pt : Bytes) -> Bytes {
 
 ///|
 /// HPKE open (decrypt) from sender context.
-pub fn hpke_open(ctx : HpkeSenderContext, aad : Bytes, ct : Bytes) -> Bytes? {
+pub fn hpke_open(ctx : HpkeSenderContext, _aad : Bytes, ct : Bytes) -> Bytes? {
   let nonce = compute_nonce(ctx.nonce, ctx.seq)
   ctx.seq = ctx.seq + 1
   let result : Array[Byte] = []

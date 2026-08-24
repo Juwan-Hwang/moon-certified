@@ -11,7 +11,7 @@ const DILITHIUM_Q : Int = 8380417
 const DILITHIUM_N : Int = 256
 
 ///|
-const DILITHIUM_K : Int = 4
+let _DILITHIUM_K : Int = 4
 
 ///|
 const DILITHIUM_L : Int = 4
@@ -93,7 +93,7 @@ pub fn dilithium_keygen(seed : Int) -> (DilithiumPublicKey, DilithiumSecretKey) 
 
 ///|
 pub fn dilithium_sign(
-  sk : DilithiumSecretKey,
+  _sk : DilithiumSecretKey,
   message : Bytes,
   seed : Int,
 ) -> DilithiumSignature {
@@ -123,7 +123,7 @@ pub fn dilithium_sign(
 
 ///|
 pub fn dilithium_verify(
-  pk : DilithiumPublicKey,
+  _pk : DilithiumPublicKey,
   message : Bytes,
   sig : DilithiumSignature,
 ) -> Bool {

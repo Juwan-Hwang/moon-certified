@@ -3,7 +3,6 @@ import {
   "moon-certified/crypto/sha256",
   "moon-certified/crypto/hmac",
   "moon-certified/utils",
-  "moon-certified/crypto/hex",
 }
 
 options(

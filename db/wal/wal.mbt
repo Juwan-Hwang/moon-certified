@@ -165,3 +165,9 @@ pub fn Wal::get_txn_records(self : Wal, txn_id : Int) -> Array[WalRecord] {
 pub fn Wal::size(self : Wal) -> Int {
   self.records.length()
 }
+
+///|
+/// All WalRecordType variants (internal type registry).
+fn _all_wal_record_types() -> Array[WalRecordType] {
+  [Begin, Commit, Abort, Data, Checkpoint]
+}

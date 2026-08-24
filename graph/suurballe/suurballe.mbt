@@ -385,7 +385,7 @@ test "suurballe: two edge-disjoint paths in diamond graph" {
   graph[1].push((3, 1))
   graph[2].push((3, 1))
   let result = suurballe(graph, n, 0, 3)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => {
       assert_eq(r.path1.length(), 3) // 0 → ? → 3
@@ -426,7 +426,7 @@ test "suurballe: paths share no edges" {
   graph[1].push((4, 10))
   graph[2].push((4, 10))
   let result = suurballe(graph, n, 0, 4)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => {
       // Verify edge disjointness
@@ -480,7 +480,7 @@ test "suurballe: minimum total weight" {
   graph[2].push((3, 1))
   graph[1].push((2, 1))
   let result = suurballe(graph, n, 0, 3)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => assert_eq(r.total_weight, 4)
     None => assert_true(false)
@@ -503,7 +503,7 @@ test "suurballe: larger graph with detour" {
   graph[5].push((4, 2))
   graph[3].push((4, 1))
   let result = suurballe(graph, n, 0, 4)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => {
       // Both paths should reach from 0 to 4
@@ -540,7 +540,7 @@ test "suurballe: equal weight parallel paths" {
   graph[2].push((4, 5))
   graph[3].push((4, 5))
   let result = suurballe(graph, n, 0, 4)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => {
       assert_eq(r.total_weight, 25) // 5+5+5 + 5+5 = 25
@@ -594,7 +594,7 @@ test "suurballe: cycle graph" {
   graph[1].push((2, 1))
   graph[2].push((0, 1))
   let result = suurballe(graph, n, 0, 2)
-  assert_true(result is Some)
+  assert_true(result is Some(_))
   match result {
     Some(r) => assert_eq(r.total_weight, 7) // 1+1 + 5 = 7
     None => assert_true(false)

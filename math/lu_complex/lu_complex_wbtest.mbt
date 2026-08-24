@@ -36,7 +36,7 @@ fn cadd(a : Complex, b : Complex) -> Complex {
 ///|
 /// Reconstruct A from P^T L U using the pivot vector.
 fn reconstruct(
-  a : Array[Array[Complex]],
+  _a : Array[Array[Complex]],
   lu : ComplexLU,
 ) -> Array[Array[Complex]] {
   let n = lu.piv.length()

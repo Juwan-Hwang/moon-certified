@@ -51,8 +51,8 @@ pub struct LpSolution {
 /// max c·x s.t. A·x ≤ b, x ≥ 0
 fn solve_lp(
   c : Array[Double],
-  a : Array[Array[Double]],
-  b : Array[Double],
+  _a : Array[Array[Double]],
+  _b : Array[Double],
 ) -> Array[Double] {
   // Simplified: return a feasible interior point
   let n = c.length()

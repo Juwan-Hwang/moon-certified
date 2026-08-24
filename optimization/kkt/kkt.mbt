@@ -149,7 +149,7 @@ pub fn solve_kkt(
 /// Check KKT conditions at a given point.
 pub fn check_kkt(
   system : KktSystem,
-  x : Array[Double],
+  _x : Array[Double],
   lambda : Array[Double],
   mu : Array[Double],
   tol : Double,

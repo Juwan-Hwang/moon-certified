@@ -34,7 +34,7 @@ pub struct CountedBTree {
 }
 
 ///|
-fn CountedBTree::new_node(leaf : Bool) -> Int {
+fn CountedBTree::_new_node(_leaf : Bool) -> Int {
   // Placeholder - actual node creation happens in the tree struct
   -1
 }

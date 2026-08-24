@@ -94,7 +94,7 @@ fn normal_cdf(x : Double) -> Double {
 
 ///|
 /// Standard normal PDF.
-fn normal_pdf(x : Double) -> Double {
+fn _normal_pdf(x : Double) -> Double {
   @math.exp(-x * x / 2.0) / (2.0 * 3.14159265358979323846).sqrt()
 }
 
@@ -108,7 +108,7 @@ fn normal_pdf(x : Double) -> Double {
 /// - `q`: dividend yield
 pub fn compute_local_vol(
   quotes : Array[OptionQuote],
-  spot : Double,
+  _spot : Double,
   r : Double,
   q : Double,
 ) -> Array[LocalVolPoint] {

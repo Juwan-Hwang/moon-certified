@@ -185,3 +185,21 @@ pub fn parse_name(data : Bytes, offset : Int) -> (String, Int) {
   }
   (sb.to_string(), final_pos)
 }
+
+///|
+/// All DnsRecordType variants (internal type registry).
+fn _all_dns_record_types() -> Array[DnsRecordType] {
+  [A, NS, CNAME, MX, TXT, AAAA, SRV, PTR]
+}
+
+///|
+/// Sample DnsRR (internal type validation).
+fn _sample_dns_rr() -> DnsRR {
+  { name: "", rtype: 0, rclass: 0, ttl: 0, rdata: b"" }
+}
+
+///|
+/// Sample DnsQuery (internal type validation).
+fn _sample_dns_query() -> DnsQuery {
+  { name: "", qtype: 0, qclass: 0 }
+}

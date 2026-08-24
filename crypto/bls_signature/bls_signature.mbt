@@ -67,7 +67,7 @@ fn mod_pow(base : Int, exp : Int, m : Int) -> Int {
 
 ///|
 /// Modular inverse via extended Euclidean algorithm.
-fn mod_inv(a : Int, m : Int) -> Int {
+fn _mod_inv(a : Int, m : Int) -> Int {
   let mut old_r = a
   let mut r = m
   let mut old_s = 1

@@ -1,7 +1,10 @@
 import {
   "moon-certified/number_theory/bigint",
-  "moon-certified/crypto/hex",
 }
+
+import {
+  "moon-certified/crypto/hex",
+} for "test"
 
 options(
   "proof-enabled": false,

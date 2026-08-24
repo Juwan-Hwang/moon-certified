@@ -227,7 +227,7 @@ test "bench: fenwick 1M build + 1M queries" {
   let arr = FixedArray::makei(n, fn(i) { i % 100 })
   let build_t = time_us(fn() { let _ = @fenwick.build(arr) })
   let ft = @fenwick.build(arr)
-  let query_t = time_us(fn() {
+  let query_t = time_us(() => {
     let mut sum = 0
     for i = 1; i <= n; i = i + 1 {
       sum = sum + @fenwick.query(ft, i)
@@ -251,7 +251,7 @@ test "bench: segment_tree 100K build + 100K queries" {
   let arr = FixedArray::makei(n, fn(i) { i % 100 })
   let build_t = time_us(fn() { let _ = @segment_tree.build(arr) })
   let st = @segment_tree.build(arr)
-  let query_t = time_us(fn() {
+  let query_t = time_us(() => {
     let mut sum = 0
     for i = 0; i < n; i = i + 1 {
       sum = sum + @segment_tree.query(st, i, i + 1)

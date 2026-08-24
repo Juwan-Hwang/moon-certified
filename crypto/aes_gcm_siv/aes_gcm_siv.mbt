@@ -13,7 +13,7 @@ fn to_bytes(arr : Array[Int]) -> Bytes {
 }
 
 ///|
-fn to_fixed(arr : Array[Int]) -> FixedArray[Byte] {
+fn _to_fixed(arr : Array[Int]) -> FixedArray[Byte] {
   let fa = FixedArray::make(arr.length(), b'\x00')
   for i in 0..<arr.length() {
     fa[i] = (arr[i] & 0xFF).to_byte()

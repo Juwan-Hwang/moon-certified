@@ -15,7 +15,7 @@ pub struct Complex {
 
 ///|
 /// Complex addition.
-fn c_add(a : Complex, b : Complex) -> Complex {
+fn _c_add(a : Complex, b : Complex) -> Complex {
   { re: a.re + b.re, im: a.im + b.im }
 }
 

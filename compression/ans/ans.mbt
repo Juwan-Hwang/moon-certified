@@ -455,7 +455,6 @@ priv struct TansEncodeEntry {
 
 ///|
 priv struct TansTable {
-  scale_bits : Int
   table_size : Int
   decode_table : Array[TansDecodeEntry] // 1-indexed: decode_table[state]
   encode_table : Array[Array[TansEncodeEntry]] // encode_table[symbol][stat1.0e-1]
@@ -488,7 +487,7 @@ priv struct TansTable {
 /// (position within the symbol's state set), and q < 2^k is guaranteed
 /// since q ≤ (L−r−1)/f.
 fn build_tans_table(ft : FreqTable) -> TansTable {
-  let tb = ft.scale_bits
+  let _tb = ft.scale_bits
   let ts = ft.total // L = 2^tb
   let alphabet = ft.alphabet
   let freqs = ft.freqs
@@ -598,7 +597,7 @@ fn build_tans_table(ft : FreqTable) -> TansTable {
       }
     }
   }
-  { scale_bits: tb, table_size: ts, decode_table, encode_table }
+  { table_size: ts, decode_table, encode_table }
 }
 
 ///|

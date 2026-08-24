@@ -119,8 +119,9 @@ pub fn MvccStore::write(
         if v.end_ts == 0 && v.created_by != txn_id {
           // Another transaction has an uncommitted write
           let other_txn = self.get_txn(v.created_by)
-          if other_txn.is_some() && other_txn.unwrap().is_active {
-            return false // Write-write conflict
+          match other_txn {
+            Some(t) if t.is_active => return false // Write-write conflict
+            _ => ()
           }
         }
       }

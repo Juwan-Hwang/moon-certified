@@ -2,8 +2,11 @@ import {
   "moon-certified/number_theory/bigint",
   "moon-certified/crypto/sha256",
   "moon-certified/crypto/hmac",
-  "moon-certified/crypto/hex",
 }
+
+import {
+  "moon-certified/crypto/hex",
+} for "test"
 
 options(
   "proof-enabled": false,

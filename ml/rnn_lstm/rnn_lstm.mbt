@@ -399,10 +399,6 @@ fn vanilla_step(
 ///|
 /// Internal: LSTM gate activations stored for BPTT.
 priv struct LstmGates {
-  f_pre : Array[Double] // forget gate pre-activation
-  i_pre : Array[Double] // input gate pre-activation
-  g_pre : Array[Double] // candidate pre-activation
-  o_pre : Array[Double] // output gate pre-activation
   f_val : Array[Double] // forget gate value
   i_val : Array[Double] // input gate value
   g_val : Array[Double] // candidate value
@@ -488,10 +484,6 @@ fn lstm_step(
     h_t[j] = o_t[j] * tanh_fn(c_t[j])
   }
   let gates : LstmGates = {
-    f_pre,
-    i_pre,
-    g_pre,
-    o_pre,
     f_val: f_t,
     i_val: i_t,
     g_val: g_t,
@@ -533,7 +525,6 @@ fn project_output(model : RnnModel, h : Array[Double]) -> Array[Double] {
 /// Forward cache for a single sequence (stored for BPTT).
 priv struct ForwardCache {
   h_states : Array[Array[Double]] // h_states[t] = h_t (size H)
-  pre_acts : Array[Array[Double]] // pre_acts[t] for vanilla RNN (size H)
   lstm_gates : Array[LstmGates] // gate storage for LSTM (empty for vanilla)
   c_states : Array[Array[Double]] // cell states for LSTM (size H), empty for vanilla
   outputs : Array[Array[Double]] // outputs[t] (size O)
@@ -550,7 +541,6 @@ fn forward_seq(model : RnnModel, x_seq : Array[Array[Double]]) -> ForwardCache {
   let h0 = Array::make(h, 0.0)
   let c0 = Array::make(h, 0.0)
   let h_states : Array[Array[Double]] = []
-  let pre_acts : Array[Array[Double]] = []
   let lstm_gates : Array[LstmGates] = []
   let c_states : Array[Array[Double]] = []
   let outputs : Array[Array[Double]] = []
@@ -560,9 +550,8 @@ fn forward_seq(model : RnnModel, x_seq : Array[Array[Double]]) -> ForwardCache {
     let x_t = x_seq[t]
     match model.cell_type {
       Vanilla => {
-        let (h_t, pre) = vanilla_step(model, x_t, h_prev)
+        let (h_t, _pre) = vanilla_step(model, x_t, h_prev)
         h_states.push(h_t)
-        pre_acts.push(pre)
         h_prev = h_t
       }
       LSTM => {
@@ -577,7 +566,7 @@ fn forward_seq(model : RnnModel, x_seq : Array[Array[Double]]) -> ForwardCache {
     let y_t = project_output(model, h_prev)
     outputs.push(y_t)
   }
-  { h_states, pre_acts, lstm_gates, c_states, outputs }
+  { h_states, lstm_gates, c_states, outputs }
 }
 
 // ---------------------------------------------------------------------------
@@ -1153,7 +1142,7 @@ test "rnn: gradient clipping prevents explosion" {
   let model = new(Vanilla, 1, 4, 1, 0.5, false, 1.0, 55)
   let x_seqs = [[[1.0], [1.0], [1.0], [1.0], [1.0]]]
   let targets = [[10.0]]
-  let avg = fit(model, x_seqs, targets, 50)
+  let _avg = fit(model, x_seqs, targets, 50)
   // After training, loss should be finite
   let l = loss(model, x_seqs[0], targets[0])
   assert_true(l == l) // not NaN

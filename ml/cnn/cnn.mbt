@@ -12,10 +12,6 @@
 /// `proof-enabled` is `false`.
 
 ///|
-/// 2D matrix type.
-type Matrix = Array[Array[Double]]
-
-///|
 /// Convolutional layer.
 pub struct Conv2DLayer {
   /// Kernels: [out_channels][in_channels][kernel_h][kernel_w]
@@ -295,6 +291,21 @@ pub fn cnn_predict(
     }
   }
   best
+}
+
+///|
+/// Sample CNN layers (internal type validation).
+fn _sample_cnn_layers() -> CnnModel {
+  {
+    conv_layers: [
+      { kernels: [[[[0.0]]]], biases: [0.0], stride: 1, padding: 0 },
+    ],
+    pool_layers: [{ pool_size: 2, stride: 2 }],
+    dense_layers: [
+      { weights: [[0.0]], biases: [0.0], use_relu: true },
+    ],
+    use_softmax: true,
+  }
 }
 
 // ===========================================================================

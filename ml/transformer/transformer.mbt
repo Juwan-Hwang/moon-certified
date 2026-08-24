@@ -159,7 +159,7 @@ pub fn multi_head_attention(
   n_heads : Int,
 ) -> Array[Array[Double]] {
   let seq_len = x.length()
-  let d_model = x[0].length()
+  let _d_model = x[0].length()
   let d_k = w_q[0].length() / n_heads
   // Project to Q, K, V
   let q = matmul(x, w_q)
@@ -270,7 +270,7 @@ pub fn positional_encoding(
   for pos = 0; pos < seq_len; pos = pos + 1 {
     for i = 0; i < d_model / 2; i = i + 1 {
       let angle = pos.to_double() /
-        10000.0.pow(2.0 * i.to_double() / d_model.to_double())
+        @math.pow(10000.0, 2.0 * i.to_double() / d_model.to_double())
       pe[pos][2 * i] = @math.sin(angle)
       pe[pos][2 * i + 1] = @math.cos(angle)
     }

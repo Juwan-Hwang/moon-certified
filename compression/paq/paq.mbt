@@ -30,13 +30,12 @@ const PAQ_ALPHABET : Int = 256
 priv struct ArithmeticCoder {
   mut low : Int
   mut high : Int
-  mut pending_bits : Int
   output : Array[Int]
 }
 
 ///|
-fn ArithmeticCoder::new() -> ArithmeticCoder {
-  ArithmeticCoder::{ low: 0, high: 0xFFFF, pending_bits: 0, output: [] }
+fn ArithmeticCoder::_new() -> ArithmeticCoder {
+  ArithmeticCoder::{ low: 0, high: 0xFFFF, output: [] }
 }
 
 ///|
@@ -45,7 +44,7 @@ fn ArithmeticCoder::put_bit(self : ArithmeticCoder, bit : Int) -> Unit {
 }
 
 ///|
-fn ArithmeticCoder::encode_bit(
+fn ArithmeticCoder::_encode_bit(
   self : ArithmeticCoder,
   p0 : Int, // Probability of 0 in [0, 65536)
 ) -> Unit {

@@ -149,7 +149,7 @@ pub fn ws_parse_frame(data : Bytes) -> (WsFrame, Int)? {
 ///|
 /// Create a text frame.
 pub fn ws_text_frame(message : String) -> Bytes {
-  let payload = message.to_bytes()
+  let payload = @utf8.encode(message)
   ws_encode_frame(true, 1, payload, false, b"\x00\x00\x00\x00")
 }
 
@@ -185,4 +185,10 @@ pub fn ws_ping_frame(payload : Bytes) -> Bytes {
 /// Create a pong frame (response to ping).
 pub fn ws_pong_frame(payload : Bytes) -> Bytes {
   ws_encode_frame(true, 10, payload, false, b"\x00\x00\x00\x00")
+}
+
+///|
+/// All WsOpcode variants (internal type registry).
+fn _all_ws_opcodes() -> Array[WsOpcode] {
+  [Continuation, Text, Binary, Close, Ping, Pong]
 }

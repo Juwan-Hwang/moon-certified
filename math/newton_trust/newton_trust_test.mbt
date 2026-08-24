@@ -12,7 +12,7 @@ fn quad_grad(x : Array[Double]) -> Array[Double] {
 }
 
 ///|
-fn quad_hess(x : Array[Double]) -> Array[Array[Double]] {
+fn quad_hess(_x : Array[Double]) -> Array[Array[Double]] {
   [[2.0]]
 }
 
@@ -28,7 +28,7 @@ fn dist_grad(x : Array[Double]) -> Array[Double] {
 }
 
 ///|
-fn dist_hess(x : Array[Double]) -> Array[Array[Double]] {
+fn dist_hess(_x : Array[Double]) -> Array[Array[Double]] {
   [[2.0, 0.0], [0.0, 2.0]]
 }
 
