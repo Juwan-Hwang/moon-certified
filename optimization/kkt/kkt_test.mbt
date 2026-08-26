@@ -26,23 +26,27 @@ test "solve_kkt: unconstrained problem converges to zero" {
 
 ///|
 test "solve_kkt: simple quadratic minimization" {
-  // min (x-5)^2 => grad = [2*(x-5)], hess = [[2]], at x=5 gradient = 0
+  // min (x-5)^2 => grad = -10, hess = [[2]], optimum at x = 5
   let system = make_unconstrained([[2.0]], [-10.0], 1)
   let sol = solve_kkt(system, [0.0], 1000, 1.0e-6)
-  assert_true(sol.x[0] > 0.0) // Should have moved from 0
+  assert_true(sol.converged)
+  assert_true((sol.x[0] - 5.0).abs() < 1.0e-4)
 }
 
 ///|
 test "solve_kkt: with equality constraint" {
-  // min x s.t. x = 5 (equality)
+  // min x s.t. x = 5: optimum x = 5 with multiplier μ = -1.
   let system = KktSystem::new([[0.0]], [1.0], [], [], [[1.0]], [5.0], [], [], 1)
   let sol = solve_kkt(system, [0.0], 1000, 1.0e-4)
-  assert_true(sol.x[0] > 1.0)
+  assert_true((sol.x[0] - 5.0).abs() < 1.0e-3)
+  assert_true((sol.mu[0] + 1.0).abs() < 1.0e-3)
+  assert_true(check_kkt(system, sol.x, sol.lambda, sol.mu, 1.0e-3))
 }
 
 ///|
 test "solve_kkt: with inequality constraint" {
-  // min x s.t. x >= -5 (i.e., -x <= 5)
+  // min x s.t. -x ≤ -5 (i.e., x ≥ 5): optimum x = 5, λ = 1.
+  // Stationarity: 1 + (-1)·λ = 0 → λ = 1.
   let system = KktSystem::new(
     [[0.0]],
     [1.0],
@@ -54,8 +58,62 @@ test "solve_kkt: with inequality constraint" {
     [],
     1,
   )
-  let sol = solve_kkt(system, [0.0], 500, 1.0e-4)
-  assert_true(sol.x[0] > -1.0)
+  let sol = solve_kkt(system, [0.0], 500, 1.0e-6)
+  assert_true((sol.x[0] - 5.0).abs() < 1.0e-3)
+  assert_true((sol.lambda[0] - 1.0).abs() < 1.0e-3)
+  assert_true(check_kkt(system, sol.x, sol.lambda, sol.mu, 1.0e-3))
+}
+
+///|
+test "solve_kkt: constrained quadratic program" {
+  // min ½((x1-2)² + (x2-2)²) s.t. x1 + x2 ≤ 2.
+  // H = I, g = (-2, -2). Optimum (1, 1) with λ = 1 (stationarity:
+  // (x - (2,2)) + λ·(1,1) = 0).
+  let system = KktSystem::new(
+    [[1.0, 0.0], [0.0, 1.0]],
+    [-2.0, -2.0],
+    [[1.0, 1.0]],
+    [2.0],
+    [],
+    [],
+    [],
+    [],
+    2,
+  )
+  let sol = solve_kkt(system, [0.0, 0.0], 500, 1.0e-6)
+  assert_true(sol.converged)
+  assert_true((sol.x[0] - 1.0).abs() < 1.0e-3)
+  assert_true((sol.x[1] - 1.0).abs() < 1.0e-3)
+  assert_true((sol.lambda[0] - 1.0).abs() < 1.0e-3)
+}
+
+///|
+test "solve_kkt: equality-constrained quadratic" {
+  // min ½(x1² + x2²) s.t. x1 + x2 = 1 → optimum (½, ½), μ = -½.
+  let system = KktSystem::new(
+    [[1.0, 0.0], [0.0, 1.0]],
+    [0.0, 0.0],
+    [],
+    [],
+    [[1.0, 1.0]],
+    [1.0],
+    [],
+    [],
+    2,
+  )
+  let sol = solve_kkt(system, [0.0, 0.0], 500, 1.0e-6)
+  assert_true((sol.x[0] - 0.5).abs() < 1.0e-3)
+  assert_true((sol.x[1] - 0.5).abs() < 1.0e-3)
+  assert_true((sol.mu[0] + 0.5).abs() < 1.0e-3)
+}
+
+///|
+test "solve_kkt: inactive inequality has zero multiplier" {
+  // min ½(x-3)² s.t. x ≤ 10: constraint inactive, optimum x = 3, λ = 0.
+  let system = KktSystem::new([[1.0]], [-3.0], [[1.0]], [10.0], [], [], [], [], 1)
+  let sol = solve_kkt(system, [0.0], 500, 1.0e-6)
+  assert_true((sol.x[0] - 3.0).abs() < 1.0e-3)
+  assert_true(sol.lambda[0].abs() < 1.0e-3)
 }
 
 ///|
@@ -126,9 +184,12 @@ test "check_kkt: dual feasibility satisfied (non-negative lambda)" {
 
 ///|
 test "check_kkt: with equality constraints satisfied" {
-  // grad + a_eq^T * mu = 0 => 2 + 1*(-2) = 0
+  // Stationarity Hx + g + a_eq^T·mu = 0 => 1·1 + 2 + 1·(-3) = 0, and
+  // Aₑx = bₑ at x = 1.
   let system = KktSystem::new([[1.0]], [2.0], [], [], [[1.0]], [1.0], [], [], 1)
-  assert_eq(check_kkt(system, [0.0], [], [-2.0], 1.0e-8), true)
+  assert_eq(check_kkt(system, [1.0], [], [-3.0], 1.0e-8), true)
+  // At x = 0 both stationarity and primal feasibility fail.
+  assert_eq(check_kkt(system, [0.0], [], [-3.0], 1.0e-8), false)
 }
 
 ///|

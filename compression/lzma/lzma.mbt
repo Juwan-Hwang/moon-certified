@@ -1422,7 +1422,7 @@ test "lzma: crc32 known vectors" {
 ///|
 test "lzma: crc32 of 'a'" {
   let data = @utils.string_to_bytes("a")
-  assert_eq(crc32(data), 0xE8B7B143U)
+  assert_eq(crc32(data), 0xE8B7BE43U)
 }
 
 ///|

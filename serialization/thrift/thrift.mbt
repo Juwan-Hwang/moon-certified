@@ -110,20 +110,32 @@ pub fn ThriftEncoder::write_bool(self : ThriftEncoder, val : Bool) -> Unit {
 }
 
 ///|
-/// Write a 32-bit integer (big-endian).
+/// Write a 32-bit integer (big-endian, two's complement).
 pub fn ThriftEncoder::write_i32(self : ThriftEncoder, val : Int) -> Unit {
-  self.buf[self.pos] = (val >> 24) & 0xFF
-  self.buf[self.pos + 1] = (val >> 16) & 0xFF
-  self.buf[self.pos + 2] = (val >> 8) & 0xFF
-  self.buf[self.pos + 3] = val & 0xFF
+  let v = val & 0xFFFFFFFF
+  self.buf[self.pos] = (v >> 24) & 0xFF
+  self.buf[self.pos + 1] = (v >> 16) & 0xFF
+  self.buf[self.pos + 2] = (v >> 8) & 0xFF
+  self.buf[self.pos + 3] = v & 0xFF
   self.pos = self.pos + 4
 }
 
 ///|
-/// Write a 64-bit integer (big-endian).
-pub fn ThriftEncoder::write_i64(self : ThriftEncoder, val : Int) -> Unit {
-  // Simplified: only write lower 32 bits
-  self.write_i32(val)
+/// Write a 64-bit integer (big-endian, two's complement).
+///
+/// Per the Thrift binary protocol, an i64 is always encoded as exactly
+/// 8 bytes in network byte order. `Int64` is used because `Int` is a
+/// 32-bit type and cannot represent the full i64 range.
+pub fn ThriftEncoder::write_i64(self : ThriftEncoder, val : Int64) -> Unit {
+  self.buf[self.pos] = ((val >> 56) & 0xFFL).to_int()
+  self.buf[self.pos + 1] = ((val >> 48) & 0xFFL).to_int()
+  self.buf[self.pos + 2] = ((val >> 40) & 0xFFL).to_int()
+  self.buf[self.pos + 3] = ((val >> 32) & 0xFFL).to_int()
+  self.buf[self.pos + 4] = ((val >> 24) & 0xFFL).to_int()
+  self.buf[self.pos + 5] = ((val >> 16) & 0xFFL).to_int()
+  self.buf[self.pos + 6] = ((val >> 8) & 0xFFL).to_int()
+  self.buf[self.pos + 7] = (val & 0xFFL).to_int()
+  self.pos = self.pos + 8
 }
 
 ///|
@@ -188,7 +200,10 @@ pub fn ThriftDecoder::read_bool(self : ThriftDecoder) -> Bool {
 }
 
 ///|
-/// Read a 32-bit integer (big-endian).
+/// Read a 32-bit integer (big-endian, two's complement).
+///
+/// The four bytes are reassembled into a 32-bit pattern; on the 32-bit
+/// `Int` type the two's complement sign falls out naturally.
 pub fn ThriftDecoder::read_i32(self : ThriftDecoder) -> Int {
   if self.pos + 4 > self.data.length() {
     return 0
@@ -198,6 +213,20 @@ pub fn ThriftDecoder::read_i32(self : ThriftDecoder) -> Int {
     ((self.data[self.pos + 2].to_int() & 0xFF) << 8) |
     (self.data[self.pos + 3].to_int() & 0xFF)
   self.pos = self.pos + 4
+  val
+}
+
+///|
+/// Read a 64-bit integer (big-endian, two's complement).
+pub fn ThriftDecoder::read_i64(self : ThriftDecoder) -> Int64 {
+  if self.pos + 8 > self.data.length() {
+    return 0L
+  }
+  let mut val = 0L
+  for i = 0; i < 8; i = i + 1 {
+    val = (val << 8) | (self.data[self.pos + i].to_int64() & 0xFFL)
+  }
+  self.pos = self.pos + 8
   val
 }
 

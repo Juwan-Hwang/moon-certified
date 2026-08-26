@@ -375,7 +375,13 @@ pub fn raft_tick(node : RaftNode) -> Array[RaftMessage] {
       node.election_elapsed = node.election_elapsed + 1
       if node.election_elapsed >= node.election_timeout {
         become_candidate(node)
-        start_election(node)
+        // Single-node cluster: self-vote is majority, become leader.
+        if 1 * 2 > node.cluster_size {
+          become_leader(node)
+          []
+        } else {
+          start_election(node)
+        }
       } else {
         []
       }
@@ -384,7 +390,13 @@ pub fn raft_tick(node : RaftNode) -> Array[RaftMessage] {
       node.election_elapsed = node.election_elapsed + 1
       if node.election_elapsed >= node.election_timeout {
         become_candidate(node)
-        start_election(node)
+        // Single-node cluster: self-vote is majority, become leader.
+        if 1 * 2 > node.cluster_size {
+          become_leader(node)
+          []
+        } else {
+          start_election(node)
+        }
       } else {
         []
       }
@@ -395,22 +407,11 @@ pub fn raft_tick(node : RaftNode) -> Array[RaftMessage] {
 ///|
 /// Start a new election as a Candidate. Sends RequestVote to all peers.
 fn start_election(node : RaftNode) -> Array[RaftMessage] {
-  let msgs : Array[RaftMessage] = []
+  // Send a single broadcast RequestVote; deliver_messages distributes
+  // it to all peers (non-sender nodes).
   let last_idx = last_log_index(node)
   let last_term = last_log_term(node)
-  for i = 0; i < node.cluster_size; i = i + 1 {
-    if i != node.node_id {
-      msgs.push(
-        RequestVote(
-          node.node_id,
-          node.persistent.current_term,
-          last_idx,
-          last_term,
-        ),
-      )
-    }
-  }
-  msgs
+  [RequestVote(node.node_id, node.persistent.current_term, last_idx, last_term)]
 }
 
 ///|

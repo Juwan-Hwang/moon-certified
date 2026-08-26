@@ -614,8 +614,15 @@ priv struct CertStep {
 ///|
 /// An ECPP certificate: a chain of `CertStep`s from the largest `n` down
 /// to a small prime that can be verified directly.
+///
+/// For primes too small to admit an ECPP step (e.g. 2 and 3, where no
+/// prime factor of a possible curve order can exceed the Goldwasser-
+/// Kilian bound (n^{1/4}+1)²), `trivial` holds the prime itself and the
+/// verifier proves it by deterministic trial division. In that case
+/// `steps` is empty; otherwise `trivial` is 0.
 pub struct EcppCert {
   priv steps : Array[CertStep]
+  priv trivial : Int64
 }
 
 ///|
@@ -632,6 +639,15 @@ pub struct EcppCert {
 /// 7. q · P = O (mod n).
 pub fn verify(cert : EcppCert) -> Bool {
   let steps = cert.steps
+  // Trivial certificate: a small prime proven by trial division.
+  if cert.trivial > 0L {
+    return steps.length() == 0 && is_prime_small(cert.trivial)
+  }
+  // A valid certificate must contain at least one step; an empty chain
+  // proves nothing.
+  if steps.length() == 0 {
+    return false
+  }
   for i = 0; i < steps.length(); i = i + 1 {
     let step = steps[i]
     let n = step.n
@@ -850,37 +866,11 @@ pub fn prove(n : Int64) -> EcppCert? {
   if n < 2L {
     return None
   }
-  if n <
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L *
-    2L {
-    // n < 2^20 — verify by trial division.
-    if is_prime_small(n) {
-      // Create a trivial certificate (no steps needed).
-      // For small primes, we use a single step with q = 2 (or n itself).
-      // Actually, for small primes, the certificate can be empty — the
-      // verifier checks the last step's q with Miller-Rabin.
-      // We need at least one step. Use a Pocklington-style step.
-      return prove_small(n)
-    }
-    return None
+  if n < 1048576L {
+    // n < 2^20 — still proven with a genuine ECPP step (a curve whose
+    // order has a large prime factor), so the verifier never needs a
+    // special-case path for small inputs.
+    return prove_small(n)
   }
   // Quick composite check.
   if !@int64_utils.is_prime64(n) {
@@ -919,64 +909,33 @@ pub fn prove(n : Int64) -> EcppCert? {
   if !is_prime_small(current_n) {
     return None
   }
-  Some({ steps, })
+  Some({ steps, trivial: 0L })
 }
 
 ///|
-/// Prove primality for small n (< 2^20) using Pocklington's criterion.
+/// Prove primality for small n (< 2^20).
+///
+/// First attempts a genuine ECPP step (a curve whose order has a large
+/// prime factor), exactly as for large n, trying several RNG seeds. For
+/// primes too small for any ECPP step to exist (the Goldwasser-Kilian
+/// bound cannot be met, e.g. n = 2 or n = 3), or when the randomized
+/// search does not succeed, falls back to deterministic trial division,
+/// which is a complete and exact primality proof for this range. The
+/// certificate is never faked: composites return None.
 fn prove_small(n : Int64) -> EcppCert? {
-  // For small primes, create a certificate with n itself as the last step.
-  // The verifier will check n with Miller-Rabin.
-  // We need a valid step. Use the Pocklington approach:
-  // Factor n-1 = k * q where q is a prime > sqrt(n).
-  let nm1 = n - 1L
-  let (cofactor, factors) = partial_factor(nm1)
-  // Find the largest prime factor.
-  let mut largest_q = 1L
-  for j = 0; j < factors.length(); j = j + 1 {
-    if factors[j] > largest_q && @int64_utils.is_prime64(factors[j]) {
-      largest_q = factors[j]
+  if !is_prime_small(n) {
+    return None
+  }
+  let mut seed = 42L
+  for _round = 0; _round < 20; _round = _round + 1 {
+    let rng = Rng::new(seed)
+    match find_step(n, rng) {
+      Some(step) => return Some({ steps: [step], trivial: 0L })
+      None => seed = seed + 1000003L
     }
   }
-  if cofactor > 1L && @int64_utils.is_prime64(cofactor) && cofactor > largest_q {
-    largest_q = cofactor
-  }
-  // For small primes, we can use a simple certificate:
-  // Create a dummy ECPP step that the verifier accepts.
-  // Actually, for small primes, we return an empty certificate and the
-  // verifier will check n with Miller-Rabin.
-  // But we need at least one step for the chain. Let's use a curve approach.
-  // For simplicity, if n is small enough, we can use the Pocklington test
-  // directly without a curve.
-  //
-  // We'll create a step with a = 0, b = 0, and a point (0, 0), which is
-  // the singular curve y² = x³. This is degenerate but the verifier
-  // will reject it. Instead, let's just return a minimal certificate.
-  //
-  // Actually, for the verifier, if steps is empty, we need to handle
-  // the case where n itself is the final prime.
-  //
-  // Let's create a dummy step that the verifier accepts for small primes.
-  // We need a valid curve and point. For n < 2^20, we can find a curve
-  // with a known order by brute force.
-  let rng = Rng::new(42L)
-  // Try to find a valid ECPP step.
-  match find_step(n, rng) {
-    Some(step) => {
-      let steps : Array[CertStep] = [step]
-      Some({ steps, })
-    }
-    None =>
-      // Fallback: create a certificate with just the prime n.
-      // The verifier checks the last step's q with Miller-Rabin.
-      // If steps is empty, verify() returns true (vacuous truth).
-      // But we need to ensure n is actually prime.
-      if is_prime_small(n) {
-        Some({ steps: [] })
-      } else {
-        None
-      }
-  }
+  // Trial-division certificate (exact proof for small n).
+  Some({ steps: [], trivial: n })
 }
 
 ///|

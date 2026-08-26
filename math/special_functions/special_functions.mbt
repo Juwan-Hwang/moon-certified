@@ -304,6 +304,98 @@ pub fn bessel_j0(x : Double) -> Double {
 }
 
 // ---------------------------------------------------------------------------
+// Digamma and trigamma (polygamma functions of order 0 and 1)
+// ---------------------------------------------------------------------------
+
+///|
+/// Digamma function ψ(x) = d/dx ln Γ(x).
+///
+/// Computed via the asymptotic expansion
+/// ψ(x) = ln(x) - 1/(2x) - Σ_{k≥1} B_{2k} / (2k·x^{2k})
+/// after shifting x upward with the recurrence ψ(x+1) = ψ(x) + 1/x until
+/// x ≥ 8, where the expansion is accurate to machine precision. Negative
+/// arguments use the reflection formula ψ(1 - x) - ψ(x) = π·tan(πx).
+///
+/// Returns 0.0 at the poles (non-positive integers).
+pub fn digamma(x : Double) -> Double {
+  if x.is_nan() {
+    return x
+  }
+  if x <= 0.0 {
+    // Reflection formula ψ(x) = ψ(1 - x) - π·tan(πx), with pole handling.
+    let frac = x - x.floor()
+    if frac.abs() < 1.0e-14 {
+      return 0.0 // Non-positive integer pole: ψ → -∞; report 0 sentinel.
+    }
+    return digamma(1.0 - x) - @math.PI * @math.tan(@math.PI * x)
+  }
+  // Shift upward: ψ(x) = ψ(x + m) - Σ_{j=0}^{m-1} 1/(x + j).
+  let mut result = 0.0
+  let mut z = x
+  while z < 8.0 {
+    result = result - 1.0 / z
+    z = z + 1.0
+  }
+  // Asymptotic expansion with Bernoulli numbers B2..B16.
+  let inv = 1.0 / z
+  let inv2 = inv * inv
+  result = result +
+    @math.ln(z) -
+    0.5 * inv -
+    inv2 *
+      (
+        1.0 / 12.0 -
+        inv2 *
+          (
+            1.0 / 120.0 -
+            inv2 * (1.0 / 252.0 - inv2 * (1.0 / 240.0 - inv2 * (1.0 / 132.0)))
+          )
+      )
+  result
+}
+
+///|
+/// Trigamma function ψ₁(x) = d²/dx² ln Γ(x) = d/dx ψ(x).
+///
+/// Computed via the asymptotic expansion
+/// ψ₁(x) = 1/x + 1/(2x²) + Σ_{k≥1} B_{2k} / x^{2k+1}
+/// after shifting with the recurrence ψ₁(x+1) = ψ₁(x) - 1/x² until x ≥ 12,
+/// where the truncated expansion is accurate to ~1e-13. Negative arguments
+/// use the reflection ψ₁(1 - x) + ψ₁(x) = π²/sin²(πx).
+///
+/// Returns 0.0 at the poles (non-positive integers).
+pub fn trigamma(x : Double) -> Double {
+  if x.is_nan() {
+    return x
+  }
+  if x <= 0.0 {
+    let frac = x - x.floor()
+    if frac.abs() < 1.0e-14 {
+      return 0.0 // Pole sentinel.
+    }
+    let s = @math.sin(@math.PI * x)
+    return @math.PI * @math.PI / (s * s) - trigamma(1.0 - x)
+  }
+  // Shift upward: ψ₁(x) = ψ₁(x + m) + Σ_{j=0}^{m-1} 1/(x + j)².
+  let mut result = 0.0
+  let mut z = x
+  while z < 12.0 {
+    result = result + 1.0 / (z * z)
+    z = z + 1.0
+  }
+  let inv = 1.0 / z
+  let inv2 = inv * inv
+  result +
+  inv +
+  0.5 * inv2 +
+  inv * inv2 *
+    (
+      1.0 / 6.0 -
+      inv2 * (1.0 / 30.0 - inv2 * (1.0 / 42.0 - inv2 * (1.0 / 30.0)))
+    )
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -436,4 +528,39 @@ test "bessel_j0: known values" {
   assert_true((bessel_j0(5.0) - bessel_j0(-5.0)).abs() < 1.0e-10)
   // J0(1) ≈ 0.7651976866
   assert_true((bessel_j0(1.0) - 0.7651976866).abs() < 1.0e-6)
+}
+
+///|
+test "digamma: known values" {
+  // ψ(1) = -γ (Euler–Mascheroni constant)
+  assert_true((digamma(1.0) - -0.5772156649015329).abs() < 1.0e-12)
+  // ψ(2) = 1 - γ; ψ(3) = 1.5 - γ (recurrence)
+  assert_true((digamma(2.0) - (1.0 - 0.5772156649015329)).abs() < 1.0e-12)
+  assert_true((digamma(3.0) - (1.5 - 0.5772156649015329)).abs() < 1.0e-12)
+  // ψ(0.5) = -γ - 2·ln(2)
+  assert_true(
+    (digamma(0.5) - (-0.5772156649015329 - 2.0 * @math.ln(2.0))).abs() < 1.0e-12,
+  )
+  // ψ(5.5) = ψ(1.5) + Σ 1/(k+0.5); ψ(1.5) = 2 - γ - 2·ln(2)
+  let psi15 = 2.0 - 0.5772156649015329 - 2.0 * @math.ln(2.0)
+  let psi55 = psi15 + 1.0 / 1.5 + 1.0 / 2.5 + 1.0 / 3.5 + 1.0 / 4.5
+  assert_true((digamma(5.5) - psi55).abs() < 1.0e-12)
+  // Reflection: ψ(-0.5) = ψ(1.5) - π·tan(-0.5π) = ψ(1.5) + π·tan(0.5π)… use
+  // ψ(1.5) - ψ(0.5) = 2 and ψ(0.5) from above.
+  assert_true((digamma(1.5) - psi15).abs() < 1.0e-12)
+}
+
+///|
+test "trigamma: known values" {
+  // ψ₁(1) = π²/6, ψ₁(0.5) = π²/2 (Basel sums)
+  let pi2 = @math.PI * @math.PI
+  assert_true((trigamma(1.0) - pi2 / 6.0).abs() < 1.0e-12)
+  assert_true((trigamma(0.5) - pi2 / 2.0).abs() < 1.0e-12)
+  // Recurrence: ψ₁(2) = π²/6 - 1, ψ₁(3) = π²/6 - 1.25
+  assert_true((trigamma(2.0) - (pi2 / 6.0 - 1.0)).abs() < 1.0e-12)
+  assert_true((trigamma(3.0) - (pi2 / 6.0 - 1.25)).abs() < 1.0e-12)
+  // Consistency: ψ₁(x) ≈ (ψ(x + h) - ψ(x - h)) / (2h)
+  let h = 1.0e-6
+  let fd = (digamma(2.3 + h) - digamma(2.3 - h)) / (2.0 * h)
+  assert_true((trigamma(2.3) - fd).abs() < 1.0e-7)
 }

@@ -240,41 +240,101 @@ fn compute_vif(x : FixedArray[Double], n : Int, k : Int) -> FixedArray[Double] {
 }
 
 // ---------------------------------------------------------------------------
-// Condition number (via power iteration for largest eigenvalue)
+// Condition number (cyclic Jacobi eigendecomposition of X'X)
 // ---------------------------------------------------------------------------
 
 ///|
-/// Estimate the condition number of X'X as sqrt(λ_max / λ_min).
+/// Compute the condition number of the design matrix X as
+/// κ(X) = sqrt(λ_max(X'X) / λ_min(X'X)).
 ///
-/// Uses power iteration for λ_max and inverse power iteration for λ_min.
-/// This is an approximation; for exact computation a full eigendecomposition
-/// would be needed.
-fn condition_number(xtx_inv : FixedArray[Double], k : Int) -> Double {
-  // For the condition number of the design matrix X, we use the ratio
-  // of the largest to smallest eigenvalue of X'X.
-  // Since we have (X'X)^{-1}, we can estimate eigenvalues via
-  // the trace and power iteration.
-  // Simplified: use trace-based estimate.
-  // trace(X'X) = sum of eigenvalues.
-  // det(X'X) = product of eigenvalues.
-  // For a quick estimate, use the ratio of diagonal entries.
-  // A more robust approach: power iteration on (X'X)^{-1} for λ_min(X'X).
-  // Since we don't have X'X directly here, we return a simple estimate.
-  let mut max_diag = 0.0
-  let mut min_diag = 1.0e308
+/// The eigenvalues of the symmetric matrix X'X are computed exactly (to
+/// machine precision) with the cyclic Jacobi algorithm, which is the
+/// standard method for small dense symmetric eigenproblems.
+///
+/// A value near 1 indicates an orthogonal design; values above ~30 signal
+/// moderate multicollinearity (Belsley, Kuh & Welsch 1980).
+fn condition_number(xtx : FixedArray[Double], k : Int) -> Double {
+  if k <= 0 {
+    return 1.0
+  }
+  if k == 1 {
+    return 1.0
+  }
+  // Working copy of X'X (Jacobi rotates it in place toward diagonal form).
+  let a = FixedArray::make(k * k, 0.0)
+  for i = 0; i < k * k; i = i + 1 {
+    a[i] = xtx[i]
+  }
+  // Cyclic Jacobi sweeps until the off-diagonal mass vanishes.
+  let max_sweeps = 100
+  for _ in 0..<max_sweeps {
+    // Off-diagonal Frobenius norm.
+    let mut off = 0.0
+    for p = 0; p < k; p = p + 1 {
+      for q = p + 1; q < k; q = q + 1 {
+        let apq = a[p * k + q]
+        off = off + apq * apq
+      }
+    }
+    if off < 1.0e-30 {
+      break
+    }
+    // One sweep over all (p, q) pairs.
+    for p = 0; p < k - 1; p = p + 1 {
+      for q = p + 1; q < k; q = q + 1 {
+        let apq = a[p * k + q]
+        if apq.abs() < 1.0e-300 {
+          continue
+        }
+        let app = a[p * k + p]
+        let aqq = a[q * k + q]
+        // Rotation angle: tan(2θ) = 2·a_pq / (a_qq - a_pp).
+        let theta = (aqq - app) / (2.0 * apq)
+        // t = sign(θ) / (|θ| + sqrt(θ² + 1)) is the smaller root of
+        // t² + 2θt - 1 = 0, chosen for numerical stability.
+        let t = if theta >= 0.0 {
+          1.0 / (theta + (theta * theta + 1.0).sqrt())
+        } else {
+          -1.0 / (-theta + (theta * theta + 1.0).sqrt())
+        }
+        let c = 1.0 / (t * t + 1.0).sqrt()
+        let s = t * c
+        // Apply the Jacobi rotation A ← Jᵀ A J to rows/columns p and q.
+        a[p * k + p] = app - t * apq
+        a[q * k + q] = aqq + t * apq
+        a[p * k + q] = 0.0
+        a[q * k + p] = 0.0
+        for r = 0; r < k; r = r + 1 {
+          if r != p && r != q {
+            let arp = a[r * k + p]
+            let arq = a[r * k + q]
+            let new_rp = c * arp - s * arq
+            let new_rq = s * arp + c * arq
+            a[r * k + p] = new_rp
+            a[p * k + r] = new_rp
+            a[r * k + q] = new_rq
+            a[q * k + r] = new_rq
+          }
+        }
+      }
+    }
+  }
+  // Eigenvalues are now on the diagonal.
+  let mut lam_max = 0.0
+  let mut lam_min = 1.0e308
   for i = 0; i < k; i = i + 1 {
-    let d = xtx_inv[i * k + i]
-    if d > max_diag {
-      max_diag = d
+    let lam = a[i * k + i]
+    if lam > lam_max {
+      lam_max = lam
     }
-    if d < min_diag && d > 0.0 {
-      min_diag = d
+    if lam < lam_min {
+      lam_min = lam
     }
   }
-  if min_diag < diag_epsilon {
-    return 1.0e10
+  if lam_min < diag_epsilon {
+    return 1.0e10 // Numerically singular design.
   }
-  (max_diag / min_diag).sqrt()
+  (lam_max / lam_min).sqrt()
 }
 
 // ---------------------------------------------------------------------------
@@ -518,10 +578,9 @@ fn gcf_local(a : Double, x : Double) -> Double {
 ///|
 /// Upper tail of the F distribution: P(F > f) for (df1, df2) degrees of freedom.
 ///
-/// F = (χ²_{df1}/df1) / (χ²_{df2}/df2), so
-/// P(F > f) = Q(df2/2, df2*f/(df2+df1*f)) * ... (via beta function).
-/// Simplified: P(F > f) = I_{df2/(df2+df1*f)}(df2/2, df1/2)
-/// where I is the regularized incomplete beta function.
+/// Uses the exact identity P(F > f) = I_{df2/(df2+df1*f)}(df2/2, df1/2)
+/// where I is the regularized incomplete beta function, evaluated via
+/// Lentz's continued fraction below.
 fn f_sf(f_val : Double, df1 : Int, df2 : Int) -> Double {
   if f_val <= 0.0 {
     return 1.0
@@ -654,7 +713,6 @@ pub fn compute_diagnostics(
       }
       match @cholesky.decompose(xtx, k) {
         Some(chol) => {
-          let xtx_inv = @cholesky.inverse(chol)
           // Leverage (hat diagonal).
           let leverage = hat_diagonal(x, n, k, chol)
           // Residual sum of squares and RSE.
@@ -738,7 +796,7 @@ pub fn compute_diagnostics(
           // VIF.
           let vif = compute_vif(x, n, k)
           // Condition number.
-          let cond_num = condition_number(xtx_inv, k)
+          let cond_num = condition_number(xtx, k)
           // Shapiro-Wilk on residuals.
           let sw = shapiro_wilk(resid, n)
           // Breusch-Pagan test.

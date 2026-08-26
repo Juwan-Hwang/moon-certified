@@ -104,14 +104,14 @@ test "raft: debug tick" {
   for i = 0; i < timeout + 1; i = i + 1 {
     let _ = raft_tick(node)
   }
-  // Should be candidate now
-  assert_true(raft_role(node) is Candidate)
+  // Single-node cluster: self-vote is majority, should be Leader
+  assert_true(raft_role(node) is Leader)
 }
 
 ///|
 test "raft: single node becomes leader" {
   // A single-node cluster (cluster_size=1) should immediately become
-  // leader after one election timeout.
+  // leader after one election timeout (self-vote = majority).
   let node = raft_node_create(0, 1, 42)
   // Tick until election timeout
   let mut _msgs : Array[RaftMessage] = []
@@ -121,21 +121,8 @@ test "raft: single node becomes leader" {
       _msgs = m
     }
   }
-  // Single node: RequestVote is sent to 0 peers, but the node votes for
-  // itself and has majority (1 out of 1).
-  // We need to check: after becoming candidate, the node has 1 vote (self),
-  // which is majority for cluster_size=1. So it should become leader.
-  // But handle_request_vote_resp is not called for self-vote.
-  // The become_candidate function doesn't check majority.
-  // We need to handle this: after become_candidate, if cluster_size == 1,
-  // the candidate already has majority (self-vote).
-  // Let's check if the node became leader.
-  // Actually, the tick function calls become_candidate and start_election.
-  // start_election sends RequestVote to peers (none for single node).
-  // The node never calls handle_request_vote_resp for itself.
-  // So for single-node, we need to handle this specially.
-  // For now, just check that it became a candidate.
-  assert_true(raft_role(node) is Candidate)
+  // Single node should have become Leader (self-vote is majority)
+  assert_true(raft_role(node) is Leader)
   assert_true(raft_term(node) == 1)
 }
 

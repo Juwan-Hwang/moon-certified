@@ -46,18 +46,154 @@ pub struct LpSolution {
 }
 
 ///|
-/// Solve a single-objective LP using the simplex method (simplified).
+/// Solve a single-objective LP with the simplex method:
 ///
 /// max c·x s.t. A·x ≤ b, x ≥ 0
-fn solve_lp(
+///
+/// The problem is put in standard form with slack variables. Rows with a
+/// negative right-hand side are multiplied by -1 and receive a surplus and
+/// an artificial variable; artificial variables are driven out with the
+/// Big-M method. Bland's rule (smallest-subscript pivoting) is used for
+/// both entering and leaving variables, which guarantees termination
+/// without cycling.
+///
+/// Returns the optimal vertex, or the zero vector if the LP is unbounded
+/// or infeasible.
+pub fn solve_lp(
   c : Array[Double],
-  _a : Array[Array[Double]],
-  _b : Array[Double],
+  a : Array[Array[Double]],
+  b : Array[Double],
 ) -> Array[Double] {
-  // Simplified: return a feasible interior point
   let n = c.length()
+  let m = b.length()
+  let zero = Array::make(n, 0.0)
+  if n == 0 || m == 0 {
+    return zero
+  }
+  // Count rows that need an artificial variable (b < 0 after negation).
+  let mut n_art = 0
+  for i = 0; i < m; i = i + 1 {
+    if b[i] < 0.0 {
+      n_art = n_art + 1
+    }
+  }
+  let cols = n + m + n_art
+  let tab : Array[Array[Double]] = []
+  let basis = Array::make(m, 0)
+  let mut next_art = n + m
+  for i = 0; i < m; i = i + 1 {
+    let row = Array::make(cols + 1, 0.0)
+    if b[i] >= 0.0 {
+      for j = 0; j < n; j = j + 1 {
+        row[j] = a[i][j]
+      }
+      row[n + i] = 1.0
+      basis[i] = n + i
+      row[cols] = b[i]
+    } else {
+      // Multiply by -1: (-aᵢ)·x ≥ -bᵢ becomes (-aᵢ)·x - sᵢ + tᵢ = -bᵢ
+      // with a non-negative right-hand side.
+      for j = 0; j < n; j = j + 1 {
+        row[j] = -a[i][j]
+      }
+      row[n + i] = -1.0
+      row[next_art] = 1.0
+      basis[i] = next_art
+      next_art = next_art + 1
+      row[cols] = -b[i]
+    }
+    tab.push(row)
+  }
+  // Objective row: reduced costs -cⱼ for decision variables and a Big-M
+  // penalty for each artificial variable.
+  let obj = Array::make(cols + 1, 0.0)
+  for j = 0; j < n; j = j + 1 {
+    obj[j] = -c[j]
+  }
+  let big_m = 1.0e7
+  for k = 0; k < n_art; k = k + 1 {
+    obj[n + m + k] = big_m
+  }
+  // Eliminate the basic artificial variables from the objective row.
+  for i = 0; i < m; i = i + 1 {
+    if basis[i] >= n + m {
+      let coef = obj[basis[i]]
+      if coef != 0.0 {
+        for jj = 0; jj < cols + 1; jj = jj + 1 {
+          obj[jj] = obj[jj] - coef * tab[i][jj]
+        }
+      }
+    }
+  }
+  // Simplex iterations.
+  let eps = 1.0e-9
+  let max_iter = 1000 * (cols + 1)
+  let mut iter = 0
+  while iter < max_iter {
+    iter = iter + 1
+    // Entering variable: smallest index with a negative reduced cost.
+    let mut pcol = -1
+    for j = 0; j < cols; j = j + 1 {
+      if pcol < 0 && obj[j] < -eps {
+        pcol = j
+      }
+    }
+    if pcol < 0 {
+      break // All reduced costs non-negative: optimal.
+    }
+    // Leaving variable: minimum ratio test, ties broken by smallest basis
+    // index (Bland's rule).
+    let mut prow = -1
+    let mut best_ratio = 0.0
+    for i = 0; i < m; i = i + 1 {
+      let aij = tab[i][pcol]
+      if aij > eps {
+        let ratio = tab[i][cols] / aij
+        if prow < 0 ||
+          ratio < best_ratio - eps ||
+          (ratio <= best_ratio + eps && basis[i] < basis[prow]) {
+          prow = i
+          best_ratio = ratio
+        }
+      }
+    }
+    if prow < 0 {
+      return zero // Unbounded LP.
+    }
+    // Pivot on (prow, pcol).
+    let piv = tab[prow][pcol]
+    for jj = 0; jj < cols + 1; jj = jj + 1 {
+      tab[prow][jj] = tab[prow][jj] / piv
+    }
+    for i = 0; i < m; i = i + 1 {
+      if i != prow && tab[i][pcol] != 0.0 {
+        let f = tab[i][pcol]
+        for jj = 0; jj < cols + 1; jj = jj + 1 {
+          tab[i][jj] = tab[i][jj] - f * tab[prow][jj]
+        }
+      }
+    }
+    let fobj = obj[pcol]
+    if fobj != 0.0 {
+      for jj = 0; jj < cols + 1; jj = jj + 1 {
+        obj[jj] = obj[jj] - fobj * tab[prow][jj]
+      }
+    }
+    basis[prow] = pcol
+  }
+  // A positive artificial basic variable means the LP is infeasible.
+  for i = 0; i < m; i = i + 1 {
+    if basis[i] >= n + m && tab[i][cols] > eps {
+      return zero
+    }
+  }
+  // Read the optimal vertex from the basis.
   let x = Array::make(n, 0.0)
-  // Very simple: just set all variables to 0 (trivial feasible point)
+  for i = 0; i < m; i = i + 1 {
+    if basis[i] < n {
+      x[basis[i]] = tab[i][cols]
+    }
+  }
   x
 }
 

@@ -91,6 +91,8 @@ pub struct GLMResult {
   null_deviance : Double
   /// Log-likelihood of the fitted model.
   log_likelihood : Double
+  /// Estimated dispersion φ (σ² for Gaussian, 1/ν for Gamma; 1 otherwise).
+  dispersion : Double
   /// Akaike Information Criterion: -2ℓ + 2k.
   aic : Double
   /// Bayesian Information Criterion: -2ℓ + k*ln(n).
@@ -293,11 +295,117 @@ fn deviance_component(family : GLMFamily, y : Double, mu : Double) -> Double {
 }
 
 ///|
-/// Compute the log-likelihood for a single observation.
+/// Log-likelihood of the fitted model at the maximum-likelihood dispersion.
 ///
-/// For simplicity, the dispersion parameter φ is assumed to be 1
-/// (appropriate for Bernoulli and Poisson; for Gaussian and Gamma it
-/// is estimated separately).
+/// - **Gaussian**: σ² is the MLE σ̂² = SSE/n, giving the exact normal
+///   log-likelihood -n/2·(ln(2π) + ln σ̂² + 1).
+/// - **Bernoulli / Poisson**: the dispersion is fixed at 1 and the
+///   per-observation log-likelihoods are summed.
+/// - **Gamma**: the shape ν = 1/φ is estimated by maximizing the profile
+///   log-likelihood (Newton iteration on ln(ν) - ψ(ν) = s, Lawless 1987),
+///   giving the exact Gamma log-likelihood.
+///
+/// Returns (log-likelihood, dispersion φ).
+fn model_log_likelihood(
+  family : GLMFamily,
+  y : FixedArray[Double],
+  mu : FixedArray[Double],
+  n : Int,
+) -> (Double, Double) {
+  match family {
+    Gaussian => {
+      // MLE of σ² and the exact normal log-likelihood.
+      let mut sse = 0.0
+      for i = 0; i < n; i = i + 1 {
+        let d = y[i] - mu[i]
+        sse = sse + d * d
+      }
+      let sigma2 = if sse < glm_epsilon { glm_epsilon } else { sse / n.to_double() }
+      let ll = -0.5 * n.to_double() *
+        (@math.ln(2.0 * @math.PI) + @math.ln(sigma2) + 1.0)
+      (ll, sigma2)
+    }
+    Gamma => {
+      // Estimate the shape ν = 1/φ via the profile likelihood.
+      let nu = gamma_shape_mle(y, mu, n)
+      let ln_nu = @math.ln(nu)
+      let lgamma_nu = @special_functions.lgamma(nu)
+      let mut ll = 0.0
+      for i = 0; i < n; i = i + 1 {
+        let m = if mu[i] < glm_epsilon { glm_epsilon } else { mu[i] }
+        let yy = if y[i] < glm_epsilon { glm_epsilon } else { y[i] }
+        // ln f(y; μ, ν) = ν·ln(ν/μ) + (ν-1)·ln(y) - ν·y/μ - ln Γ(ν) - ln(y)
+        ll = ll +
+          nu * ln_nu -
+          nu * @math.ln(m) +
+          (nu - 1.0) * @math.ln(yy) -
+          nu * yy / m -
+          lgamma_nu -
+          @math.ln(yy)
+      }
+      (ll, 1.0 / nu)
+    }
+    Bernoulli | Poisson => {
+      let mut ll = 0.0
+      for i = 0; i < n; i = i + 1 {
+        ll = ll + loglik_component(family, y[i], mu[i])
+      }
+      (ll, 1.0)
+    }
+  }
+}
+
+///|
+/// Maximum-likelihood shape parameter ν of the Gamma family.
+///
+/// For z_i = y_i/μ_i the profile score equation is
+/// ln(ν) - ψ(ν) = s with s = ln(mean z) - mean(ln z) ≥ 0 (Jensen).
+/// The initial estimate is Minka's (2002) closed-form approximation and
+/// Newton iterations refine it to machine precision.
+fn gamma_shape_mle(
+  y : FixedArray[Double],
+  mu : FixedArray[Double],
+  n : Int,
+) -> Double {
+  let mut mean_z = 0.0
+  let mut mean_ln_z = 0.0
+  for i = 0; i < n; i = i + 1 {
+    let m = if mu[i] < glm_epsilon { glm_epsilon } else { mu[i] }
+    let yy = if y[i] < glm_epsilon { glm_epsilon } else { y[i] }
+    let z = yy / m
+    mean_z = mean_z + z
+    mean_ln_z = mean_ln_z + @math.ln(z)
+  }
+  mean_z = mean_z / n.to_double()
+  mean_ln_z = mean_ln_z / n.to_double()
+  let s = @math.ln(mean_z) - mean_ln_z
+  if s < 1.0e-14 {
+    // Degenerate: y ≈ μ everywhere, variance ≈ 0, shape → ∞.
+    return 1.0e12
+  }
+  // Minka (2002) initial estimate.
+  let mut nu = (3.0 - s + ((s - 3.0) * (s - 3.0) + 24.0 * s).sqrt()) /
+    (12.0 * s)
+  // Newton: f(ν) = ln ν - ψ(ν) - s, f'(ν) = 1/ν - ψ₁(ν) < 0.
+  for _ in 0..<100 {
+    let f = @math.ln(nu) - @special_functions.digamma(nu) - s
+    let fp = 1.0 / nu - @special_functions.trigamma(nu)
+    if fp.abs() < glm_epsilon {
+      break
+    }
+    let step = f / fp
+    let next = nu - step
+    nu = if next > 0.0 { next } else { nu / 2.0 }
+    if step.abs() < 1.0e-12 * nu {
+      break
+    }
+  }
+  nu
+}
+
+///|
+/// Per-observation log-likelihood for families with fixed dispersion φ = 1
+/// (Bernoulli and Poisson).
 fn loglik_component(family : GLMFamily, y : Double, mu : Double) -> Double {
   let m = if mu < glm_epsilon {
     glm_epsilon
@@ -307,9 +415,6 @@ fn loglik_component(family : GLMFamily, y : Double, mu : Double) -> Double {
     mu
   }
   match family {
-    Gaussian =>
-      // ln f(y) = -0.5 * ln(2π) - 0.5 * (y - μ)²
-      -0.5 * @math.ln(2.0 * 3.14159265358979323846) - 0.5 * (y - mu) * (y - mu)
     Bernoulli => {
       // ln f(y) = y * ln(μ) + (1-y) * ln(1-μ)
       let one_minus_m = if m > 1.0 - glm_epsilon {
@@ -321,7 +426,7 @@ fn loglik_component(family : GLMFamily, y : Double, mu : Double) -> Double {
       let one_minus_y_safe = if y > 1.0 - glm_epsilon { 0.0 } else { 1.0 - y }
       y_safe * @math.ln(m) + one_minus_y_safe * @math.ln(one_minus_m)
     }
-    Poisson =>
+    _ =>
       // ln f(y) = y * ln(μ) - μ - ln(y!)
       if y < 0.5 {
         -m
@@ -330,10 +435,6 @@ fn loglik_component(family : GLMFamily, y : Double, mu : Double) -> Double {
         let log_y_fact = @special_functions.lgamma(y_int.to_double() + 1.0)
         y * @math.ln(m) - m - log_y_fact
       }
-    Gamma =>
-      // ln f(y) = (φ-1) * ln(y) - y/μ - φ*ln(μ) + φ*ln(φ) - ln(Γ(φ))
-      // Simplified with shape=1 (exponential): ln f(y) = -ln(μ) - y/μ
-      -@math.ln(m) - y / m
   }
 }
 
@@ -667,17 +768,17 @@ pub fn fit_glm(
   }
   // Compute final statistics.
   let mut final_deviance = 0.0
-  let mut final_loglik = 0.0
   let fitted = FixedArray::make(n, 0.0)
   let resid = FixedArray::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
     fitted[i] = mu[i]
     final_deviance = final_deviance + deviance_component(family, y[i], mu[i])
-    final_loglik = final_loglik + loglik_component(family, y[i], mu[i])
     let vmu = variance_function(family, mu[i])
     let vmu_safe = if vmu < glm_epsilon { glm_epsilon } else { vmu }
     resid[i] = (y[i] - mu[i]) / vmu_safe.sqrt()
   }
+  // Log-likelihood at the MLE of the dispersion parameter.
+  let (final_loglik, dispersion) = model_log_likelihood(family, y, mu, n)
   // Compute null deviance (intercept-only model).
   let mut y_mean = 0.0
   for i = 0; i < n; i = i + 1 {
@@ -732,9 +833,15 @@ pub fn fit_glm(
   } else {
     1.0 - final_deviance / null_dev
   }
-  // AIC = -2*ℓ + 2*k, BIC = -2*ℓ + k*ln(n).
-  let aic = -2.0 * final_loglik + 2.0 * k.to_double()
-  let bic = -2.0 * final_loglik + k.to_double() * @math.ln(n.to_double())
+  // AIC = -2*ℓ + 2*k, BIC = -2*ℓ + k*ln(n). Families with an estimated
+  // dispersion (Gaussian, Gamma) count the dispersion as an extra parameter,
+  // consistent with R's AIC for glm fits.
+  let aic_params = match family {
+    Gaussian | Gamma => k + 1
+    _ => k
+  }
+  let aic = -2.0 * final_loglik + 2.0 * aic_params.to_double()
+  let bic = -2.0 * final_loglik + aic_params.to_double() * @math.ln(n.to_double())
   Some({
     coefficients: beta,
     n_params: k,
@@ -744,6 +851,7 @@ pub fn fit_glm(
     deviance: final_deviance,
     null_deviance: null_dev,
     log_likelihood: final_loglik,
+    dispersion,
     aic,
     bic,
     pseudo_r_squared: pseudo_r2,
@@ -1013,13 +1121,20 @@ test "glm: AIC and BIC" {
   y[4] = 9.0
   match fit_glm(x, y, n, k, Gaussian, Identity) {
     Some(result) => {
-      // AIC = -2*ll + 2*k
-      let expected_aic = -2.0 * result.log_likelihood + 2.0 * k.to_double()
+      // Gaussian estimates σ², so the dispersion counts as one extra
+      // parameter in AIC/BIC (as in R's glm).
+      let p = k + 1
+      // AIC = -2*ll + 2*p
+      let expected_aic = -2.0 * result.log_likelihood + 2.0 * p.to_double()
       assert_true((result.aic - expected_aic).abs() < 1.0e-6)
-      // BIC = -2*ll + k*ln(n)
+      // BIC = -2*ll + p*ln(n)
       let expected_bic = -2.0 * result.log_likelihood +
-        k.to_double() * @math.ln(n.to_double())
+        p.to_double() * @math.ln(n.to_double())
       assert_true((result.bic - expected_bic).abs() < 1.0e-6)
+      // Exact fit here: residuals ≈ 0, so the Gaussian log-likelihood is
+      // very large and the dispersion estimate near zero.
+      assert_true(result.dispersion >= 0.0)
+      assert_true(result.dispersion < 1.0e-6)
     }
     None => assert_true(false)
   }

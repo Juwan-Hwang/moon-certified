@@ -44,19 +44,22 @@ fn c_abs(a : Complex) -> Double {
 }
 
 ///|
-/// Complex reciprocal: 1/a.
-fn c_inv(a : Complex) -> Complex {
+/// Complex reciprocal: 1/a. Returns None for a = 0.
+fn c_inv(a : Complex) -> Complex? {
   let d = c_abs2(a)
   if d == 0.0 {
-    abort("c_inv: division by zero")
+    return None
   }
-  { re: a.re / d, im: -a.im / d }
+  Some({ re: a.re / d, im: -a.im / d })
 }
 
 ///|
-/// Complex division: a / b.
-fn c_div(a : Complex, b : Complex) -> Complex {
-  c_mul(a, c_inv(b))
+/// Complex division: a / b. Returns None for b = 0.
+fn c_div(a : Complex, b : Complex) -> Complex? {
+  match c_inv(b) {
+    Some(inv) => Some(c_mul(a, inv))
+    None => None
+  }
 }
 
 ///|
@@ -120,8 +123,11 @@ pub fn complex_lu_decompose(a : Array[Array[Complex]]) -> ComplexLU {
     }
     // Eliminate below
     for i = k + 1; i < n; i = i + 1 {
-      // lu[i][k] /= lu[k][k]
-      lu[i][k] = c_div(lu[i][k], lu[k][k])
+      // lu[i][k] /= lu[k][k] (the zero-pivot case is skipped above)
+      lu[i][k] = match c_div(lu[i][k], lu[k][k]) {
+        Some(v) => v
+        None => { re: 0.0, im: 0.0 }
+      }
       // lu[i][j] -= lu[i][k] * lu[k][j]
       for j = k + 1; j < n; j = j + 1 {
         lu[i][j] = c_sub(lu[i][j], c_mul(lu[i][k], lu[k][j]))
@@ -154,7 +160,13 @@ pub fn complex_lu_decompose(a : Array[Array[Complex]]) -> ComplexLU {
 
 ///|
 /// Solve A·x = b using LU decomposition (forward + back substitution).
-pub fn complex_lu_solve(lu : ComplexLU, b : Array[Complex]) -> Array[Complex] {
+///
+/// Returns None if U is singular (a zero diagonal entry), in which case
+/// the system has no unique solution.
+pub fn complex_lu_solve(
+  lu : ComplexLU,
+  b : Array[Complex],
+) -> Array[Complex]? {
   let n = lu.piv.length()
   // Apply permutation
   let pb = Array::make(n, { re: 0.0, im: 0.0 })
@@ -177,11 +189,12 @@ pub fn complex_lu_solve(lu : ComplexLU, b : Array[Complex]) -> Array[Complex] {
     for j = i + 1; j < n; j = j + 1 {
       sum = c_sub(sum, c_mul(lu.u[i][j], x[j]))
     }
-    if c_abs2(lu.u[i][i]) > 0.0 {
-      x[i] = c_div(sum, lu.u[i][i])
+    match c_div(sum, lu.u[i][i]) {
+      Some(v) => x[i] = v
+      None => return None // Singular U: no unique solution.
     }
   }
-  x
+  Some(x)
 }
 
 ///|

@@ -1,4 +1,5 @@
 import {
+  "moon-certified/number_theory/bigint",
   "moon-certified/crypto/sha256",
 }
 

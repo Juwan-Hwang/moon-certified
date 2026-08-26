@@ -192,10 +192,13 @@ test "orset_merge" {
 
 ///|
 test "orset_merge_with_remove" {
-  // Node 0 adds 1, node 1 removes 1 (but hasn't seen it yet)
+  // Node 0 adds 1 (tag=0), node 1 adds 1 (tag=1) then removes 1 (tombstones tag=1).
+  // These are concurrent operations: node 1 never observed node 0's add.
+  // In OR-Set (add-wins) semantics, node 0's add (tag=0) survives the merge
+  // because node 1's remove only tombstones tags it has observed (tag=1).
   let a = orset_add(orset_new(0), 1)
   let b = orset_remove(orset_add(orset_new(1), 1), 1)
   let merged = orset_merge(a, b)
-  // After merge, 1 should be removed (the tag from b's add is tombstoned)
-  assert_false(orset_contains(merged, 1))
+  // Element 1 survives via node 0's un-tombstoned add (tag=0).
+  assert_true(orset_contains(merged, 1))
 }

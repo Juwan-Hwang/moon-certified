@@ -1,3 +1,7 @@
+import {
+  "moon-certified/number_theory/bigint",
+}
+
 options(
   "proof-enabled": false,
 )

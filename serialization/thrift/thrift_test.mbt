@@ -1,8 +1,7 @@
 /// White-box tests for the Thrift binary protocol package.
 ///
-/// NOTE: `read_i32` only decodes the low 32 bits and does not sign-extend,
-/// so only NON-NEGATIVE integers round-trip correctly. `write_i64` delegates
-/// to `write_i32`, so it too is limited to 32 bits.
+/// `write_i32`/`read_i32` encode 4 bytes and `write_i64`/`read_i64` encode
+/// 8 bytes, both big-endian two's complement, per the Thrift binary protocol.
 
 ///|
 /// Local byte-equality helper (package does not import test_utils).
@@ -59,7 +58,10 @@ test "bool_roundtrip" {
 
 ///|
 test "i32_roundtrip" {
-  let vals = [0, 1, 255, 256, 65535, 16777215, 123456789]
+  let vals = [
+    0, 1, 255, 256, 65535, 16777215, 123456789, -1, -256, -123456789,
+    2147483647, -2147483648,
+  ]
   for v in vals {
     let enc = ThriftEncoder::new()
     enc.write_i32(v)
@@ -69,12 +71,61 @@ test "i32_roundtrip" {
 }
 
 ///|
-test "i64_uses_low_32_bits" {
-  // write_i64 delegates to write_i32; read back via read_i32.
+test "i64_roundtrip" {
+  // Values beyond the 32-bit range in both directions, plus boundaries.
+  let vals : Array[Int64] = [
+    0L, 1L, 777L, -1L, -777L,
+    2147483648L, // 2^31
+    -2147483649L,
+    4294967296L, // 2^32
+    1099511627776L, // 2^40
+    9223372036854775807L, // i64 max
+    -9223372036854775807L, // near i64 min
+  ]
+  for v in vals {
+    let enc = ThriftEncoder::new()
+    enc.write_i64(v)
+    let bytes = enc.to_bytes()
+    assert_eq(bytes.length(), 8) // i64 must always occupy 8 bytes
+    let dec = ThriftDecoder::new(bytes)
+    assert_eq(dec.read_i64(), v)
+  }
+}
+
+///|
+test "known_i64_encoding" {
+  let e1 = ThriftEncoder::new()
+  e1.write_i64(1L)
+  assert_true(
+    bytes_eq(
+      e1.to_bytes(),
+      Bytes::from_array([
+        b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x01',
+      ]),
+    ),
+  )
+  let e2 = ThriftEncoder::new()
+  e2.write_i64(-1L)
+  assert_true(
+    bytes_eq(
+      e2.to_bytes(),
+      Bytes::from_array([
+        b'\xFF', b'\xFF', b'\xFF', b'\xFF', b'\xFF', b'\xFF', b'\xFF', b'\xFF',
+      ]),
+    ),
+  )
+}
+
+///|
+test "i64_interleaved_with_i32" {
   let enc = ThriftEncoder::new()
-  enc.write_i64(777)
+  enc.write_i32(42)
+  enc.write_i64(5000000000L)
+  enc.write_i32(-7)
   let dec = ThriftDecoder::new(enc.to_bytes())
-  assert_eq(dec.read_i32(), 777)
+  assert_eq(dec.read_i32(), 42)
+  assert_eq(dec.read_i64(), 5000000000L)
+  assert_eq(dec.read_i32(), -7)
 }
 
 ///|
@@ -119,6 +170,7 @@ test "decode_empty_input_is_safe" {
   assert_eq(id, 0)
   assert_eq(dec.read_bool(), false)
   assert_eq(dec.read_i32(), 0)
+  assert_eq(dec.read_i64(), 0L)
   assert_eq(dec.read_string(), "")
 }
 

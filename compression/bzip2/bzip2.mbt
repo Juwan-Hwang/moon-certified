@@ -147,31 +147,24 @@ fn BitReader::read_bits(self : BitReader, n : Int) -> UInt {
 // CRC32 (bzip2 variant: standard CRC32, reflected)
 // ---------------------------------------------------------------------------
 
-///|
-let crc32_table : FixedArray[UInt] = {
-  let t : FixedArray[UInt] = FixedArray::make(256, 0U)
-  for i = 0; i < 256; i = i + 1 {
-    let mut c = i.reinterpret_as_uint()
-    for _j = 0; _j < 8; _j = _j + 1 {
-      if (c & 1U) != 0U {
-        c = (c >> 1) ^ 0xEDB88320U
-      } else {
-        c = c >> 1
-      }
-    }
-    t[i] = c
-  }
-  t
-}
+// CRC-32 is implemented inline in bzip2_crc32 using the bit-by-bit algorithm.
 
 ///|
 fn bzip2_crc32(data : Bytes) -> UInt {
+  // CRC-32 (IEEE 802.3, polynomial 0xEDB88320 reflected).
+  // Same algorithm as lzma/xz crc32 for consistency.
   let mut crc = 0xFFFFFFFFU
   for i = 0; i < data.length(); i = i + 1 {
-    let idx = ((crc ^ data[i].to_uint()) & 0xFFU).reinterpret_as_int()
-    crc = (crc >> 8) ^ crc32_table[idx]
+    crc = crc.lxor(data[i].to_uint())
+    for _j = 0; _j < 8; _j = _j + 1 {
+      if (crc & 1U) != 0U {
+        crc = (crc >> 1).lxor(0xEDB88320U)
+      } else {
+        crc = crc >> 1
+      }
+    }
   }
-  crc ^ 0xFFFFFFFFU
+  crc.lxor(0xFFFFFFFFU)
 }
 
 // ---------------------------------------------------------------------------
@@ -1140,7 +1133,7 @@ pub fn decompress(data : Bytes) -> Bytes? {
 ///|
 test "bzip2: crc32 known vectors" {
   assert_eq(bzip2_crc32(b""), 0U)
-  assert_eq(bzip2_crc32(b"a"), 0xE8B7B143U)
+  assert_eq(bzip2_crc32(b"a"), 0xE8B7BE43U)
 }
 
 ///|

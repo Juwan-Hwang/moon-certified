@@ -38,7 +38,7 @@
 /// Karatsuba threshold: operands with at least this many limbs use the
 /// Karatsuba multiplication algorithm. Below this, schoolbook is faster
 /// due to lower constant factors.
-const KARATSUBA_THRESHOLD : Int = 32
+const KARATSUBA_THRESHOLD : Int = 16
 
 // ---------------------------------------------------------------------------
 // BigInt type
@@ -119,7 +119,7 @@ fn from_int64(n : Int64) -> BigInt {
 
 ///|
 /// Deep copy a BigInt.
-fn copy(b : BigInt) -> BigInt {
+pub fn copy(b : BigInt) -> BigInt {
   let limbs : Array[UInt] = []
   for i = 0; i < b.limbs.length(); i = i + 1 {
     limbs.push(b.limbs[i])
@@ -144,7 +144,7 @@ fn cmp_abs(a : BigInt, b : BigInt) -> Int {
 
 ///|
 /// Is the BigInt zero?
-fn is_zero(b : BigInt) -> Bool {
+pub fn is_zero(b : BigInt) -> Bool {
   b.limbs.length() == 1 && b.limbs[0] == 0U
 }
 
@@ -585,6 +585,18 @@ pub fn from_int64_value(n : Int64) -> BigInt {
 }
 
 ///|
+/// Create BigInt from a UInt64.
+pub fn from_uint64_value(n : UInt64) -> BigInt {
+  let lo = (n & 0xFFFFFFFFUL).to_uint()
+  let hi = (n >> 32).to_uint()
+  if hi == 0U {
+    { limbs: [lo], is_negative: false }
+  } else {
+    { limbs: [lo, hi], is_negative: false }
+  }
+}
+
+///|
 /// Create BigInt zero.
 pub fn zero() -> BigInt {
   { limbs: [0U], is_negative: false }
@@ -594,6 +606,78 @@ pub fn zero() -> BigInt {
 /// Create BigInt one.
 pub fn one() -> BigInt {
   { limbs: [1U], is_negative: false }
+}
+
+///|
+/// Check if the BigInt fits in a single 32-bit limb (|value| < 2^32).
+pub fn is_small(b : BigInt) -> Bool {
+  effective_len(b.limbs) == 1
+}
+
+///|
+/// Convert a non-negative single-limb BigInt to an Int.
+/// Returns None if the value is negative or multi-limb.
+pub fn to_int(b : BigInt) -> Int? {
+  if b.is_negative {
+    return None
+  }
+  let len = effective_len(b.limbs)
+  if len > 1 {
+    return None
+  }
+  Some(b.limbs[0].reinterpret_as_int())
+}
+
+///|
+/// Convert a non-negative BigInt to a UInt64.
+/// Returns None if the value is negative or exceeds 64 bits (more than 2 limbs).
+pub fn to_uint64(b : BigInt) -> UInt64? {
+  if b.is_negative {
+    return None
+  }
+  let len = effective_len(b.limbs)
+  if len > 2 {
+    return None
+  }
+  if len == 1 {
+    return Some(b.limbs[0].to_uint64())
+  }
+  Some((b.limbs[1].to_uint64() << 32) | b.limbs[0].to_uint64())
+}
+
+///|
+/// Check if the BigInt fits in two 32-bit limbs (|value| < 2^64).
+pub fn is_double_limb(b : BigInt) -> Bool {
+  effective_len(b.limbs) <= 2
+}
+
+///|
+/// Modular exponentiation for single-limb values: base^exp mod m.
+/// Uses Int64 arithmetic internally to avoid overflow when multiplying
+/// two values close to m (up to 2^32).
+/// Returns None if any operand is multi-limb or if m == 0.
+pub fn mod_pow_int(base : Int, exp : Int, m : Int) -> Int? {
+  if m == 0 {
+    return None
+  }
+  if m == 1 {
+    return Some(0)
+  }
+  let m64 = m.to_int64()
+  let mut result : Int64 = 1L
+  let mut b : Int64 = (base % m).to_int64()
+  if b < 0L {
+    b = b + m64
+  }
+  let mut e = exp
+  while e > 0 {
+    if (e & 1) == 1 {
+      result = (result * b) % m64
+    }
+    b = (b * b) % m64
+    e = e >> 1
+  }
+  Some(result.to_int())
 }
 
 ///|
@@ -903,6 +987,28 @@ pub fn rem(a : BigInt, b : BigInt) -> BigInt? {
 }
 
 ///|
+/// Fast modular reduction by a small Int (fits in a single limb).
+/// Returns a % b as an Int. Returns None if b is zero.
+/// Uses the single-limb fast path of udivmod for O(n) performance.
+pub fn rem_int(a : BigInt, b : Int) -> Int? {
+  if b == 0 {
+    return None
+  }
+  let bl = b.reinterpret_as_uint()
+  let mut rem : UInt64 = 0UL
+  for i = effective_len(a.limbs) - 1; i >= 0; i = i - 1 {
+    let cur = (rem << 32) | a.limbs[i].to_uint64()
+    rem = cur % bl.to_uint64()
+  }
+  let r = rem.to_int()
+  if a.is_negative && r != 0 {
+    Some(b - r)
+  } else {
+    Some(r)
+  }
+}
+
+///|
 /// Division and modulo: returns (quotient, remainder).
 /// Returns None if b is zero.
 pub fn divmod(a : BigInt, b : BigInt) -> (BigInt, BigInt)? {
@@ -1207,16 +1313,17 @@ pub fn bit_length(b : BigInt) -> Int {
 /// and k = limb count of modulus m. This replaces O(n²) long division in
 /// each mod_pow step with two multiplications and shifts (~O(n^1.585) with
 /// Karatsuba).
-priv struct BarrettCtx {
+pub struct BarrettCtx {
   modulus : BigInt
   mu : BigInt
   k : Int // limb count of modulus (effective)
+  b_k1 : BigInt // b^(k+1) = 2^(32*(k+1)), precomputed for Barrett reduce
 }
 
 ///|
 /// Create a Barrett context for the given modulus.
 /// Precomputes μ = ⌊2^(64k) / m⌋ where k = effective_len(m.limbs).
-fn barrett_new(modulus : BigInt) -> BarrettCtx {
+pub fn barrett_new(modulus : BigInt) -> BarrettCtx {
   let k = effective_len(modulus.limbs)
   // b^(2k) = 2^(32 * 2k) = 2^(64k)
   let b2k = shl(one(), 64 * k)
@@ -1224,13 +1331,15 @@ fn barrett_new(modulus : BigInt) -> BarrettCtx {
     Some(q) => q
     None => one() // unreachable: modulus != 0 checked by caller
   }
-  { modulus: copy(modulus), mu, k }
+  // Precompute b^(k+1) for Barrett reduction step 7 (add-back).
+  let b_k1 = shl(one(), 32 * (k + 1))
+  { modulus: copy(modulus), mu, k, b_k1 }
 }
 
 ///|
 /// Barrett reduction: compute x mod m using precomputed μ.
 /// Requires 0 ≤ x < m² (guaranteed in mod_pow where both operands < m).
-fn barrett_reduce(ctx : BarrettCtx, x : BigInt) -> BigInt {
+pub fn barrett_reduce(ctx : BarrettCtx, x : BigInt) -> BigInt {
   let m = ctx.modulus
   let k = ctx.k
   // Step 1: q1 = ⌊x / b^(k-1)⌋  (right-shift by (k-1)*32 bits)
@@ -1246,10 +1355,9 @@ fn barrett_reduce(ctx : BarrettCtx, x : BigInt) -> BigInt {
   let r2 = mask_limbs(q3m, k + 1)
   // Step 6: r = r1 - r2
   let mut r = sub(r1, r2)
-  // Step 7: if r < 0, add b^(k+1)
+  // Step 7: if r < 0, add b^(k+1) (precomputed in context)
   if r.is_negative {
-    let b_k1 = shl(one(), 32 * (k + 1))
-    r = add(r, b_k1)
+    r = add(r, ctx.b_k1)
   }
   // Step 8: while r ≥ m, r -= m (at most 2 corrections)
   while compare(r, m) >= 0 {
@@ -1302,7 +1410,6 @@ pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
   let mut result = one()
   let mut current = b
   let mut e = copy(exp)
-  let two = from_int(2)
   while !is_zero(e) {
     if is_odd(e) {
       let product = mul(result, current)
@@ -1310,12 +1417,31 @@ pub fn mod_pow(base : BigInt, exp : BigInt, modulus : BigInt) -> BigInt? {
     }
     let product = mul(current, current)
     current = barrett_reduce(ctx, product)
-    match div(e, two) {
-      Some(q) => e = q
-      None => return None
-    }
+    // Use bit-shift instead of division for halving the exponent.
+    // shr(e, 1) is O(n) vs div(e, 2) which goes through udivmod overhead.
+    e = shr(e, 1)
   }
   Some(result)
+}
+
+///|
+/// Modular multiplication: (a * b) mod m.
+/// Uses Barrett reduction for efficiency.
+pub fn mod_mul(a : BigInt, b : BigInt, m : BigInt) -> BigInt {
+  let ctx = barrett_new(m)
+  let product = mul(a, b)
+  barrett_reduce(ctx, product)
+}
+
+///|
+/// Modular squaring: (a^2) mod m.
+/// Uses direct mul + rem to avoid Barrett context setup overhead.
+pub fn mod_sqr(a : BigInt, m : BigInt) -> BigInt {
+  let product = mul(a, a)
+  match rem(product, m) {
+    Some(r) => r
+    None => zero()
+  }
 }
 
 // ---------------------------------------------------------------------------

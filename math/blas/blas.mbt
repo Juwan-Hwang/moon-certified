@@ -199,11 +199,13 @@ pub fn identity(n : Int) -> Array[Array[Double]] {
 
 ///|
 /// Triangular solve: solves L·x = b where L is lower triangular.
+///
+/// Returns None if L is singular (a zero diagonal entry).
 pub fn dtrsv_lower(
   n : Int,
   l : Array[Array[Double]],
   b : Array[Double],
-) -> Array[Double] {
+) -> Array[Double]? {
   let x = Array::make(n, 0.0)
   for i = 0; i < n; i = i + 1 {
     let mut sum = b[i]
@@ -211,20 +213,22 @@ pub fn dtrsv_lower(
       sum = sum - l[i][j] * x[j]
     }
     if l[i][i] == 0.0 {
-      abort("dtrsv: singular matrix")
+      return None
     }
     x[i] = sum / l[i][i]
   }
-  x
+  Some(x)
 }
 
 ///|
 /// Triangular solve: solves U·x = b where U is upper triangular.
+///
+/// Returns None if U is singular (a zero diagonal entry).
 pub fn dtrsv_upper(
   n : Int,
   u : Array[Array[Double]],
   b : Array[Double],
-) -> Array[Double] {
+) -> Array[Double]? {
   let x = Array::make(n, 0.0)
   for i = n - 1; i >= 0; i = i - 1 {
     let mut sum = b[i]
@@ -232,11 +236,11 @@ pub fn dtrsv_upper(
       sum = sum - u[i][j] * x[j]
     }
     if u[i][i] == 0.0 {
-      abort("dtrsv: singular matrix")
+      return None
     }
     x[i] = sum / u[i][i]
   }
-  x
+  Some(x)
 }
 
 ///|

@@ -184,17 +184,36 @@ test "identity_matrix" {
 test "dtrsv_lower_solves" {
   let l = [[2.0, 0.0, 0.0], [1.0, 3.0, 0.0], [0.0, 1.0, 4.0]]
   let b = [4.0, 5.0, 9.0]
-  let x = dtrsv_lower(3, l, b)
-  assert_true(arr_close(x, [2.0, 1.0, 2.0], 1.0e-12))
+  match dtrsv_lower(3, l, b) {
+    Some(x) => assert_true(arr_close(x, [2.0, 1.0, 2.0], 1.0e-12))
+    None => assert_true(false)
+  }
 }
 
 ///|
 test "dtrsv_upper_solves" {
   let u = [[2.0, 1.0, 0.0], [0.0, 3.0, 1.0], [0.0, 0.0, 4.0]]
   let b = [5.0, 10.0, 8.0]
-  let x = dtrsv_upper(3, u, b)
-  // x[2]=2, x[1]=(10-2)/3=8/3, x[0]=(5-8/3)/2=7/6
-  assert_true(arr_close(x, [7.0 / 6.0, 8.0 / 3.0, 2.0], 1.0e-12))
+  match dtrsv_upper(3, u, b) {
+    Some(x) =>
+      // x[2]=2, x[1]=(10-2)/3=8/3, x[0]=(5-8/3)/2=7/6
+      assert_true(arr_close(x, [7.0 / 6.0, 8.0 / 3.0, 2.0], 1.0e-12))
+    None => assert_true(false)
+  }
+}
+
+///|
+test "dtrsv_singular_returns_none" {
+  let l_singular = [[2.0, 0.0], [1.0, 0.0]]
+  match dtrsv_lower(2, l_singular, [1.0, 1.0]) {
+    Some(_) => assert_true(false)
+    None => ()
+  }
+  let u_singular = [[0.0, 1.0], [0.0, 2.0]]
+  match dtrsv_upper(2, u_singular, [1.0, 1.0]) {
+    Some(_) => assert_true(false)
+    None => ()
+  }
 }
 
 ///|

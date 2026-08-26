@@ -18,7 +18,7 @@
 /// `proof-enabled` is `false`.
 
 ///|
-const MPC_PRIME : Int = 2147483647 // Mersenne prime 2^31-1
+const MPC_PRIME : Int = 10007 // A prime large enough for demo purposes, small enough to avoid Int overflow in products
 
 ///|
 fn mod_p(x : Int) -> Int {

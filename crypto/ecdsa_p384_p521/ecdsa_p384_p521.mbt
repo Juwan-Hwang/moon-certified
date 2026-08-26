@@ -11,13 +11,6 @@
 /// for point operations, and the Montgomery ladder for scalar multiplication.
 /// RFC 6979 deterministic nonce generation eliminates nonce-reuse attacks.
 ///
-/// ⚠️ NOTE: Curve parameters (b, Gx, Gy) use a self-consistent small prime
-/// field for API demonstration and algorithm verification. Production use
-/// requires replacing with the real 384/521-bit NIST parameters from
-/// NIST SP 800-186. The prime p, order n, and coefficient a = -3 are
-/// authentic NIST values; b, Gx, Gy are placeholders that form a valid
-/// curve point over a small prime for testing.
-///
 /// ## References
 ///
 /// - FIPS 186-4: Digital Signature Standard
@@ -39,7 +32,8 @@ fn parse_curve_const(s : String, name : String) -> @bigint.BigInt {
 }
 
 // ===========================================================================
-// P-384 curve parameters
+// P-384 curve parameters (NIST SP 800-186 / SEC2 secp384r1)
+// y² = x³ - 3x + b over F_p,   a = -3 mod p
 // ===========================================================================
 
 ///|
@@ -52,7 +46,7 @@ pub let p384_p : @bigint.BigInt = parse_curve_const(
 ///|
 /// P-384 order n
 pub let p384_n : @bigint.BigInt = parse_curve_const(
-  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000CCEEF4A8209308D",
+  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7634D81F4372DDF581A0DB248B0A77AECEC196ACCC52973",
   "P-384 order n",
 )
 
@@ -64,62 +58,72 @@ pub let p384_a : @bigint.BigInt = parse_curve_const(
 )
 
 ///|
-/// P-384 coefficient b (placeholder — see module docs)
-pub let p384_b : @bigint.BigInt = parse_curve_const("5", "P-384 coefficient b")
+/// P-384 coefficient b (NIST SP 800-186)
+pub let p384_b : @bigint.BigInt = parse_curve_const(
+  "0xB3312FA7E23EE7E4988E056BE3F82D19181D9C6EFE8141120314088F5013875AC656398D8A2ED19D2A85C8EDD3EC2AEF",
+  "P-384 coefficient b",
+)
 
 ///|
-/// P-384 generator x (placeholder — see module docs)
-pub let p384_gx : @bigint.BigInt = parse_curve_const("3", "P-384 Gx")
+/// P-384 generator x (NIST SP 800-186)
+pub let p384_gx : @bigint.BigInt = parse_curve_const(
+  "0xAA87CA22BE8B05378EB1C71EF320AD746E1D3B628BA79B9859F741E082542A385502F25DBF55296C3A545E3872760AB7",
+  "P-384 generator x",
+)
 
 ///|
-/// Test curve: p=23, a=1, b=4, G=(0,2), order n=29 (verified by enumeration)
-/// y² = 0³ + 1·0 + 4 = 4 mod 23, y=2 ✓
-/// The group has 29 points (29 is prime, cofactor 1), so n=29.
-let p384_test_p : @bigint.BigInt = parse_curve_const("23", "P-384 test prime")
-
-///|
-let p384_test_b : @bigint.BigInt = parse_curve_const("4", "P-384 test b")
-
-///|
-let p384_test_gx : @bigint.BigInt = parse_curve_const("0", "P-384 test Gx")
-
-///|
-let p384_test_gy : @bigint.BigInt = parse_curve_const("2", "P-384 test Gy")
-
-///|
-/// P-384 generator y (placeholder)
-pub let p384_gy : @bigint.BigInt = p384_test_gy
+/// P-384 generator y (NIST SP 800-186)
+pub let p384_gy : @bigint.BigInt = parse_curve_const(
+  "0x3617DE4A96262C6F5D9E98BF9292DC29F8F41DBD289A147CE9DA3113B5F0B8C00A60B1CE1D7E819D7A431D7C90EA0E5F",
+  "P-384 generator y",
+)
 
 // ===========================================================================
-// P-521 curve parameters
+// P-521 curve parameters (NIST SP 800-186 / SEC2 secp521r1)
+// y² = x³ - 3x + b over F_p,   a = -3 mod p
 // ===========================================================================
 
 ///|
 /// P-521 prime: p = 2^521 - 1
 pub let p521_p : @bigint.BigInt = parse_curve_const(
-  "0x1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+  "0x1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
   "P-521 prime p",
 )
 
 ///|
-/// P-521 test curve order (same test curve as P-384)
-let p521_n : @bigint.BigInt = parse_curve_const("29", "P-521 test order n")
+/// P-521 order n
+pub let p521_n : @bigint.BigInt = parse_curve_const(
+  "0x1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA51868783BF2F966B7FCC0148F709A5D03BB5C9B8899C47AEBB6FB71E91386409",
+  "P-521 order n",
+)
 
 ///|
-/// P-521 coefficient a = 1 (same test curve)
-let p521_a : @bigint.BigInt = parse_curve_const("1", "P-521 test a")
+/// P-521 coefficient a = -3 mod p
+pub let p521_a : @bigint.BigInt = parse_curve_const(
+  "0x1FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC",
+  "P-521 coefficient a",
+)
 
 ///|
-/// P-521 coefficient b (test)
-let p521_b : @bigint.BigInt = parse_curve_const("4", "P-521 test b")
+/// P-521 coefficient b (NIST SP 800-186)
+pub let p521_b : @bigint.BigInt = parse_curve_const(
+  "0x051953EB9618E1C9A1F929A21A0B68540EEA2DA725B99B315F3B8B489918EF109E156193951EC7E937B1652C0BD3BB1BF073573DF883D2C34F1EF451FD46B503F00",
+  "P-521 coefficient b",
+)
 
 ///|
-/// P-521 generator x (test)
-let p521_gx : @bigint.BigInt = parse_curve_const("0", "P-521 test Gx")
+/// P-521 generator x (NIST SP 800-186)
+pub let p521_gx : @bigint.BigInt = parse_curve_const(
+  "0x00C6858E06B70404E9CD9E3ECB662395B4429C648139053FB521F828AF606B4D3DBAA14B5E77EFE75928FE1DC127A2FFA8DE3348B3C1856A429BF97E7E31C2E5BD66",
+  "P-521 generator x",
+)
 
 ///|
-/// P-521 generator y (test)
-let p521_gy : @bigint.BigInt = parse_curve_const("2", "P-521 test Gy")
+/// P-521 generator y (NIST SP 800-186)
+pub let p521_gy : @bigint.BigInt = parse_curve_const(
+  "0x11839296A789A3BC0045C8A5FB42C7D1BD998F54449579B446817AFBD17273E662C97EE72995EF42640C550B9013FAD0761353C7086A272C24088BE94769FD16650",
+  "P-521 generator y",
+)
 
 // ===========================================================================
 // Modular arithmetic helpers
@@ -202,24 +206,23 @@ fn get_params(curve : CurveKind) -> CurveParams {
   match curve {
     P384 =>
       {
-        // Test curve: p=23, a=1, b=4, G=(0,2), n=29
-        p: p384_test_p,
-        n: parse_curve_const("29", "P-384 test n"),
-        a: parse_curve_const("1", "P-384 test a"),
-        b: p384_test_b,
-        gx: p384_test_gx,
-        gy: p384_test_gy,
-        key_size: 1, // 1 byte is enough for values < 256
+        p: p384_p,
+        n: p384_n,
+        a: p384_a,
+        b: p384_b,
+        gx: p384_gx,
+        gy: p384_gy,
+        key_size: 48,
       }
     P521 =>
       {
-        p: parse_curve_const("23", "P-521 test p"),
+        p: p521_p,
         n: p521_n,
         a: p521_a,
         b: p521_b,
         gx: p521_gx,
         gy: p521_gy,
-        key_size: 1,
+        key_size: 66,
       }
   }
 }
@@ -261,7 +264,7 @@ fn fe_inv(a : @bigint.BigInt, p : @bigint.BigInt) -> @bigint.BigInt {
 }
 
 // ===========================================================================
-// BigInt <-> bytes conversion
+// BigInt <-> bytes conversion (big-endian)
 // ===========================================================================
 
 ///|
@@ -350,7 +353,7 @@ fn is_infinity(pt : Point) -> Bool {
 }
 
 ///|
-/// Point doubling (general formula for arbitrary a)
+/// Point doubling (general formula for arbitrary a, dbl-2009-b)
 fn point_double(pt : Point, params : CurveParams) -> Point {
   let p = params.p
   if is_infinity(pt) {
@@ -362,7 +365,6 @@ fn point_double(pt : Point, params : CurveParams) -> Point {
   if @bigint.equal(y, @bigint.zero()) {
     return point_infinity()
   }
-  // General Jacobian doubling (SEC 1 v2 "dbl-2009-b")
   let a = fe_mul(x, x, p) // A = X^2
   let b = fe_mul(y, y, p) // B = Y^2
   let c = fe_mul(b, b, p) // C = B^2 = Y^4
@@ -451,9 +453,9 @@ fn scalar_mult(k : @bigint.BigInt, pt : Point, params : CurveParams) -> Point {
   // Iterate over the bits of k from MSB to LSB
   let mut r0 = point_infinity()
   let mut r1 = pt
+  // Determine the bit length of k (at most 521 for P-521)
   let mut bit_idx = 0
-  // Find the highest set bit
-  while bit_idx < 256 &&
+  while bit_idx < 521 &&
         @bigint.compare(@bigint.shr(k, bit_idx), @bigint.zero()) > 0 {
     bit_idx = bit_idx + 1
   }
@@ -795,20 +797,30 @@ test "P-521: generator point on curve" {
 }
 
 ///|
+/// Build a big-endian test scalar with the given low byte: a fixed key in
+/// [1, n-1] for both P-384 (48 bytes) and P-521 (66 bytes).
+fn fixed_test_key(len : Int, low : Byte) -> Bytes {
+  let arr = Array::make(len, b'\x00')
+  arr[len - 1] = low
+  Bytes::from_array(arr)
+}
+
+///|
 test "P-384: key generation and sign/verify round-trip" {
-  let sk = Bytes::from_array([b'\x07'])
+  // 48-byte private key (big-endian): a fixed test scalar in [1, n-1]
+  let sk = fixed_test_key(48, b'\x07')
   let pk = derive_public_key(P384, sk)
-  assert_true(pk.length() == 3)
+  assert_true(pk.length() == 97)
   assert_true(pk[0] == b'\x04')
   let msg = b"Hello P-384!"
   let sig = sign(P384, sk, msg)
-  assert_true(sig.length() == 2)
+  assert_true(sig.length() == 96)
   assert_true(verify(P384, pk, msg, sig))
 }
 
 ///|
 test "P-384: wrong message rejected" {
-  let sk = Bytes::from_array([b'\x07'])
+  let sk = fixed_test_key(48, b'\x07')
   let pk = derive_public_key(P384, sk)
   let sig = sign(P384, sk, b"correct message")
   assert_false(verify(P384, pk, b"wrong message", sig))
@@ -816,7 +828,7 @@ test "P-384: wrong message rejected" {
 
 ///|
 test "P-384: tampered signature rejected" {
-  let sk = Bytes::from_array([b'\x07'])
+  let sk = fixed_test_key(48, b'\x07')
   let pk = derive_public_key(P384, sk)
   let sig = sign(P384, sk, b"message")
   let tampered : Array[Byte] = []
@@ -833,19 +845,20 @@ test "P-384: tampered signature rejected" {
 
 ///|
 test "P-521: key generation and sign/verify round-trip" {
-  let sk = Bytes::from_array([b'\x05'])
+  // 66-byte private key (big-endian): a fixed test scalar in [1, n-1]
+  let sk = fixed_test_key(66, b'\x05')
   let pk = derive_public_key(P521, sk)
-  assert_true(pk.length() == 3)
+  assert_true(pk.length() == 133)
   assert_true(pk[0] == b'\x04')
   let msg = b"Hello P-521!"
   let sig = sign(P521, sk, msg)
-  assert_true(sig.length() == 2)
+  assert_true(sig.length() == 132)
   assert_true(verify(P521, pk, msg, sig))
 }
 
 ///|
 test "P-521: wrong message rejected" {
-  let sk = Bytes::from_array([b'\x05'])
+  let sk = fixed_test_key(66, b'\x05')
   let pk = derive_public_key(P521, sk)
   let sig = sign(P521, sk, b"correct message for P-521 test")
   assert_false(verify(P521, pk, b"totally different message content", sig))
@@ -853,27 +866,33 @@ test "P-521: wrong message rejected" {
 
 ///|
 test "P-384: invalid public key rejected" {
-  let bad_pk = Bytes::make(3, b'\x00')
-  let sig = Bytes::make(2, b'\x01')
+  let bad_pk_arr = Array::make(97, b'\x00')
+  bad_pk_arr[0] = b'\x04'
+  let bad_pk = Bytes::from_array(bad_pk_arr)
+  let sig = Bytes::make(96, b'\x01')
   assert_false(verify(P384, bad_pk, b"msg", sig))
 }
 
 ///|
 test "P-521: invalid public key rejected" {
-  let bad_pk = Bytes::make(3, b'\x00')
-  let sig = Bytes::make(2, b'\x01')
+  let bad_pk_arr = Array::make(133, b'\x00')
+  bad_pk_arr[0] = b'\x04'
+  let bad_pk = Bytes::from_array(bad_pk_arr)
+  let sig = Bytes::make(132, b'\x01')
   assert_false(verify(P521, bad_pk, b"msg", sig))
 }
 
 ///|
 test "P-521: tampered signature rejected" {
-  let sk = Bytes::from_array([b'\x05'])
+  let sk = fixed_test_key(66, b'\x05')
   let pk = derive_public_key(P521, sk)
   let sig = sign(P521, sk, b"message")
+  // Flip a bit in the middle of r. Byte 0 is skipped because 521-bit
+  // values always have a zero leading byte in 66-byte encodings.
   let tampered : Array[Byte] = []
   for i = 0; i < sig.length(); i = i + 1 {
-    if i == 0 {
-      tampered.push(b'\x00')
+    if i == 10 {
+      tampered.push(((sig[i].to_int() ^ 0xFF) & 0xFF).to_byte())
     } else {
       tampered.push(sig[i])
     }
