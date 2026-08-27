@@ -485,7 +485,8 @@ fn chunk_remove(chunk : Chunk, val : UInt) -> Bool {
       if run_remove(runs, val) {
         chunk.cardinality = chunk.cardinality - 1
         // Consider downgrading to array if sparse enough.
-        if chunk.cardinality < ARRAY_MAX_SIZE / 2 && runs.length() > chunk.cardinality {
+        if chunk.cardinality < ARRAY_MAX_SIZE / 2 &&
+          runs.length() > chunk.cardinality {
           let arr = run_to_array(runs)
           chunk.container = Container::Array(arr)
         }
@@ -1034,7 +1035,11 @@ fn chunk_merge(
       let merged = merge_fn(ca[i].container, cb[j].container)
       let card = container_cardinality(merged)
       if card > 0 {
-        result.chunks.push({ high: ca[i].high, container: merged, cardinality: card })
+        result.chunks.push({
+          high: ca[i].high,
+          container: merged,
+          cardinality: card,
+        })
       }
       i = i + 1
       j = j + 1
@@ -1102,7 +1107,11 @@ pub fn roaring_and(a : RoaringBitmap, b : RoaringBitmap) -> RoaringBitmap {
       let merged = container_and(ca[i].container, cb[j].container)
       let card = container_cardinality(merged)
       if card > 0 {
-        result.chunks.push({ high: ca[i].high, container: merged, cardinality: card })
+        result.chunks.push({
+          high: ca[i].high,
+          container: merged,
+          cardinality: card,
+        })
       }
       i = i + 1
       j = j + 1
@@ -1156,7 +1165,11 @@ pub fn roaring_andnot(a : RoaringBitmap, b : RoaringBitmap) -> RoaringBitmap {
       let merged = container_andnot(ca[i].container, cb[j].container)
       let card = container_cardinality(merged)
       if card > 0 {
-        result.chunks.push({ high: ca[i].high, container: merged, cardinality: card })
+        result.chunks.push({
+          high: ca[i].high,
+          container: merged,
+          cardinality: card,
+        })
       }
       i = i + 1
       j = j + 1

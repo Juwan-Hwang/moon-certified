@@ -53,7 +53,7 @@ fn mpc_add_mod(a : Int, b : Int) -> Int {
 
 ///|
 fn mpc_mul_mod(a : Int, b : Int) -> Int {
-  let p = (a.to_int64() * b.to_int64()) % MPC_PRIME.to_int64()
+  let p = a.to_int64() * b.to_int64() % MPC_PRIME.to_int64()
   let r = if p < 0L { p + MPC_PRIME.to_int64() } else { p }
   r.to_int()
 }

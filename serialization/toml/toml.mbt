@@ -1275,7 +1275,7 @@ fn TomlParser::parse_inline_table(self : TomlParser) -> TomlValue? {
 /// headers for arrays-of-tables; scalar/array values are emitted inline.
 /// The result re-parses to an equal value tree.
 pub fn to_toml(v : TomlValue) -> String {
-  let s : TomlSerializer = { buf: StringBuilder::new(), started: false }
+  let s : TomlSerializer = { buf: StringBuilder(), started: false }
   match v {
     Table(entries) => toml_serialize_section(s, entries, [], true)
     _ => ()

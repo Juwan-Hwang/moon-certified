@@ -43,12 +43,7 @@ test "hpke_roundtrip_aes128gcm" {
     HPKE_AEAD_AES128GCM,
   )
   let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(3))
-  let (enc, sender) = hpke_setup_base_sender(
-    config,
-    pk_r,
-    b"",
-    hpke_seed(4),
-  )
+  let (enc, sender) = hpke_setup_base_sender(config, pk_r, b"", hpke_seed(4))
   let ct = hpke_seal(sender, b"meta", b"gcm payload")
   let receiver = hpke_setup_base_receiver(config, enc, sk_r, b"")
   match hpke_open(receiver, b"meta", ct) {
@@ -62,12 +57,7 @@ test "hpke_wrong_recipient_key_fails" {
   let config = hpke_default_config()
   let (_sk_r, pk_r) = hpke_generate_keypair(hpke_seed(5))
   let (sk_wrong, _) = hpke_generate_keypair(hpke_seed(6))
-  let (enc, sender) = hpke_setup_base_sender(
-    config,
-    pk_r,
-    b"ctx",
-    hpke_seed(7),
-  )
+  let (enc, sender) = hpke_setup_base_sender(config, pk_r, b"ctx", hpke_seed(7))
   let ct = hpke_seal(sender, b"", b"secret")
   // Decapsulating with a different private key must not yield the
   // plaintext: the KEM shared secret differs, so AEAD auth fails.
@@ -103,12 +93,7 @@ test "hpke_authentication_properties" {
 test "hpke_sequence_advances" {
   let config = hpke_default_config()
   let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(10))
-  let (enc, sender) = hpke_setup_base_sender(
-    config,
-    pk_r,
-    b"",
-    hpke_seed(11),
-  )
+  let (enc, sender) = hpke_setup_base_sender(config, pk_r, b"", hpke_seed(11))
   let ct1 = hpke_seal(sender, b"", b"first")
   let ct2 = hpke_seal(sender, b"", b"second")
   // Distinct nonces => distinct ciphertexts for distinct plaintexts,
@@ -164,11 +149,17 @@ test "hpke_rejects_malformed_inputs" {
   assert_eq(hpke_sender_setup_fails(config, b"short", b"", hpke_seed(15)), true)
   let r2 = Some(
     hpke_setup_base_receiver(config, Bytes::make(10, b'\x00'), sk_r, b""),
-  ) catch { _ => None }
+  ) catch {
+    _ => None
+  }
   match r2 {
     Some(_) => fail("malformed enc accepted")
     None => ()
   }
-  let bad = HpkeConfig::new(0xFFFF, HPKE_KDF_HKDF_SHA256, HPKE_AEAD_CHACHA20POLY1305)
+  let bad = HpkeConfig::new(
+    0xFFFF,
+    HPKE_KDF_HKDF_SHA256,
+    HPKE_AEAD_CHACHA20POLY1305,
+  )
   assert_eq(hpke_sender_setup_fails(bad, pk_r, b"", hpke_seed(16)), true)
 }

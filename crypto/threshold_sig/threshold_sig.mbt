@@ -59,29 +59,25 @@ fn ts_parse_const(s : String, name : String) -> @bigint.BigInt {
 ///|
 /// Field prime p = 2^256 - 2^32 - 977.
 pub let ts_p : @bigint.BigInt = ts_parse_const(
-  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
-  "p",
+  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", "p",
 )
 
 ///|
 /// Group order n.
 pub let ts_n : @bigint.BigInt = ts_parse_const(
-  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
-  "n",
+  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", "n",
 )
 
 ///|
 /// Generator x coordinate.
 pub let ts_gx : @bigint.BigInt = ts_parse_const(
-  "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
-  "Gx",
+  "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", "Gx",
 )
 
 ///|
 /// Generator y coordinate.
 pub let ts_gy : @bigint.BigInt = ts_parse_const(
-  "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
-  "Gy",
+  "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", "Gy",
 )
 
 // ===========================================================================
@@ -186,11 +182,7 @@ priv struct TsPoint {
 
 ///|
 fn ts_point_infinity() -> TsPoint {
-  {
-    x: @bigint.one(),
-    y: @bigint.one(),
-    z: @bigint.zero(),
-  }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
 }
 
 ///|
@@ -215,11 +207,7 @@ fn ts_point_double(pt : TsPoint) -> TsPoint {
   let m = ts_mod_mul(three, xsq, p) // a = 0 for secp256k1
   let xsq8 = ts_mod_mul(eight, ts_mod_mul(ysq, ysq, p), p)
   let xr = ts_mod_sub(ts_mod_mul(m, m, p), ts_mod_mul(two, s, p), p)
-  let yr = ts_mod_sub(
-    ts_mod_mul(m, ts_mod_sub(s, xr, p), p),
-    xsq8,
-    p,
-  )
+  let yr = ts_mod_sub(ts_mod_mul(m, ts_mod_sub(s, xr, p), p), xsq8, p)
   let zr = ts_mod_mul(two, ts_mod_mul(pt.y, pt.z, p), p)
   let _ = one
   { x: xr, y: yr, z: zr }
@@ -317,16 +305,15 @@ fn ts_generator() -> TsPoint {
 fn ts_point_compress(pt : TsPoint) -> Bytes? {
   match ts_to_affine(pt) {
     Some((x, y)) => {
-      let prefix =
-        match @bigint.divmod(y, @bigint.from_int_value(2)) {
-          Some((_, r)) =>
-            if @bigint.compare(r, @bigint.zero()) == 0 {
-              b'\x02'
-            } else {
-              b'\x03'
-            }
-          None => b'\x02'
-        }
+      let prefix = match @bigint.divmod(y, @bigint.from_int_value(2)) {
+        Some((_, r)) =>
+          if @bigint.compare(r, @bigint.zero()) == 0 {
+            b'\x02'
+          } else {
+            b'\x03'
+          }
+        None => b'\x02'
+      }
       let xb = ts_bigint_to_32(x)
       let arr : Array[Byte] = [prefix]
       for i = 0; i < 32; i = i + 1 {
@@ -360,11 +347,7 @@ fn ts_point_decompress(data : Bytes) -> TsPoint? {
   let three = @bigint.from_int_value(3)
   let four = @bigint.from_int_value(4)
   // y^2 = x^3 + 7
-  let y2 = ts_mod_add(
-    ts_mod_mul(ts_mod_mul(x, x, p), x, p),
-    seven,
-    p,
-  )
+  let y2 = ts_mod_add(ts_mod_mul(ts_mod_mul(x, x, p), x, p), seven, p)
   // p = 3 (mod 4): sqrt = y2^((p+1)/4)
   let exp = match @bigint.divmod(@bigint.add(p, @bigint.one()), four) {
     Some((q, _)) => q
@@ -378,17 +361,12 @@ fn ts_point_decompress(data : Bytes) -> TsPoint? {
   if @bigint.compare(ts_mod_mul(y, y, p), y2) != 0 {
     return None
   }
-  let y_is_odd =
-    match @bigint.divmod(y, @bigint.from_int_value(2)) {
-      Some((_, r)) => @bigint.compare(r, @bigint.zero()) != 0
-      None => false
-    }
-  let want_odd = prefix == 3
-  let y_final = if y_is_odd == want_odd {
-    y
-  } else {
-    ts_mod_sub(p, y, p)
+  let y_is_odd = match @bigint.divmod(y, @bigint.from_int_value(2)) {
+    Some((_, r)) => @bigint.compare(r, @bigint.zero()) != 0
+    None => false
   }
+  let want_odd = prefix == 3
+  let y_final = if y_is_odd == want_odd { y } else { ts_mod_sub(p, y, p) }
   let _ = three
   Some({ x, y: y_final, z: @bigint.one() })
 }
@@ -457,7 +435,10 @@ pub struct KeyShare {
 }
 
 ///|
-fn ts_poly_eval(coeffs : Array[@bigint.BigInt], x : @bigint.BigInt) -> @bigint.BigInt {
+fn ts_poly_eval(
+  coeffs : Array[@bigint.BigInt],
+  x : @bigint.BigInt,
+) -> @bigint.BigInt {
   let mut acc = @bigint.zero()
   for i = coeffs.length() - 1; i >= 0; i = i - 1 {
     acc = ts_mod_add(ts_mod_mul(acc, x, ts_n), coeffs[i], ts_n)
@@ -467,10 +448,7 @@ fn ts_poly_eval(coeffs : Array[@bigint.BigInt], x : @bigint.BigInt) -> @bigint.B
 
 ///|
 /// Lagrange coefficient at 0 for party `i` within the signer set.
-fn ts_lagrange_at_zero(
-  signer_indices : Array[Int],
-  i : Int,
-) -> @bigint.BigInt {
+fn ts_lagrange_at_zero(signer_indices : Array[Int], i : Int) -> @bigint.BigInt {
   let xi = @bigint.from_int_value(signer_indices[i])
   let mut num = @bigint.one()
   let mut den = @bigint.one()
@@ -595,9 +573,8 @@ pub fn threshold_sign_partial(
     fail("threshold_sig: share index not in signer set")
   }
   // Combined nonce R = Σ λ_i·R_i and challenge e = H(R ‖ P ‖ m).
-  let r_enc = match ts_point_compress(
-    ts_combine_nonce_point(signer_indices, commitments),
-  ) {
+  let r_enc = match
+    ts_point_compress(ts_combine_nonce_point(signer_indices, commitments)) {
     Some(enc) => enc
     None => fail("threshold_sig: combined nonce is the identity")
   }
@@ -644,13 +621,13 @@ pub fn threshold_combine_signatures(
   message : Bytes,
 ) -> Bytes raise {
   let m = partials.length()
-  if m != signer_indices.length() || m != commitments.length() ||
+  if m != signer_indices.length() ||
+    m != commitments.length() ||
     m != shares.length() {
     fail("threshold_sig: argument length mismatch")
   }
-  let r_enc = match ts_point_compress(
-    ts_combine_nonce_point(signer_indices, commitments),
-  ) {
+  let r_enc = match
+    ts_point_compress(ts_combine_nonce_point(signer_indices, commitments)) {
     Some(enc) => enc
     None => fail("threshold_sig: combined nonce is the identity")
   }
@@ -669,10 +646,7 @@ pub fn threshold_combine_signatures(
     let xi = ts_bytes_to_bigint(shares[i].value)
     let pi = ts_scalar_mul(xi, g)
     let li_e = ts_mod_mul(li, e, ts_n)
-    let rhs = ts_point_add(
-      ts_scalar_mul(li, ri),
-      ts_scalar_mul(li_e, pi),
-    )
+    let rhs = ts_point_add(ts_scalar_mul(li, ri), ts_scalar_mul(li_e, pi))
     match (ts_to_affine(lhs), ts_to_affine(rhs)) {
       (Some((lx, ly)), Some((rx, ry))) =>
         if @bigint.compare(lx, rx) != 0 || @bigint.compare(ly, ry) != 0 {

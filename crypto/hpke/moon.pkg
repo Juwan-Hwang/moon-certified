@@ -1,6 +1,3 @@
-options(
-  "proof-enabled": false,
-)
 import {
   "moon-certified/crypto/hkdf",
   "moon-certified/crypto/x25519",
@@ -8,3 +5,7 @@ import {
   "moon-certified/crypto/aes",
   "moon-certified/crypto/chacha20_poly1305",
 }
+
+options(
+  "proof-enabled": false,
+)

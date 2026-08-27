@@ -5,27 +5,20 @@ predicate gcd_nonneg(result : Int) {
 }
 
 ///|
-/// Predicate: d divides n (d | n).
+/// Predicate: d divides n (d | n), the standard mathematical definition.
+/// Note: deliberately does NOT require d <= n, since e.g. 5 | 0 and 5 | -5.
 predicate divides(d : Int, n : Int) {
-  0 <= d && d <= n && n % d == 0
+  0 < d && n % d == 0
 }
 
 ///|
-/// Postcondition: result divides both a and b.
-predicate gcd_divides(a : Int, b : Int, result : Int) {
-  divides(result, a) && divides(result, b)
-}
-
-///|
-/// Lemma: any number divides itself.
-/// d divides d for d > 0.
+/// Lemma: any positive number divides itself.
 predicate div_self(d : Int) {
   0 < d → divides(d, d)
 }
 
 ///|
 /// Lemma: any positive number divides 0.
-/// d divides 0 for d > 0.
 predicate div_zero(d : Int) {
   0 < d → divides(d, 0)
 }

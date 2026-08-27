@@ -107,20 +107,20 @@ fn bigint_to_bytes(n : @bigint.BigInt, byte_len : Int) -> Bytes? {
 fn mulmod_u64(a : UInt64, b : UInt64, m : UInt64) -> UInt64 {
   // Fast path: product fits in 64 bits
   if a < 0x100000000UL && b < 0x100000000UL {
-    return (a * b) % m
+    return a * b % m
   }
   let mask32 : UInt64 = 0xFFFFFFFFUL
   let ah = a >> 32
-  let al = (a & mask32)
+  let al = a & mask32
   let bh = b >> 32
-  let bl = (b & mask32)
+  let bl = b & mask32
   // Partial products (each fits in 64 bits since operands < 2^32)
-  let lo = (al * bl) % m
-  let mid1 = (ah * bl) % m
-  let mid2 = (al * bh) % m
-  let hi = (ah * bh) % m
+  let lo = al * bl % m
+  let mid1 = ah * bl % m
+  let mid2 = al * bh % m
+  let hi = ah * bh % m
   // 2^32 mod m and 2^64 mod m
-  let b32 = (0x100000000UL) % m
+  let b32 = 0x100000000UL % m
   // 2^64 mod m = (2^32)^2 mod m. Use shift_mul_mod to avoid recursion.
   let b64 = shift_mul_mod(b32, b32, m)
   // result = (hi * b64 + mid1 * b32 + mid2 * b32 + lo) mod m
@@ -150,18 +150,10 @@ fn shift_mul_mod(a : UInt64, b : UInt64, m : UInt64) -> UInt64 {
   while i < 64 {
     if (base & 1UL) != 0UL {
       // result = (result + val) mod m, avoiding overflow
-      result = if result >= m - val {
-        result - (m - val)
-      } else {
-        result + val
-      }
+      result = if result >= m - val { result - (m - val) } else { result + val }
     }
     // val = (val * 2) mod m, avoiding overflow
-    val = if val >= m - val {
-      val - (m - val)
-    } else {
-      val + val
-    }
+    val = if val >= m - val { val - (m - val) } else { val + val }
     base = base >> 1
     i = i + 1
   }
@@ -307,7 +299,7 @@ fn miller_rabin_bigint(
         let n64 = n_int.to_int64()
         let mut x64 = x.to_int64()
         for i = 0; i < r_int - 1; i = i + 1 {
-          x64 = (x64 * x64) % n64
+          x64 = x64 * x64 % n64
           if x64 == n_minus_1_int.to_int64() {
             composite = false
             break
@@ -485,13 +477,12 @@ fn random_prime(
   // Checking against these rejects ~80% of composite candidates before
   // the expensive Miller-Rabin test.
   let small_primes = [
-    3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
-    73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151,
-    157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233,
-    239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317,
-    331, 337, 347, 349, 353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419,
-    421, 431, 433, 439, 443, 449, 457, 461, 463, 467, 479, 487, 491, 499, 503,
-    509, 521, 523, 541,
+    3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73,
+    79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163,
+    167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251,
+    257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349,
+    353, 359, 367, 373, 379, 383, 389, 397, 401, 409, 419, 421, 431, 433, 439, 443,
+    449, 457, 461, 463, 467, 479, 487, 491, 499, 503, 509, 521, 523, 541,
   ]
   let mut attempts = 0
   let one = @bigint.one()
@@ -505,12 +496,11 @@ fn random_prime(
     let mut composite = false
     for sp in small_primes {
       match @bigint.rem_int(candidate, sp) {
-        Some(r) => {
+        Some(r) =>
           if r == 0 {
             composite = true
             break
           }
-        }
         None => continue
       }
     }
@@ -1468,6 +1458,7 @@ pub fn verify_pss(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 /// Helper: construct a small test keypair from p=61, q=53.
 /// n = 3233, e = 65537, d = 2753. Key size = 12 bits (2 bytes).
 /// Used by encrypt/decrypt/sign tests that only verify error handling
@@ -1808,7 +1799,7 @@ test "rsa: mulmod_u64 basic" {
   assert_eq(mulmod_u64(6UL, 7UL, 11UL), 9UL)
   // Edge: 2^32 * 2 mod 3 = 2^33 mod 3. 2^1 mod 3 = 2, 2^2 mod 3 = 1, cycle=2
   // 2^33 mod 3: 33 is odd, so 2^33 mod 3 = 2
-  assert_eq(mulmod_u64((1UL << 32), 2UL, 3UL), 2UL)
+  assert_eq(mulmod_u64(1UL << 32, 2UL, 3UL), 2UL)
 }
 
 ///|

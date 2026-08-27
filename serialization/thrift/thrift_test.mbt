@@ -59,8 +59,8 @@ test "bool_roundtrip" {
 ///|
 test "i32_roundtrip" {
   let vals = [
-    0, 1, 255, 256, 65535, 16777215, 123456789, -1, -256, -123456789,
-    2147483647, -2147483648,
+    0, 1, 255, 256, 65535, 16777215, 123456789, -1, -256, -123456789, 2147483647,
+    -2147483648,
   ]
   for v in vals {
     let enc = ThriftEncoder::new()
@@ -74,13 +74,11 @@ test "i32_roundtrip" {
 test "i64_roundtrip" {
   // Values beyond the 32-bit range in both directions, plus boundaries.
   let vals : Array[Int64] = [
-    0L, 1L, 777L, -1L, -777L,
-    2147483648L, // 2^31
-    -2147483649L,
-    4294967296L, // 2^32
-    1099511627776L, // 2^40
-    9223372036854775807L, // i64 max
-    -9223372036854775807L, // near i64 min
+    0L, 1L, 777L, -1L, -777L, 2147483648L, // 2^31
+     -2147483649L, 4294967296L, // 2^32
+     1099511627776L, // 2^40
+     9223372036854775807L, // i64 max
+     -9223372036854775807L, // near i64 min
   ]
   for v in vals {
     let enc = ThriftEncoder::new()

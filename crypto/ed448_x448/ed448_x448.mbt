@@ -1,3 +1,4 @@
+///|
 /// Ed448 / X448 — Edwards-curve Digital Signatures and Key Exchange (RFC 8032)
 ///
 /// Ed448 is an elliptic curve signature scheme using the "Goldilocks" prime
@@ -223,6 +224,7 @@ fn bytes_to_scalar(h : Bytes) -> @bigint.BigInt {
 // Curve: x^2 + y^2 = 1 + d*x^2*y^2
 // ---------------------------------------------------------------------------
 
+///|
 priv struct Point {
   x : @bigint.BigInt
   y : @bigint.BigInt
@@ -350,10 +352,7 @@ fn point_decode(data : Bytes) -> Point? {
   let ratio = mod_mul(u, v_inv)
   // For p = 3 mod 4: sqrt(a) = a^((p+1)/4) mod p
   let exp = match
-    @bigint.div(
-      @bigint.add(ed448_p, @bigint.one()),
-      @bigint.from_int_value(4),
-    ) {
+    @bigint.div(@bigint.add(ed448_p, @bigint.one()), @bigint.from_int_value(4)) {
     Some(v) => v
     None => return None
   }
@@ -425,10 +424,7 @@ pub fn ed448_sign(sk : Ed448SecretKey, message : Bytes) -> Ed448Signature {
   let pk_bytes = point_encode(pk_point)
 
   // Step 2: Generate deterministic nonce r = H(sk || message) mod L
-  let nonce_input = concat_bytes(
-    bigint_to_bytes_le(sk.sk, 57),
-    message,
-  )
+  let nonce_input = concat_bytes(bigint_to_bytes_le(sk.sk, 57), message)
   let nonce_hash = hash_448(nonce_input)
   let r_scalar = bytes_to_scalar(nonce_hash)
   let r_safe = if @bigint.compare(r_scalar, @bigint.zero()) == 0 {
@@ -469,7 +465,7 @@ pub fn ed448_verify(
     None => return false
   }
   if @bigint.compare(sig.s, ed448_l) >= 0 ||
-     @bigint.compare(sig.s, @bigint.zero()) <= 0 {
+    @bigint.compare(sig.s, @bigint.zero()) <= 0 {
     return false
   }
   let ch_input = concat_bytes(concat_bytes(sig.r, pk.pk), message)
@@ -501,10 +497,7 @@ pub fn ed448_verify(
 ///|
 /// Montgomery curve448: v^2 = u^3 + A*u^2 + u, A = 156326
 /// a24 = (A - 2) / 4 = 39081
-let x448_a24 : @bigint.BigInt = parse_const(
-  "39081",
-  "X448 a24 = (A-2)/4",
-)
+let x448_a24 : @bigint.BigInt = parse_const("39081", "X448 a24 = (A-2)/4")
 
 ///|
 /// Generate an X448 private key (57 bytes) from a seed.
@@ -602,10 +595,7 @@ test "ed448: base point on curve" {
   let bx2 = mod_mul(ed448_bx, ed448_bx)
   let by2 = mod_mul(ed448_by, ed448_by)
   let lhs = mod_add(bx2, by2)
-  let rhs = mod_add(
-    @bigint.one(),
-    mod_mul(ed448_d, mod_mul(bx2, by2)),
-  )
+  let rhs = mod_add(@bigint.one(), mod_mul(ed448_d, mod_mul(bx2, by2)))
   assert_true(@bigint.equal(lhs, rhs))
 }
 

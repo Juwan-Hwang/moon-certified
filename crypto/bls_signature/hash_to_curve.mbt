@@ -251,7 +251,8 @@ fn sgn0(a : @bigint.BigInt) -> Bool {
 /// Euler criterion: x is a square in Fp iff x^((p-1)/2) ∈ {0, 1}.
 fn fp_is_square(x : @bigint.BigInt) -> Bool {
   let p = @pairing.bls_p
-  let exp = match @bigint.divmod(@bigint.sub(p, @bigint.one()), @bigint.from_int_value(2)) {
+  let exp = match
+    @bigint.divmod(@bigint.sub(p, @bigint.one()), @bigint.from_int_value(2)) {
     Some((q, _)) => q
     None => @bigint.zero()
   }
@@ -263,7 +264,8 @@ fn fp_is_square(x : @bigint.BigInt) -> Bool {
 /// Square root in Fp. Valid because p ≡ 3 (mod 4): sqrt(x) = x^((p+1)/4).
 fn fp_sqrt(x : @bigint.BigInt) -> @bigint.BigInt {
   let p = @pairing.bls_p
-  let exp = match @bigint.divmod(@bigint.add(p, @bigint.one()), @bigint.from_int_value(4)) {
+  let exp = match
+    @bigint.divmod(@bigint.add(p, @bigint.one()), @bigint.from_int_value(4)) {
     Some((q, _)) => q
     None => @bigint.zero()
   }
@@ -318,7 +320,12 @@ fn expand_message_xmd(msg : Bytes, dst : Bytes, len_in_bytes : Int) -> Bytes {
     (len_in_bytes & 0xFF).to_byte(),
     b'\x00',
   ]
-  let msg_prime = bytes_concat([z_pad, msg, Bytes::from_array(lib_arr), dst_prime])
+  let msg_prime = bytes_concat([
+    z_pad,
+    msg,
+    Bytes::from_array(lib_arr),
+    dst_prime,
+  ])
   let b0 = @sha256.sha256(msg_prime)
   // b_1 = H(b_0 || I2OSP(1, 1) || DST_prime)
   let mut prev = @sha256.sha256(
@@ -413,7 +420,10 @@ fn sswu_map(u : @bigint.BigInt) -> (@bigint.BigInt, @bigint.BigInt) {
 
 ///|
 /// Horner evaluation of a polynomial with Fp coefficients (ascending order).
-fn poly_eval(coeffs : Array[@bigint.BigInt], x : @bigint.BigInt) -> @bigint.BigInt {
+fn poly_eval(
+  coeffs : Array[@bigint.BigInt],
+  x : @bigint.BigInt,
+) -> @bigint.BigInt {
   let mut acc = @bigint.zero()
   for i = coeffs.length() - 1; i >= 0; i = i - 1 {
     acc = @pairing.fp_add(@pairing.fp_mul(acc, x), coeffs[i])

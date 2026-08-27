@@ -88,7 +88,7 @@ fn bfv_sub_mod(a : Int, b : Int, m : Int) -> Int {
 
 ///|
 fn bfv_mul_mod(a : Int, b : Int, m : Int) -> Int {
-  ((a.to_int64() * b.to_int64()) % m.to_int64()).to_int()
+  (a.to_int64() * b.to_int64() % m.to_int64()).to_int()
 }
 
 // ===========================================================================
@@ -283,12 +283,11 @@ fn bfv_scale_round(coeffs : Array[@bigint.BigInt]) -> Array[Int] {
           None => ()
         }
         match @bigint.divmod(out, q) {
-          Some((_, mr)) => {
+          Some((_, mr)) =>
             match @bigint.to_int(mr) {
               Some(iv) => r[i] = if neg { bfv_mod(-iv, BFV_Q) } else { iv }
               None => r[i] = 0
             }
-          }
           None => r[i] = 0
         }
       }
@@ -387,10 +386,7 @@ pub fn bfv_encrypt(
     scaled[i] = bfv_mul_mod(bfv_mod(message[i], BFV_T), delta, BFV_Q)
   }
   // ct = (pk0·u + e1 + Δ·m, pk1·u + e2)
-  let c0 = bfv_poly_add(
-    bfv_poly_add(bfv_poly_mul(pk.p0, u), e1),
-    scaled,
-  )
+  let c0 = bfv_poly_add(bfv_poly_add(bfv_poly_mul(pk.p0, u), e1), scaled)
   let c1 = bfv_poly_add(bfv_poly_mul(pk.p1, u), e2)
   { c0, c1 }
 }

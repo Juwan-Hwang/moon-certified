@@ -99,7 +99,9 @@ test "sphincs: tampered signature is rejected" {
   }
   // Flip one bit in the FORS section.
   arr[100] = (arr[100].to_int() ^ 0x01).to_byte()
-  assert_false(sphincs_verify(pk, m, sphincs_sig_from_bytes(Bytes::from_array(arr))))
+  assert_false(
+    sphincs_verify(pk, m, sphincs_sig_from_bytes(Bytes::from_array(arr))),
+  )
   // Truncated signature is rejected.
   assert_false(
     sphincs_verify(pk, m, sphincs_sig_from_bytes(spx_slice_test(sig.data, 100))),

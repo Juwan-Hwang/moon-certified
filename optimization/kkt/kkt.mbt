@@ -300,7 +300,7 @@ pub fn solve_kkt(
       }
       ds[j] = -r_pi[j] - adi
       dl[j] = (tau - lambda[j] * s[j] + lambda[j] * r_pi[j]) / s[j] +
-        (lambda[j] / s[j]) * adi
+        lambda[j] / s[j] * adi
     }
     // Fraction-to-the-boundary step sizes.
     let mut alpha_p = 1.0

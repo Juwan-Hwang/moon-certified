@@ -920,7 +920,7 @@ pub fn string_to_bytes(s : String) -> Array[Int] {
 ///|
 /// Convert a byte array back to a string.
 pub fn bytes_to_string(bytes : Array[Int]) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < bytes.length(); i = i + 1 {
     buf.write_char(Int::unsafe_to_char(bytes[i]))
   }

@@ -29,9 +29,11 @@ pub enum RBNode[T] {
 
 ///|
 pub fn[T] empty() -> RBNode[T] where {
-  proof_ensure: result => match result {
-    Empty => 0 == 0
-    _ => false
+  proof_ensure: result => {
+    match result {
+      Empty => 0 == 0
+      _ => false
+    }
   },
 } {
   Empty
@@ -39,9 +41,19 @@ pub fn[T] empty() -> RBNode[T] where {
 
 ///|
 /// O(1) subtree size (cached in each node).
-/// Verified: result >= 0 for all tree structures.
-pub fn[T] size(root : RBNode[T]) -> Int where {
-  proof_ensure: result => 0 <= result,
+/// Verified: returns 0 for Empty, and the cached field itself for Node.
+/// The cached value is non-negative by construction for trees built by
+/// `insert`/`delete`; that invariant lives in the (unverified) mutators,
+/// so it is not claimed here.
+pub fn[T] size(
+  root : RBNode[T],
+) -> Int where {
+  proof_ensure: result => {
+    match root {
+      Empty => result == 0
+      Node(_, _, _, _, sz) => result == sz
+    }
+  },
 } {
   match root {
     Empty => 0

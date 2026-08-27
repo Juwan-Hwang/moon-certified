@@ -70,7 +70,11 @@ test "tls13_full_handshake_chacha20" {
 test "tls13_full_handshake_aes128gcm" {
   let server_sk = @sha256.sha256(tls13_seed(11) + b"server-signing-key")
   let cert = b"opaque test certificate DER 2"
-  let (client, server) = tls13_do_handshake(TlsCipherSuite::aes128_gcm_sha256(), server_sk, cert)
+  let (client, server) = tls13_do_handshake(
+    TlsCipherSuite::aes128_gcm_sha256(),
+    server_sk,
+    cert,
+  )
   let r = tls13_send_app(client, b"payload-over-gcm")
   match tls13_recv_app(server, r) {
     Some(v) => assert_eq(v, b"payload-over-gcm")
@@ -83,8 +87,14 @@ test "tls13_tampered_flight_rejected" {
   let server_sk = @sha256.sha256(tls13_seed(12) + b"server-signing-key")
   let server_pk = @ed25519.derive_public_key(server_sk)
   let cert = b"opaque cert"
-  let client_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), Some(server_pk))
-  let server_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), None)
+  let client_config = tls13_config_new(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    Some(server_pk),
+  )
+  let server_config = tls13_config_new(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    None,
+  )
   let client = tls13_client_new(client_config, tls13_seed(3))
   let server = tls13_server_new(server_config)
   let ch = tls13_client_hello(client)
@@ -93,12 +103,11 @@ test "tls13_tampered_flight_rejected" {
   let flight = tls13_server_handshake_finish(server, cert, server_sk)
   // Flip one ciphertext byte: AEAD authentication must reject it.
   let tampered = flight.to_array()
-  tampered[tampered.length() / 2] = (
-    tampered[tampered.length() / 2].to_int() ^ 0x01
-  ).to_byte()
-  let r = Some(
-    tls13_client_process_flight(client, Bytes::from_array(tampered)),
-  ) catch { _ => None }
+  tampered[tampered.length() / 2] = (tampered[tampered.length() / 2].to_int() ^
+  0x01).to_byte()
+  let r = Some(tls13_client_process_flight(client, Bytes::from_array(tampered))) catch {
+    _ => None
+  }
   match r {
     Some(_) => fail("client accepted a tampered server flight")
     None => ()
@@ -114,8 +123,14 @@ test "tls13_wrong_certificate_key_rejected" {
   let cert = b"opaque cert"
   // Client trusts a *different* key than the one that signs
   // CertificateVerify: the handshake must fail.
-  let client_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), Some(attacker_pk))
-  let server_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), None)
+  let client_config = tls13_config_new(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    Some(attacker_pk),
+  )
+  let server_config = tls13_config_new(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    None,
+  )
   let client = tls13_client_new(client_config, tls13_seed(5))
   let server = tls13_server_new(server_config)
   let ch = tls13_client_hello(client)
@@ -139,9 +154,8 @@ test "tls13_tampered_app_record_rejected" {
   )
   let r = tls13_send_app(client, b"sensitive data")
   let tampered = r.to_array()
-  tampered[tampered.length() - 3] = (
-    tampered[tampered.length() - 3].to_int() ^ 0x80
-  ).to_byte()
+  tampered[tampered.length() - 3] = (tampered[tampered.length() - 3].to_int() ^
+  0x80).to_byte()
   assert_eq(tls13_recv_app(server, Bytes::from_array(tampered)), None)
   // Out-of-order delivery fails authentication: the receiver's nonce
   // counter advances strictly, so neither a skipped nor a replayed
@@ -164,8 +178,5 @@ test "tls13_record_header_parsing" {
   }
   assert_eq(tls_parse_record_header(Bytes::from_array([23, 3, 3])), None)
   // Wrong legacy version is rejected.
-  assert_eq(
-    tls_parse_record_header(Bytes::from_array([23, 3, 1, 0, 0])),
-    None,
-  )
+  assert_eq(tls_parse_record_header(Bytes::from_array([23, 3, 1, 0, 0])), None)
 }

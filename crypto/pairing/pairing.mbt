@@ -51,18 +51,21 @@ pub fn optimal_ate(p : G1Point, q : G2Point) -> Fp12 {
   pairing(p, q)
 }
 
+///|
 test "bls12_381 — G1 generator is on curve" {
   let g = g1_generator()
   let (x, y) = g1_to_affine(g)
   assert_true(g1_is_on_curve(x, y))
 }
 
+///|
 test "bls12_381 — G2 generator is on curve" {
   let g = g2_generator()
   let (x, y) = g2_to_affine(g)
   assert_true(g2_is_on_curve(x, y))
 }
 
+///|
 test "bls12_381 — G1 generator has order r" {
   // [r] * G1 = O (point at infinity)
   let g = g1_generator()
@@ -70,6 +73,7 @@ test "bls12_381 — G1 generator has order r" {
   assert_true(g1_is_identity(result))
 }
 
+///|
 test "bls12_381 — G2 generator has order r" {
   // [r] * G2 = O (point at infinity)
   let g = g2_generator()
@@ -77,6 +81,7 @@ test "bls12_381 — G2 generator has order r" {
   assert_true(g2_is_identity(result))
 }
 
+///|
 test "bls12_381 — G1 doubling: 2G = G + G" {
   let g = g1_generator()
   let g2 = g1_double(g)
@@ -84,6 +89,7 @@ test "bls12_381 — G1 doubling: 2G = G + G" {
   assert_true(g1_eq(g2, g_add))
 }
 
+///|
 test "bls12_381 — G2 doubling: 2G = G + G" {
   let g = g2_generator()
   let g2_dbl = g2_double(g)
@@ -91,6 +97,7 @@ test "bls12_381 — G2 doubling: 2G = G + G" {
   assert_true(g2_eq(g2_dbl, g2_add))
 }
 
+///|
 test "bls12_381 — G1 negation: G + (-G) = O" {
   let g = g1_generator()
   let neg_g = g1_neg(g)
@@ -98,6 +105,7 @@ test "bls12_381 — G1 negation: G + (-G) = O" {
   assert_true(g1_is_identity(result))
 }
 
+///|
 test "bls12_381 — G2 negation: G + (-G) = O" {
   let g = g2_generator()
   let neg_g = g2_neg(g)
@@ -105,14 +113,19 @@ test "bls12_381 — G2 negation: G + (-G) = O" {
   assert_true(g2_is_identity(result))
 }
 
+///|
 test "bls12_381 — Fp2 arithmetic: u^2 = -1" {
   // u = (0, 1), u^2 should be (-1, 0)
   let u : Fp2 = { c0: @bigint.zero(), c1: @bigint.one() }
   let u2 = fp2_sqr(u)
-  let neg_one : Fp2 = { c0: fp_sub(@bigint.zero(), @bigint.one()), c1: @bigint.zero() }
+  let neg_one : Fp2 = {
+    c0: fp_sub(@bigint.zero(), @bigint.one()),
+    c1: @bigint.zero(),
+  }
   assert_true(fp2_eq(u2, neg_one))
 }
 
+///|
 test "bls12_381 — Fp2 inverse: a * a^(-1) = 1" {
   let a = g2_gx() // Use G2 generator x as a test value
   let a_inv = fp2_inv(a)
@@ -120,6 +133,7 @@ test "bls12_381 — Fp2 inverse: a * a^(-1) = 1" {
   assert_true(fp2_is_one(product))
 }
 
+///|
 test "bls12_381 — Fp12 multiplication: 1 * a = a" {
   let one = fp12_one()
   let a = fp12_add(fp12_one(), fp12_one()) // 2 in Fp12
@@ -127,6 +141,7 @@ test "bls12_381 — Fp12 multiplication: 1 * a = a" {
   assert_true(fp12_eq(result, a))
 }
 
+///|
 test "bls12_381 — Fp12 inverse: a * a^(-1) = 1" {
   // Create a non-trivial Fp12 element
   let a : Fp12 = {
@@ -146,6 +161,7 @@ test "bls12_381 — Fp12 inverse: a * a^(-1) = 1" {
   assert_true(fp12_eq(product, fp12_one()))
 }
 
+///|
 test "bls12_381 — Pairing non-degeneracy: e(G1, G2) ≠ 1" {
   let p = g1_generator()
   let q = g2_generator()
@@ -154,6 +170,7 @@ test "bls12_381 — Pairing non-degeneracy: e(G1, G2) ≠ 1" {
   assert_false(fp12_eq(result, fp12_one()))
 }
 
+///|
 test "bls12_381 — Pairing bilinearity: e(aP, Q) = e(P, Q)^a" {
   let a = @bigint.from_int_value(7)
   let p = g1_generator()
@@ -167,6 +184,7 @@ test "bls12_381 — Pairing bilinearity: e(aP, Q) = e(P, Q)^a" {
   assert_true(fp12_eq(lhs, rhs))
 }
 
+///|
 test "bls12_381 — Pairing bilinearity: e(P, aQ) = e(P, Q)^a" {
   let a = @bigint.from_int_value(7)
   let p = g1_generator()
@@ -180,6 +198,7 @@ test "bls12_381 — Pairing bilinearity: e(P, aQ) = e(P, Q)^a" {
   assert_true(fp12_eq(lhs, rhs))
 }
 
+///|
 test "bls12_381 — Pairing identity: e(O, Q) = 1" {
   let o = g1_identity()
   let q = g2_generator()
@@ -187,6 +206,7 @@ test "bls12_381 — Pairing identity: e(O, Q) = 1" {
   assert_true(fp12_eq(result, fp12_one()))
 }
 
+///|
 test "bls12_381 — Pairing identity: e(P, O) = 1" {
   let p = g1_generator()
   let o = g2_identity()

@@ -88,12 +88,11 @@ fn hpke_labeled_ikm(label : String, ikm : Bytes) -> Bytes {
 }
 
 ///|
-fn hpke_labeled_info(
-  length : Int,
-  label : String,
-  info : Bytes,
-) -> Bytes {
-  let arr : Array[Byte] = [((length >> 8) & 0xFF).to_byte(), (length & 0xFF).to_byte()]
+fn hpke_labeled_info(length : Int, label : String, info : Bytes) -> Bytes {
+  let arr : Array[Byte] = [
+    ((length >> 8) & 0xFF).to_byte(),
+    (length & 0xFF).to_byte(),
+  ]
   let l = label.length()
   arr.push(((l >> 8) & 0xFF).to_byte())
   arr.push((l & 0xFF).to_byte())
@@ -132,11 +131,7 @@ fn hpke_kem_suite_id() -> Bytes {
 }
 
 ///|
-fn hpke_kem_labeled_extract(
-  salt : Bytes,
-  label : String,
-  ikm : Bytes,
-) -> Bytes {
+fn hpke_kem_labeled_extract(salt : Bytes, label : String, ikm : Bytes) -> Bytes {
   let labeled = hpke_kem_suite_id() + hpke_labeled_ikm(label, ikm)
   hpke_extract(salt, labeled)
 }
@@ -219,11 +214,7 @@ fn hpke_suite_id() -> Bytes {
 }
 
 ///|
-fn hpke_kdf_labeled_extract(
-  salt : Bytes,
-  label : String,
-  ikm : Bytes,
-) -> Bytes {
+fn hpke_kdf_labeled_extract(salt : Bytes, label : String, ikm : Bytes) -> Bytes {
   let labeled = hpke_suite_id() + hpke_labeled_ikm(label, ikm)
   hpke_extract(salt, labeled)
 }
@@ -298,13 +289,10 @@ fn hpke_key_schedule(
   let inner_secret = hpke_kdf_labeled_extract(zeros, "secret", empty)
   let secret = hpke_kdf_labeled_extract(inner_secret, "secret", shared_secret)
   let key = hpke_kdf_labeled_expand(secret, "key", ks_context, n_k)
-  let base_nonce = hpke_kdf_labeled_expand(secret, "base_nonce", ks_context, n_n)
-  let exporter_secret = hpke_kdf_labeled_expand(
-    secret,
-    "exp",
-    ks_context,
-    32,
+  let base_nonce = hpke_kdf_labeled_expand(
+    secret, "base_nonce", ks_context, n_n,
   )
+  let exporter_secret = hpke_kdf_labeled_expand(secret, "exp", ks_context, 32)
   (key, base_nonce, exporter_secret)
 }
 
@@ -322,14 +310,9 @@ pub fn hpke_setup_base_sender(
   }
   let (enc, shared) = hpke_encap(recipient_public_key, seed)
   let (key, base_nonce, exporter_secret) = hpke_key_schedule(
-    config,
-    shared,
-    info,
+    config, shared, info,
   )
-  (
-    enc,
-    { config, key, base_nonce, exporter_secret, seq: 0L },
-  )
+  (enc, { config, key, base_nonce, exporter_secret, seq: 0L })
 }
 
 ///|
@@ -346,9 +329,7 @@ pub fn hpke_setup_base_receiver(
   }
   let shared = hpke_decap(enc, recipient_private_key)
   let (key, base_nonce, exporter_secret) = hpke_key_schedule(
-    config,
-    shared,
-    info,
+    config, shared, info,
   )
   { config, key, base_nonce, exporter_secret, seq: 0L }
 }
@@ -415,12 +396,13 @@ fn hpke_aead_seal(
       Some(k) => k
       None => return None
     }
-    match @aes.encrypt_gcm(
-      ak,
-      hpke_bytes_to_fixed(nonce),
-      hpke_bytes_to_fixed(pt),
-      hpke_bytes_to_fixed(aad),
-    ) {
+    match
+      @aes.encrypt_gcm(
+        ak,
+        hpke_bytes_to_fixed(nonce),
+        hpke_bytes_to_fixed(pt),
+        hpke_bytes_to_fixed(aad),
+      ) {
       Some(res) => {
         let ct = hpke_fixed_to_bytes(res.ciphertext)
         let tag = hpke_fixed_to_bytes(res.tag)
@@ -460,13 +442,14 @@ fn hpke_aead_open(
       Some(k) => k
       None => return None
     }
-    match @aes.decrypt_gcm(
-      ak,
-      hpke_bytes_to_fixed(nonce),
-      hpke_bytes_to_fixed(Bytes::from_array(ct_arr)),
-      hpke_bytes_to_fixed(aad),
-      hpke_bytes_to_fixed(Bytes::from_array(tag_arr)),
-    ) {
+    match
+      @aes.decrypt_gcm(
+        ak,
+        hpke_bytes_to_fixed(nonce),
+        hpke_bytes_to_fixed(Bytes::from_array(ct_arr)),
+        hpke_bytes_to_fixed(aad),
+        hpke_bytes_to_fixed(Bytes::from_array(tag_arr)),
+      ) {
       Some(pt) => Some(hpke_fixed_to_bytes(pt))
       None => None
     }
@@ -494,11 +477,7 @@ pub fn hpke_seal(
 ///|
 /// Decrypt and authenticate a message. Returns `None` when the tag or
 /// AAD does not match — never releases unauthenticated plaintext.
-pub fn hpke_open(
-  ctx : HpkeReceiverContext,
-  aad : Bytes,
-  ct : Bytes,
-) -> Bytes? {
+pub fn hpke_open(ctx : HpkeReceiverContext, aad : Bytes, ct : Bytes) -> Bytes? {
   let nonce = hpke_compute_nonce(ctx.base_nonce, ctx.seq)
   ctx.seq = hpke_next_seq(ctx.seq)
   hpke_aead_open(ctx.config, ctx.key, nonce, aad, ct)
@@ -511,12 +490,7 @@ pub fn hpke_export_sender(
   length : Int,
   exporter_context : Bytes,
 ) -> Bytes raise {
-  hpke_kdf_labeled_expand(
-    ctx.exporter_secret,
-    "sec",
-    exporter_context,
-    length,
-  )
+  hpke_kdf_labeled_expand(ctx.exporter_secret, "sec", exporter_context, length)
 }
 
 ///|
@@ -526,10 +500,5 @@ pub fn hpke_export_receiver(
   length : Int,
   exporter_context : Bytes,
 ) -> Bytes raise {
-  hpke_kdf_labeled_expand(
-    ctx.exporter_secret,
-    "sec",
-    exporter_context,
-    length,
-  )
+  hpke_kdf_labeled_expand(ctx.exporter_secret, "sec", exporter_context, length)
 }

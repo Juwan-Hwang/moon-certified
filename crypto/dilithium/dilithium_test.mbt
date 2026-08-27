@@ -52,9 +52,9 @@ fn dsa_pow(base : Int, exp : Int) -> Int {
   let mut acc = 1L
   while e > 0 {
     if (e & 1) == 1 {
-      acc = (acc * b) % q64
+      acc = acc * b % q64
     }
-    b = (b * b) % q64
+    b = b * b % q64
     e = e >> 1
   }
   acc.to_int()
@@ -102,7 +102,7 @@ test "dilithium: NTT multiplication equals schoolbook negacyclic product" {
   for i = 0; i < 256; i = i + 1 {
     for j = 0; j < 256; j = j + 1 {
       let k = i + j
-      let coef = (f[i].to_int64() * g[j].to_int64()) % q64
+      let coef = f[i].to_int64() * g[j].to_int64() % q64
       if k < 256 {
         want[k] = want[k] + coef
       } else {
@@ -127,7 +127,10 @@ test "dilithium: NTT multiplication equals schoolbook negacyclic product" {
 
 ///|
 test "dilithium: decompose/low_bits boundary behavior" {
-  let got = dsa_debug_lowbits([0, 1, 95231, 95232, 95233, 175162, 8380416], 190464)
+  let got = dsa_debug_lowbits(
+    [0, 1, 95231, 95232, 95233, 175162, 8380416],
+    190464,
+  )
   // q-1 = 44*alpha hits the special case: (r1, r0) = (0, r - q) = (0, -1).
   assert_eq(got, [0, 1, 95231, 95232, -95231, -15302, -1])
 }

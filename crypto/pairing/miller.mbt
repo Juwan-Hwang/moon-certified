@@ -7,7 +7,8 @@
 
 ///|
 /// BLS parameter x = 0xd201000000010000 (absolute value)
-pub let bls_x : @bigint.BigInt = match(@bigint.from_string("0xd201000000010000")) {
+pub let bls_x : @bigint.BigInt = match
+  @bigint.from_string("0xd201000000010000") {
   Some(v) => v
   None => abort("FATAL: invalid BLS parameter x")
 }
@@ -48,11 +49,7 @@ fn line_eval(
 ///|
 /// Evaluate the vertical line X - x_R at P exactly:
 /// (x_P - x_R/v) = x_P - (x_R/ξ)·v².
-fn vertical_line_eval(
-  rx : Fp2,
-  px : Fp2,
-  xi_inv : Fp2,
-) -> Fp12 {
+fn vertical_line_eval(rx : Fp2, px : Fp2, xi_inv : Fp2) -> Fp12 {
   let c0 : Fp6 = { c0: px, c1: fp2_zero(), c2: fp2_neg(fp2_mul(rx, xi_inv)) }
   let c1 : Fp6 = fp6_zero()
   { c0, c1 }
@@ -88,10 +85,7 @@ pub fn miller_loop(p : G1Point, q : G2Point) -> Fp12 {
     }
     f = fp12_sqr(f)
     // Tangent at R: λ = 3·x_R² / (2·y_R)  (the curve has a = 0).
-    let lam = fp2_mul(
-      fp2_mul_fp(fp2_sqr(rx), three),
-      fp2_inv(fp2_add(ry, ry)),
-    )
+    let lam = fp2_mul(fp2_mul_fp(fp2_sqr(rx), three), fp2_inv(fp2_add(ry, ry)))
     f = fp12_mul(f, line_eval(lam, rx, ry, px, py, xi_inv))
     // R ← 2R (affine).
     let lam2 = fp2_sqr(lam)
@@ -146,7 +140,13 @@ fn bls_x_bits() -> Array[Int] {
   let bits : Array[Int] = []
   let one = @bigint.one()
   let mut leading_marked = false
-  for i in [63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0] {
+  for
+    i in [
+      63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45,
+      44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26,
+      25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6,
+      5, 4, 3, 2, 1, 0,
+    ] {
     let bit_val = @bigint.shr(bls_x, i)
     let bit = @bigint.equal(@bigint.bit_and(bit_val, one), one)
     if !leading_marked {
@@ -173,7 +173,7 @@ pub fn final_exponentiation(f : Fp12) -> Fp12 {
   let p6 = @bigint.mul(p4, p2)
   let p12 = @bigint.mul(p6, p6)
   let p12_minus_1 = @bigint.sub(p12, @bigint.one())
-  let final_exp = match(@bigint.divmod(p12_minus_1, bls_r)) {
+  let final_exp = match @bigint.divmod(p12_minus_1, bls_r) {
     Some((q, _)) => q
     None => abort("FATAL: failed to compute final exponent")
   }

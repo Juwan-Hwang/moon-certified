@@ -69,7 +69,7 @@ pub type CsvRow = Array[String]
 pub fn parse(input : String, config : CsvConfig) -> Array[CsvRow] {
   let rows : Array[CsvRow] = []
   let current_row : Array[String] = []
-  let current_field = StringBuilder::new()
+  let current_field = StringBuilder()
   let mut in_quotes = false
   let mut field_started = false
   let chars : Array[Char] = []
@@ -185,7 +185,7 @@ fn escape_field(field : String, config : CsvConfig) -> String {
   if !needs_quoting(field, config) {
     return field
   }
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_char(config.quote)
   for c in field.iter() {
     if c == config.quote {
@@ -202,7 +202,7 @@ fn escape_field(field : String, config : CsvConfig) -> String {
 ///|
 /// Write a single CSV row to a string.
 pub fn write_row(row : CsvRow, config : CsvConfig) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i in 0..<row.length() {
     if i > 0 {
       sb.write_char(config.delimiter)
@@ -215,7 +215,7 @@ pub fn write_row(row : CsvRow, config : CsvConfig) -> String {
 ///|
 /// Write multiple CSV rows to a string.
 pub fn write(rows : Array[CsvRow], config : CsvConfig) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i in 0..<rows.length() {
     if i > 0 {
       sb.write_string(config.line_terminator)
@@ -232,7 +232,7 @@ pub fn write_with_header(
   rows : Array[CsvRow],
   config : CsvConfig,
 ) -> String {
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   sb.write_string(write_row(header, config))
   for i in 0..<rows.length() {
     sb.write_string(config.line_terminator)

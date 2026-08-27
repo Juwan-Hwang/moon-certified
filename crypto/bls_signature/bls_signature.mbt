@@ -27,9 +27,10 @@
 ///|
 /// BLS12-381 scalar field order r
 /// r = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001
-pub let bls_order : @bigint.BigInt = match(@bigint.from_string(
-  "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
-)) {
+pub let bls_order : @bigint.BigInt = match
+  @bigint.from_string(
+    "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+  ) {
   Some(v) => v
   None => abort("FATAL: invalid BLS12-381 order")
 }
@@ -87,11 +88,7 @@ pub fn sign(sk : BlsPrivateKey, msg : String) -> BlsSignature {
 ///|
 /// Verify a BLS signature.
 /// Checks: e(σ, G2) == e(H(m), P)
-pub fn verify(
-  pk : BlsPublicKey,
-  msg : String,
-  sig : BlsSignature,
-) -> Bool {
+pub fn verify(pk : BlsPublicKey, msg : String, sig : BlsSignature) -> Bool {
   // e(σ, G2)
   let g2 = @pairing.g2_generator()
   let lhs = @pairing.pairing(sig.point, g2)
@@ -152,12 +149,14 @@ pub fn batch_verify(
 // Tests
 // ---------------------------------------------------------------------------
 
+///|
 test "bls: key generation produces valid keys" {
   let secret = @bigint.from_int_value(42)
   let (_, pk) = keygen(secret)
   assert_false(@pairing.g2_is_identity(pk.point))
 }
 
+///|
 test "bls: sign and verify single message" {
   let secret = @bigint.from_int_value(12345)
   let (sk, pk) = keygen(secret)
@@ -166,6 +165,7 @@ test "bls: sign and verify single message" {
   assert_true(verify(pk, msg, sig))
 }
 
+///|
 test "bls: verify rejects wrong message" {
   let secret = @bigint.from_int_value(999)
   let (sk, pk) = keygen(secret)
@@ -173,6 +173,7 @@ test "bls: verify rejects wrong message" {
   assert_false(verify(pk, "tampered message", sig))
 }
 
+///|
 test "bls: verify rejects wrong public key" {
   let secret1 = @bigint.from_int_value(111)
   let secret2 = @bigint.from_int_value(222)
@@ -182,6 +183,7 @@ test "bls: verify rejects wrong public key" {
   assert_false(verify(pk2, "test message", sig))
 }
 
+///|
 test "bls: aggregate signature verification" {
   let secret1 = @bigint.from_int_value(100)
   let secret2 = @bigint.from_int_value(200)
@@ -195,6 +197,7 @@ test "bls: aggregate signature verification" {
   assert_true(verify_aggregate([pk1, pk2], [msg1, msg2], agg_sig))
 }
 
+///|
 test "bls: batch verify" {
   let secret1 = @bigint.from_int_value(10)
   let secret2 = @bigint.from_int_value(20)
@@ -205,6 +208,7 @@ test "bls: batch verify" {
   assert_true(batch_verify([pk1, pk2], ["msg1", "msg2"], [sig1, sig2]))
 }
 
+///|
 test "bls: batch verify detects tampered signature" {
   let secret1 = @bigint.from_int_value(10)
   let secret2 = @bigint.from_int_value(20)
@@ -216,6 +220,7 @@ test "bls: batch verify detects tampered signature" {
   assert_false(batch_verify([pk1, pk2], ["msg1", "msg2"], [sig2, sig2]))
 }
 
+///|
 test "bls: hash-to-curve output is on E and in the r-order subgroup" {
   // RFC 9380: the hashed point must lie on y² = x³ + 4 and satisfy [r]P = O.
   let p = hash_to_g1("hash-to-curve subgroup test")
@@ -225,6 +230,7 @@ test "bls: hash-to-curve output is on E and in the r-order subgroup" {
   assert_true(@pairing.g1_is_identity(@pairing.g1_scalar_mul(bls_order, p)))
 }
 
+///|
 test "bls: hash-to-curve is deterministic and injective on distinct inputs" {
   let p1 = hash_to_g1("same message")
   let p2 = hash_to_g1("same message")

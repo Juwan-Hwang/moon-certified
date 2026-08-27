@@ -459,8 +459,6 @@ fn MassTree::mass_check_subtree(
 /// occupancy bounds, and `size` matching the actual number of stored
 /// pairs. Runs in O(n); intended for property testing and debugging.
 pub fn MassTree::verify_invariants(self : MassTree) -> Bool {
-  self.mass_check_subtree(self.root, self.depth) && self.mass_count_entries(
-    self.root,
-    self.depth,
-  ) == self.size
+  self.mass_check_subtree(self.root, self.depth) &&
+  self.mass_count_entries(self.root, self.depth) == self.size
 }

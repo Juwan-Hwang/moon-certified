@@ -6,11 +6,10 @@
 ///|
 /// BLS12-381 base field prime p (381 bits)
 /// p = 0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab
-pub let bls_p : @bigint.BigInt = match(
+pub let bls_p : @bigint.BigInt = match
   @bigint.from_string(
     "0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab",
-  ),
-) {
+  ) {
   Some(v) => v
   None => abort("FATAL: invalid BLS12-381 prime p")
 }
@@ -18,11 +17,10 @@ pub let bls_p : @bigint.BigInt = match(
 ///|
 /// BLS12-381 scalar field order r (255 bits)
 /// r = 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001
-pub let bls_r : @bigint.BigInt = match(
+pub let bls_r : @bigint.BigInt = match
   @bigint.from_string(
     "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
-  ),
-) {
+  ) {
   Some(v) => v
   None => abort("FATAL: invalid BLS12-381 order r")
 }

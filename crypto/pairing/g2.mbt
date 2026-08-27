@@ -15,15 +15,17 @@ pub fn g2_b() -> Fp2 {
 /// G2 generator x-coordinate (c0, c1) in Fp2 (BLS12-381 standard, EIP-2537).
 pub fn g2_gx() -> Fp2 {
   {
-    c0: match(@bigint.from_string(
-      "0x024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8",
-    )) {
+    c0: match
+      @bigint.from_string(
+        "0x024aa2b2f08f0a91260805272dc51051c6e47ad4fa403b02b4510b647ae3d1770bac0326a805bbefd48056c8c121bdb8",
+      ) {
       Some(v) => v
       None => abort("FATAL: invalid G2 generator x.c0")
     },
-    c1: match(@bigint.from_string(
-      "0x13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e",
-    )) {
+    c1: match
+      @bigint.from_string(
+        "0x13e02b6052719f607dacd3a088274f65596bd0d09920b61ab5da61bbdc7f5049334cf11213945d57e5ac7d055d042b7e",
+      ) {
       Some(v) => v
       None => abort("FATAL: invalid G2 generator x.c1")
     },
@@ -34,15 +36,17 @@ pub fn g2_gx() -> Fp2 {
 /// G2 generator y-coordinate (c0, c1) in Fp2 (BLS12-381 standard, EIP-2537).
 pub fn g2_gy() -> Fp2 {
   {
-    c0: match(@bigint.from_string(
-      "0x0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801",
-    )) {
+    c0: match
+      @bigint.from_string(
+        "0x0ce5d527727d6e118cc9cdc6da2e351aadfd9baa8cbdd3a76d429a695160d12c923ac9cc3baca289e193548608b82801",
+      ) {
       Some(v) => v
       None => abort("FATAL: invalid G2 generator y.c0")
     },
-    c1: match(@bigint.from_string(
-      "0x0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be",
-    )) {
+    c1: match
+      @bigint.from_string(
+        "0x0606c4a02ea734cc32acd2b02bc28b99cb3e287e85a763af267492ab572e99ab3f370d275cec1da1aaa9075ff05f79be",
+      ) {
       Some(v) => v
       None => abort("FATAL: invalid G2 generator y.c1")
     },

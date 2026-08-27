@@ -52,15 +52,13 @@ fn bp_parse_const(s : String, name : String) -> @bigint.BigInt {
 ///|
 /// Field prime of secp256k1.
 pub let bp_q : @bigint.BigInt = bp_parse_const(
-  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
-  "q",
+  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", "q",
 )
 
 ///|
 /// Group order of secp256k1.
 pub let bp_p : @bigint.BigInt = bp_parse_const(
-  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
-  "p",
+  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", "p",
 )
 
 ///|
@@ -103,11 +101,12 @@ fn bp_mul_mod(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
 
 ///|
 fn bp_inv(a : @bigint.BigInt) -> @bigint.BigInt {
-  match @bigint.mod_pow(
-    a,
-    @bigint.sub(bp_order(), @bigint.from_int_value(2)),
-    bp_order(),
-  ) {
+  match
+    @bigint.mod_pow(
+      a,
+      @bigint.sub(bp_order(), @bigint.from_int_value(2)),
+      bp_order(),
+    ) {
     Some(v) => v
     None => @bigint.zero()
   }
@@ -135,11 +134,12 @@ fn bp_field_sub(a : @bigint.BigInt, b : @bigint.BigInt) -> @bigint.BigInt {
 
 ///|
 fn bp_field_inv(a : @bigint.BigInt) -> @bigint.BigInt {
-  match @bigint.mod_pow(
-    a,
-    @bigint.sub(bp_field_q(), @bigint.from_int_value(2)),
-    bp_field_q(),
-  ) {
+  match
+    @bigint.mod_pow(
+      a,
+      @bigint.sub(bp_field_q(), @bigint.from_int_value(2)),
+      bp_field_q(),
+    ) {
     Some(v) => v
     None => @bigint.zero()
   }
@@ -154,11 +154,7 @@ pub struct BpPoint {
 
 ///|
 fn bp_infinity() -> BpPoint {
-  {
-    x: @bigint.one(),
-    y: @bigint.one(),
-    z: @bigint.zero(),
-  }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
 }
 
 ///|
@@ -199,14 +195,8 @@ fn bp_add(a : BpPoint, b : BpPoint) -> BpPoint {
   let two = @bigint.from_int_value(2)
   let u1 = bp_field_mul(a.x, bp_field_mul(b.z, b.z))
   let u2 = bp_field_mul(b.x, bp_field_mul(a.z, a.z))
-  let s1 = bp_field_mul(
-    a.y,
-    bp_field_mul(b.z, bp_field_mul(b.z, b.z)),
-  )
-  let s2 = bp_field_mul(
-    b.y,
-    bp_field_mul(a.z, bp_field_mul(a.z, a.z)),
-  )
+  let s1 = bp_field_mul(a.y, bp_field_mul(b.z, bp_field_mul(b.z, b.z)))
+  let s2 = bp_field_mul(b.y, bp_field_mul(a.z, bp_field_mul(a.z, a.z)))
   if @bigint.compare(u1, u2) == 0 {
     if @bigint.compare(s1, s2) == 0 {
       return bp_double(a)
@@ -311,11 +301,10 @@ fn bp_bigint_to_32(b : @bigint.BigInt) -> Bytes {
 fn bp_point_compress(pt : BpPoint) -> Bytes? {
   match bp_to_affine(pt) {
     Some((x, y)) => {
-      let odd =
-        match @bigint.divmod(y, @bigint.from_int_value(2)) {
-          Some((_, rr)) => @bigint.compare(rr, @bigint.zero()) != 0
-          None => false
-        }
+      let odd = match @bigint.divmod(y, @bigint.from_int_value(2)) {
+        Some((_, rr)) => @bigint.compare(rr, @bigint.zero()) != 0
+        None => false
+      }
       let arr : Array[Byte] = [if odd { b'\x03' } else { b'\x02' }]
       let xb = bp_bigint_to_32(x)
       for i = 0; i < 32; i = i + 1 {
@@ -344,7 +333,8 @@ fn bp_point_decompress(data : Bytes) -> BpPoint? {
   let seven = @bigint.from_int_value(7)
   let four = @bigint.from_int_value(4)
   let y2 = bp_field_add(bp_field_mul(bp_field_mul(x, x), x), seven)
-  let exp = match @bigint.divmod(@bigint.add(bp_field_q(), @bigint.one()), four) {
+  let exp = match
+    @bigint.divmod(@bigint.add(bp_field_q(), @bigint.one()), four) {
     Some((qq, _)) => qq
     None => return None
   }
@@ -355,11 +345,10 @@ fn bp_point_decompress(data : Bytes) -> BpPoint? {
   if @bigint.compare(bp_field_mul(y, y), y2) != 0 {
     return None
   }
-  let y_is_odd =
-    match @bigint.divmod(y, @bigint.from_int_value(2)) {
-      Some((_, rr)) => @bigint.compare(rr, @bigint.zero()) != 0
-      None => false
-    }
+  let y_is_odd = match @bigint.divmod(y, @bigint.from_int_value(2)) {
+    Some((_, rr)) => @bigint.compare(rr, @bigint.zero()) != 0
+    None => false
+  }
   let want_odd = prefix == 3
   let y_final = if y_is_odd == want_odd {
     y
@@ -373,12 +362,10 @@ fn bp_point_decompress(data : Bytes) -> BpPoint? {
 fn bp_base_g() -> BpPoint {
   {
     x: bp_parse_const(
-      "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798",
-      "Gx",
+      "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798", "Gx",
     ),
     y: bp_parse_const(
-      "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8",
-      "Gy",
+      "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8", "Gy",
     ),
     z: @bigint.one(),
   }
@@ -399,12 +386,14 @@ fn bp_hash_to_point(label : Bytes, index : Int) -> BpPoint {
     buf.push((index & 0xFF).to_byte())
     buf.push(((counter >> 8) & 0xFF).to_byte())
     buf.push((counter & 0xFF).to_byte())
-    let cand = bp_field_mod(bp_bytes_to_bigint(@sha256.sha256(Bytes::from_array(buf))))
+    let cand = bp_field_mod(
+      bp_bytes_to_bigint(@sha256.sha256(Bytes::from_array(buf))),
+    )
     let seven = @bigint.from_int_value(7)
     let four = @bigint.from_int_value(4)
     let y2 = bp_field_add(bp_field_mul(bp_field_mul(cand, cand), cand), seven)
     match @bigint.divmod(@bigint.add(bp_field_q(), @bigint.one()), four) {
-      Some((exp, _)) => {
+      Some((exp, _)) =>
         match @bigint.mod_pow(y2, exp, bp_field_q()) {
           Some(y) =>
             if @bigint.compare(bp_field_mul(y, y), y2) == 0 {
@@ -412,7 +401,6 @@ fn bp_hash_to_point(label : Bytes, index : Int) -> BpPoint {
             }
           None => ()
         }
-      }
       None => ()
     }
     counter = counter + 1
@@ -491,10 +479,7 @@ fn BpTranscript::append(self : BpTranscript, data : Bytes) -> Unit {
 }
 
 ///|
-fn BpTranscript::append_point(
-  self : BpTranscript,
-  pt : BpPoint,
-) -> Unit raise {
+fn BpTranscript::append_point(self : BpTranscript, pt : BpPoint) -> Unit raise {
   match bp_point_compress(pt) {
     Some(enc) => self.append(enc)
     None => fail("bulletproofs: cannot serialize point")
@@ -530,10 +515,7 @@ fn bp_vec_inner(
 }
 
 ///|
-fn bp_msm(
-  scalars : Array[@bigint.BigInt],
-  points : Array[BpPoint],
-) -> BpPoint {
+fn bp_msm(scalars : Array[@bigint.BigInt], points : Array[BpPoint]) -> BpPoint {
   let mut acc = bp_infinity()
   for i = 0; i < scalars.length(); i = i + 1 {
     if !@bigint.is_zero(scalars[i]) {
@@ -699,12 +681,7 @@ pub fn prove_range(
   for i = 0; i < n; i = i + 1 {
     l0.push(bp_sub_mod(a_l[i], z))
     let ar_z = bp_add_mod(a_r[i], z)
-    r0.push(
-      bp_add_mod(
-        bp_mul_mod(y_vec[i], ar_z),
-        bp_mul_mod(z2, two_vec[i]),
-      ),
-    )
+    r0.push(bp_add_mod(bp_mul_mod(y_vec[i], ar_z), bp_mul_mod(z2, two_vec[i])))
     r1.push(bp_mul_mod(y_vec[i], s_r[i]))
   }
   let t0 = bp_vec_inner(l0, r0)
@@ -712,14 +689,8 @@ pub fn prove_range(
   let t2 = bp_vec_inner(l1, r1)
   let tau1 = bp_rand_scalar(rng)
   let tau2 = bp_rand_scalar(rng)
-  let t1_pt = bp_add(
-    bp_scalar_mul(t1, key.g),
-    bp_scalar_mul(tau1, key.h),
-  )
-  let t2_pt = bp_add(
-    bp_scalar_mul(t2, key.g),
-    bp_scalar_mul(tau2, key.h),
-  )
+  let t1_pt = bp_add(bp_scalar_mul(t1, key.g), bp_scalar_mul(tau1, key.h))
+  let t2_pt = bp_add(bp_scalar_mul(t2, key.g), bp_scalar_mul(tau2, key.h))
   ts.append_point(t1_pt)
   ts.append_point(t2_pt)
   let x = ts.challenge()
@@ -788,19 +759,17 @@ pub fn prove_range(
     let new_b : Array[@bigint.BigInt] = []
     for i = 0; i < half; i = i + 1 {
       new_g.push(
-        bp_add(
-          bp_scalar_mul(u_inv, g_lo[i]),
-          bp_scalar_mul(u_ch, g_hi[i]),
-        ),
+        bp_add(bp_scalar_mul(u_inv, g_lo[i]), bp_scalar_mul(u_ch, g_hi[i])),
       )
       new_h.push(
-        bp_add(
-          bp_scalar_mul(u_ch, h_lo[i]),
-          bp_scalar_mul(u_inv, h_hi[i]),
-        ),
+        bp_add(bp_scalar_mul(u_ch, h_lo[i]), bp_scalar_mul(u_inv, h_hi[i])),
       )
-      new_a.push(bp_add_mod(bp_mul_mod(u_ch, a_lo[i]), bp_mul_mod(u_inv, a_hi[i])))
-      new_b.push(bp_add_mod(bp_mul_mod(u_inv, b_lo[i]), bp_mul_mod(u_ch, b_hi[i])))
+      new_a.push(
+        bp_add_mod(bp_mul_mod(u_ch, a_lo[i]), bp_mul_mod(u_inv, a_hi[i])),
+      )
+      new_b.push(
+        bp_add_mod(bp_mul_mod(u_inv, b_lo[i]), bp_mul_mod(u_ch, b_hi[i])),
+      )
     }
     gvec = new_g
     hvec = new_h
@@ -945,9 +914,15 @@ pub fn verify_range(
   let t_hat = bp_take_scalar(data, 196)
   // Rebuild the transcript and challenges.
   let ts = BpTranscript::new("moon-certified-bulletproofs-v1")
-  ts.append_point(v_pt) catch { _ => return false }
-  ts.append_point(a_pt) catch { _ => return false }
-  ts.append_point(s_pt) catch { _ => return false }
+  ts.append_point(v_pt) catch {
+    _ => return false
+  }
+  ts.append_point(a_pt) catch {
+    _ => return false
+  }
+  ts.append_point(s_pt) catch {
+    _ => return false
+  }
   let y = ts.challenge()
   let z = ts.challenge()
   let n = BP_N
@@ -965,8 +940,12 @@ pub fn verify_range(
     ypow = bp_mul_mod(ypow, y)
     twopow = bp_mul_mod(twopow, bp_scalar_of_int(2))
   }
-  ts.append_point(t1_pt) catch { _ => return false }
-  ts.append_point(t2_pt) catch { _ => return false }
+  ts.append_point(t1_pt) catch {
+    _ => return false
+  }
+  ts.append_point(t2_pt) catch {
+    _ => return false
+  }
   let x = ts.challenge()
   let z2 = bp_mul_mod(z, z)
   let z3 = bp_mul_mod(z2, z)
@@ -979,19 +958,10 @@ pub fn verify_range(
     bp_mul_mod(z3, sum_two),
   )
   let x2 = bp_mul_mod(x, x)
-  let lhs = bp_add(
-    bp_scalar_mul(t_hat, key.g),
-    bp_scalar_mul(taux, key.h),
-  )
+  let lhs = bp_add(bp_scalar_mul(t_hat, key.g), bp_scalar_mul(taux, key.h))
   let rhs = bp_add(
-    bp_add(
-      bp_scalar_mul(z2, v_pt),
-      bp_scalar_mul(delta, key.g),
-    ),
-    bp_add(
-      bp_scalar_mul(x, t1_pt),
-      bp_scalar_mul(x2, t2_pt),
-    ),
+    bp_add(bp_scalar_mul(z2, v_pt), bp_scalar_mul(delta, key.g)),
+    bp_add(bp_scalar_mul(x, t1_pt), bp_scalar_mul(x2, t2_pt)),
   )
   if !bp_point_eq(lhs, rhs) {
     return false
@@ -1004,10 +974,7 @@ pub fn verify_range(
     h_prime.push(bp_scalar_mul(yinv_pow, key.h_vec[i]))
     yinv_pow = bp_mul_mod(yinv_pow, y_inv)
   }
-  let mut p_pt = bp_add(
-    a_pt,
-    bp_scalar_mul(x, s_pt),
-  )
+  let mut p_pt = bp_add(a_pt, bp_scalar_mul(x, s_pt))
   p_pt = bp_add(p_pt, bp_neg(bp_scalar_mul(mu, key.h)))
   // − z · Σ G_i + <z*y^n + z^2*2^n, h'>
   let mut g_sum = bp_infinity()
@@ -1016,10 +983,7 @@ pub fn verify_range(
   }
   p_pt = bp_add(p_pt, bp_neg(bp_scalar_mul(z, g_sum)))
   for i = 0; i < n; i = i + 1 {
-    let coef = bp_add_mod(
-      bp_mul_mod(z, y_vec[i]),
-      bp_mul_mod(z2, two_vec[i]),
-    )
+    let coef = bp_add_mod(bp_mul_mod(z, y_vec[i]), bp_mul_mod(z2, two_vec[i]))
     p_pt = bp_add(p_pt, bp_scalar_mul(coef, h_prime[i]))
   }
   // The inner-product argument proves against P + t̂·U.
@@ -1039,8 +1003,12 @@ pub fn verify_range(
       Some(pt) => pt
       None => return false
     }
-    ts.append_point(l_pt) catch { _ => return false }
-    ts.append_point(r_pt) catch { _ => return false }
+    ts.append_point(l_pt) catch {
+      _ => return false
+    }
+    ts.append_point(r_pt) catch {
+      _ => return false
+    }
     let u_ch = ts.challenge()
     let u_inv = bp_inv(u_ch)
     let u_sq = bp_mul_mod(u_ch, u_ch)
@@ -1076,10 +1044,7 @@ pub fn verify_range(
   let b_final = bp_take_scalar(data, off + 32)
   // Final relation: P_acc == a·G_f + b·H_f + a·b·U
   let expected = bp_add(
-    bp_add(
-      bp_scalar_mul(a_final, gvec[0]),
-      bp_scalar_mul(b_final, hvec[0]),
-    ),
+    bp_add(bp_scalar_mul(a_final, gvec[0]), bp_scalar_mul(b_final, hvec[0])),
     bp_scalar_mul(bp_mul_mod(a_final, b_final), key.u),
   )
   bp_point_eq(p_acc, expected)

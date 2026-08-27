@@ -186,7 +186,10 @@ test "counted_btree_delete_full_cycle" {
       assert_eq(t.verify_invariants(), true)
       if remaining > 0 {
         assert_eq(unwrap_int(t.select(0)), t.to_array()[0].0)
-        assert_eq(unwrap_int(t.select(remaining - 1)), t.to_array()[remaining - 1].0)
+        assert_eq(
+          unwrap_int(t.select(remaining - 1)),
+          t.to_array()[remaining - 1].0,
+        )
       }
     }
   }

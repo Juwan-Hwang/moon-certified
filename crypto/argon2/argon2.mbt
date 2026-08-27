@@ -786,7 +786,7 @@ pub fn hash_hex(
   let hex_arr : Array[Char] = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f',
   ]
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < h.length(); i = i + 1 {
     let val = h[i].to_int()
     buf.write_char(hex_arr[(val >> 4) & 0xF])

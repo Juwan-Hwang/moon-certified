@@ -111,7 +111,7 @@ pub fn Fst::keys(self : Fst) -> Array[String] {
     result : Array[String],
   ) -> Unit {
     if self.states[state].is_final {
-      let sb = StringBuilder::new()
+      let sb = StringBuilder()
       for c in path {
         sb.write_char(c)
       }

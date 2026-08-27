@@ -30,7 +30,7 @@ test "shamir_split_reconstruct_thresholds" {
     // A disjoint t-share subset too.
     let subset2 : Array[ShamirShare] = []
     for i = 0; i < t; i = i + 1 {
-      subset2.push(shares[(i * 2) % n])
+      subset2.push(shares[i * 2 % n])
     }
     assert_eq(shamir_reconstruct(subset2), secret)
   }
@@ -63,9 +63,7 @@ test "shamir_invalid_params_rejected" {
   assert_eq(r1, None)
   let r2 = Some(shamir_split(5, 3, 0, mpc_seed(5))) catch { _ => None }
   assert_eq(r2, None)
-  let r3 = Some(shamir_split(MPC_PRIME, 3, 2, mpc_seed(6))) catch {
-    _ => None
-  }
+  let r3 = Some(shamir_split(MPC_PRIME, 3, 2, mpc_seed(6))) catch { _ => None }
   assert_eq(r3, None)
 }
 
@@ -84,7 +82,12 @@ test "mpc_add_is_linear" {
 // combination of local products, not a·b. The BGW degree-reduction
 // must now produce a correct degree-(t-1) sharing of the product.
 test "mpc_secure_mul_correctness" {
-  let cases = [(6, 9, 3, 2), (42, 7, 5, 3), (2147483646, 2, 3, 2), (0, 12345, 5, 3)]
+  let cases = [
+    (6, 9, 3, 2),
+    (42, 7, 5, 3),
+    (2147483646, 2, 3, 2),
+    (0, 12345, 5, 3),
+  ]
   for c in cases {
     let a = c.0
     let b = c.1

@@ -63,7 +63,7 @@ test "kyber: NTT multiplication equals schoolbook negacyclic product" {
   for i = 0; i < 256; i = i + 1 {
     for j = 0; j < 256; j = j + 1 {
       let k = i + j
-      let coef = (f[i] * g[j]) % 3329
+      let coef = f[i] * g[j] % 3329
       if k < 256 {
         want[k] = want[k] + coef
       } else {
@@ -111,7 +111,7 @@ test "kyber: K-PKE encrypt/decrypt round-trip (white-box)" {
   let (s_hat, t_hat, rho) = kpke_keygen(params, d)
   let m_bits = Array::make(32, b'\x00')
   for i = 0; i < 32; i = i + 1 {
-    m_bits[i] = ((i * 37) % 256).to_byte()
+    m_bits[i] = (i * 37 % 256).to_byte()
   }
   let r_seed = @sha3.shake256(Bytes::from_array([b'\x02']), 32)
   let (u, v) = kpke_encrypt(params, t_hat, rho, m_bits, r_seed)

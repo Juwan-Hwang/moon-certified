@@ -244,8 +244,8 @@ The historical breaking changes and their migrations are documented in
 
 ## 4. Migration Guide
 
-This project is at version `0.1.0` and has not been formally released prior to
-this version. There are no previous versions to migrate from.
+This project is at version `0.1.0`, its first formal release. There are no
+previous versions to migrate from.
 
 When breaking changes occur in future versions, migration guides will be added
 here with concrete before/after code snippets, rationale, and replacement API
@@ -442,7 +442,7 @@ and Reed-Solomon round-trip/error-correction paths.
 ## 7. Testing Guarantee
 
 `moon-certified` backs its stability claims with a multi-layered test strategy.
-At version `0.1.0` the suite comprises **3968 tests**. The guarantees below
+At version `0.1.0` the suite comprises **6432 tests**. The guarantees below
 apply to every package, with tier-specific additions.
 
 ### 7.1 Functional tests
@@ -530,14 +530,14 @@ A green CI is a prerequisite for any release.
 
 | Version | Date | Packages | Tests | Verified | Theme |
 |---------|------|----------|-------|----------|-------|
-| 0.1.0 | 2026-07-29 | 337 | 3968 | 9/9 | Initial development release. 337 packages, 9 verified (5 full + 4 partial). Not yet formally released. |
+| 0.1.0 | 2026-08-27 | 337 | 6432 | 9/9 | First official release. 337 packages, 9 verified (5 full + 4 partial), 17 packages pass `moon prove`; zero compiler warnings; spec-conformant post-quantum crypto (FIPS 203/204), HPKE, TLS 1.3. |
 
 Notes:
 - "Verified" counts packages with `"proof-enabled": true` passing `moon prove`.
   The 9 consist of 5 full-correctness proofs and 4 partial proofs.
 - Package counts exclude the `test/` and `benchmarks/` infrastructure packages
   and the `.mooncakes/` dependency directory.
-- This is the only version; the project has not been formally released prior to 0.1.0.
+- 0.1.0 is the first formal release of the project.
 
 ---
 

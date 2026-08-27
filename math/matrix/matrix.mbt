@@ -28,7 +28,9 @@
 ///
 /// The diagonal is `1`, every off-diagonal entry is `0`. For `n <= 0` an
 /// empty array is returned.
-pub fn identity_int(n : Int) -> FixedArray[Int] where {
+pub fn identity_int(
+  n : Int,
+) -> FixedArray[Int] where {
   proof_require: 0 <= n,
   proof_ensure: result => identity_matrix_ok(result, n),
 } {
@@ -60,6 +62,33 @@ pub fn identity_int64(n : Int) -> FixedArray[Int64] {
 // ---------------------------------------------------------------------------
 
 ///|
+/// Nonlinear arithmetic lemma: for 0 <= i < n, 0 <= j < m and positive
+/// dimensions, both transpose index expressions stay below n * m.
+///
+/// **This is an AXIOM, not a proof.** It involves multiplying two
+/// unknown variables (j * n, i * m), which Z3's default linear
+/// arithmetic solver cannot discharge automatically. The facts are
+/// mathematically true: j*n + i <= (m-1)*n + (n-1) = n*m - 1 and
+/// i*m + j <= (n-1)*m + (m-1) = n*m - 1. Declared `proof_axiomatized`
+/// following the same honest-axiom pattern as `dijkstra::graph_index_bound`,
+/// so the surrounding length postcondition remains machine-checked.
+pub fn transpose_index_bound(
+  i : Int,
+  j : Int,
+  n : Int,
+  m : Int,
+) -> Unit where {
+  proof_axiomatized: true,
+  proof_require: 0 <= i,
+  proof_require: i < n,
+  proof_require: 0 <= j,
+  proof_require: j < m,
+  proof_ensure: j * n + i < n * m && i * m + j < n * m,
+} {
+  // proof_axiomatized: contract assumed without proof.
+}
+
+///|
 /// Transpose an `n x m` `Int` matrix into an `m x n` matrix.
 ///
 /// Element `(i, j)` of the input becomes element `(j, i)` of the output.
@@ -76,10 +105,14 @@ pub fn transpose_int(
   let r = FixedArray::make(n * m, 0)
   for i = 0; i < n; {
     for j = 0; j < m; {
+      transpose_index_bound(i, j, n, m)
       r[j * n + i] = mat[i * m + j]
       continue j + 1
     } nobreak {
       ()
+    } where {
+      proof_invariant: 0 <= j,
+      proof_invariant: j <= m,
     }
     continue i + 1
   } nobreak {
@@ -914,5 +947,3 @@ test "determinant_int64: input not modified" {
   assert_eq(m[2], 6L)
   assert_eq(m[3], 3L)
 }
-
-

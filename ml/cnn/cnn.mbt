@@ -301,9 +301,7 @@ fn _sample_cnn_layers() -> CnnModel {
       { kernels: [[[[0.0]]]], biases: [0.0], stride: 1, padding: 0 },
     ],
     pool_layers: [{ pool_size: 2, stride: 2 }],
-    dense_layers: [
-      { weights: [[0.0]], biases: [0.0], use_relu: true },
-    ],
+    dense_layers: [{ weights: [[0.0]], biases: [0.0], use_relu: true }],
     use_softmax: true,
   }
 }

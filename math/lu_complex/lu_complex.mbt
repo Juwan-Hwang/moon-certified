@@ -163,10 +163,7 @@ pub fn complex_lu_decompose(a : Array[Array[Complex]]) -> ComplexLU {
 ///
 /// Returns None if U is singular (a zero diagonal entry), in which case
 /// the system has no unique solution.
-pub fn complex_lu_solve(
-  lu : ComplexLU,
-  b : Array[Complex],
-) -> Array[Complex]? {
+pub fn complex_lu_solve(lu : ComplexLU, b : Array[Complex]) -> Array[Complex]? {
   let n = lu.piv.length()
   // Apply permutation
   let pb = Array::make(n, { re: 0.0, im: 0.0 })

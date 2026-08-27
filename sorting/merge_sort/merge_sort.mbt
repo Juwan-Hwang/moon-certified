@@ -277,7 +277,9 @@ test "merge_sort: stability" {
 
 ///|
 /// For n <= 1, sorted_asc holds vacuously (no adjacent pair exists).
-pub fn trivial_sorted(_xs : FixedArray[Int]) -> Unit where {
+pub fn trivial_sorted(
+  _xs : FixedArray[Int],
+) -> Unit where {
   proof_require: _xs.length() <= 1,
   proof_ensure: sorted_asc(_xs),
 } {

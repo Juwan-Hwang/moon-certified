@@ -108,7 +108,7 @@ fn indent_of(line : String) -> Int {
 fn str_substring(s : String, start : Int, end_ : Int) -> String {
   let chars = s.to_array()
   let e = if end_ > chars.length() { chars.length() } else { end_ }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = start; i < e; i = i + 1 {
     buf.write_char(chars[i])
   }
@@ -576,7 +576,7 @@ fn parse_scalar(s : String) -> YamlValue {
 ///|
 /// Serialize a YamlValue to a YAML string.
 pub fn dump_yaml(v : YamlValue) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   dump_value(v, 0, buf)
   buf.to_string()
 }

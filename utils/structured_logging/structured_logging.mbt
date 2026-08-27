@@ -130,7 +130,7 @@ fn format_text(
   msg : String,
   fields : Array[LogField],
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write(level_to_string(level))
   buf.write(" | ")
   buf.write(msg)
@@ -150,7 +150,7 @@ fn format_json(
   msg : String,
   fields : Array[LogField],
 ) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   buf.write("{\"level\":\"")
   buf.write(level_to_string(level).trim())
   buf.write("\",\"message\":\"")
@@ -174,7 +174,7 @@ fn format_json(
 /// `"`, `\`, `\b` (U+0008), `\f` (U+000C), `\n`, `\r`, `\t`,
 /// and control characters U+0000–U+001F as `\u00XX`.
 fn escape_json(s : String) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for ch in s {
     let cp = ch.to_int()
     match cp {

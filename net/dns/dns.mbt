@@ -167,7 +167,7 @@ pub fn parse_name(data : Bytes, offset : Int) -> (String, Int) {
     } else {
       // Regular label
       pos = pos + 1
-      let label = StringBuilder::new()
+      let label = StringBuilder()
       for i = 0; i < len && pos < data.length(); i = i + 1 {
         label.write_char((data[pos].to_int() & 0xFF).unsafe_to_char())
         pos = pos + 1
@@ -176,7 +176,7 @@ pub fn parse_name(data : Bytes, offset : Int) -> (String, Int) {
     }
   }
   // Join labels with "."
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i in 0..<labels.length() {
     if i > 0 {
       sb.write_char('.')

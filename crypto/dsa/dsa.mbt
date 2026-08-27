@@ -1,3 +1,4 @@
+///|
 /// Digital Signature Algorithm (DSA) — FIPS 186-4
 ///
 /// DSA is a federal standard for digital signatures based on the discrete
@@ -43,8 +44,7 @@ pub let dsa_p : @bigint.BigInt = parse_const(
 ///|
 /// DSA subgroup order q (256 bits, RFC 6979 A.2.2)
 pub let dsa_q : @bigint.BigInt = parse_const(
-  "0xF2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F",
-  "DSA order q",
+  "0xF2C3119374CE76C9356990B465374A17F23F9ED35089BD969F61C6DDE9998C1F", "DSA order q",
 )
 
 ///|
@@ -108,6 +108,7 @@ fn reduce_q(a : @bigint.BigInt) -> @bigint.BigInt {
 // BigInt <-> bytes conversion (big-endian)
 // ---------------------------------------------------------------------------
 
+///|
 fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   let result : Array[Byte] = Array::make(len, b'\x00')
   let mut temp = n
@@ -126,6 +127,7 @@ fn bigint_to_bytes_be(n : @bigint.BigInt, len : Int) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   let mut result = @bigint.zero()
   let base = @bigint.from_int_value(256)
@@ -138,6 +140,7 @@ fn bytes_to_bigint_be(data : Bytes) -> @bigint.BigInt {
   result
 }
 
+///|
 fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   let mut lo = 0
   let mut hi = 256
@@ -152,6 +155,7 @@ fn bigint_small_to_int(b : @bigint.BigInt) -> Int {
   lo - 1
 }
 
+///|
 fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   let result : Array[Byte] = []
   for i = 0; i < a.length(); i = i + 1 {
@@ -163,6 +167,7 @@ fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
   Bytes::from_array(result)
 }
 
+///|
 fn bytes_single(b : Byte) -> Bytes {
   Bytes::from_array([b])
 }
@@ -171,6 +176,7 @@ fn bytes_single(b : Byte) -> Bytes {
 // RFC 6979 deterministic nonce generation (same as ECDSA)
 // ---------------------------------------------------------------------------
 
+///|
 fn bits2int_trunc(data : Bytes, qlen : Int) -> @bigint.BigInt {
   let blen = data.length() * 8
   let val = bytes_to_bigint_be(data)
@@ -181,6 +187,7 @@ fn bits2int_trunc(data : Bytes, qlen : Int) -> @bigint.BigInt {
   }
 }
 
+///|
 fn int2octets(x : @bigint.BigInt, size : Int) -> Bytes {
   let z = match @bigint.divmod(x, dsa_q) {
     Some((_, r)) => r
@@ -189,6 +196,7 @@ fn int2octets(x : @bigint.BigInt, size : Int) -> Bytes {
   bigint_to_bytes_be(z, size)
 }
 
+///|
 fn bits2octets(data : Bytes, size : Int) -> Bytes {
   let z1 = bits2int_trunc(data, size * 8)
   let z2 = match @bigint.divmod(z1, dsa_q) {
@@ -198,6 +206,7 @@ fn bits2octets(data : Bytes, size : Int) -> Bytes {
   int2octets(z2, size)
 }
 
+///|
 fn rfc6979_generate_k(
   x : @bigint.BigInt,
   hash : Bytes,
@@ -318,7 +327,7 @@ pub fn dsa_keygen(secret : @bigint.BigInt) -> (DsaSecretKey, DsaPublicKey) {
     abort("DSA: secret key must not be 0 mod q")
   }
   let y = mod_pow_p(dsa_g, x)
-  (DsaSecretKey::{ x }, DsaPublicKey::{ y })
+  (DsaSecretKey::{ x, }, DsaPublicKey::{ y, })
 }
 
 ///|
@@ -332,11 +341,7 @@ pub fn dsa_sign(sk : DsaSecretKey, message : Bytes) -> DsaSignature {
   // Truncate e to qlen bits
   let qlen = 256
   let elen = hash.length() * 8
-  let e_trunc = if elen > qlen {
-    @bigint.shr(e, elen - qlen)
-  } else {
-    e
-  }
+  let e_trunc = if elen > qlen { @bigint.shr(e, elen - qlen) } else { e }
   // Generate deterministic k
   let k = rfc6979_generate_k(sk.x, hash, 32)
   // r = (g^k mod p) mod q
@@ -376,11 +381,7 @@ pub fn dsa_sign_with_nonce(
   let e = bytes_to_bigint_be(message_hash)
   let qlen = 256
   let elen = message_hash.length() * 8
-  let e_trunc = if elen > qlen {
-    @bigint.shr(e, elen - qlen)
-  } else {
-    e
-  }
+  let e_trunc = if elen > qlen { @bigint.shr(e, elen - qlen) } else { e }
   let r = reduce_q(mod_pow_p(dsa_g, k_mod))
   if @bigint.equal(r, @bigint.zero()) {
     abort("DSA: r must not be 0")
@@ -420,11 +421,7 @@ pub fn dsa_verify(
   let e = bytes_to_bigint_be(hash)
   let qlen = 256
   let elen = hash.length() * 8
-  let e_trunc = if elen > qlen {
-    @bigint.shr(e, elen - qlen)
-  } else {
-    e
-  }
+  let e_trunc = if elen > qlen { @bigint.shr(e, elen - qlen) } else { e }
   let w = mod_inv_q(sig.s)
   let u1 = mod_q(e_trunc, w)
   let u2 = mod_q(sig.r, w)

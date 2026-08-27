@@ -155,7 +155,7 @@ fn pow_mod_dsa(base : Int, exp : Int) -> Int {
 /// wasm32 `Int` product would overflow).
 fn mul_mod_q(a : Int, b : Int) -> Int {
   let q64 = MLDSA_Q.to_int64()
-  ((a.to_int64() * b.to_int64()) % q64).to_int()
+  (a.to_int64() * b.to_int64() % q64).to_int()
 }
 
 ///|
@@ -302,8 +302,7 @@ fn dsa_base_mul(f : Array[Int], g : Array[Int]) -> Array[Int] {
     let a1 = f[2 * i + 1]
     let b0 = g[2 * i]
     let b1 = g[2 * i + 1]
-    h[2 * i] =
-      (mul_mod_q(a0, b0) + mul_mod_q(mul_mod_q(a1, b1), gam)) % MLDSA_Q
+    h[2 * i] = (mul_mod_q(a0, b0) + mul_mod_q(mul_mod_q(a1, b1), gam)) % MLDSA_Q
     h[2 * i + 1] = (mul_mod_q(a0, b1) + mul_mod_q(a1, b0)) % MLDSA_Q
   }
   h
@@ -384,8 +383,7 @@ fn BitWriter::write(self : BitWriter, value : Int, bits : Int) -> Unit {
       self.buf.push(b'\x00')
     }
     if (v & 1) == 1 {
-      self.buf[byte_idx] =
-        (self.buf[byte_idx].to_int() | (1 << (self.pos % 8))).to_byte()
+      self.buf[byte_idx] = (self.buf[byte_idx].to_int() | (1 << (self.pos % 8))).to_byte()
     }
     self.pos = self.pos + 1
     v = v >> 1
@@ -523,12 +521,10 @@ fn use_hint(h : Int, r : Int, alpha : Int) -> Int {
     } else {
       r1 + 1
     }
+  } else if r1 - 1 < 0 {
+    m - 1
   } else {
-    if r1 - 1 < 0 {
-      m - 1
-    } else {
-      r1 - 1
-    }
+    r1 - 1
   }
 }
 
@@ -547,54 +543,79 @@ fn power2round(r : Int) -> (Int, Int) {
 
 ///|
 /// ExpandA matrix element: rejection sampling of uniform NTT-domain
-/// coefficients from SHAKE128(rho || s || i) (24-bit draws, keep < q).
+/// coefficients from the continuous SHAKE128(rho || s || i) stream
+/// (24-bit little-endian draws, keep < q).
 fn expand_a_elem(rho : Bytes, s : Int, i : Int) -> Array[Int] {
-  let input =
-    concat_arr_dsa(rho, [(s & 0xFF).to_byte(), ((s >> 8) & 0xFF).to_byte()])
-  let input2 =
-    concat_arr_dsa(input, [(i & 0xFF).to_byte(), ((i >> 8) & 0xFF).to_byte()])
+  let input = concat_arr_dsa(rho, [
+    (s & 0xFF).to_byte(),
+    ((s >> 8) & 0xFF).to_byte(),
+  ])
+  let input2 = concat_arr_dsa(input, [
+    (i & 0xFF).to_byte(),
+    ((i >> 8) & 0xFF).to_byte(),
+  ])
+  let mut stream = @sha3.shake128(input2, 3072)
   let a = Array::make(256, 0)
   let mut j = 0
-  let mut round = 0
+  let mut off = 0
   while j < 256 {
-    let src = if round == 0 {
-      input2
-    } else {
-      concat_arr_dsa(input2, [round.to_byte()])
+    // Exhausting the stream is astronomically unlikely (~839 bytes
+    // expected); the SHAKE output is prefix-stable, so a longer
+    // expansion of the same seed continues the stream exactly.
+    if off + 2 >= stream.length() {
+      stream = @sha3.shake128(input2, stream.length() * 2)
     }
-    let stream = @sha3.shake128(src, 3072)
-    let mut off = 0
-    while off + 2 < 3072 && j < 256 {
-      let c =
-        stream[off].to_int() |
-        (stream[off + 1].to_int() << 8) |
-        (stream[off + 2].to_int() << 16)
-      off = off + 3
-      if c < MLDSA_Q {
-        a[j] = c
-        j = j + 1
-      }
+    let c = stream[off].to_int() |
+      (stream[off + 1].to_int() << 8) |
+      (stream[off + 2].to_int() << 16)
+    off = off + 3
+    if c < MLDSA_Q {
+      a[j] = c
+      j = j + 1
     }
-    round = round + 1
   }
   a
 }
 
 ///|
-/// ExpandS element: value in [-eta, eta] from SHAKE256(rho' || s || i).
-/// For eta in {2, 4} the reference takes 3/4-bit groups mod (2*eta+1).
+/// ExpandS element: value in [-eta, eta] sampled from the
+/// SHAKE256(rho' || s || i) stream with FIPS 204 RejBoundedPolyUniform
+/// rejection sampling: each byte yields two 3-bit (eta=2) or 4-bit
+/// (eta=4) candidates, and candidates >= 2*eta+1 are rejected so that
+/// coefficients are exactly uniform over [-eta, eta].
 fn expand_s_elem(rho_prime : Bytes, eta : Int, s : Int, i : Int) -> Array[Int] {
-  let input =
-    concat_arr_dsa(rho_prime, [(s & 0xFF).to_byte(), ((s >> 8) & 0xFF).to_byte()])
-  let input2 =
-    concat_arr_dsa(input, [(i & 0xFF).to_byte(), ((i >> 8) & 0xFF).to_byte()])
-  let buf = @sha3.shake256(input2, 128)
+  let input = concat_arr_dsa(rho_prime, [
+    (s & 0xFF).to_byte(),
+    ((s >> 8) & 0xFF).to_byte(),
+  ])
+  let input2 = concat_arr_dsa(input, [
+    (i & 0xFF).to_byte(),
+    ((i >> 8) & 0xFF).to_byte(),
+  ])
+  let mut buf = bytes_to_arr_dsa(@sha3.shake256(input2, 1024))
+  let limit = 2 * eta + 1
   let f = Array::make(256, 0)
-  for x = 0; x < 256; x = x + 1 {
-    let bit_width = if eta == 2 { 3 } else { 4 }
-    let v = read_bits(bytes_to_arr_dsa(buf), x * bit_width, bit_width)
-    let r = if eta == 2 { v % 5 } else { v % 9 }
-    f[x] = mldsa_mod_q(r - eta)
+  let mut ctr = 0
+  let mut pos = 0
+  while ctr < 256 {
+    // Exhausting the buffer is astronomically unlikely (expected
+    // consumption is ~230 bytes); the SHAKE stream is prefix-stable,
+    // so a longer expansion of the same seed continues it exactly.
+    if pos >= buf.length() {
+      buf = bytes_to_arr_dsa(@sha3.shake256(input2, buf.length() * 4))
+    }
+    let b = buf[pos].to_int()
+    pos = pos + 1
+    let v0 = if eta == 2 { b & 0x07 } else { b & 0x0F }
+    let v1 = if eta == 2 { b >> 3 } else { b >> 4 }
+    if v0 < limit && ctr < 256 {
+      f[ctr] = mldsa_mod_q(eta - v0)
+      ctr = ctr + 1
+    }
+    if v1 < limit && ctr < 256 {
+      f[ctr] = mldsa_mod_q(eta - v1)
+      ctr = ctr + 1
+    }
   }
   f
 }
@@ -609,10 +630,10 @@ fn expand_mask_elem(
   i : Int,
 ) -> Array[Int] {
   let idx = kappa + i
-  let input = concat_arr_dsa(
-    rho_prime,
-    [(idx & 0xFF).to_byte(), ((idx >> 8) & 0xFF).to_byte()],
-  )
+  let input = concat_arr_dsa(rho_prime, [
+    (idx & 0xFF).to_byte(),
+    ((idx >> 8) & 0xFF).to_byte(),
+  ])
   let bits = if gamma1 == 131072 { 18 } else { 20 }
   let buf = @sha3.shake256(input, 32 * bits)
   let arr = bytes_to_arr_dsa(buf)
@@ -631,30 +652,29 @@ fn expand_mask_elem(
 ///|
 /// SampleInBall(c_tilde): polynomial with tau nonzero +-1 coefficients.
 fn sample_in_ball(c_tilde : Bytes, tau : Int) -> Array[Int] {
-  let h0 = @sha3.shake256(c_tilde, 136)
-  let mut signs = 0
-  for j = 0; j < 8; j = j + 1 {
-    signs = signs | (h0[j].to_int() << (8 * j))
-  }
+  let mut stream = @sha3.shake256(c_tilde, 136)
+  // Sign bits are the first 8 bytes read LSB-first. Bits are extracted
+  // directly from the byte array: packing them into a single Int would
+  // alias on 32-bit targets (wasm32) because tau can reach 60 > 32.
   let c = Array::make(256, 0)
   let mut pos = 8
-  let mut block = 0
-  let mut current = h0
   let start = 256 - tau
   let mut i = start
   while i < 256 {
     let mut b = -1
     while b < 0 || b > i {
-      if pos >= current.length() {
-        block = block + 1
-        current = @sha3.shake256(concat_arr_dsa(c_tilde, [block.to_byte()]), 136)
-        pos = 0
+      // Extending the stream is astronomically unlikely; the SHAKE
+      // output is prefix-stable, so a longer expansion of the same
+      // seed continues the stream exactly.
+      if pos >= stream.length() {
+        stream = @sha3.shake256(c_tilde, stream.length() * 2)
       }
-      b = current[pos].to_int()
+      b = stream[pos].to_int()
       pos = pos + 1
     }
     c[i] = c[b]
-    let sign_bit = (signs >> (i - start)) & 1
+    let bit_idx = i - start
+    let sign_bit = (stream[bit_idx / 8].to_int() >> (bit_idx % 8)) & 1
     c[b] = if sign_bit == 1 { MLDSA_Q - 1 } else { 1 }
     i = i + 1
   }
@@ -778,9 +798,7 @@ pub fn dilithium_sig_from_bytes(
   for j = 0; j < params.omega + params.k; j = j + 1 {
     h[j] = arr[h_off + j]
   }
-  {
-    Some({ c_tilde: Bytes::from_array(ct_arr), z, h })
-  }
+  Some({ c_tilde: Bytes::from_array(ct_arr), z, h })
 }
 
 // ---------------------------------------------------------------------------
@@ -870,9 +888,11 @@ fn mldsa_keygen_internal(
 // ---------------------------------------------------------------------------
 
 ///|
-fn compute_w(params : DsaParams, rho : Bytes, y : Array[Array[Int]]) -> Array[
-  Array[Int],
-] {
+fn compute_w(
+  params : DsaParams,
+  rho : Bytes,
+  y : Array[Array[Int]],
+) -> Array[Array[Int]] {
   let y_hat = Array::make(params.l, [])
   for i = 0; i < params.l; i = i + 1 {
     let c = Array::make(256, 0)
@@ -932,8 +952,7 @@ pub fn mldsa_debug_sign_attempt(
   let alpha = 2 * params.gamma2
   let beta = params.tau * params.eta
   let karr = Array::make(4, b'\x00')
-  let rho_pp =
-    @sha3.shake256(concat_arr_dsa(concat_dsa(sk.k0, mu), karr), 64)
+  let rho_pp = @sha3.shake256(concat_arr_dsa(concat_dsa(sk.k0, mu), karr), 64)
   let y = Array::make(params.l, [])
   for i = 0; i < params.l; i = i + 1 {
     y[i] = expand_mask_elem(rho_pp, params.gamma1, 0, i)
@@ -947,8 +966,7 @@ pub fn mldsa_debug_sign_attempt(
     }
     w1[i] = row
   }
-  let c_tilde =
-    @sha3.shake256(concat_dsa(mu, encode_w1(w1, params.gamma2)), 32)
+  let c_tilde = @sha3.shake256(concat_dsa(mu, encode_w1(w1, params.gamma2)), 32)
   let c_hat = sample_in_ball(c_tilde, params.tau)
   dsa_ntt(c_hat)
   let mut z_viol = 0
@@ -993,7 +1011,19 @@ pub fn mldsa_debug_sign_attempt(
       hint_count = hint_count + make_hint(mldsa_mod_q(-ct0[x]), w_cs2, alpha)
     }
   }
-  [z_viol, z_max, r0_viol, r0_max, hint_count, params.gamma1 - beta, params.gamma2 - beta, alpha, params.gamma2, params.k, params.l]
+  [
+    z_viol,
+    z_max,
+    r0_viol,
+    r0_max,
+    hint_count,
+    params.gamma1 - beta,
+    params.gamma2 - beta,
+    alpha,
+    params.gamma2,
+    params.k,
+    params.l,
+  ]
 }
 
 ///|
@@ -1004,7 +1034,10 @@ fn mldsa_sign_internal(
 ) -> DilithiumSignature {
   let params = sk.params
   let mu = @sha3.shake256(concat_dsa(sk.tr, m), 64)
-  let mut kappa = kappa0[0].to_int() | (kappa0[1].to_int() << 8) | (kappa0[2].to_int() << 16) | (kappa0[3].to_int() << 24)
+  let mut kappa = kappa0[0].to_int() |
+    (kappa0[1].to_int() << 8) |
+    (kappa0[2].to_int() << 16) |
+    (kappa0[3].to_int() << 24)
   let alpha = 2 * params.gamma2
   let beta = params.tau * params.eta
   let mut result : DilithiumSignature? = None
@@ -1017,8 +1050,7 @@ fn mldsa_sign_internal(
       ((kappa >> 24) & 0xFF).to_byte(),
     ]
     // rho'' = J(K || mu || IntToBytes(kappa), 64)
-    let rho_pp =
-      @sha3.shake256(concat_arr_dsa(concat_dsa(sk.k0, mu), karr), 64)
+    let rho_pp = @sha3.shake256(concat_arr_dsa(concat_dsa(sk.k0, mu), karr), 64)
     // y = ExpandMask(rho'', kappa), one polynomial per nonce offset.
     let y = Array::make(params.l, [])
     for i = 0; i < params.l; i = i + 1 {
@@ -1035,8 +1067,10 @@ fn mldsa_sign_internal(
       w1[i] = row
     }
     // c_tilde = H(mu || w1encode); c = SampleInBall(c_tilde).
-    let c_tilde =
-      @sha3.shake256(concat_dsa(mu, encode_w1(w1, params.gamma2)), 32)
+    let c_tilde = @sha3.shake256(
+      concat_dsa(mu, encode_w1(w1, params.gamma2)),
+      32,
+    )
     let c_hat = sample_in_ball(c_tilde, params.tau)
     dsa_ntt(c_hat)
     // z = y + c o s1 with norm check.
@@ -1094,7 +1128,11 @@ fn mldsa_sign_internal(
         i2 = i2 + 1
       }
       if !r0_bad && count <= params.omega {
-        result = Some({ c_tilde, z, h: pack_hint(h_mat, params.omega, params.k) })
+        result = Some({
+          c_tilde,
+          z,
+          h: pack_hint(h_mat, params.omega, params.k),
+        })
       }
     }
     kappa = kappa + 256
@@ -1102,14 +1140,13 @@ fn mldsa_sign_internal(
   }
   match result {
     Some(s) => s
-    None => {
+    None =>
       // Practically unreachable (rejection rate << 1); keep totality.
       {
         c_tilde: @sha3.shake256(mu, 32),
         z: Array::make(params.l, []),
         h: Array::make(params.omega + params.k, b'\x00'),
       }
-    }
   }
 }
 

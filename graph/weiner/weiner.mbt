@@ -39,7 +39,7 @@ pub fn weiner_all_pairs_shortest_path(
       head = head + 1
       if u < adj.length() {
         for v in adj[u] {
-          if v >= 0 && v < n && !(visited[v]) {
+          if v >= 0 && v < n && !visited[v] {
             visited[v] = true
             dist[src][v] = dist[src][u] + 1
             queue.push(v)

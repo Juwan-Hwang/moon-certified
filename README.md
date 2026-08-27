@@ -10,9 +10,15 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**0.1.0** — 340 个算法包 + 共享工具模块，`moon check` 0 errors，`moon test` 3968 tests 全部通过。形式化验证覆盖 24 个包（5 完整正确性证明 + 3 增强 + 16 部分），其余 313 个包依赖测试验证。
+**0.1.0**（首个正式发布版本，2026-08-27）— 337 个算法包 + 共享工具模块。发布时质量门槛：`moon check --deny-warn` 0 errors / 0 warnings，`moon test` **6432 个测试全部通过**，`moon fmt --check` 干净，`moon prove` **17 个包全部证明通过**（其中 9 个为 Verified tier）。
 
-> 本项目尚处于开发阶段，从未正式发布。0.1.0 反映当前开发状态。
+稳定性分层（详见 [docs/API_STABILITY.md](docs/API_STABILITY.md)）：
+
+| 层级 | 包数 | 说明 |
+|------|------|------|
+| Verified | 9 | `proof-enabled = true`，`moon prove`（Why3 + Z3）通过 |
+| Stable | 254 | 完整测试覆盖，主版本内 API 冻结 |
+| Experimental | 74 | 正确（测试全过）但 API 未冻结，小版本可能变更 |
 
 ### 功能概览
 
@@ -66,16 +72,16 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 | 🔶 增强验证 | array_sum | 非负性 + 有界求和 [n·lo, n·hi] + 均匀数组精确等式 n·val |
 | 🔶 增强验证 | gcd | 非负性 + 整除自反性 d|d + 零整除性 d|0 |
 | 🔶 增强验证 | fast_power | 非负性 + base≥1 时 result≥1 + base≥1 exp≥1 时 result≥base |
-| ⚠️ 部分验证 | dijkstra | 数组边界 + 结果长度，最短路径最优性未验证 |
+| ⚠️ 部分验证 | dijkstra | 数组边界 + 结果长度，最短路径最优性未验证（公理引理已诚实标注） |
 | ⚠️ 部分验证 | binary_heap | 索引边界 (parent/left/right child) |
 | ⚠️ 部分验证 | bitset | 容量非负 |
 | ⚠️ 部分验证 | union_find | self_parent 初始化正确性 |
-| ⚠️ 部分验证 | red_black_tree | empty() 返回空树、size() 非负 |
+| ⚠️ 部分验证 | red_black_tree | empty() 返回空树、size() 结构等值（缓存字段非负性由构造保证，不在证明范围） |
 | ⚠️ 部分验证 | kruskal | MST 边数 ≤ n-1 |
-| ⚠️ 部分验证 | topological_sort | 邻接矩阵索引边界 [0, n²) |
+| ⚠️ 部分验证 | topological_sort | edge_index 非负性（上界为非线性算术，由测试覆盖，未声明为已证） |
 | ⚠️ 部分验证 | kmp | LPS 数组长度 == pattern 长度 |
 | ⚠️ 部分验证 | combinatorics | 阶乘结果 ≥ 1 |
-| ⚠️ 部分验证 | matrix | identity_int 长度 n² + transpose_int 长度 n·m |
+| ⚠️ 部分验证 | matrix | identity_int 长度 n² + transpose_int 长度 n·m（索引边界使用诚实标注的公理引理） |
 | ⚠️ 部分验证 | insertion_sort | n≤1 时 sorted_asc vacuously true |
 | ⚠️ 部分验证 | merge_sort | n≤1 时 sorted_asc vacuously true |
 
@@ -182,7 +188,7 @@ cd moon-certified
 # 类型检查
 moon check
 
-# 运行测试 (3968 tests)
+# 运行测试 (6432 tests)
 moon test
 
 # 运行形式化验证 (需要 Why3 1.7.2 + Z3 4.12.x)
@@ -838,7 +844,7 @@ moon-certified/
 | nim_sg | 13 | 🔒 tested | ❌ |
 | reservoir_sampling | 8 | 🔒 tested | ❌ |
 | int64_utils | 21 | 🔒 tested | ❌ |
-| **Total** | **3968** | **5 完整, 3 增强, 16 部分, 313 tested** | **17 generic** |
+| **Total** | **6432** | **17 包通过 moon prove（5 完整, 3 增强, 9 部分）, 其余仅测试验证** | **17 generic** |
 
 > 注：上表仅列出部分代表性包。完整 337 个包的测试统计请运行 `moon test` 查看。
 

@@ -275,10 +275,7 @@ test "sha1: 'abc' (NIST)" {
 test "sha1: 'abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq' (NIST)" {
   // SHA-1(message) = 84983e44...
   let msg = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-  assert_eq(
-    sha1_string(msg),
-    "84983e441c3bd26ebaae4aa1f95129e5e54670f1",
-  )
+  assert_eq(sha1_string(msg), "84983e441c3bd26ebaae4aa1f95129e5e54670f1")
 }
 
 ///|

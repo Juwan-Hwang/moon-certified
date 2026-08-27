@@ -131,7 +131,11 @@ fn RangeEncoder::shift_low(self : RangeEncoder) -> Unit {
 }
 
 ///|
-fn RangeEncoder::_encode_bit(self : RangeEncoder, prob : Int, bit : Int) -> Unit {
+fn RangeEncoder::_encode_bit(
+  self : RangeEncoder,
+  prob : Int,
+  bit : Int,
+) -> Unit {
   let bound = ((self.range.to_uint64() * prob.to_uint64()) >> NUM_PROB_BITS).to_uint()
   if bit != 0 {
     self.low = self.low + bound.to_uint64()

@@ -295,7 +295,9 @@ test "large sets: random-like unions" {
 ///|
 /// Create n singleton sets: parent[i] = i for i in [0, n).
 /// Verified: parent[i] == i for all i in [0, length), length >= 0.
-pub fn uf_new(n : Int) -> FixedArray[Int] where {
+pub fn uf_new(
+  n : Int,
+) -> FixedArray[Int] where {
   proof_ensure: result => self_parent(result, result.length()),
   proof_ensure: result => 0 <= result.length(),
 } {
@@ -321,7 +323,9 @@ pub fn uf_new(n : Int) -> FixedArray[Int] where {
 
 ///|
 /// Return the number of elements (array length). Verified: result >= 0.
-pub fn uf_size(parent : FixedArray[Int]) -> Int where {
+pub fn uf_size(
+  parent : FixedArray[Int],
+) -> Int where {
   proof_ensure: result => 0 <= result,
 } {
   parent.length()

@@ -17,7 +17,9 @@ fn bytes_eq(a : Bytes, b : Bytes) -> Bool {
 
 ///|
 fn paq_try_decompress(data : Bytes) -> Bytes? {
-  Some(paq_decompress(data)) catch { _ => None }
+  Some(paq_decompress(data)) catch {
+    _ => None
+  }
 }
 
 ///|
@@ -56,8 +58,8 @@ test "paq_roundtrip_all_byte_values" {
 test "paq_roundtrip_repetitive_text" {
   // Highly redundant English-like text: must compress well.
   let words = [
-    "the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog",
-    "and", "the", "dog", "barks", "at", "the", "fox", "again",
+    "the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog", "and", "the",
+    "dog", "barks", "at", "the", "fox", "again",
   ]
   let data : Array[Byte] = []
   for rep = 0; rep < 200; rep = rep + 1 {
@@ -118,9 +120,8 @@ test "paq_rejects_corrupted_containers" {
   assert_eq(paq_try_decompress(Bytes::from_array([b'M', b'B', b'P'])), None)
   // Garbage stream with valid header.
   let garbage : Array[Byte] = [
-    b'M', b'B', b'P', b'Q', b'\x05', b'\x00', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x99', b'\x99', b'\x99',
-    b'\x99',
+    b'M', b'B', b'P', b'Q', b'\x05', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x99', b'\x99', b'\x99', b'\x99',
   ]
   // Decoding garbage either fails or yields non-matching bytes; it
   // must never silently return the original payload.

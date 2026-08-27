@@ -23,7 +23,7 @@ test "bounded_buffer_basic" {
   assert_true(b.try_put(2))
   assert_true(b.count == 2)
   // full: further puts fail
-  assert_true(!(b.try_put(3)))
+  assert_true(!b.try_put(3))
   assert_eq(unwrap_or_fail(b.try_take()), 1)
   assert_eq(unwrap_or_fail(b.try_take()), 2)
   // empty: takes return None
@@ -35,7 +35,7 @@ test "bounded_buffer_basic" {
 test "bounded_buffer_single_capacity" {
   let b = BoundedBuffer::new(1)
   assert_true(b.try_put(7))
-  assert_true(!(b.try_put(8)))
+  assert_true(!b.try_put(8))
   assert_eq(unwrap_or_fail(b.try_take()), 7)
   assert_true(b.try_take() is None)
 }
@@ -45,13 +45,13 @@ test "bounded_buffer_single_capacity" {
 ///|
 test "barrier_two_workers" {
   let bar = Barrier::new(2)
-  assert_true(!(bar.arrive())) // first arrival, not released
+  assert_true(!bar.arrive()) // first arrival, not released
   assert_true(bar.arrive()) // second arrival releases
   // after release the barrier resets
   assert_eq(bar.count, 0)
   assert_eq(bar.generation, 1)
   // a fresh round still works
-  assert_true(!(bar.arrive()))
+  assert_true(!bar.arrive())
 }
 
 ///|

@@ -320,8 +320,13 @@ fn model_log_likelihood(
         let d = y[i] - mu[i]
         sse = sse + d * d
       }
-      let sigma2 = if sse < glm_epsilon { glm_epsilon } else { sse / n.to_double() }
-      let ll = -0.5 * n.to_double() *
+      let sigma2 = if sse < glm_epsilon {
+        glm_epsilon
+      } else {
+        sse / n.to_double()
+      }
+      let ll = -0.5 *
+        n.to_double() *
         (@math.ln(2.0 * @math.PI) + @math.ln(sigma2) + 1.0)
       (ll, sigma2)
     }
@@ -841,7 +846,8 @@ pub fn fit_glm(
     _ => k
   }
   let aic = -2.0 * final_loglik + 2.0 * aic_params.to_double()
-  let bic = -2.0 * final_loglik + aic_params.to_double() * @math.ln(n.to_double())
+  let bic = -2.0 * final_loglik +
+    aic_params.to_double() * @math.ln(n.to_double())
   Some({
     coefficients: beta,
     n_params: k,

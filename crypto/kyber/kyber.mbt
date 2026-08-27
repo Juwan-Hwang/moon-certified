@@ -110,9 +110,9 @@ fn pow_mod_q(base : Int, exp : Int) -> Int {
   let mut acc = 1
   while e > 0 {
     if (e & 1) == 1 {
-      acc = (acc * b) % KYBER_Q
+      acc = acc * b % KYBER_Q
     }
-    b = (b * b) % KYBER_Q
+    b = b * b % KYBER_Q
     e = e >> 1
   }
   acc
@@ -142,7 +142,7 @@ pub fn ntt(f : Array[Int]) -> Unit {
       let zl = zeta[k]
       k = k + 1
       for j = start; j < start + len; j = j + 1 {
-        let t = (zl * f[j + len]) % KYBER_Q
+        let t = zl * f[j + len] % KYBER_Q
         f[j + len] = f[j] - t
         if f[j + len] < 0 {
           f[j + len] = f[j + len] + KYBER_Q
@@ -177,7 +177,7 @@ pub fn ntt_inv(f : Array[Int]) -> Unit {
         if f[j] >= KYBER_Q {
           f[j] = f[j] - KYBER_Q
         }
-        f[j + len] = (zl * (f[j + len] - t)) % KYBER_Q
+        f[j + len] = zl * (f[j + len] - t) % KYBER_Q
         if f[j + len] < 0 {
           f[j + len] = f[j + len] + KYBER_Q
         }
@@ -187,7 +187,7 @@ pub fn ntt_inv(f : Array[Int]) -> Unit {
     len = len * 2
   }
   for i = 0; i < 256; i = i + 1 {
-    f[i] = (f[i] * 3303) % KYBER_Q
+    f[i] = f[i] * 3303 % KYBER_Q
   }
 }
 
@@ -215,7 +215,7 @@ fn base_case_mul(f : Array[Int], g : Array[Int]) -> Array[Int] {
     let a1 = f[2 * i + 1]
     let b0 = g[2 * i]
     let b1 = g[2 * i + 1]
-    h[2 * i] = (a0 * b0 + (((a1 * b1) % KYBER_Q) * z)) % KYBER_Q
+    h[2 * i] = (a0 * b0 + a1 * b1 % KYBER_Q * z) % KYBER_Q
     h[2 * i + 1] = (a0 * b1 + a1 * b0) % KYBER_Q
   }
   h
@@ -334,32 +334,25 @@ fn concat_bytes(a : Bytes, b : Bytes) -> Bytes {
 /// NTT-domain polynomial from SHAKE128(rho || x || y), consuming 3-byte
 /// groups c = b0 | ((b1 & 0x0F) << 8) and keeping those with c < q.
 fn sample_ntt(seed : Bytes, x : Int, y : Int) -> Array[Int] {
-  let input =
-    concat_bytes(seed, Bytes::from_array([x.to_byte(), y.to_byte()]))
+  let input = concat_bytes(seed, Bytes::from_array([x.to_byte(), y.to_byte()]))
   let a = Array::make(256, 0)
   let mut j = 0
-  let mut round = 0
+  let mut stream = @sha3.shake128(input, 3072)
+  let mut off = 0
   while j < 256 {
-    // 1024 draws give ~315 expected accepts; shortfall is astronomically
-    // unlikely (~80 sigma). Further rounds keep the function total.
-    let src = if round == 0 {
-      input
-    } else {
-      concat_bytes(input, Bytes::from_array([round.to_byte()]))
+    // 1024 draws give ~315 expected accepts; a shortfall is
+    // astronomically unlikely (~80 sigma). The SHAKE output is
+    // prefix-stable, so a longer expansion of the same seed continues
+    // the stream exactly instead of starting a new one.
+    if off + 2 >= stream.length() {
+      stream = @sha3.shake128(input, stream.length() * 2)
     }
-    let stream = @sha3.shake128(src, 3072)
-    let mut off = 0
-    while off + 2 < 3072 && j < 256 {
-      let cval =
-        stream[off].to_int() |
-        ((stream[off + 1].to_int() & 0x0F) << 8)
-      off = off + 3
-      if cval < KYBER_Q {
-        a[j] = cval
-        j = j + 1
-      }
+    let cval = stream[off].to_int() | ((stream[off + 1].to_int() & 0x0F) << 8)
+    off = off + 3
+    if cval < KYBER_Q {
+      a[j] = cval
+      j = j + 1
     }
-    round = round + 1
   }
   a
 }
@@ -376,12 +369,8 @@ fn sample_cbd(seed : Bytes, b : Int, eta : Int) -> Array[Int] {
     for j = 0; j < eta; j = j + 1 {
       let bit_idx_x = 2 * i * eta + j
       let bit_idx_y = 2 * i * eta + eta + j
-      x =
-        x +
-        ((buf[bit_idx_x / 8].to_int() >> (bit_idx_x % 8)) & 1)
-      y =
-        y +
-        ((buf[bit_idx_y / 8].to_int() >> (bit_idx_y % 8)) & 1)
+      x = x + ((buf[bit_idx_x / 8].to_int() >> (bit_idx_x % 8)) & 1)
+      y = y + ((buf[bit_idx_y / 8].to_int() >> (bit_idx_y % 8)) & 1)
     }
     let v = x - y
     f[i] = if v < 0 { v + KYBER_Q } else { v }
@@ -496,7 +485,7 @@ pub fn kyber_debug_homomorphism(rounds : Int) -> Int {
     for i = 0; i < 256; i = i + 1 {
       for j = 0; j < 256; j = j + 1 {
         let kk = i + j
-        let coef = (f[i] * g[j]) % KYBER_Q
+        let coef = f[i] * g[j] % KYBER_Q
         if kk < 256 {
           want[kk] = want[kk] + coef
         } else {
@@ -779,9 +768,7 @@ fn mlkem_decaps_internal(sk : KyberSecretKey, ct : KyberCiphertext) -> Bytes {
   let c_bytes = ct_to_bytes(ct)
   let m_prime = kpke_decrypt(sk.params, sk.s_hat, ct.u, ct.v)
   // (K', r') = G(m' || h)
-  let g_out = @sha3.sha3_512(
-    concat_bytes(Bytes::from_array(m_prime), sk.h),
-  )
+  let g_out = @sha3.sha3_512(concat_bytes(Bytes::from_array(m_prime), sk.h))
   let k_bar = slice_bytes(g_out, 0, 32)
   let r_prime = slice_bytes(g_out, 32, 32)
   // K_bar = J(z || c, 32)
@@ -790,15 +777,20 @@ fn mlkem_decaps_internal(sk : KyberSecretKey, ct : KyberCiphertext) -> Bytes {
   // byte encodings with c (FIPS 203 Algorithm 18, step 5 compares c').
   let (u2, v2) = kpke_encrypt(sk.params, sk.t_hat, sk.rho, m_prime, r_prime)
   let c_prime = ct_to_bytes({ params: sk.params, u: u2, v: v2 })
-  let mut equal = c_prime.length() == c_bytes.length()
+  // Constant-time comparison (OR of XORs, no early exit) so decapsulation
+  // timing does not reveal where the re-encryption differs from c.
+  let mut diff = c_prime.length() ^ c_bytes.length()
+  let n = if c_prime.length() < c_bytes.length() {
+    c_prime.length()
+  } else {
+    c_bytes.length()
+  }
   let mut x = 0
-  while x < c_prime.length() && equal {
-    if c_prime[x] != c_bytes[x] {
-      equal = false
-    }
+  while x < n {
+    diff = diff | (c_prime[x].to_int() ^ c_bytes[x].to_int())
     x = x + 1
   }
-  if equal {
+  if diff == 0 {
     k_bar
   } else {
     j_out

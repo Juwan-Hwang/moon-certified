@@ -110,7 +110,17 @@ test "solve_kkt: equality-constrained quadratic" {
 ///|
 test "solve_kkt: inactive inequality has zero multiplier" {
   // min ½(x-3)² s.t. x ≤ 10: constraint inactive, optimum x = 3, λ = 0.
-  let system = KktSystem::new([[1.0]], [-3.0], [[1.0]], [10.0], [], [], [], [], 1)
+  let system = KktSystem::new(
+    [[1.0]],
+    [-3.0],
+    [[1.0]],
+    [10.0],
+    [],
+    [],
+    [],
+    [],
+    1,
+  )
   let sol = solve_kkt(system, [0.0], 500, 1.0e-6)
   assert_true((sol.x[0] - 3.0).abs() < 1.0e-3)
   assert_true(sol.lambda[0].abs() < 1.0e-3)

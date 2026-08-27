@@ -250,7 +250,12 @@ fn _sample_plan() -> PlanNode {
       "id",
       Filter(
         "id > 0",
-        Join(HashJoin, "a.id=b.id", TableScan("a", FullScan), TableScan("b", IndexScan)),
+        Join(
+          HashJoin,
+          "a.id=b.id",
+          TableScan("a", FullScan),
+          TableScan("b", IndexScan),
+        ),
       ),
     ),
   )

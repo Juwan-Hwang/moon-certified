@@ -44,12 +44,7 @@ fn ts_sign_session(
     )
   }
   threshold_combine_signatures(
-    partials,
-    picked,
-    signer_indices,
-    commitments,
-    pubkey,
-    message,
+    partials, picked, signer_indices, commitments, pubkey, message,
   )
 }
 
@@ -126,14 +121,11 @@ test "threshold_tampered_partial_rejected" {
   let bad_partials = [partials[0], Bytes::from_array(bad)]
   let r = Some(
     threshold_combine_signatures(
-      bad_partials,
-      picked,
-      signer_indices,
-      commitments,
-      pubkey,
-      msg,
+      bad_partials, picked, signer_indices, commitments, pubkey, msg,
     ),
-  ) catch { _ => None }
+  ) catch {
+    _ => None
+  }
   assert_eq(r, None)
 }
 
@@ -168,7 +160,9 @@ test "threshold_no_forgery_without_shares" {
       pubkey,
       msg,
     ),
-  ) catch { _ => None }
+  ) catch {
+    _ => None
+  }
   match attempt {
     Some(sig) => assert_eq(threshold_verify(pubkey, msg, sig), false)
     None => ()

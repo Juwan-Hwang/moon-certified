@@ -6,11 +6,12 @@ on:
       - "v*"
 
 env:
-  MOONBIT_VERSION: "0.1.20260713"
+  MOONBIT_VERSION: "0.1.20260819"
 
 jobs:
   publish:
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
 

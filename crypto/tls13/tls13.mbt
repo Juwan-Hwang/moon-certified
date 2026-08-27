@@ -164,7 +164,8 @@ fn tls13_expand_label(
 ) -> Bytes raise {
   let full = "tls13 " + label
   let info : Array[Byte] = [
-    ((length >> 8) & 0xFF).to_byte(), (length & 0xFF).to_byte(),
+    ((length >> 8) & 0xFF).to_byte(),
+    (length & 0xFF).to_byte(),
   ]
   info.push(full.length().to_byte())
   for ch in full {
@@ -221,14 +222,18 @@ fn tls13_aead_seal(
     Aes128GcmSha256 =>
       match @aes.new_key(tls13_bytes_to_fixed(key)) {
         Some(ak) =>
-          match @aes.encrypt_gcm(
-            ak,
-            tls13_bytes_to_fixed(nonce),
-            tls13_bytes_to_fixed(pt),
-            tls13_bytes_to_fixed(aad),
-          ) {
+          match
+            @aes.encrypt_gcm(
+              ak,
+              tls13_bytes_to_fixed(nonce),
+              tls13_bytes_to_fixed(pt),
+              tls13_bytes_to_fixed(aad),
+            ) {
             Some(res) =>
-              Some(tls13_fixed_to_bytes(res.ciphertext) + tls13_fixed_to_bytes(res.tag))
+              Some(
+                tls13_fixed_to_bytes(res.ciphertext) +
+                tls13_fixed_to_bytes(res.tag),
+              )
             None => None
           }
         None => None
@@ -262,13 +267,14 @@ fn tls13_aead_open(
       }
       match @aes.new_key(tls13_bytes_to_fixed(key)) {
         Some(ak) =>
-          match @aes.decrypt_gcm(
-            ak,
-            tls13_bytes_to_fixed(nonce),
-            tls13_bytes_to_fixed(Bytes::from_array(body)),
-            tls13_bytes_to_fixed(aad),
-            tls13_bytes_to_fixed(Bytes::from_array(tag)),
-          ) {
+          match
+            @aes.decrypt_gcm(
+              ak,
+              tls13_bytes_to_fixed(nonce),
+              tls13_bytes_to_fixed(Bytes::from_array(body)),
+              tls13_bytes_to_fixed(aad),
+              tls13_bytes_to_fixed(Bytes::from_array(tag)),
+            ) {
             Some(pt) => Some(tls13_fixed_to_bytes(pt))
             None => None
           }
@@ -310,7 +316,9 @@ fn tls13_read_u24(data : Bytes, off : Int) -> Int? {
     return None
   }
   Some(
-    (data[off].to_int() << 16) | (data[off + 1].to_int() << 8) | data[off + 2].to_int(),
+    (data[off].to_int() << 16) |
+    (data[off + 1].to_int() << 8) |
+    data[off + 2].to_int(),
   )
 }
 
@@ -351,9 +359,7 @@ fn tls13_record(ct : TlsContentType, payload : Bytes) -> Bytes {
 
 ///|
 /// Parse a record header: (content_type, length, payload).
-pub fn tls_parse_record_header(
-  data : Bytes,
-) -> (Int, Int, Bytes)? {
+pub fn tls_parse_record_header(data : Bytes) -> (Int, Int, Bytes)? {
   if data.length() < 5 {
     return None
   }
@@ -699,8 +705,16 @@ fn Tls13Connection::derive_handshake_keys(self : Tls13Connection) -> Unit raise 
     None => fail("tls13: missing DH shared secret")
   }
   let handshake_secret = tls13_extract(derived0, dh)
-  let chts = tls13_derive_secret(handshake_secret, "c hs traffic", self.transcript)
-  let shts = tls13_derive_secret(handshake_secret, "s hs traffic", self.transcript)
+  let chts = tls13_derive_secret(
+    handshake_secret,
+    "c hs traffic",
+    self.transcript,
+  )
+  let shts = tls13_derive_secret(
+    handshake_secret,
+    "s hs traffic",
+    self.transcript,
+  )
   let klen = tls13_key_len(self.config.cipher_suite)
   self.client_handshake = Some({
     secret: chts,
@@ -724,7 +738,8 @@ fn Tls13Connection::seal_handshake(
   self : Tls13Connection,
   payload : Bytes,
 ) -> Bytes raise {
-  let keys = match (self.is_server, self.server_handshake, self.client_handshake) {
+  let keys = match
+    (self.is_server, self.server_handshake, self.client_handshake) {
     (true, Some(k), _) => k
     (false, _, Some(k)) => k
     _ => fail("tls13: handshake keys not derived yet")
@@ -741,17 +756,14 @@ fn Tls13Connection::seal_handshake(
   // The outer header (AAD) embeds the final ciphertext length.
   let sealed_len = inner_bytes.length() + TLS13_TAG_LEN
   let header : Array[Byte] = [
-    tls13_ct_byte(ApplicationData).to_byte(), b'\x03', b'\x03',
+    tls13_ct_byte(ApplicationData).to_byte(),
+    b'\x03',
+    b'\x03',
   ]
   tls13_put_u16(header, sealed_len)
   let aad = Bytes::from_array(header)
-  match tls13_aead_seal(
-    self.config.cipher_suite,
-    keys.key,
-    nonce,
-    aad,
-    inner_bytes,
-  ) {
+  match
+    tls13_aead_seal(self.config.cipher_suite, keys.key, nonce, aad, inner_bytes) {
     Some(ct) => {
       let out : Array[Byte] = []
       for i = 0; i < header.length(); i = i + 1 {
@@ -786,13 +798,8 @@ fn Tls13Connection::open_with(
   }
   let nonce = tls13_compute_nonce(keys.iv, self.recv_seq)
   self.recv_seq = self.recv_seq + 1L
-  let pt = match tls13_aead_open(
-    self.config.cipher_suite,
-    keys.key,
-    nonce,
-    aad,
-    payload,
-  ) {
+  let pt = match
+    tls13_aead_open(self.config.cipher_suite, keys.key, nonce, aad, payload) {
     Some(v) => v
     None => fail("tls13: AEAD authentication failed")
   }
@@ -1032,11 +1039,8 @@ pub fn tls13_client_process_flight(
       // Reconstruct the signed content: transcript *before* this
       // message (the transcript update happens below for later
       // messages; here we hashed after appending, so rebuild).
-      let prior = match tls13_slice(
-        conn.transcript,
-        0,
-        conn.transcript.length() - msg.length(),
-      ) {
+      let prior = match
+        tls13_slice(conn.transcript, 0, conn.transcript.length() - msg.length()) {
         Some(v) => v
         None => fail("tls13: bad transcript")
       }
@@ -1063,11 +1067,8 @@ pub fn tls13_client_process_flight(
       }
       // Finished covers the transcript up to and including CV; the
       // Finished message itself is appended afterwards.
-      let prior = match tls13_slice(
-        conn.transcript,
-        0,
-        conn.transcript.length() - msg.length(),
-      ) {
+      let prior = match
+        tls13_slice(conn.transcript, 0, conn.transcript.length() - msg.length()) {
         Some(v) => v
         None => fail("tls13: bad transcript")
       }
@@ -1156,9 +1157,9 @@ fn Tls13Connection::derive_app_keys(self : Tls13Connection) -> Unit raise {
     key: tls13_expand_label(sats, "key", empty, klen),
     iv: tls13_expand_label(sats, "iv", empty, TLS13_IV_LEN),
   })
-  // Sequence numbers continue across the key change: each side has
-  // consumed exactly one protected record (the Finished exchanges)
-  // per direction, so sender and receiver counters stay aligned.
+  // RFC 8446 §5.3 resets record sequence numbers to zero on every key
+  // change; the callers reset the counters once the final handshake
+  // record of their role has been sent/opened.
   self.established = true
 }
 
@@ -1171,7 +1172,12 @@ pub fn tls13_client_finished(conn : Tls13Connection) -> Bytes raise {
   }
   let fin = conn.finished_message(false)
   conn.transcript = conn.transcript + fin
-  conn.seal_handshake(fin)
+  let record = conn.seal_handshake(fin)
+  // RFC 8446 §5.3: this Finished is the last record under the handshake
+  // keys, so both counters restart at zero for application traffic.
+  conn.send_seq = 0L
+  conn.recv_seq = 0L
+  record
 }
 
 ///|
@@ -1198,10 +1204,7 @@ pub fn tls13_server_process_client_finished(
     Bytes::from_array([]),
     32,
   )
-  let expect = @hmac.hmac_sha256(
-    finished_key,
-    @sha256.sha256(conn.transcript),
-  )
+  let expect = @hmac.hmac_sha256(finished_key, @sha256.sha256(conn.transcript))
   let mac = match tls13_slice(body, 4, body.length() - 4) {
     Some(v) => v
     None => fail("tls13: truncated Finished MAC")
@@ -1213,6 +1216,11 @@ pub fn tls13_server_process_client_finished(
   // including) the server Finished only (RFC 8446 §7.1), so derive
   // them before recording the client Finished.
   conn.derive_app_keys()
+  // RFC 8446 §5.3: the client Finished was the last record opened under
+  // the handshake keys, so both counters restart at zero for
+  // application traffic.
+  conn.send_seq = 0L
+  conn.recv_seq = 0L
   conn.transcript = conn.transcript + body
 }
 
@@ -1244,17 +1252,14 @@ pub fn tls13_send_app(conn : Tls13Connection, data : Bytes) -> Bytes raise {
   // inner length + tag length for both supported AEADs.
   let sealed_len = inner_bytes.length() + TLS13_TAG_LEN
   let header : Array[Byte] = [
-    tls13_ct_byte(ApplicationData).to_byte(), b'\x03', b'\x03',
+    tls13_ct_byte(ApplicationData).to_byte(),
+    b'\x03',
+    b'\x03',
   ]
   tls13_put_u16(header, sealed_len)
   let aad = Bytes::from_array(header)
-  match tls13_aead_seal(
-    conn.config.cipher_suite,
-    keys.key,
-    nonce,
-    aad,
-    inner_bytes,
-  ) {
+  match
+    tls13_aead_seal(conn.config.cipher_suite, keys.key, nonce, aad, inner_bytes) {
     Some(ct) => {
       let out : Array[Byte] = []
       for i = 0; i < header.length(); i = i + 1 {

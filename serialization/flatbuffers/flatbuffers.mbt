@@ -139,7 +139,7 @@ pub fn flatbuffer_read_int32(data : Bytes, offset : Int) -> Int {
 /// Read a string from a FlatBuffer at offset.
 pub fn flatbuffer_read_string(data : Bytes, offset : Int) -> String {
   let len = flatbuffer_read_int32(data, offset)
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < len && offset + 4 + i < data.length(); i = i + 1 {
     sb.write_char((data[offset + 4 + i].to_int() & 0xFF).unsafe_to_char())
   }

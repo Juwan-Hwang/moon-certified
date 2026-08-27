@@ -71,7 +71,7 @@ fn init_b64url_alphabet() -> FixedArray[Char] {
 /// Bas1.0e64URL-encode bytes without padding (JOSE convention).
 fn b64url_encode(data : Bytes) -> String {
   let alpha = init_b64url_alphabet()
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   let len = data.length()
   let mut i = 0
   while i + 2 < len {

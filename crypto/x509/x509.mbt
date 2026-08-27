@@ -208,7 +208,7 @@ fn DerCursor::read_string(self : DerCursor, expected_tag : Int) -> String {
   }
   let len = self.read_length()
   let raw = self.read_bytes(len)
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < len; i = i + 1 {
     sb.write_char((raw[i].to_int() & 0xFF).unsafe_to_char())
   }

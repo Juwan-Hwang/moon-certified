@@ -71,7 +71,7 @@ fn decrement_str(s : String) -> String {
     start = start + 1
   }
   let digit_strs = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = start; i < n; i = i + 1 {
     buf.write_string(digit_strs[digits[i]])
   }

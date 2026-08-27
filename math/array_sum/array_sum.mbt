@@ -231,27 +231,27 @@ pub fn array_sum_nonneg(
 }
 
 ///|
-/// Verified uniform sum: when all elements equal val,
-/// the sum equals n * val.
+/// Verified uniform sum: when all elements equal value,
+/// the sum equals n * value.
 pub fn uniform_sum(
   xs : FixedArray[Int],
-  val : Int,
+  value : Int,
 ) -> Int where {
-  proof_require: all_equal(xs, val),
-  proof_ensure: result => uniform_sum_ok(xs.length(), val, result),
+  proof_require: all_equal(xs, value),
+  proof_ensure: result => uniform_sum_ok(xs.length(), value, result),
 } {
   for i = 0, sum = 0; i < xs.length(); {
-    proof_assert xs[i] == val
+    proof_assert xs[i] == value
     continue i + 1, sum + xs[i]
   } nobreak {
     sum
   } where {
     proof_invariant: 0 <= i,
     proof_invariant: i <= xs.length(),
-    proof_invariant: sum == i * val,
+    proof_invariant: sum == i * value,
     proof_reasoning: (
-      #| Each element equals val.
-      #| After k steps, sum = k * val.
+      #| Each element equals value.
+      #| After k steps, sum = k * value.
     ),
   }
 }
@@ -266,7 +266,10 @@ test "bounded_sum: basic" {
 ///|
 test "bounded_sum: mixed range" {
   let xs = FixedArray::make(4, 0)
-  xs[0] = 1; xs[1] = 5; xs[2] = 3; xs[3] = 2
+  xs[0] = 1
+  xs[1] = 5
+  xs[2] = 3
+  xs[3] = 2
   assert_eq(bounded_sum(xs, 0, 10), 11)
   assert_true(0 <= 11 && 11 <= 40)
 }

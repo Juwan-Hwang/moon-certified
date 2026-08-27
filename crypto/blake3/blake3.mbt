@@ -477,7 +477,7 @@ pub fn blake3_512(data : Bytes) -> Bytes {
 /// Compute BLAKE3 hex string of `data` with the given output length.
 pub fn blake3_hex(data : Bytes, out_len : Int) -> String {
   let digest = blake3(data, out_len)
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < digest.length(); i = i + 1 {
     let b = digest[i].to_int()
     let hi = b >> 4

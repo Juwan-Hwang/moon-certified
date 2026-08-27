@@ -809,7 +809,9 @@ test "HeapG: empty heap operations" {
 
 ///|
 /// Compute parent index: (i-1)/2. Verified: for i >= 1, result in [0, i).
-pub fn parent_index(i : Int) -> Int where {
+pub fn parent_index(
+  i : Int,
+) -> Int where {
   proof_require: 1 <= i,
   proof_ensure: result => 0 <= result && result < i,
 } {
@@ -818,7 +820,9 @@ pub fn parent_index(i : Int) -> Int where {
 
 ///|
 /// Compute left child index: 2*i+1. Verified: result > i.
-pub fn left_child_index(i : Int) -> Int where {
+pub fn left_child_index(
+  i : Int,
+) -> Int where {
   proof_require: 0 <= i,
   proof_ensure: result => i < result,
 } {
@@ -827,7 +831,9 @@ pub fn left_child_index(i : Int) -> Int where {
 
 ///|
 /// Compute right child index: 2*i+2. Verified: result > i.
-pub fn right_child_index(i : Int) -> Int where {
+pub fn right_child_index(
+  i : Int,
+) -> Int where {
   proof_require: 0 <= i,
   proof_ensure: result => i < result,
 } {

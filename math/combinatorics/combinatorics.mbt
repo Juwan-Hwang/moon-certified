@@ -379,7 +379,9 @@ test "binomial: large values" {
 ///|
 /// Verified factorial: result >= 1 for n >= 0.
 /// Uses for...nobreak loop with Z3-verifiable invariant.
-pub fn factorial_int(n : Int) -> Int where {
+pub fn factorial_int(
+  n : Int,
+) -> Int where {
   proof_require: 0 <= n,
   proof_ensure: result => factorial_ok(result),
 } {

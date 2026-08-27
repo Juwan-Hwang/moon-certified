@@ -100,7 +100,7 @@ fn RCEncoder::normalize(self : RCEncoder) -> Unit {
       }
       // Range is too small and the top byte is unsettled: force the
       // range so that `low + range` crosses the next BOT boundary.
-      self.range = (-self.low) & (RC_BOT - 1L)
+      self.range = -self.low & (RC_BOT - 1L)
     }
     self.out.push(((self.low >> 24) & 0xFFL).to_int())
     self.low = (self.low << 8) & RC_MASK
@@ -145,11 +145,7 @@ priv struct RCDecoder {
 fn RCDecoder::new(data : Bytes, start : Int) -> RCDecoder {
   let mut code = 0L
   for i = 0; i < 4; i = i + 1 {
-    let b = if start + i < data.length() {
-      data[start + i].to_int()
-    } else {
-      0
-    }
+    let b = if start + i < data.length() { data[start + i].to_int() } else { 0 }
     code = (code << 8) | b.to_int64()
   }
   { low: 0L, range: RC_MASK, code, data, pos: start + 4 }
@@ -174,7 +170,7 @@ fn RCDecoder::normalize(self : RCDecoder) -> Unit {
       if self.range >= RC_BOT {
         return
       }
-      self.range = (-self.low) & (RC_BOT - 1L)
+      self.range = -self.low & (RC_BOT - 1L)
     }
     self.low = (self.low << 8) & RC_MASK
     self.range = (self.range << 8) & RC_MASK
@@ -375,7 +371,8 @@ pub fn paq_decompress(data : Bytes) -> Bytes raise {
   if data.length() < 12 {
     fail("paq: truncated header")
   }
-  if data[0].to_int() != PAQ_MAGIC_0 || data[1].to_int() != PAQ_MAGIC_1 ||
+  if data[0].to_int() != PAQ_MAGIC_0 ||
+    data[1].to_int() != PAQ_MAGIC_1 ||
     data[2].to_int() != PAQ_MAGIC_2 ||
     data[3].to_int() != PAQ_MAGIC_3 {
     fail("paq: bad magic")

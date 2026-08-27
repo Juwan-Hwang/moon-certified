@@ -237,7 +237,9 @@ test "build_lps: empty" {
 
 ///|
 /// Compute the LPS array length. Verified: result == pattern_len when pattern_len >= 0.
-pub fn kmp_lps_length(pattern_len : Int) -> Int where {
+pub fn kmp_lps_length(
+  pattern_len : Int,
+) -> Int where {
   proof_require: 0 <= pattern_len,
   proof_ensure: result => result == pattern_len,
 } {

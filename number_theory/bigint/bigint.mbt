@@ -672,9 +672,9 @@ pub fn mod_pow_int(base : Int, exp : Int, m : Int) -> Int? {
   let mut e = exp
   while e > 0 {
     if (e & 1) == 1 {
-      result = (result * b) % m64
+      result = result * b % m64
     }
-    b = (b * b) % m64
+    b = b * b % m64
     e = e >> 1
   }
   Some(result.to_int())

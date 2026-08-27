@@ -73,7 +73,7 @@ pub fn depth(err : ChainError) -> Int {
 ///|
 /// Format the full error chain as a multi-line string.
 pub fn format_chain(err : ChainError) -> String {
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   format_chain_impl(err, 0, buf)
   buf.to_string()
 }

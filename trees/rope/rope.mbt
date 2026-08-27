@@ -107,7 +107,7 @@ pub fn rope_to_string(r : Rope) -> String {
   if r.is_leaf {
     return r.val
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   rope_to_string_helper(r, buf)
   buf.to_string()
 }

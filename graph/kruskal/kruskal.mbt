@@ -442,12 +442,18 @@ test "kruskal: checked matches unchecked" {
 ///|
 /// For n nodes, any spanning forest has at most n-1 edges.
 /// Verified: 0 <= result <= n when n >= 0.
-pub fn edge_count_bound(n : Int) -> Int where {
+pub fn edge_count_bound(
+  n : Int,
+) -> Int where {
   proof_require: 0 <= n,
   proof_ensure: result => 0 <= result,
   proof_ensure: result => result <= n,
 } {
-  if n <= 1 { 0 } else { n - 1 }
+  if n <= 1 {
+    0
+  } else {
+    n - 1
+  }
 }
 
 ///|

@@ -134,7 +134,7 @@ pub fn AvroDecoder::decode_int(self : AvroDecoder) -> Int {
 /// Decode a string.
 pub fn AvroDecoder::decode_string(self : AvroDecoder) -> String {
   let len = self.decode_int()
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < len; i = i + 1 {
     sb.write_char((self.data[self.pos].to_int() & 0xFF).unsafe_to_char())
     self.pos = self.pos + 1
@@ -146,7 +146,18 @@ pub fn AvroDecoder::decode_string(self : AvroDecoder) -> String {
 /// All AvroType variants (internal type registry).
 fn _all_avro_types() -> Array[AvroType] {
   [
-    Null, Boolean, Int, Long, Float, Double, Bytes, String, Record, Enum, Array,
-    Map, Union,
+    Null,
+    Boolean,
+    Int,
+    Long,
+    Float,
+    Double,
+    Bytes,
+    String,
+    Record,
+    Enum,
+    Array,
+    Map,
+    Union,
   ]
 }

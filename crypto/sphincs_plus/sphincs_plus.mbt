@@ -268,11 +268,13 @@ fn spx_prf(seed : Bytes, sk_seed : Bytes, a : Adrs) -> Bytes {
 
 ///|
 /// H_msg: message hashing with the public context.
-fn spx_hmsg(first : Bytes, pk : SphincsPublicKey, m : Bytes, out_len : Int) -> Bytes {
-  @sha3.shake256(
-    spx_concat_arr([first, pk.seed, pk.root, m]),
-    out_len,
-  )
+fn spx_hmsg(
+  first : Bytes,
+  pk : SphincsPublicKey,
+  m : Bytes,
+  out_len : Int,
+) -> Bytes {
+  @sha3.shake256(spx_concat_arr([first, pk.seed, pk.root, m]), out_len)
 }
 
 // ---------------------------------------------------------------------------
@@ -336,9 +338,11 @@ fn spx_wots_sk(seed : Bytes, sk_seed : Bytes, a : Adrs) -> Array[Bytes] {
 }
 
 ///|
-fn spx_wots_pk_from_sk(seed : Bytes, sk : Array[Bytes], a : Adrs) -> Array[
-  Bytes,
-] {
+fn spx_wots_pk_from_sk(
+  seed : Bytes,
+  sk : Array[Bytes],
+  a : Adrs,
+) -> Array[Bytes] {
   a.typ = SPX_ADRS_WOTS_HASH
   let pk : Array[Bytes] = []
   let mut i = 0
@@ -449,7 +453,7 @@ fn spx_xmss_levels(
 ) -> Array[Array[Bytes]] {
   let leaves : Array[Bytes] = []
   let mut i = 0
-  while i < (1 << SPX_TREE_H) {
+  while i < 1 << SPX_TREE_H {
     leaves.push(spx_xmss_leaf(seed, sk_seed, layer, tree, i))
     i = i + 1
   }
@@ -574,8 +578,9 @@ fn spx_ht_sign(
   let mut layer = 0
   while layer < SPX_D {
     let (idx_leaf, tree) = spx_ht_leaf_and_tree(idx_tree, layer)
-    let (wots_sig, auth) =
-      spx_xmss_sign(x, idx_leaf, seed, sk_seed, layer, tree)
+    let (wots_sig, auth) = spx_xmss_sign(
+      x, idx_leaf, seed, sk_seed, layer, tree,
+    )
     for s in wots_sig {
       parts.push(s)
     }
@@ -639,9 +644,9 @@ fn spx_fors_idx(digest : Bytes, i : Int) -> Int {
   // a = 12 bits per tree, big-endian within the 21-byte digest prefix.
   let bit_off = i * SPX_A
   let b0 = digest[bit_off / 8].to_int()
-  let b1 = digest[(bit_off / 8) + 1].to_int()
+  let b1 = digest[bit_off / 8 + 1].to_int()
   let v = (b0 << 8) | b1
-  (v >> (4 - (bit_off % 8))) & 0xFFF
+  (v >> (4 - bit_off % 8)) & 0xFFF
 }
 
 ///|
@@ -694,7 +699,7 @@ fn spx_fors_levels(
 ) -> Array[Array[Bytes]] {
   let leaves : Array[Bytes] = []
   let mut idx = 0
-  while idx < (1 << SPX_HP) {
+  while idx < 1 << SPX_HP {
     let sk = spx_fors_sk(seed, sk_seed, tree, idx_leaf, i, idx)
     leaves.push(spx_fors_leaf(seed, tree, idx_leaf, i, idx, sk))
     idx = idx + 1
@@ -846,8 +851,13 @@ pub fn sphincs_sign(sk : SphincsSecretKey, message : Bytes) -> SphincsSignature 
   let idx_tree = spx_be64(spx_slice(digest, SPX_K * SPX_A / 8, 8))
   let lb = spx_slice(digest, SPX_K * SPX_A / 8 + SPX_N, 2)
   let idx_leaf = ((lb[0].to_int() << 8) | lb[1].to_int()) & 0xFFF
-  let (sig_fors, fors_pk) =
-    spx_fors_sign(md, pk.seed, sk.seed, idx_tree, idx_leaf)
+  let (sig_fors, fors_pk) = spx_fors_sign(
+    md,
+    pk.seed,
+    sk.seed,
+    idx_tree,
+    idx_leaf,
+  )
   let sig_ht = spx_ht_sign(fors_pk, idx_tree, pk.seed, sk.seed)
   { data: spx_concat_arr([r, sig_fors, sig_ht]) }
 }

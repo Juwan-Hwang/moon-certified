@@ -351,7 +351,7 @@ test "rolling_hash: empty string" {
 ///|
 test "rolling_hash: long string equality" {
   // Build "abcdefghij" repeated 10 times
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for _ in 0..<10 {
     buf.write_string("abcdefghij")
   }

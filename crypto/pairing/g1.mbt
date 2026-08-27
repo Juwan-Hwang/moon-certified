@@ -11,9 +11,10 @@ pub let g1_b : @bigint.BigInt = @bigint.from_int_value(4)
 /// G1 generator x-coordinate (BLS12-381 standard, EIP-2537).
 /// x limbs (little-endian u64): [0xfb3af00adb22c6bb, 0x6c55e83ff97a1aef,
 /// 0xa14e3a3f171bac58, 0xc3688c4f9774b905, 0x2695638c4fa9ac0f, 0x17f1d3a73197d794]
-pub let g1_gx : @bigint.BigInt = match(@bigint.from_string(
-  "0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb",
-)) {
+pub let g1_gx : @bigint.BigInt = match
+  @bigint.from_string(
+    "0x17f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb",
+  ) {
   Some(v) => v
   None => abort("FATAL: invalid G1 generator x")
 }
@@ -22,9 +23,10 @@ pub let g1_gx : @bigint.BigInt = match(@bigint.from_string(
 /// G1 generator y-coordinate (BLS12-381 standard, EIP-2537).
 /// y limbs (little-endian u64): [0x0caa232946c5e7e1, 0xd03cc744a2888ae4,
 /// 0x00db18cb2c04b3ed, 0xfcf5e095d5d00af6, 0xa09e30ed741d8ae4, 0x08b3f481e3aaa0f1]
-pub let g1_gy : @bigint.BigInt = match(@bigint.from_string(
-  "0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1",
-)) {
+pub let g1_gy : @bigint.BigInt = match
+  @bigint.from_string(
+    "0x08b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1",
+  ) {
   Some(v) => v
   None => abort("FATAL: invalid G1 generator y")
 }
@@ -57,10 +59,7 @@ pub fn g1_generator() -> G1Point {
 ///|
 /// Construct a G1 point from affine coordinates (x, y).
 /// The caller is responsible for ensuring the point is on the curve.
-pub fn g1_from_affine(
-  x : @bigint.BigInt,
-  y : @bigint.BigInt,
-) -> G1Point {
+pub fn g1_from_affine(x : @bigint.BigInt, y : @bigint.BigInt) -> G1Point {
   { x, y, z: @bigint.one() }
 }
 

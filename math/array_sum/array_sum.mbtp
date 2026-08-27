@@ -24,14 +24,14 @@ predicate sum_bounded(n : Int, lo : Int, hi : Int, result : Int) {
 }
 
 ///|
-/// Precondition: all elements equal val.
-predicate all_equal(xs : FixedArray[Int], val : Int) {
+/// Precondition: all elements equal value.
+predicate all_equal(xs : FixedArray[Int], value : Int) {
   ∀ i : Int, ((0 <= i) && (i < xs.length())) →
-    xs[i] == val
+    xs[i] == value
 }
 
 ///|
-/// Postcondition: uniform sum equals n * val.
-predicate uniform_sum_ok(n : Int, val : Int, result : Int) {
-  result == n * val
+/// Postcondition: uniform sum equals n * value.
+predicate uniform_sum_ok(n : Int, value : Int, result : Int) {
+  result == n * value
 }

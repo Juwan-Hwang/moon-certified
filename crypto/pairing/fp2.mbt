@@ -64,7 +64,10 @@ pub fn fp2_inv(a : Fp2) -> Fp2 {
   let t1 = fp_sqr(a.c1)
   let denom = fp_add(t0, t1)
   let denom_inv = fp_inv(denom)
-  { c0: fp_mul(a.c0, denom_inv), c1: fp_mul(fp_sub(@bigint.zero(), a.c1), denom_inv) }
+  {
+    c0: fp_mul(a.c0, denom_inv),
+    c1: fp_mul(fp_sub(@bigint.zero(), a.c1), denom_inv),
+  }
 }
 
 ///|

@@ -237,7 +237,7 @@ pub fn ThriftDecoder::read_string(self : ThriftDecoder) -> String {
   if len <= 0 {
     return ""
   }
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < len && self.pos < self.data.length(); i = i + 1 {
     sb.write_char((self.data[self.pos].to_int() & 0xFF).unsafe_to_char())
     self.pos = self.pos + 1

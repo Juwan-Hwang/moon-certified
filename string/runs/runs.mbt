@@ -367,7 +367,7 @@ pub fn lpf_array(text : String) -> (Array[Int], Array[Int]) {
 /// self-referencing support).
 pub fn lz_reconstruct(factors : Array[LzFactor], text : String) -> String {
   let n = text.length()
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for f in factors {
     if f.is_literal {
       // Literal: copy single character.
@@ -635,7 +635,7 @@ test "lz_factorize: stress test - fibonacci word" {
 ///|
 test "lz_factorize: stress test - long repetitive string" {
   // 1000 'a' characters.
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < 1000; i = i + 1 {
     buf.write_char('a')
   }
@@ -651,7 +651,7 @@ test "lz_factorize: stress test - long repetitive string" {
 ///|
 test "lz_factorize: stress test - alternating pattern" {
   // "ab" repeated 500 times (1000 chars).
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   for i = 0; i < 500; i = i + 1 {
     buf.write_char('a')
     buf.write_char('b')

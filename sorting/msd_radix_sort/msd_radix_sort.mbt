@@ -482,7 +482,7 @@ test "msd_string: stress test 500 strings" {
   for i = 0; i < 500; i = i + 1 {
     seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
     let len = 1 + seed % 10
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for j = 0; j < len; j = j + 1 {
       seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
       buf.write_char((97 + seed % 26).unsafe_to_char())

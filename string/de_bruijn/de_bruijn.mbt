@@ -136,7 +136,7 @@ pub fn de_bruijn_string(k : Int, n : Int) -> String {
     return ""
   }
   let seq = de_bruijn(k, n)
-  let sb = StringBuilder::new()
+  let sb = StringBuilder()
   for i = 0; i < seq.length(); i = i + 1 {
     let d = seq[i]
     let code = if d < 10 { 48 + d } else { 97 + (d - 10) }

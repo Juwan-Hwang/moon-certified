@@ -233,7 +233,7 @@ pub fn all_palindromes(tree : PalindromicTree) -> Array[String] {
     let len = node.length
     let pos = node.first_pos
     // Reconstruct the palindrome from the stored byte array.
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for j = 0; j < len; j = j + 1 {
       let byte_val = tree.s[pos + j]
       // Safe conversion: validate byte range before casting.
