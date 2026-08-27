@@ -63,7 +63,7 @@ pub fn hash_join(
         if entry.0 == key {
           // Match found: concatenate left + right values
           for lidx in entry.1 {
-            let joined = { values: left[lidx].values + r.values }
+            let joined = { values: left[lidx].values + r.values, }
             result.push(joined)
           }
           break
@@ -91,7 +91,7 @@ pub fn nested_loop_join(
       let key = o.values[outer_key]
       for i in inner {
         if inner_key < i.values.length() && i.values[inner_key] == key {
-          let joined = { values: o.values + i.values }
+          let joined = { values: o.values + i.values, }
           result.push(joined)
         }
       }
@@ -125,7 +125,7 @@ pub fn merge_join(
       break
     }
     if lval == rval {
-      let joined = { values: left[i].values + right[j].values }
+      let joined = { values: left[i].values + right[j].values, }
       result.push(joined)
       j = j + 1
     } else if lval < rval {

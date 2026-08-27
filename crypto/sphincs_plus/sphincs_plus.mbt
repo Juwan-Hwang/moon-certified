@@ -209,7 +209,7 @@ priv struct Adrs {
 
 ///|
 fn adrs_new() -> Adrs {
-  { layer: 0, tree: 0L, typ: 0, kp: 0, chain: 0, hash: 0, height: 0 }
+  { layer: 0, tree: 0L, typ: 0, kp: 0, chain: 0, hash: 0, height: 0, }
 }
 
 ///|
@@ -829,8 +829,8 @@ pub fn sphincs_keygen(seed : Bytes) -> (SphincsPublicKey, SphincsSecretKey) {
   let sk_prf = spx_slice(entropy, SPX_N, SPX_N)
   let pk_seed = spx_slice(entropy, 2 * SPX_N, SPX_N)
   let root = spx_xmss_root(pk_seed, sk_seed, SPX_D - 1, 0L)
-  let pk : SphincsPublicKey = { seed: pk_seed, root }
-  (pk, { seed: sk_seed, prf: sk_prf, pk })
+  let pk : SphincsPublicKey = { seed: pk_seed, root, }
+  (pk, { seed: sk_seed, prf: sk_prf, pk, })
 }
 
 ///|
@@ -859,7 +859,7 @@ pub fn sphincs_sign(sk : SphincsSecretKey, message : Bytes) -> SphincsSignature 
     idx_leaf,
   )
   let sig_ht = spx_ht_sign(fors_pk, idx_tree, pk.seed, sk.seed)
-  { data: spx_concat_arr([r, sig_fors, sig_ht]) }
+  { data: spx_concat_arr([r, sig_fors, sig_ht]), }
 }
 
 ///|

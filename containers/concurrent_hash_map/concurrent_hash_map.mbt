@@ -49,9 +49,9 @@ pub fn[K, V] concurrent_hash_map_new(
 ) -> ConcurrentHashMap[K, V] {
   let cap = if capacity < 8 { 8 } else { @hash_utils.next_pow2(capacity) }
   let slots = FixedArray::makei(cap, fn(_) {
-    Slot::{ key: None, value: None, state: 0 }
+    Slot::{ key: None, value: None, state: 0, }
   })
-  { slots, size: 0, used: 0, capacity: cap, hash_fn, eq_fn }
+  { slots, size: 0, used: 0, capacity: cap, hash_fn, eq_fn, }
 }
 
 ///|
@@ -169,7 +169,7 @@ fn[K, V] ConcurrentHashMap::resize(self : ConcurrentHashMap[K, V]) -> Unit {
   let old_cap = self.capacity
   let new_cap = old_cap * 2
   let new_slots = FixedArray::makei(new_cap, fn(_) {
-    Slot::{ key: None, value: None, state: 0 }
+    Slot::{ key: None, value: None, state: 0, }
   })
   self.slots = new_slots
   self.capacity = new_cap

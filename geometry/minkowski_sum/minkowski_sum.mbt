@@ -101,12 +101,12 @@ pub fn minkowski_sum(
   let a : Array[Point] = []
   for i = 0; i < n; i = i + 1 {
     let (x, y) = poly_a[i]
-    a.push({ x, y })
+    a.push({ x, y, })
   }
   let b : Array[Point] = []
   for i = 0; i < m; i = i + 1 {
     let (x, y) = poly_b[i]
-    b.push({ x, y })
+    b.push({ x, y, })
   }
   // Ensure CCW.
   let a_ccw = ensure_ccw(a)
@@ -122,7 +122,7 @@ pub fn minkowski_sum(
   while i < na || j < nb {
     let pa = a_ccw[(ia + i) % na]
     let pb = b_ccw[(ib + j) % nb]
-    result.push({ x: pa.x + pb.x, y: pa.y + pb.y })
+    result.push({ x: pa.x + pb.x, y: pa.y + pb.y, })
     if i >= na {
       j = j + 1
       continue
@@ -134,11 +134,11 @@ pub fn minkowski_sum(
     // Compare edge directions.
     let ea = {
       let next_a = a_ccw[(ia + i + 1) % na]
-      { x: next_a.x - pa.x, y: next_a.y - pa.y }
+      { x: next_a.x - pa.x, y: next_a.y - pa.y, }
     }
     let eb = {
       let next_b = b_ccw[(ib + j + 1) % nb]
-      { x: next_b.x - pb.x, y: next_b.y - pb.y }
+      { x: next_b.x - pb.x, y: next_b.y - pb.y, }
     }
     let c = ea.x.to_int64() * eb.y.to_int64() -
       ea.y.to_int64() * eb.x.to_int64()

@@ -93,7 +93,7 @@ pub fn new(n : Int) -> RollbackDSU {
   for i = 0; i < n; i = i + 1 {
     parent[i] = i
   }
-  { parent, size, count: n, history: [] }
+  { parent, size, count: n, history: [], }
 }
 
 // ---------------------------------------------------------------------------

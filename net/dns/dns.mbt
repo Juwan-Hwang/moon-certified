@@ -134,7 +134,7 @@ pub fn parse_dns_header(data : Bytes) -> DnsHeader? {
   let ancount = ((data[6].to_int() & 0xFF) << 8) | (data[7].to_int() & 0xFF)
   let nscount = ((data[8].to_int() & 0xFF) << 8) | (data[9].to_int() & 0xFF)
   let arcount = ((data[10].to_int() & 0xFF) << 8) | (data[11].to_int() & 0xFF)
-  Some({ id, flags, qdcount, ancount, nscount, arcount })
+  Some({ id, flags, qdcount, ancount, nscount, arcount, })
 }
 
 ///|
@@ -195,11 +195,11 @@ fn _all_dns_record_types() -> Array[DnsRecordType] {
 ///|
 /// Sample DnsRR (internal type validation).
 fn _sample_dns_rr() -> DnsRR {
-  { name: "", rtype: 0, rclass: 0, ttl: 0, rdata: b"" }
+  { name: "", rtype: 0, rclass: 0, ttl: 0, rdata: b"", }
 }
 
 ///|
 /// Sample DnsQuery (internal type validation).
 fn _sample_dns_query() -> DnsQuery {
-  { name: "", qtype: 0, qclass: 0 }
+  { name: "", qtype: 0, qclass: 0, }
 }

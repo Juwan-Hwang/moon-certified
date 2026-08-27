@@ -46,7 +46,7 @@ priv struct SpinMutex {
 
 ///|
 fn SpinMutex::new() -> SpinMutex {
-  { locked: false }
+  { locked: false, }
 }
 
 ///|
@@ -93,7 +93,7 @@ pub struct AsyncQueue[T] {
 ///|
 /// Create a mutex-protected bounded queue with the given capacity.
 pub fn[T] AsyncQueue::new(capacity : Int) -> AsyncQueue[T] {
-  { inner: BoundedQueue::new(capacity), mutex: SpinMutex::new() }
+  { inner: BoundedQueue::new(capacity), mutex: SpinMutex::new(), }
 }
 
 ///|
@@ -185,7 +185,7 @@ pub struct AsyncMap[K, V] {
 ///|
 /// Create an empty mutex-protected map.
 pub fn[K : Hash + Eq, V] AsyncMap::new() -> AsyncMap[K, V] {
-  { inner: Map([]), mutex: SpinMutex::new() }
+  { inner: Map([]), mutex: SpinMutex::new(), }
 }
 
 ///|

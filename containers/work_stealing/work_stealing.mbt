@@ -50,7 +50,7 @@ pub fn[T] ws_deque_new(capacity : Int) -> WorkStealingDeque[T] {
     p = p * 2
   }
   cap = p
-  { buffer: FixedArray::make(cap, None), bottom: 0, top: 0, mask: cap - 1 }
+  { buffer: FixedArray::make(cap, None), bottom: 0, top: 0, mask: cap - 1, }
 }
 
 ///|

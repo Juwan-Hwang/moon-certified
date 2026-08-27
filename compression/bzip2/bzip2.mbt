@@ -64,7 +64,7 @@ priv struct BitWriter {
 
 ///|
 fn BitWriter::new() -> BitWriter {
-  { buf: [], current: 0U, bits: 0 }
+  { buf: [], current: 0U, bits: 0, }
 }
 
 ///|
@@ -117,7 +117,7 @@ priv struct BitReader {
 
 ///|
 fn BitReader::new(data : Bytes, start : Int) -> BitReader {
-  { data, pos: start, current: 0U, bits: 0 }
+  { data, pos: start, current: 0U, bits: 0, }
 }
 
 ///|

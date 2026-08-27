@@ -59,18 +59,18 @@ pub struct Image {
 /// Create an image from a flat data array and dimensions.
 pub fn make_image(width : Int, height : Int, fill : Double) -> Image {
   if width <= 0 || height <= 0 {
-    return { data: [], width: 0, height: 0 }
+    return { data: [], width: 0, height: 0, }
   }
-  { data: Array::make(width * height, fill), width, height }
+  { data: Array::make(width * height, fill), width, height, }
 }
 
 ///|
 /// Create an image from an existing data array.
 pub fn from_array(data : Array[Double], width : Int, height : Int) -> Image {
   if width <= 0 || height <= 0 || data.length() != width * height {
-    return { data: [], width: 0, height: 0 }
+    return { data: [], width: 0, height: 0, }
   }
-  { data, width, height }
+  { data, width, height, }
 }
 
 ///|
@@ -97,7 +97,7 @@ pub fn clone_image(img : Image) -> Image {
   for i = 0; i < data.length(); i = i + 1 {
     data[i] = img.data[i]
   }
-  { data, width: img.width, height: img.height }
+  { data, width: img.width, height: img.height, }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ pub fn convolve2d(
       result[y * w + x] = acc
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -252,7 +252,7 @@ pub fn convolve_separable(
   }
   // Vertical pass
   let result = Array::make(w * h, 0.0)
-  let temp_img : Image = { data: temp, width: w, height: h }
+  let temp_img : Image = { data: temp, width: w, height: h, }
   for y = 0; y < h; y = y + 1 {
     for x = 0; x < w; x = x + 1 {
       let mut acc = 0.0
@@ -263,7 +263,7 @@ pub fn convolve_separable(
       result[y * w + x] = acc
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +334,7 @@ pub fn sobel_edges(img : Image, border : BorderType) -> (Image, Image) {
     mag[i] = (dx * dx + dy * dy).sqrt()
     dir[i] = @math.atan2(dy, dx)
   }
-  ({ data: mag, width: w, height: h }, { data: dir, width: w, height: h })
+  ({ data: mag, width: w, height: h, }, { data: dir, width: w, height: h, })
 }
 
 ///|
@@ -358,7 +358,7 @@ pub fn prewitt_edges(img : Image, border : BorderType) -> (Image, Image) {
     mag[i] = (dx * dx + dy * dy).sqrt()
     dir[i] = @math.atan2(dy, dx)
   }
-  ({ data: mag, width: w, height: h }, { data: dir, width: w, height: h })
+  ({ data: mag, width: w, height: h, }, { data: dir, width: w, height: h, })
 }
 
 ///|
@@ -382,7 +382,7 @@ pub fn scharr_edges(img : Image, border : BorderType) -> (Image, Image) {
     mag[i] = (dx * dx + dy * dy).sqrt()
     dir[i] = @math.atan2(dy, dx)
   }
-  ({ data: mag, width: w, height: h }, { data: dir, width: w, height: h })
+  ({ data: mag, width: w, height: h, }, { data: dir, width: w, height: h, })
 }
 
 ///|
@@ -524,7 +524,7 @@ pub fn canny_edges(
       }
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 // ---------------------------------------------------------------------------
@@ -543,7 +543,7 @@ pub struct StructElement {
 ///|
 /// Create a rectangular structuring element of the given size.
 pub fn rect_struct(w : Int, h : Int) -> StructElement {
-  { data: Array::make(w * h, 1.0), width: w, height: h }
+  { data: Array::make(w * h, 1.0), width: w, height: h, }
 }
 
 ///|
@@ -556,7 +556,7 @@ pub fn cross_struct(size : Int) -> StructElement {
     data[mid * s + i] = 1.0 // horizontal
     data[i * s + mid] = 1.0 // vertical
   }
-  { data, width: s, height: s }
+  { data, width: s, height: s, }
 }
 
 ///|
@@ -575,7 +575,7 @@ pub fn disk_struct(radius : Int) -> StructElement {
       }
     }
   }
-  { data, width: s, height: s }
+  { data, width: s, height: s, }
 }
 
 ///|
@@ -609,7 +609,7 @@ pub fn erode(img : Image, se : StructElement, border : BorderType) -> Image {
       result[y * w + x] = min_val
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -643,7 +643,7 @@ pub fn dilate(img : Image, se : StructElement, border : BorderType) -> Image {
       result[y * w + x] = max_val
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -683,7 +683,7 @@ pub fn morphological_gradient(
   for i = 0; i < w * h; i = i + 1 {
     result[i] = d.data[i] - e.data[i]
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -696,7 +696,7 @@ pub fn top_hat(img : Image, se : StructElement, border : BorderType) -> Image {
   for i = 0; i < w * h; i = i + 1 {
     result[i] = img.data[i] - opened.data[i]
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -713,7 +713,7 @@ pub fn bottom_hat(
   for i = 0; i < w * h; i = i + 1 {
     result[i] = closed.data[i] - img.data[i]
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 // ---------------------------------------------------------------------------
@@ -791,7 +791,7 @@ pub fn threshold(img : Image, threshold : Double) -> Image {
   for i = 0; i < w * h; i = i + 1 {
     result[i] = if img.data[i] >= threshold { 1.0 } else { 0.0 }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 // ---------------------------------------------------------------------------
@@ -818,12 +818,12 @@ pub fn normalize(img : Image) -> Image {
   let result = Array::make(w * h, 0.0)
   if range < 1.0e-12 {
     // Constant image: set everything to 0
-    return { data: result, width: w, height: h }
+    return { data: result, width: w, height: h, }
   }
   for i = 0; i < w * h; i = i + 1 {
     result[i] = (img.data[i] - min_val) / range
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -836,7 +836,7 @@ pub fn abs_diff(a : Image, b : Image) -> Image {
     let diff = a.data[i] - b.data[i]
     result[i] = if diff < 0.0 { -diff } else { diff }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -848,7 +848,7 @@ pub fn add_images(a : Image, b : Image) -> Image {
   for i = 0; i < w * h; i = i + 1 {
     result[i] = a.data[i] + b.data[i]
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -860,7 +860,7 @@ pub fn subtract_images(a : Image, b : Image) -> Image {
   for i = 0; i < w * h; i = i + 1 {
     result[i] = a.data[i] - b.data[i]
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -872,7 +872,7 @@ pub fn scale_image(img : Image, scalar : Double) -> Image {
   for i = 0; i < w * h; i = i + 1 {
     result[i] = img.data[i] * scalar
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }
 
 ///|
@@ -914,5 +914,5 @@ pub fn median_filter(img : Image, k : Int, border : BorderType) -> Image {
       result[y * w + x] = buf[count / 2]
     }
   }
-  { data: result, width: w, height: h }
+  { data: result, width: w, height: h, }
 }

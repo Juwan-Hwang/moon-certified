@@ -143,7 +143,7 @@ pub fn ws_parse_frame(data : Bytes) -> (WsFrame, Int)? {
   }
   let payload = Bytes::from_array(payload_buf)
   pos = pos + payload_len
-  Some(({ fin, opcode, masked, payload }, pos))
+  Some(({ fin, opcode, masked, payload, }, pos))
 }
 
 ///|

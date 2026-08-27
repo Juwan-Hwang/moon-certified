@@ -90,7 +90,7 @@ pub fn MVN::new(
   match @cholesky.decompose(cov, dim) {
     Some(chol) => {
       let log_det = @cholesky.log_det(chol)
-      Some({ dim, mean, cov, chol, log_det })
+      Some({ dim, mean, cov, chol, log_det, })
     }
     None => None
   }

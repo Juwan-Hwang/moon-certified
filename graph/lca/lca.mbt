@@ -39,7 +39,7 @@ pub struct LCA {
 /// The tree must be connected and undirected (edges appear in both directions).
 pub fn build(n : Int, root : Int, adj : Array[Array[Int]]) -> LCA {
   if n <= 0 {
-    return { up: [], depth: FixedArray::make(0, 0), log_n: 0, n: 0 }
+    return { up: [], depth: FixedArray::make(0, 0), log_n: 0, n: 0, }
   }
   let log_n = if n == 1 { 1 } else { ilog2(n) + 1 }
   // Initialize depth
@@ -80,7 +80,7 @@ pub fn build(n : Int, root : Int, adj : Array[Array[Int]]) -> LCA {
       }
     }
   }
-  { up, depth, log_n, n }
+  { up, depth, log_n, n, }
 }
 
 ///|

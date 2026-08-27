@@ -233,7 +233,7 @@ priv struct Point {
 
 ///|
 fn identity() -> Point {
-  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.one() }
+  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.one(), }
 }
 
 ///|
@@ -264,7 +264,7 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   let x3 = mod_mul(mod_mul(a_val, f_val), xy_cross)
   let y3 = mod_mul(mod_mul(a_val, g_val), mod_sub(d_val, c_val))
   let z3 = mod_mul(f_val, g_val)
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -302,7 +302,7 @@ fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt) {
 ///|
 /// Base point B (edwards448 generator).
 fn base_point() -> Point {
-  { x: ed448_bx, y: ed448_by, z: @bigint.one() }
+  { x: ed448_bx, y: ed448_by, z: @bigint.one(), }
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +365,7 @@ fn point_decode(data : Bytes) -> Point? {
   if @bigint.is_odd(x) != (sign == 1) {
     x = mod_sub(@bigint.zero(), x)
   }
-  Some({ x, y, z: @bigint.one() })
+  Some({ x, y, z: @bigint.one(), })
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +413,7 @@ pub fn ed448_keygen(seed : Bytes) -> (Ed448SecretKey, Ed448PublicKey) {
   }
   let pk_point = scalar_mult(sk_safe, base_point())
   let pk_bytes = point_encode(pk_point)
-  (Ed448SecretKey::{ sk: sk_safe }, Ed448PublicKey::{ pk: pk_bytes })
+  (Ed448SecretKey::{ sk: sk_safe, }, Ed448PublicKey::{ pk: pk_bytes, })
 }
 
 ///|
@@ -445,7 +445,7 @@ pub fn ed448_sign(sk : Ed448SecretKey, message : Bytes) -> Ed448Signature {
   // Step 5: S = (r + h * sk) mod L
   let s = mod_n(@bigint.add(r_safe, mod_n(@bigint.mul(h, sk.sk))))
 
-  Ed448Signature::{ r: r_bytes, s }
+  Ed448Signature::{ r: r_bytes, s, }
 }
 
 ///|
@@ -583,7 +583,7 @@ pub fn x448_shared(
   let u = bytes_to_bigint_le(peer_public_key)
   let result = x448_scalar_mult(private_key, u)
   let buf = bigint_to_bytes_le(result, 56)
-  X448SharedSecret::{ secret: buf }
+  X448SharedSecret::{ secret: buf, }
 }
 
 // ---------------------------------------------------------------------------

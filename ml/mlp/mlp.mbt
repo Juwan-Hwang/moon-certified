@@ -142,7 +142,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|

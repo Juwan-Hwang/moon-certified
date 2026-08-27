@@ -243,7 +243,7 @@ fn ols(x : Array[Double], y : Array[Double], n : Int, k : Int) -> OLSResult {
     let se = if v > 0.0 { v.sqrt() } else { 0.0 }
     t_stats[j] = if se > 0.0 { beta[j] / se } else { 0.0 }
   }
-  { coefficients: beta, t_statistics: t_stats, r_squared: r_sq }
+  { coefficients: beta, t_statistics: t_stats, r_squared: r_sq, }
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +303,7 @@ pub struct ARModel {
 pub fn fit_ar(data : Array[Double], p : Int) -> ARModel {
   let n = data.length()
   if p <= 0 || n < p + 2 {
-    return { phi: [], intercept: mean(data), p: 0 }
+    return { phi: [], intercept: mean(data), p: 0, }
   }
   let n_obs = n - p
   let k = p + 1 // intercept + p AR terms
@@ -322,7 +322,7 @@ pub fn fit_ar(data : Array[Double], p : Int) -> ARModel {
   for j = 0; j < p; j = j + 1 {
     phi[j] = result.coefficients[1 + j]
   }
-  { phi, intercept: result.coefficients[0], p }
+  { phi, intercept: result.coefficients[0], p, }
 }
 
 ///|
@@ -419,7 +419,7 @@ pub fn fit_arima(data : Array[Double], p : Int, d : Int, q : Int) -> ARIMAModel 
     let ar_model = fit_ar(diff_data, p)
     // Compute residuals for the AR model.
     let resid = compute_ar_residuals(ar_model, diff_data)
-    { ar_model, theta: [], d, q, residuals: resid }
+    { ar_model, theta: [], d, q, residuals: resid, }
   } else {
     // --- Step 1: Long AR to get estimated residuals ---
     let long_ar_order = if p + q + 10 < n / 4 { p + q + 10 } else { p + q + 3 }
@@ -435,7 +435,7 @@ pub fn fit_arima(data : Array[Double], p : Int, d : Int, q : Int) -> ARIMAModel 
       // Not enough data for Hannan-Rissanen, fall back to AR-only.
       let ar_model = fit_ar(diff_data, p)
       let resid = compute_ar_residuals(ar_model, diff_data)
-      { ar_model, theta: [], d, q, residuals: resid }
+      { ar_model, theta: [], d, q, residuals: resid, }
     } else {
       let k = 1 + p + q // intercept + AR terms + MA terms
       let x : Array[Double] = Array::make(n_obs * k, 0.0)
@@ -461,10 +461,10 @@ pub fn fit_arima(data : Array[Double], p : Int, d : Int, q : Int) -> ARIMAModel 
       for j = 0; j < q; j = j + 1 {
         theta[j] = result.coefficients[1 + p + j]
       }
-      let ar_model : ARModel = { phi, intercept: result.coefficients[0], p }
+      let ar_model : ARModel = { phi, intercept: result.coefficients[0], p, }
       // --- Step 3: Compute final residuals from ARMA(p,q) model ---
       let resid = compute_arma_residuals(ar_model, theta, diff_data)
-      { ar_model, theta, d, q, residuals: resid }
+      { ar_model, theta, d, q, residuals: resid, }
     }
   }
 }
@@ -736,7 +736,7 @@ fn garch_log_likelihood(
 pub fn fit_garch(returns : Array[Double], max_iter : Int) -> GARCHModel {
   let n = returns.length()
   if n < 5 {
-    return { omega: 0.0, alpha: 0.0, beta: 0.0, long_run_variance: 0.0 }
+    return { omega: 0.0, alpha: 0.0, beta: 0.0, long_run_variance: 0.0, }
   }
   // Demean returns to obtain residuals.
   let mu = mean(returns)
@@ -751,7 +751,7 @@ pub fn fit_garch(returns : Array[Double], max_iter : Int) -> GARCHModel {
   }
   let variance = var_sum / n.to_double()
   if variance <= 0.0 {
-    return { omega: 0.0, alpha: 0.0, beta: 0.0, long_run_variance: 0.0 }
+    return { omega: 0.0, alpha: 0.0, beta: 0.0, long_run_variance: 0.0, }
   }
   // Initial parameters.
   let mut omega = 0.1 * variance
@@ -837,7 +837,7 @@ pub fn fit_garch(returns : Array[Double], max_iter : Int) -> GARCHModel {
   } else {
     variance
   }
-  { omega, alpha, beta, long_run_variance: lr_var }
+  { omega, alpha, beta, long_run_variance: lr_var, }
 }
 
 ///|
@@ -1130,7 +1130,7 @@ test "ar: fit AR(1) recovers coefficient" {
 test "ar: forecast converges to mean for stationary process" {
   // AR(1) with phi = 0.3, intercept = 5.0
   // Long-run mean = intercept / (1 - phi) = 5.0 / 0.7 ≈ 7.14
-  let model : ARModel = { phi: [0.3], intercept: 5.0, p: 1 }
+  let model : ARModel = { phi: [0.3], intercept: 5.0, p: 1, }
   let data = [10.0, 8.0]
   let forecasts = forecast_ar(model, data, 20)
   // Forecasts should converge toward 7.14.

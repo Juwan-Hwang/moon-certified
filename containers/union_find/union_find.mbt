@@ -23,7 +23,7 @@ pub fn new(n : Int) -> UnionFind {
   } nobreak {
     ()
   }
-  { parent, rank, count: n }
+  { parent, rank, count: n, }
 }
 
 ///|

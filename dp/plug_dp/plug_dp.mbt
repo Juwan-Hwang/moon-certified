@@ -64,7 +64,7 @@ pub struct PlugState {
 ///|
 /// Create a plug state from an array of bracket values.
 pub fn PlugState::new(plugs : Array[Int]) -> PlugState {
-  { plugs, n_plugs: plugs.length() }
+  { plugs, n_plugs: plugs.length(), }
 }
 
 ///|
@@ -97,7 +97,7 @@ pub fn PlugState::clone(self : PlugState) -> PlugState {
   for i = 0; i < self.n_plugs; i = i + 1 {
     new_plugs.push(self.plugs[i])
   }
-  { plugs: new_plugs, n_plugs: self.n_plugs }
+  { plugs: new_plugs, n_plugs: self.n_plugs, }
 }
 
 ///|
@@ -172,7 +172,7 @@ fn StateMap::new(initial_cap : Int) -> StateMap {
   let cap = @hash_utils.next_pow2(initial_cap.max(16))
   let keys = Array::make(cap, -1)
   let vals = Array::make(cap, 0L)
-  { keys, vals, size: 0, capacity: cap, mask: cap - 1 }
+  { keys, vals, size: 0, capacity: cap, mask: cap - 1, }
 }
 
 ///|
@@ -503,7 +503,7 @@ fn decode_state(code : Int, n_plugs : Int) -> PlugState {
     plugs[i] = c % 3
     c = c / 3
   }
-  { plugs, n_plugs }
+  { plugs, n_plugs, }
 }
 
 ///|

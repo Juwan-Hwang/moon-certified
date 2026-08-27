@@ -238,7 +238,7 @@ pub fn fir_design_lowpass(
     }
     coeffs[i] = cutoff * sinc_val * w[i]
   }
-  { coeffs, length: n }
+  { coeffs, length: n, }
 }
 
 ///|
@@ -266,7 +266,7 @@ pub fn fir_design_highpass(
     let delta = if t.abs() < 0.5 { 1.0 } else { 0.0 }
     coeffs[i] = (delta - cutoff * sinc_val) * w[i]
   }
-  { coeffs, length: n }
+  { coeffs, length: n, }
 }
 
 ///|
@@ -300,7 +300,7 @@ pub fn fir_design_bandpass(
     }
     coeffs[i] = (high * sinc_h - low * sinc_l) * w[i]
   }
-  { coeffs, length: n }
+  { coeffs, length: n, }
 }
 
 ///|
@@ -335,7 +335,7 @@ pub fn fir_design_bandstop(
     let bp = high * sinc_h - low * sinc_l
     coeffs[i] = (delta - bp) * w[i]
   }
-  { coeffs, length: n }
+  { coeffs, length: n, }
 }
 
 // ---------------------------------------------------------------------------
@@ -517,7 +517,7 @@ pub fn iir_reset(filter : IirFilter) -> Unit {
 /// ```
 pub fn butterworth_lowpass(cutoff : Double, order : Int) -> IirFilter {
   if order <= 0 {
-    return { sections: [], order: 0 }
+    return { sections: [], order: 0, }
   }
   // Pre-warp the normalized digital frequency to analog frequency.
   // cutoff is normalized to Nyquist (fs/2), so digital freq = cutoff * pi
@@ -557,7 +557,7 @@ pub fn butterworth_lowpass(cutoff : Double, order : Int) -> IirFilter {
       let b0 = gain
       let b1 = 2.0 * gain
       let b2 = gain
-      sections.push({ b0, b1, b2, a1, a2, s1: 0.0, s2: 0.0 })
+      sections.push({ b0, b1, b2, a1, a2, s1: 0.0, s2: 0.0, })
       pole_idx = pole_idx + 2
     } else {
       // Odd order: single real pole at s = -wa.
@@ -571,7 +571,7 @@ pub fn butterworth_lowpass(cutoff : Double, order : Int) -> IirFilter {
       let b0 = gain
       let b1 = gain
       let b2 = 0.0
-      sections.push({ b0, b1, b2, a1, a2, s1: 0.0, s2: 0.0 })
+      sections.push({ b0, b1, b2, a1, a2, s1: 0.0, s2: 0.0, })
       pole_idx = pole_idx + 1
     }
   }
@@ -593,7 +593,7 @@ pub fn butterworth_lowpass(cutoff : Double, order : Int) -> IirFilter {
     sections[0].b2 = sections[0].b2 / dc_gain
     let _ = scale
   }
-  { sections, order }
+  { sections, order, }
 }
 
 ///|
@@ -653,7 +653,7 @@ pub fn butterworth_bandpass(
   for i = 0; i < hp.sections.length(); i = i + 1 {
     all_sections.push(hp.sections[i])
   }
-  { sections: all_sections, order: 2 * order }
+  { sections: all_sections, order: 2 * order, }
 }
 
 ///|
@@ -681,7 +681,7 @@ pub fn butterworth_bandstop(
   for i = 0; i < hp.sections.length(); i = i + 1 {
     all_sections.push(hp.sections[i])
   }
-  { sections: all_sections, order: 2 * order }
+  { sections: all_sections, order: 2 * order, }
 }
 
 // ---------------------------------------------------------------------------

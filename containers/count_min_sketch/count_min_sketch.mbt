@@ -192,7 +192,7 @@ pub fn new(epsilon : Double, delta : Double) -> CountMinSketch {
 /// a shared inner array (which `make` would do, corrupting all rows together).
 fn make_sketch(width : Int, depth : Int) -> CountMinSketch {
   let table = FixedArray::makei(depth, fn(_i) { FixedArray::make(width, 0L) })
-  { table, width, depth }
+  { table, width, depth, }
 }
 
 ///|

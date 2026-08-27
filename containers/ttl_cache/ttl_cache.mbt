@@ -57,7 +57,7 @@ pub struct TtlCache[K, V] {
 /// A non-positive `capacity` yields a cache that silently stores nothing.
 /// A non-positive `ttl` yields entries that are immediately expired.
 pub fn[K : Hash + Eq, V] new(capacity : Int, ttl : Int) -> TtlCache[K, V] {
-  { capacity, ttl: ttl.to_int64(), clock: 0L, entries: Map([]) }
+  { capacity, ttl: ttl.to_int64(), clock: 0L, entries: Map([]), }
 }
 
 ///|
@@ -79,7 +79,7 @@ pub fn[K : Hash + Eq, V] put(
   if !cache.entries.contains(key) && cache.entries.length() >= cache.capacity {
     evict_oldest(cache)
   }
-  cache.entries[key] = { value, expires_at: now + cache.ttl, inserted_at: now }
+  cache.entries[key] = { value, expires_at: now + cache.ttl, inserted_at: now, }
 }
 
 ///|

@@ -198,7 +198,7 @@ fn days_to_date(days : Int) -> Date {
   let mp = (5 * doy + 2) / 153 // [0, 11]
   let d = doy - (153 * mp + 2) / 5 + 1 // [1, 31]
   let m = if mp < 10 { mp + 3 } else { mp - 9 } // [1, 12]
-  { year: if m <= 2 { y + 1 } else { y }, month: m, day: d }
+  { year: if m <= 2 { y + 1 } else { y }, month: m, day: d, }
 }
 
 ///|
@@ -242,7 +242,7 @@ pub fn date(year : Int, month : Int, day : Int) -> Date? {
   if day < 1 || day > days_in_month(year, month) {
     return None
   }
-  Some({ year, month, day })
+  Some({ year, month, day, })
 }
 
 ///|
@@ -290,7 +290,7 @@ pub fn add_months(d : Date, n : Int) -> Date {
   let new_month = total % 12 + 1
   let max_day = days_in_month(new_year, new_month)
   let new_day = if d.day > max_day { max_day } else { d.day }
-  { year: new_year, month: new_month, day: new_day }
+  { year: new_year, month: new_month, day: new_day, }
 }
 
 ///|
@@ -300,7 +300,7 @@ pub fn add_years(d : Date, n : Int) -> Date {
   let new_year = d.year + n
   let max_day = days_in_month(new_year, d.month)
   let new_day = if d.day > max_day { max_day } else { d.day }
-  { year: new_year, month: d.month, day: new_day }
+  { year: new_year, month: d.month, day: new_day, }
 }
 
 ///|
@@ -331,7 +331,7 @@ pub fn time(hour : Int, minute : Int, second : Int, nanosecond : Int) -> Time? {
   if nanosecond < 0 || nanosecond > 999_999_999 {
     return None
   }
-  Some({ hour, minute, second, nanosecond })
+  Some({ hour, minute, second, nanosecond, })
 }
 
 ///|
@@ -377,13 +377,13 @@ pub fn duration_ns(ns : Int64) -> Duration {
 ///|
 /// Create a `Duration` from a number of seconds.
 pub fn duration_secs(secs : Int64) -> Duration {
-  { ns: secs * NS_PER_SEC }
+  { ns: secs * NS_PER_SEC, }
 }
 
 ///|
 /// Create a `Duration` from a number of milliseconds.
 pub fn duration_ms(ms : Int64) -> Duration {
-  { ns: ms * NS_PER_MS }
+  { ns: ms * NS_PER_MS, }
 }
 
 ///|
@@ -407,13 +407,13 @@ pub fn duration_as_ms(d : Duration) -> Int64 {
 ///|
 /// Add two durations.
 pub fn duration_add(a : Duration, b : Duration) -> Duration {
-  { ns: a.ns + b.ns }
+  { ns: a.ns + b.ns, }
 }
 
 ///|
 /// Subtract `b` from `a`.
 pub fn duration_sub(a : Duration, b : Duration) -> Duration {
-  { ns: a.ns - b.ns }
+  { ns: a.ns - b.ns, }
 }
 
 // ---------------------------------------------------------------------------
@@ -436,7 +436,7 @@ pub fn datetime(d : Date, t : Time, offset_minutes : Int) -> DateTime? {
     t.second.to_int64()
   let local_ns = secs * NS_PER_SEC + t.nanosecond.to_int64()
   let offset_ns = offset_minutes.to_int64() * SECS_PER_MIN * NS_PER_SEC
-  let dt : DateTime = { timestamp_ns: local_ns - offset_ns, offset_minutes }
+  let dt : DateTime = { timestamp_ns: local_ns - offset_ns, offset_minutes, }
   Some(dt)
 }
 
@@ -450,13 +450,13 @@ pub fn datetime_utc(d : Date, t : Time) -> DateTime? {
 /// Create a `DateTime` from a Unix timestamp (seconds since epoch) and
 /// a UTC offset in minutes.
 pub fn from_timestamp(ts : Int64, offset_minutes : Int) -> DateTime {
-  { timestamp_ns: ts * NS_PER_SEC, offset_minutes }
+  { timestamp_ns: ts * NS_PER_SEC, offset_minutes, }
 }
 
 ///|
 /// Create a `DateTime` from a Unix timestamp in milliseconds.
 pub fn from_timestamp_ms(ts_ms : Int64, offset_minutes : Int) -> DateTime {
-  { timestamp_ns: ts_ms * NS_PER_MS, offset_minutes }
+  { timestamp_ns: ts_ms * NS_PER_MS, offset_minutes, }
 }
 
 ///|
@@ -517,7 +517,7 @@ pub fn time_of(dt : DateTime) -> Time {
   let m = (total_secs % SECS_PER_HOUR / SECS_PER_MIN).to_int()
   let s = (total_secs % SECS_PER_MIN).to_int()
   let ns = (day_ns_pos % NS_PER_SEC).to_int()
-  { hour: h, minute: m, second: s, nanosecond: ns }
+  { hour: h, minute: m, second: s, nanosecond: ns, }
 }
 
 ///|
@@ -533,20 +533,20 @@ pub fn weekday_of(dt : DateTime) -> Int {
 ///|
 /// Add a `Duration` to a `DateTime`. The offset is preserved.
 pub fn add_duration(dt : DateTime, d : Duration) -> DateTime {
-  { timestamp_ns: dt.timestamp_ns + d.ns, offset_minutes: dt.offset_minutes }
+  { timestamp_ns: dt.timestamp_ns + d.ns, offset_minutes: dt.offset_minutes, }
 }
 
 ///|
 /// Subtract a `Duration` from a `DateTime`. The offset is preserved.
 pub fn sub_duration(dt : DateTime, d : Duration) -> DateTime {
-  { timestamp_ns: dt.timestamp_ns - d.ns, offset_minutes: dt.offset_minutes }
+  { timestamp_ns: dt.timestamp_ns - d.ns, offset_minutes: dt.offset_minutes, }
 }
 
 ///|
 /// Duration between two `DateTime`s. Both are compared in UTC, so
 /// the result is independent of their offsets.
 pub fn duration_between(a : DateTime, b : DateTime) -> Duration {
-  { ns: b.timestamp_ns - a.timestamp_ns }
+  { ns: b.timestamp_ns - a.timestamp_ns, }
 }
 
 // ---------------------------------------------------------------------------

@@ -281,7 +281,7 @@ pub fn DsaSecretKey::new(x : @bigint.BigInt) -> DsaSecretKey {
   if @bigint.equal(x_mod, @bigint.zero()) {
     abort("DSA: secret key must not be 0 mod q")
   }
-  { x: x_mod }
+  { x: x_mod, }
 }
 
 ///|
@@ -312,7 +312,7 @@ pub fn DsaSignature::new(
   r : @bigint.BigInt,
   s : @bigint.BigInt,
 ) -> DsaSignature {
-  { r, s }
+  { r, s, }
 }
 
 // ===========================================================================
@@ -360,7 +360,7 @@ pub fn dsa_sign(sk : DsaSecretKey, message : Bytes) -> DsaSignature {
   if @bigint.equal(s, @bigint.zero()) {
     abort("DSA: s must not be 0")
   }
-  DsaSignature::{ r, s }
+  DsaSignature::{ r, s, }
 }
 
 ///|
@@ -396,7 +396,7 @@ pub fn dsa_sign_with_nonce(
   if @bigint.equal(s, @bigint.zero()) {
     abort("DSA: s must not be 0")
   }
-  DsaSignature::{ r, s }
+  DsaSignature::{ r, s, }
 }
 
 ///|

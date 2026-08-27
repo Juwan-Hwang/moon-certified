@@ -36,19 +36,19 @@ pub struct CsvConfig {
 /// Default CSV configuration (RFC 4180): comma delimiter, double-quote,
 /// CRLF line terminator, no header assumption.
 pub fn default_config() -> CsvConfig {
-  { delimiter: ',', quote: '"', line_terminator: "\r\n", has_header: false }
+  { delimiter: ',', quote: '"', line_terminator: "\r\n", has_header: false, }
 }
 
 ///|
 /// CSV configuration with header row.
 pub fn with_header() -> CsvConfig {
-  { delimiter: ',', quote: '"', line_terminator: "\r\n", has_header: true }
+  { delimiter: ',', quote: '"', line_terminator: "\r\n", has_header: true, }
 }
 
 ///|
 /// TSV (tab-separated values) configuration.
 pub fn tsv_config() -> CsvConfig {
-  { delimiter: '\t', quote: '"', line_terminator: "\r\n", has_header: false }
+  { delimiter: '\t', quote: '"', line_terminator: "\r\n", has_header: false, }
 }
 
 ///|

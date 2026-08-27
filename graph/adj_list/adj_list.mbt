@@ -33,7 +33,7 @@ pub fn new(n : Int) -> Graph {
   // Each vertex gets its own independent Array; using makei ensures no
   // shared reference (FixedArray::make(n, []) would alias one array).
   let adj : FixedArray[Array[Edge]] = FixedArray::makei(n, fn(_) { [] })
-  { n, adj }
+  { n, adj, }
 }
 
 ///|
@@ -63,7 +63,7 @@ pub fn add_edge(g : Graph, u : Int, v : Int, weight : Int) -> Bool {
   if u < 0 || u >= g.n || v < 0 || v >= g.n {
     return false
   }
-  g.adj[u].push({ to: v, weight })
+  g.adj[u].push({ to: v, weight, })
   true
 }
 

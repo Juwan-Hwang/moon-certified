@@ -39,7 +39,12 @@ pub struct SparseTable[T] {
 pub fn[T] build(arr : Array[T], combine : (T, T) -> T) -> SparseTable[T] {
   let n = arr.length()
   if n == 0 {
-    return { table: [], log2_table: FixedArray::make(1, 0), length: 0, combine }
+    return {
+      table: [],
+      log2_table: FixedArray::make(1, 0),
+      length: 0,
+      combine,
+    }
   }
   // Precompute floor(log2) for all possible lengths
   let log2_table = FixedArray::make(n + 1, 0)
@@ -66,7 +71,7 @@ pub fn[T] build(arr : Array[T], combine : (T, T) -> T) -> SparseTable[T] {
     }
     table.push(level)
   }
-  { table, log2_table, length: n, combine }
+  { table, log2_table, length: n, combine, }
 }
 
 ///|

@@ -1,7 +1,7 @@
 import {
-  "moon-certified/compression/deflate",
-  "moon-certified/containers/crc",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/compression/deflate",
+  "Juwan-Hwang/moon-certified/containers/crc",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

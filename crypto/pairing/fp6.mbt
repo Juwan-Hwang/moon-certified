@@ -14,28 +14,28 @@ pub struct Fp6 {
 
 ///|
 pub fn fp6_zero() -> Fp6 {
-  { c0: fp2_zero(), c1: fp2_zero(), c2: fp2_zero() }
+  { c0: fp2_zero(), c1: fp2_zero(), c2: fp2_zero(), }
 }
 
 ///|
 pub fn fp6_one() -> Fp6 {
-  { c0: fp2_one(), c1: fp2_zero(), c2: fp2_zero() }
+  { c0: fp2_one(), c1: fp2_zero(), c2: fp2_zero(), }
 }
 
 ///|
 pub fn fp6_add(a : Fp6, b : Fp6) -> Fp6 {
-  { c0: fp2_add(a.c0, b.c0), c1: fp2_add(a.c1, b.c1), c2: fp2_add(a.c2, b.c2) }
+  { c0: fp2_add(a.c0, b.c0), c1: fp2_add(a.c1, b.c1), c2: fp2_add(a.c2, b.c2), }
 }
 
 ///|
 pub fn fp6_sub(a : Fp6, b : Fp6) -> Fp6 {
-  { c0: fp2_sub(a.c0, b.c0), c1: fp2_sub(a.c1, b.c1), c2: fp2_sub(a.c2, b.c2) }
+  { c0: fp2_sub(a.c0, b.c0), c1: fp2_sub(a.c1, b.c1), c2: fp2_sub(a.c2, b.c2), }
 }
 
 ///|
 /// The nonresidue for Fp6/Fp2 is (u+1), which in Fp2 is {c0: 1, c1: 1}
 pub fn fp6_nonresidue() -> Fp2 {
-  { c0: @bigint.one(), c1: @bigint.one() }
+  { c0: @bigint.one(), c1: @bigint.one(), }
 }
 
 ///|
@@ -57,7 +57,7 @@ pub fn fp6_mul(a : Fp6, b : Fp6) -> Fp6 {
   let a0b2 = fp2_mul(a.c0, b.c2)
   let a2b0 = fp2_mul(a.c2, b.c0)
   let c2 = fp2_add(fp2_add(a0b2, a1b1), a2b0)
-  { c0, c1, c2 }
+  { c0, c1, c2, }
 }
 
 ///|
@@ -67,7 +67,7 @@ pub fn fp6_sqr(a : Fp6) -> Fp6 {
 
 ///|
 pub fn fp6_neg(a : Fp6) -> Fp6 {
-  { c0: fp2_neg(a.c0), c1: fp2_neg(a.c1), c2: fp2_neg(a.c2) }
+  { c0: fp2_neg(a.c0), c1: fp2_neg(a.c1), c2: fp2_neg(a.c2), }
 }
 
 ///|
@@ -108,11 +108,11 @@ pub fn fp6_inv(a : Fp6) -> Fp6 {
   let b0 = fp2_mul(fp2_sub(c0_sqr, fp2_mul(nr, c1_c2)), det_inv)
   let b1 = fp2_mul(fp2_sub(fp2_mul(nr, c2_sqr), c0_c1), det_inv)
   let b2 = fp2_mul(fp2_sub(c1_sqr, c0_c2), det_inv)
-  { c0: b0, c1: b1, c2: b2 }
+  { c0: b0, c1: b1, c2: b2, }
 }
 
 ///|
 /// Fp6 scalar multiplication (multiply by an Fp2 element)
 pub fn fp6_mul_fp2(a : Fp6, s : Fp2) -> Fp6 {
-  { c0: fp2_mul(a.c0, s), c1: fp2_mul(a.c1, s), c2: fp2_mul(a.c2, s) }
+  { c0: fp2_mul(a.c0, s), c1: fp2_mul(a.c1, s), c2: fp2_mul(a.c2, s), }
 }

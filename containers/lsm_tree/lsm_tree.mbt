@@ -126,7 +126,7 @@ fn MemTable::new() -> MemTable {
   {
     header: {
       key: "",
-      value: { key: "", value: "", deleted: false },
+      value: { key: "", value: "", deleted: false, },
       forward: FixedArray::make(MEMTABLE_MAX_LEVEL, None),
     },
     level: 1,
@@ -334,15 +334,15 @@ pub fn put(tree : LSMTree, key : String, value : String) -> Unit {
     Some(prev) =>
       if prev.deleted {
         // Key was a tombstone in memtable; now it's alive again.
-        tree.memtable.insert({ key, value, deleted: false })
+        tree.memtable.insert({ key, value, deleted: false, })
         tree.total_entries = tree.total_entries + 1
       } else {
         // Key was already alive; just update the value.
-        tree.memtable.insert({ key, value, deleted: false })
+        tree.memtable.insert({ key, value, deleted: false, })
       }
     None => {
       // New key in the MemTable.
-      tree.memtable.insert({ key, value, deleted: false })
+      tree.memtable.insert({ key, value, deleted: false, })
       // Only increment total if the key doesn't exist in SSTables.
       // If it exists in SSTables, it's already counted.
       if !sstable_contains(tree, key) {
@@ -362,15 +362,15 @@ pub fn delete(tree : LSMTree, key : String) -> Unit {
     Some(prev) =>
       if prev.deleted {
         // Already a tombstone — nothing changes.
-        tree.memtable.insert({ key, value: "", deleted: true })
+        tree.memtable.insert({ key, value: "", deleted: true, })
       } else {
         // Key was alive in memtable; now it's a tombstone.
-        tree.memtable.insert({ key, value: "", deleted: true })
+        tree.memtable.insert({ key, value: "", deleted: true, })
         tree.total_entries = tree.total_entries - 1
       }
     None => {
       // Key not in MemTable.
-      tree.memtable.insert({ key, value: "", deleted: true })
+      tree.memtable.insert({ key, value: "", deleted: true, })
       // Check if the key exists in SSTables; if so, decrement.
       if sstable_contains(tree, key) {
         tree.total_entries = tree.total_entries - 1
@@ -412,7 +412,7 @@ pub fn flush(tree : LSMTree) -> Unit {
   for i = 0; i < entries.length(); i = i + 1 {
     @bloom_filter.add(bloom, entries[i].key)
   }
-  tree.sstables.push({ entries, bloom })
+  tree.sstables.push({ entries, bloom, })
   // Reset MemTable.
   tree.memtable = MemTable::new()
   // Trigger compaction if too many Level 0 tables.
@@ -465,7 +465,7 @@ pub fn compact(tree : LSMTree) -> Unit {
   for i = 0; i < merged.length(); i = i + 1 {
     @bloom_filter.add(bloom, merged[i].key)
   }
-  tree.level1 = [{ entries: merged, bloom }]
+  tree.level1 = [{ entries: merged, bloom, }]
 }
 
 ///|

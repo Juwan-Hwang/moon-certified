@@ -99,7 +99,7 @@ pub struct LeftistHeap[T] {
 ///|
 /// Create an empty leftist heap with the given comparator.
 pub fn[T] LeftistHeap::new(compare : (T, T) -> Int) -> LeftistHeap[T] {
-  { root: None, compare, count: 0 }
+  { root: None, compare, count: 0, }
 }
 
 ///|
@@ -154,7 +154,7 @@ pub fn[T] LeftistHeap::find_min(self : LeftistHeap[T]) -> T? {
 ///
 /// Creates a single-node heap and merges it with the current heap.
 pub fn[T] LeftistHeap::insert(self : LeftistHeap[T], val : T) -> Unit {
-  let node : LeftistNode[T] = { val, npl: 1, left: None, right: None }
+  let node : LeftistNode[T] = { val, npl: 1, left: None, right: None, }
   self.root = merge_nodes(self.root, Some(node), self.compare)
   self.count = self.count + 1
 }
@@ -234,7 +234,7 @@ fn[T] merge_nodes(
       // Update npl: 1 + min(npl(left), npl(right)) = 1 + npl(right) since
       // leftist property guarantees npl(left) >= npl(right).
       let new_npl = 1 + npl_of(new_right)
-      Some({ val: smaller.val, npl: new_npl, left: new_left, right: new_right })
+      Some({ val: smaller.val, npl: new_npl, left: new_left, right: new_right, })
     }
   }
 }

@@ -68,7 +68,7 @@ pub struct ThriftEncoder {
 ///|
 /// Create a new Thrift encoder.
 pub fn ThriftEncoder::new() -> ThriftEncoder {
-  { buf: Array::make(256, 0), pos: 0 }
+  { buf: Array::make(256, 0), pos: 0, }
 }
 
 ///|
@@ -168,7 +168,7 @@ pub struct ThriftDecoder {
 ///|
 /// Create a decoder from bytes.
 pub fn ThriftDecoder::new(data : Bytes) -> ThriftDecoder {
-  { data, pos: 0 }
+  { data, pos: 0, }
 }
 
 ///|

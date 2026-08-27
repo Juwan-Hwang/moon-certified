@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/math",
-  "moon-certified/math/sparse_matrix",
+  "Juwan-Hwang/moon-certified/math/sparse_matrix",
 }
 
 options(

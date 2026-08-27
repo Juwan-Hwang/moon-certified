@@ -172,7 +172,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -566,7 +566,7 @@ fn forward_seq(model : RnnModel, x_seq : Array[Array[Double]]) -> ForwardCache {
     let y_t = project_output(model, h_prev)
     outputs.push(y_t)
   }
-  { h_states, lstm_gates, c_states, outputs }
+  { h_states, lstm_gates, c_states, outputs, }
 }
 
 // ---------------------------------------------------------------------------
@@ -654,7 +654,7 @@ fn zero_grads(model : RnnModel) -> RnnGrad {
     gW_ho.push(Array::make(h, 0.0))
   }
   let gb_o = Array::make(o, 0.0)
-  { gW_xh, gW_hh, gb_h, gW_ho, gb_o }
+  { gW_xh, gW_hh, gb_h, gW_ho, gb_o, }
 }
 
 ///|

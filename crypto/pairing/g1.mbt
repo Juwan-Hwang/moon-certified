@@ -42,7 +42,7 @@ pub struct G1Point {
 ///|
 /// G1 point at infinity (identity element): (0, 1, 0)
 pub fn g1_identity() -> G1Point {
-  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.zero() }
+  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.zero(), }
 }
 
 ///|
@@ -53,14 +53,14 @@ pub fn g1_is_identity(p : G1Point) -> Bool {
 ///|
 /// G1 generator point
 pub fn g1_generator() -> G1Point {
-  { x: g1_gx, y: g1_gy, z: @bigint.one() }
+  { x: g1_gx, y: g1_gy, z: @bigint.one(), }
 }
 
 ///|
 /// Construct a G1 point from affine coordinates (x, y).
 /// The caller is responsible for ensuring the point is on the curve.
 pub fn g1_from_affine(x : @bigint.BigInt, y : @bigint.BigInt) -> G1Point {
-  { x, y, z: @bigint.one() }
+  { x, y, z: @bigint.one(), }
 }
 
 ///|
@@ -95,7 +95,7 @@ pub fn g1_double(p : G1Point) -> G1Point {
   }
   let y3 = fp_sub(fp_mul(e, d_x3), eight_c) // Y3 = E*(D - X3) - 8*C
   let z3 = fp_mul(fp_add(p.y, p.y), p.z) // Z3 = 2*Y*Z
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -146,7 +146,7 @@ pub fn g1_add(p : G1Point, q : G1Point) -> G1Point {
   let two = @bigint.from_int_value(2)
   let z1z2 = fp_mul(p.z, q.z)
   let z3 = fp_mul(fp_mul(two, z1z2), h) // Z3 = 2*Z1*Z2*H
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -204,5 +204,5 @@ pub fn g1_eq(p : G1Point, q : G1Point) -> Bool {
 ///|
 /// G1 negation: (X, Y, Z) -> (X, -Y, Z)
 pub fn g1_neg(p : G1Point) -> G1Point {
-  { x: p.x, y: fp_sub(@bigint.zero(), p.y), z: p.z }
+  { x: p.x, y: fp_sub(@bigint.zero(), p.y), z: p.z, }
 }

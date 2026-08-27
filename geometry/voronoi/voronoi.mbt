@@ -99,12 +99,12 @@ fn edge_key(a : Int, b : Int) -> Int64 {
 pub fn compute(points : Array[@delaunay.DPoint]) -> VoronoiDiagram {
   let n = points.length()
   if n < 3 {
-    return { vertices: [], edges: [], num_sites: n }
+    return { vertices: [], edges: [], num_sites: n, }
   }
   // Step 1: Compute Delaunay triangulation.
   let delaunay_result = @delaunay.triangulate(points)
   if delaunay_result.count == 0 {
-    return { vertices: [], edges: [], num_sites: n }
+    return { vertices: [], edges: [], num_sites: n, }
   }
   // Step 2: For each Delaunay triangle, compute the circumcenter.
   let vertices : Array[VVertex] = []
@@ -182,7 +182,7 @@ pub fn compute(points : Array[@delaunay.DPoint]) -> VoronoiDiagram {
       None => continue
     }
   }
-  { vertices, edges, num_sites: n }
+  { vertices, edges, num_sites: n, }
 }
 
 ///|
@@ -208,7 +208,7 @@ fn circumcenter(
   let d = 2.0 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
   if dbl_abs(d) < 1.0e-20 {
     // Collinear: return a degenerate point.
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   let ux = (
       (ax * ax + ay * ay) * (by - cy) +
@@ -222,7 +222,7 @@ fn circumcenter(
       (cx * cx + cy * cy) * (bx - ax)
     ) /
     d
-  { x: ux, y: uy }
+  { x: ux, y: uy, }
 }
 
 // ---------------------------------------------------------------------------

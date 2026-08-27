@@ -55,19 +55,19 @@ pub struct Dual {
 ///|
 /// Create a constant (derivative = 0).
 pub fn constant(v : Double) -> Dual {
-  { val: v, deriv: 0.0 }
+  { val: v, deriv: 0.0, }
 }
 
 ///|
 /// Create an independent variable with derivative `1` (i.e., `d/dx = 1`).
 pub fn variable(v : Double) -> Dual {
-  { val: v, deriv: 1.0 }
+  { val: v, deriv: 1.0, }
 }
 
 ///|
 /// Create an independent variable with a custom seed derivative.
 pub fn variable_with_seed(v : Double, seed : Double) -> Dual {
-  { val: v, deriv: seed }
+  { val: v, deriv: seed, }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,61 +93,61 @@ pub fn tangent(d : Dual) -> Double {
 ///|
 /// Addition: `(a+a′ε) + (b+b′ε) = (a+b) + (a′+b′)ε`.
 pub fn add(a : Dual, b : Dual) -> Dual {
-  { val: a.val + b.val, deriv: a.deriv + b.deriv }
+  { val: a.val + b.val, deriv: a.deriv + b.deriv, }
 }
 
 ///|
 /// Subtraction: `(a+a′ε) − (b+b′ε) = (a−b) + (a′−b′)ε`.
 pub fn sub(a : Dual, b : Dual) -> Dual {
-  { val: a.val - b.val, deriv: a.deriv - b.deriv }
+  { val: a.val - b.val, deriv: a.deriv - b.deriv, }
 }
 
 ///|
 /// Multiplication: `(a+a′ε)(b+b′ε) = ab + (a′b + ab′)ε`.
 pub fn mul(a : Dual, b : Dual) -> Dual {
-  { val: a.val * b.val, deriv: a.deriv * b.val + a.val * b.deriv }
+  { val: a.val * b.val, deriv: a.deriv * b.val + a.val * b.deriv, }
 }
 
 ///|
 /// Division: `(a+a′ε)/(b+b′ε) = a/b + (a′b − ab′)/(b²) ε`.
 pub fn div(a : Dual, b : Dual) -> Dual {
   let bv2 = b.val * b.val
-  { val: a.val / b.val, deriv: (a.deriv * b.val - a.val * b.deriv) / bv2 }
+  { val: a.val / b.val, deriv: (a.deriv * b.val - a.val * b.deriv) / bv2, }
 }
 
 ///|
 /// Negation: `−(a+a′ε) = −a + (−a′)ε`.
 pub fn neg(a : Dual) -> Dual {
-  { val: -a.val, deriv: -a.deriv }
+  { val: -a.val, deriv: -a.deriv, }
 }
 
 ///|
 /// Scalar addition: `a + c` (c is a constant).
 pub fn add_scalar(a : Dual, c : Double) -> Dual {
-  { val: a.val + c, deriv: a.deriv }
+  { val: a.val + c, deriv: a.deriv, }
 }
 
 ///|
 /// Scalar multiplication: `a × c` (c is a constant).
 pub fn mul_scalar(a : Dual, c : Double) -> Dual {
-  { val: a.val * c, deriv: a.deriv * c }
+  { val: a.val * c, deriv: a.deriv * c, }
 }
 
 ///|
 /// Power: `(a+a′ε)^n = a^n + n·a^(n−1)·a′·ε` for integer `n`.
 pub fn pow_int(a : Dual, n : Int) -> Dual {
   if n == 0 {
-    return { val: 1.0, deriv: 0.0 }
+    return { val: 1.0, deriv: 0.0, }
   }
   let nd = n.to_double()
   let an = @math.pow(a.val, nd)
-  { val: an, deriv: nd * @math.pow(a.val, nd - 1.0) * a.deriv }
+  { val: an, deriv: nd * @math.pow(a.val, nd - 1.0) * a.deriv, }
 }
 
 ///|
 /// Power with real exponent: `a^p` where `d/da a^p = p·a^(p−1)`.
 pub fn pow(a : Dual, p : Double) -> Dual {
-  { val: @math.pow(a.val, p), deriv: p * @math.pow(a.val, p - 1.0) * a.deriv }
+  { val: @math.pow(a.val, p), deriv: p * @math.pow(a.val, p - 1.0) * a.deriv, }
 }
 
 // ---------------------------------------------------------------------------
@@ -157,40 +157,40 @@ pub fn pow(a : Dual, p : Double) -> Dual {
 ///|
 /// `sin(a+a′ε) = sin(a) + cos(a)·a′·ε`.
 pub fn sin(a : Dual) -> Dual {
-  { val: @math.sin(a.val), deriv: @math.cos(a.val) * a.deriv }
+  { val: @math.sin(a.val), deriv: @math.cos(a.val) * a.deriv, }
 }
 
 ///|
 /// `cos(a+a′ε) = cos(a) − sin(a)·a′·ε`.
 pub fn cos(a : Dual) -> Dual {
-  { val: @math.cos(a.val), deriv: -@math.sin(a.val) * a.deriv }
+  { val: @math.cos(a.val), deriv: -@math.sin(a.val) * a.deriv, }
 }
 
 ///|
 /// `tan(a+a′ε) = tan(a) + (1 + tan²(a))·a′·ε`.
 pub fn tan(a : Dual) -> Dual {
   let t = @math.sin(a.val) / @math.cos(a.val)
-  { val: t, deriv: (1.0 + t * t) * a.deriv }
+  { val: t, deriv: (1.0 + t * t) * a.deriv, }
 }
 
 ///|
 /// `exp(a+a′ε) = exp(a) + exp(a)·a′·ε`.
 pub fn exp(a : Dual) -> Dual {
   let e = @math.exp(a.val)
-  { val: e, deriv: e * a.deriv }
+  { val: e, deriv: e * a.deriv, }
 }
 
 ///|
 /// `log(a+a′ε) = log(a) + a′/a · ε` (natural logarithm).
 pub fn log(a : Dual) -> Dual {
-  { val: @math.ln(a.val), deriv: a.deriv / a.val }
+  { val: @math.ln(a.val), deriv: a.deriv / a.val, }
 }
 
 ///|
 /// `sqrt(a+a′ε) = √a + a′/(2√a) · ε`.
 pub fn sqrt(a : Dual) -> Dual {
   let s = a.val.sqrt()
-  { val: s, deriv: a.deriv / (2.0 * s) }
+  { val: s, deriv: a.deriv / (2.0 * s), }
 }
 
 ///|
@@ -200,7 +200,7 @@ pub fn sinh(a : Dual) -> Dual {
   let ema = @math.exp(-a.val)
   let sh = (ea - ema) / 2.0
   let ch = (ea + ema) / 2.0
-  { val: sh, deriv: ch * a.deriv }
+  { val: sh, deriv: ch * a.deriv, }
 }
 
 ///|
@@ -210,7 +210,7 @@ pub fn cosh(a : Dual) -> Dual {
   let ema = @math.exp(-a.val)
   let sh = (ea - ema) / 2.0
   let ch = (ea + ema) / 2.0
-  { val: ch, deriv: sh * a.deriv }
+  { val: ch, deriv: sh * a.deriv, }
 }
 
 ///|
@@ -219,7 +219,7 @@ pub fn tanh(a : Dual) -> Dual {
   let ea = @math.exp(a.val)
   let ema = @math.exp(-a.val)
   let t = (ea - ema) / (ea + ema)
-  { val: t, deriv: (1.0 - t * t) * a.deriv }
+  { val: t, deriv: (1.0 - t * t) * a.deriv, }
 }
 
 ///|
@@ -229,7 +229,7 @@ pub fn tanh(a : Dual) -> Dual {
 /// derivative is set to `0` (subgradient convention).
 pub fn abs(a : Dual) -> Dual {
   let s = if a.val > 0.0 { 1.0 } else if a.val < 0.0 { -1.0 } else { 0.0 }
-  { val: a.val.abs(), deriv: s * a.deriv }
+  { val: a.val.abs(), deriv: s * a.deriv, }
 }
 
 // ---------------------------------------------------------------------------
@@ -244,13 +244,13 @@ pub fn abs(a : Dual) -> Dual {
 pub fn gradient(f : (Array[Dual]) -> Dual, x : Array[Double]) -> Array[Double] {
   let n = x.length()
   let result = Array::make(n, 0.0)
-  let duals : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0 })
+  let duals : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0, })
   for i = 0; i < n; i = i + 1 {
     for j = 0; j < n; j = j + 1 {
       if j == i {
-        duals[j] = { val: x[j], deriv: 1.0 }
+        duals[j] = { val: x[j], deriv: 1.0, }
       } else {
-        duals[j] = { val: x[j], deriv: 0.0 }
+        duals[j] = { val: x[j], deriv: 0.0, }
       }
     }
     let result_dual = f(duals)
@@ -270,9 +270,9 @@ pub fn directional_derivative(
   d : Array[Double],
 ) -> Dual {
   let n = x.length()
-  let duals : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0 })
+  let duals : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0, })
   for i = 0; i < n; i = i + 1 {
-    duals[i] = { val: x[i], deriv: d[i] }
+    duals[i] = { val: x[i], deriv: d[i], }
   }
   f(duals)
 }
@@ -288,11 +288,11 @@ pub fn jacobian(
   x : Array[Double],
 ) -> Array[Array[Double]] {
   let n = x.length()
-  let duals0 : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0 })
+  let duals0 : Array[Dual] = Array::make(n, { val: 0.0, deriv: 0.0, })
   for j = 0; j < n; j = j + 1 {
-    duals0[j] = { val: x[j], deriv: 0.0 }
+    duals0[j] = { val: x[j], deriv: 0.0, }
   }
-  duals0[0] = { val: x[0], deriv: 1.0 }
+  duals0[0] = { val: x[0], deriv: 1.0, }
   let out0 = f(duals0)
   let m = out0.length()
   let jac : Array[Array[Double]] = Array::makei(m, fn(_i) {
@@ -303,7 +303,7 @@ pub fn jacobian(
   }
   for j = 1; j < n; j = j + 1 {
     for k = 0; k < n; k = k + 1 {
-      duals0[k] = { val: x[k], deriv: if k == j { 1.0 } else { 0.0 } }
+      duals0[k] = { val: x[k], deriv: if k == j { 1.0 } else { 0.0 }, }
     }
     let out = f(duals0)
     for i = 0; i < m; i = i + 1 {

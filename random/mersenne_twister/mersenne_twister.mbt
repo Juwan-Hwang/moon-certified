@@ -34,7 +34,7 @@ pub fn new(seed : UInt) -> MT19937 {
     let prev = mt[i - 1]
     mt[i] = 1812433253U * (prev ^ (prev >> 30)) + i.reinterpret_as_uint()
   }
-  { mt, index: 624 }
+  { mt, index: 624, }
 }
 
 ///|

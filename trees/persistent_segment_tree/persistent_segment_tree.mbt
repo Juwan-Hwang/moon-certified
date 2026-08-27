@@ -48,7 +48,7 @@ pub struct PersistentSegTree {
 ///|
 /// Create a persistent segment tree for values in [0, val_range).
 pub fn new(val_range : Int) -> PersistentSegTree {
-  let tree = { nodes: [], versions: [], val_range }
+  let tree = { nodes: [], versions: [], val_range, }
   // Version 0: empty tree (no insertions yet).
   let root = build_empty(tree, 0, val_range)
   tree.versions.push(root)
@@ -59,7 +59,7 @@ pub fn new(val_range : Int) -> PersistentSegTree {
 /// Build an empty subtree covering [lo, hi). Returns node index.
 fn build_empty(tree : PersistentSegTree, lo : Int, hi : Int) -> Int {
   let idx = tree.nodes.length()
-  tree.nodes.push({ left: -1, right: -1, count: 0 })
+  tree.nodes.push({ left: -1, right: -1, count: 0, })
   if hi - lo > 1 {
     let mid = (lo + hi) / 2
     tree.nodes[idx].left = build_empty(tree, lo, mid)
@@ -89,7 +89,7 @@ fn insert_rec(
 ) -> Int {
   let old = tree.nodes[node]
   let new_idx = tree.nodes.length()
-  tree.nodes.push({ left: old.left, right: old.right, count: old.count + 1 })
+  tree.nodes.push({ left: old.left, right: old.right, count: old.count + 1, })
   if hi - lo > 1 {
     let mid = (lo + hi) / 2
     if val < mid {

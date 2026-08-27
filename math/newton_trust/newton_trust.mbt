@@ -43,7 +43,7 @@ pub fn TrustRegionParams::new(
   max_radius : Double,
   eta : Double,
 ) -> TrustRegionParams {
-  { max_iter, grad_tol, step_tol, init_radius, max_radius, eta }
+  { max_iter, grad_tol, step_tol, init_radius, max_radius, eta, }
 }
 
 ///|
@@ -94,7 +94,7 @@ pub fn newton_trust_region(
     gnorm = gnorm.sqrt()
     if gnorm < params.grad_tol {
       converged = true
-      return { x, fval, gradient_norm: gnorm, iterations: iter, converged }
+      return { x, fval, gradient_norm: gnorm, iterations: iter, converged, }
     }
     let h = hess(x)
     // Solve trust region subproblem via dogleg method
@@ -181,5 +181,5 @@ pub fn newton_trust_region(
   for v in g_final {
     gnorm = gnorm + v * v
   }
-  { x, fval, gradient_norm: gnorm.sqrt(), iterations: iter, converged }
+  { x, fval, gradient_norm: gnorm.sqrt(), iterations: iter, converged, }
 }

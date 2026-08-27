@@ -256,7 +256,7 @@ priv struct Point {
 ///|
 /// Point at infinity (Z = 0).
 fn point_infinity() -> Point {
-  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero(), }
 }
 
 ///|
@@ -300,7 +300,7 @@ fn point_double(pt : Point) -> Point {
     fe_mul(@bigint.from_int_value(8), y4),
   )
   let z3 = fe_mul(fe_mul(@bigint.from_int_value(2), y), z)
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -348,7 +348,7 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   )
   let y3 = fe_sub(fe_mul(r, fe_sub(u1_h_2, x3)), fe_mul(s1, h_3))
   let z3 = fe_mul(fe_mul(z1, z2), h)
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -412,7 +412,7 @@ fn to_affine(pt : Point) -> (@bigint.BigInt, @bigint.BigInt)? {
 
 ///|
 /// Generator point G in Jacobian coordinates (Z = 1).
-let generator : Point = { x: gx, y: gy, z: @bigint.one() }
+let generator : Point = { x: gx, y: gy, z: @bigint.one(), }
 
 // ---------------------------------------------------------------------------
 // Point encoding / decoding (uncompressed SEC1 format)
@@ -470,7 +470,7 @@ fn point_decode_uncompressed(data : Bytes) -> Point? {
   if !@bigint.equal(lhs, rhs) {
     return None
   }
-  Some({ x, y, z: @bigint.one() })
+  Some({ x, y, z: @bigint.one(), })
 }
 
 // ---------------------------------------------------------------------------

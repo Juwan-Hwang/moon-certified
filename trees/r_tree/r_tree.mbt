@@ -46,7 +46,7 @@ pub struct RTree {
 /// Create a new R-tree with the given max entries per node.
 pub fn rtree_new(max_entries : Int) -> RTree {
   let m = if max_entries < 4 { 4 } else { max_entries }
-  { root: None, max_entries: m }
+  { root: None, max_entries: m, }
 }
 
 ///|
@@ -56,9 +56,9 @@ pub fn RTree::insert(self : RTree, rect : Rect, value : Int) -> Unit {
     None =>
       self.root = Some({
         is_leaf: true,
-        entries: [{ rect, value }],
+        entries: [{ rect, value, }],
         children: [],
-        rect: { ..rect },
+        rect: { ..rect, },
       })
     Some(root) => {
       // Insert and get potential split.
@@ -92,7 +92,7 @@ pub fn RTree::query(self : RTree, rect : Rect) -> Array[Entry] {
 ///|
 /// Find all entries whose rectangles contain a point.
 pub fn RTree::query_point(self : RTree, x : Double, y : Double) -> Array[Entry] {
-  self.query({ min_x: x, min_y: y, max_x: x, max_y: y })
+  self.query({ min_x: x, min_y: y, max_x: x, max_y: y, })
 }
 
 ///|
@@ -103,7 +103,7 @@ fn insert_recursive(
   max_entries : Int,
 ) -> (Rect, RTreeNode)? {
   if node.is_leaf {
-    node.entries.push({ rect, value })
+    node.entries.push({ rect, value, })
     node.rect = union(node.rect, rect)
     if node.entries.length() > max_entries {
       return Some(split_leaf(node, max_entries))
@@ -255,7 +255,7 @@ fn rect_area(r : Rect) -> Double {
 ///|
 fn compute_mbr_entries(entries : Array[Entry]) -> Rect {
   if entries.length() == 0 {
-    return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0 }
+    return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0, }
   }
   let mut r = entries[0].rect
   for i = 1; i < entries.length(); i = i + 1 {
@@ -267,7 +267,7 @@ fn compute_mbr_entries(entries : Array[Entry]) -> Rect {
 ///|
 fn compute_mbr_children(children : Array[(Rect, RTreeNode)]) -> Rect {
   if children.length() == 0 {
-    return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0 }
+    return { min_x: 0.0, min_y: 0.0, max_x: 0.0, max_y: 0.0, }
   }
   let mut r = children[0].0
   for i = 1; i < children.length(); i = i + 1 {
@@ -283,18 +283,18 @@ fn compute_mbr_children(children : Array[(Rect, RTreeNode)]) -> Rect {
 ///|
 test "rtree: basic insert and query" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
-  t.insert({ min_x: 2.0, min_y: 2.0, max_x: 3.0, max_y: 3.0 }, 2)
-  t.insert({ min_x: 4.0, min_y: 4.0, max_x: 5.0, max_y: 5.0 }, 3)
-  let r = t.query({ min_x: 0.5, min_y: 0.5, max_x: 2.5, max_y: 2.5 })
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0, }, 1)
+  t.insert({ min_x: 2.0, min_y: 2.0, max_x: 3.0, max_y: 3.0, }, 2)
+  t.insert({ min_x: 4.0, min_y: 4.0, max_x: 5.0, max_y: 5.0, }, 3)
+  let r = t.query({ min_x: 0.5, min_y: 0.5, max_x: 2.5, max_y: 2.5, })
   assert_eq(r.length(), 2)
 }
 
 ///|
 test "rtree: point query" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0 }, 10)
-  t.insert({ min_x: 3.0, min_y: 3.0, max_x: 5.0, max_y: 5.0 }, 20)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0, }, 10)
+  t.insert({ min_x: 3.0, min_y: 3.0, max_x: 5.0, max_y: 5.0, }, 20)
   let r = t.query_point(1.0, 1.0)
   assert_eq(r.length(), 1)
   assert_eq(r[0].value, 10)
@@ -303,15 +303,15 @@ test "rtree: point query" {
 ///|
 test "rtree: empty tree" {
   let t = rtree_new(8)
-  let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 10.0, max_y: 10.0 })
+  let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 10.0, max_y: 10.0, })
   assert_eq(r.length(), 0)
 }
 
 ///|
 test "rtree: no intersection" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
-  let r = t.query({ min_x: 5.0, min_y: 5.0, max_x: 6.0, max_y: 6.0 })
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0, }, 1)
+  let r = t.query({ min_x: 5.0, min_y: 5.0, max_x: 6.0, max_y: 6.0, })
   assert_eq(r.length(), 0)
 }
 
@@ -320,9 +320,9 @@ test "rtree: many entries" {
   let t = rtree_new(4)
   for i = 0; i < 50; i = i + 1 {
     let x = i.to_double()
-    t.insert({ min_x: x, min_y: x, max_x: x + 1.0, max_y: x + 1.0 }, i)
+    t.insert({ min_x: x, min_y: x, max_x: x + 1.0, max_y: x + 1.0, }, i)
   }
-  let r = t.query({ min_x: 10.0, min_y: 10.0, max_x: 20.0, max_y: 20.0 })
+  let r = t.query({ min_x: 10.0, min_y: 10.0, max_x: 20.0, max_y: 20.0, })
   // Entries 10..20 intersect (11 entries: indices 10 through 20).
   assert_true(r.length() >= 10)
 }
@@ -330,10 +330,10 @@ test "rtree: many entries" {
 ///|
 test "rtree: query returns correct values" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 100)
-  t.insert({ min_x: 5.0, min_y: 5.0, max_x: 6.0, max_y: 6.0 }, 200)
-  t.insert({ min_x: 0.5, min_y: 0.5, max_x: 5.5, max_y: 5.5 }, 300)
-  let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 6.0, max_y: 6.0 })
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0, }, 100)
+  t.insert({ min_x: 5.0, min_y: 5.0, max_x: 6.0, max_y: 6.0, }, 200)
+  t.insert({ min_x: 0.5, min_y: 0.5, max_x: 5.5, max_y: 5.5, }, 300)
+  let r = t.query({ min_x: 0.0, min_y: 0.0, max_x: 6.0, max_y: 6.0, })
   assert_eq(r.length(), 3)
   let values : Array[Int] = []
   for i = 0; i < r.length(); i = i + 1 {
@@ -347,20 +347,20 @@ test "rtree: query returns correct values" {
 ///|
 test "rtree: overlapping rectangles" {
   let t = rtree_new(4)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 5.0, max_y: 5.0 }, 1)
-  t.insert({ min_x: 3.0, min_y: 3.0, max_x: 8.0, max_y: 8.0 }, 2)
-  t.insert({ min_x: 4.0, min_y: 4.0, max_x: 6.0, max_y: 6.0 }, 3)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 5.0, max_y: 5.0, }, 1)
+  t.insert({ min_x: 3.0, min_y: 3.0, max_x: 8.0, max_y: 8.0, }, 2)
+  t.insert({ min_x: 4.0, min_y: 4.0, max_x: 6.0, max_y: 6.0, }, 3)
   // Query the overlap region
-  let r = t.query({ min_x: 4.0, min_y: 4.0, max_x: 5.0, max_y: 5.0 })
+  let r = t.query({ min_x: 4.0, min_y: 4.0, max_x: 5.0, max_y: 5.0, })
   assert_eq(r.length(), 3)
 }
 
 ///|
 test "rtree: boundary touch query" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0 }, 1)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 2.0, max_y: 2.0, }, 1)
   // Query that just touches the boundary
-  let r = t.query({ min_x: 2.0, min_y: 2.0, max_x: 4.0, max_y: 4.0 })
+  let r = t.query({ min_x: 2.0, min_y: 2.0, max_x: 4.0, max_y: 4.0, })
   assert_eq(r.length(), 1)
 }
 
@@ -373,20 +373,20 @@ test "rtree: large scale insert and query" {
       let x = i.to_double() * 10.0
       let y = j.to_double() * 10.0
       t.insert(
-        { min_x: x, min_y: y, max_x: x + 8.0, max_y: y + 8.0 },
+        { min_x: x, min_y: y, max_x: x + 8.0, max_y: y + 8.0, },
         i * 10 + j,
       )
     }
   }
   // Query a region covering roughly 2x2 grid cells
-  let r = t.query({ min_x: 5.0, min_y: 5.0, max_x: 25.0, max_y: 25.0 })
+  let r = t.query({ min_x: 5.0, min_y: 5.0, max_x: 25.0, max_y: 25.0, })
   assert_true(r.length() >= 4)
 }
 
 ///|
 test "rtree: point query no match" {
   let t = rtree_new(8)
-  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0 }, 1)
+  t.insert({ min_x: 0.0, min_y: 0.0, max_x: 1.0, max_y: 1.0, }, 1)
   let r = t.query_point(5.0, 5.0)
   assert_eq(r.length(), 0)
 }

@@ -162,20 +162,26 @@ pub fn mann_whitney_u_test(
     12.0 *
     (nf + 1.0 - tie_term / (nf * (nf - 1.0)))
   if var_u <= 0.0 {
-    return { u1, u2, u, z: @double.not_a_number, p_value: @double.not_a_number }
+    return {
+      u1,
+      u2,
+      u,
+      z: @double.not_a_number,
+      p_value: @double.not_a_number,
+    }
   }
   let mean_u = n1.to_double() * n2.to_double() / 2.0
   let std_u = var_u.sqrt()
   let z = (u1 - mean_u) / std_u
   let p = normal_two_sided_p(z)
-  { u1, u2, u, z, p_value: p }
+  { u1, u2, u, z, p_value: p, }
 }
 
 ///|
 fn mw_nan(n1 : Int, n2 : Int) -> MannWhitneyResult {
   let u1 = 0.0
   let u2 = n1.to_double() * n2.to_double()
-  { u1, u2, u: 0.0, z: @double.not_a_number, p_value: @double.not_a_number }
+  { u1, u2, u: 0.0, z: @double.not_a_number, p_value: @double.not_a_number, }
 }
 
 // ---------------------------------------------------------------------------
@@ -254,7 +260,7 @@ pub fn wilcoxon_signed_rank_test(
   let std_w = var_w.sqrt()
   let z = (w_plus - mean_w) / std_w
   let p = normal_two_sided_p(z)
-  { w_plus, w_minus, n, z, p_value: p }
+  { w_plus, w_minus, n, z, p_value: p, }
 }
 
 ///|
@@ -355,7 +361,7 @@ pub fn kruskal_wallis_test(
     let cube_root = @math.exp(@math.ln(h / d) / 3.0)
     (cube_root - m) / sd
   }
-  { h, df, z, p_value: p }
+  { h, df, z, p_value: p, }
 }
 
 ///|

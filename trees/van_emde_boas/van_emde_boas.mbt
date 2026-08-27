@@ -62,20 +62,20 @@ pub struct VEBTree {
 pub fn VEBTree::new(u : Int) -> VEBTree {
   let universe = next_power_of_2(u)
   let bits = log2_int(universe)
-  { root: build_node(bits), universe }
+  { root: build_node(bits), universe, }
 }
 
 ///|
 fn build_node(bits : Int) -> VEBNode {
   if bits <= 1 {
     // Base case: universe size 2, only min/max needed.
-    { bits, min: -1, max: -1, summary: None, clusters: [] }
+    { bits, min: -1, max: -1, summary: None, clusters: [], }
   } else {
     let sub_bits = bits / 2
     let cluster_count = 1 << (bits - sub_bits) // = 2^(high_bits)
     let clusters : Array[VEBNode?] = Array::make(cluster_count, None)
     let summary = build_node(bits - sub_bits)
-    { bits, min: -1, max: -1, summary: Some(summary), clusters }
+    { bits, min: -1, max: -1, summary: Some(summary), clusters, }
   }
 }
 

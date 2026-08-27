@@ -47,7 +47,7 @@ pub struct WeightedGraph {
 /// Create a new weighted graph with `n` vertices and no edges.
 pub fn new_graph(n : Int) -> WeightedGraph {
   let weight : Array[Array[Int]] = Array::makei(n, fn(_) { Array::make(n, 0) })
-  { n, weight }
+  { n, weight, }
 }
 
 ///|

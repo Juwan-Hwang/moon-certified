@@ -99,7 +99,7 @@ pub fn h2_parse_frame(data : Bytes) -> (H2Frame, Int)? {
   }
   let payload = Bytes::from_array(payload_buf)
   let consumed = 9 + length
-  Some(({ length, frame_type, flags, stream_id, payload }, consumed))
+  Some(({ length, frame_type, flags, stream_id, payload, }, consumed))
 }
 
 ///|
@@ -175,7 +175,7 @@ pub fn h2_window_update_frame(stream_id : Int, increment : Int) -> H2Frame {
     ((increment >> 8) & 0xFF).to_byte(),
     (increment & 0xFF).to_byte(),
   ])
-  { length: 4, frame_type: H2_WINDOW_UPDATE, flags: 0, stream_id, payload }
+  { length: 4, frame_type: H2_WINDOW_UPDATE, flags: 0, stream_id, payload, }
 }
 
 ///|
@@ -187,5 +187,5 @@ pub fn h2_rst_stream_frame(stream_id : Int, error_code : Int) -> H2Frame {
     ((error_code >> 8) & 0xFF).to_byte(),
     (error_code & 0xFF).to_byte(),
   ])
-  { length: 4, frame_type: H2_RST_STREAM, flags: 0, stream_id, payload }
+  { length: 4, frame_type: H2_RST_STREAM, flags: 0, stream_id, payload, }
 }

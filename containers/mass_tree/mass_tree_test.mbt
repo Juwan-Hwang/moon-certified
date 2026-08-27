@@ -25,7 +25,7 @@ struct MassTestRng {
 
 ///|
 fn MassTestRng::new(seed : Int) -> MassTestRng {
-  { state: seed }
+  { state: seed, }
 }
 
 ///|

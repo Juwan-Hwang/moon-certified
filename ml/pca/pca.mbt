@@ -74,7 +74,7 @@ priv struct Rng {
 /// never sits at the trivial fixed point.
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -386,11 +386,11 @@ pub struct PCAResult {
 pub fn pca(data : Array[Array[Double]], n_components : Int) -> PCAResult {
   let n = data.length()
   if n == 0 {
-    return { components: [], mean: [], explained_variance: [] }
+    return { components: [], mean: [], explained_variance: [], }
   }
   let d = data[0].length()
   if d == 0 {
-    return { components: [], mean: [], explained_variance: [] }
+    return { components: [], mean: [], explained_variance: [], }
   }
   let mean = pca_compute_mean(data, d)
   let cov = pca_compute_covariance(data, mean, d)
@@ -412,7 +412,7 @@ pub fn pca(data : Array[Array[Double]], n_components : Int) -> PCAResult {
     explained.push(lambda)
     prev.push(v)
   }
-  { components, mean, explained_variance: explained }
+  { components, mean, explained_variance: explained, }
 }
 
 ///|

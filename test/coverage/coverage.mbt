@@ -30,7 +30,7 @@ impl @alpha_beta.Game for TrivialGame with fn generate_moves(_) {
 
 ///|
 impl @alpha_beta.Game for TrivialGame with fn make_move(_, _m) {
-  { done: true }
+  { done: true, }
 }
 
 ///|
@@ -98,7 +98,7 @@ pub fn smoke_test() -> Unit {
   ignore(@smawk.smawk_matrix([FixedArray::make(3, 0)]))
 
   // game_theory
-  ignore(@alpha_beta.alpha_beta({ done: false }, 1, -1000, 1000))
+  ignore(@alpha_beta.alpha_beta({ done: false, }, 1, -1000, 1000))
   ignore(@gale_shapley.stable_matching(1, [[0]], [[0]]))
   ignore(@mcts.new(42))
   ignore(@shapley_value.shapley_exact(fn(_) { 0.0 }, 2))

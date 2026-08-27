@@ -79,7 +79,7 @@ pub struct PairingHeap[T] {
 ///|
 /// Create an empty pairing heap with the given comparator.
 pub fn[T] new(compare : (T, T) -> Int) -> PairingHeap[T] {
-  { root: None, compare, count: 0 }
+  { root: None, compare, count: 0, }
 }
 
 // ---------------------------------------------------------------------------
@@ -176,7 +176,7 @@ fn[T] merge_pairs(
 ///|
 /// Insert a value into the heap. O(1) amortized.
 pub fn[T] insert(heap : PairingHeap[T], val : T) -> Unit {
-  let node : PairingNode[T] = { val, children: [] }
+  let node : PairingNode[T] = { val, children: [], }
   match heap.root {
     None => heap.root = Some(node)
     Some(r) => heap.root = Some(meld(r, node, heap.compare))

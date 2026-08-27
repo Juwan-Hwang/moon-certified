@@ -32,7 +32,7 @@ pub struct IntrusiveNode {
 ///|
 /// Create a new standalone node with the given value.
 pub fn IntrusiveNode::new(value : Int) -> IntrusiveNode {
-  { value, prev: None, next: None }
+  { value, prev: None, next: None, }
 }
 
 ///|
@@ -49,7 +49,7 @@ pub struct IntrusiveList {
 ///|
 /// Create a new empty intrusive list.
 pub fn IntrusiveList::new() -> IntrusiveList {
-  { head: None, tail: None, len: 0 }
+  { head: None, tail: None, len: 0, }
 }
 
 ///|

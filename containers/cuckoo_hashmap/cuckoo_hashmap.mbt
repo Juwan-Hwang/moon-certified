@@ -113,13 +113,13 @@ pub fn[V] insert(map : CuckooHashMap[V], key : String, value : V) -> Unit {
     let pos1 = hash1(cur_key, map.capacity)
     match map.table1[pos1] {
       None => {
-        map.table1[pos1] = Some({ key: cur_key, value: cur_val })
+        map.table1[pos1] = Some({ key: cur_key, value: cur_val, })
         map.size = map.size + 1
         return
       }
       Some(existing) => {
         // Evict
-        map.table1[pos1] = Some({ key: cur_key, value: cur_val })
+        map.table1[pos1] = Some({ key: cur_key, value: cur_val, })
         cur_key = existing.key
         cur_val = existing.value
       }
@@ -127,12 +127,12 @@ pub fn[V] insert(map : CuckooHashMap[V], key : String, value : V) -> Unit {
     let pos2 = hash2(cur_key, map.capacity)
     match map.table2[pos2] {
       None => {
-        map.table2[pos2] = Some({ key: cur_key, value: cur_val })
+        map.table2[pos2] = Some({ key: cur_key, value: cur_val, })
         map.size = map.size + 1
         return
       }
       Some(existing) => {
-        map.table2[pos2] = Some({ key: cur_key, value: cur_val })
+        map.table2[pos2] = Some({ key: cur_key, value: cur_val, })
         cur_key = existing.key
         cur_val = existing.value
       }

@@ -141,7 +141,14 @@ priv struct GbNode {
 
 ///|
 fn leaf(value : Double) -> GbNode {
-  { is_leaf: true, value, feature: -1, threshold: 0.0, left: None, right: None }
+  {
+    is_leaf: true,
+    value,
+    feature: -1,
+    threshold: 0.0,
+    left: None,
+    right: None,
+  }
 }
 
 ///|

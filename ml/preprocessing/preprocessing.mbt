@@ -75,7 +75,7 @@ pub struct StandardScaler {
 ///|
 /// Create a StandardScaler. Call `fit` before `transform`.
 pub fn StandardScaler::new() -> StandardScaler {
-  { means: [], stds: [], fitted: false, n_features: 0 }
+  { means: [], stds: [], fitted: false, n_features: 0, }
 }
 
 ///|
@@ -381,7 +381,7 @@ pub struct OneHotEncoder {
 /// If `n_classes <= 0`, it is set to 1.
 pub fn OneHotEncoder::new(n_classes : Int) -> OneHotEncoder {
   let nc = if n_classes <= 0 { 1 } else { n_classes }
-  { n_classes: nc }
+  { n_classes: nc, }
 }
 
 ///|

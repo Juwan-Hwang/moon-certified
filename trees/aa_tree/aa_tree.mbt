@@ -91,7 +91,7 @@ pub struct AaTree[T] {
 ///|
 /// Create an empty AA tree with the given comparator.
 pub fn[T] AaTree::new(compare : (T, T) -> Int) -> AaTree[T] {
-  { root: None, compare, count: 0 }
+  { root: None, compare, count: 0, }
 }
 
 // ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ fn[T] insert_rec(
   match node {
     None => {
       inserted.val = true
-      { val: key, level: 1, left: None, right: None }
+      { val: key, level: 1, left: None, right: None, }
     }
     Some(n) => {
       let c = compare(key, n.val)

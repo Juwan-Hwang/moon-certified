@@ -1,10 +1,10 @@
 import {
-  "moon-certified/number_theory/bigint",
-  "moon-certified/crypto/sha512",
+  "Juwan-Hwang/moon-certified/number_theory/bigint",
+  "Juwan-Hwang/moon-certified/crypto/sha512",
 }
 
 import {
-  "moon-certified/crypto/hex",
+  "Juwan-Hwang/moon-certified/crypto/hex",
 } for "test"
 
 options(

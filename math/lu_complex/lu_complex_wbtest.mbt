@@ -25,12 +25,12 @@ fn c_arr_approx(a : Array[Complex], b : Array[Complex], tol : Double) -> Bool {
 
 ///|
 fn cmul(a : Complex, b : Complex) -> Complex {
-  { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }
+  { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re, }
 }
 
 ///|
 fn cadd(a : Complex, b : Complex) -> Complex {
-  { re: a.re + b.re, im: a.im + b.im }
+  { re: a.re + b.re, im: a.im + b.im, }
 }
 
 ///|
@@ -44,7 +44,7 @@ fn reconstruct(
   for i = 0; i < n; i = i + 1 {
     let row : Array[Complex] = []
     for j = 0; j < n; j = j + 1 {
-      let mut s : Complex = { re: 0.0, im: 0.0 }
+      let mut s : Complex = { re: 0.0, im: 0.0, }
       for k = 0; k < n; k = k + 1 {
         s = cadd(s, cmul(lu.l[i][k], lu.u[k][j]))
       }
@@ -101,12 +101,12 @@ test "complex_lu_decompose_empty" {
 ///|
 test "complex_lu_no_pivoting_reconstruct" {
   let a : Array[Array[Complex]] = [
-    [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
-    [{ re: 1.0, im: 0.0 }, { re: -1.0, im: 0.0 }],
+    [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
+    [{ re: 1.0, im: 0.0, }, { re: -1.0, im: 0.0, }],
   ]
   let lu = complex_lu_decompose(a)
   let det = complex_lu_determinant(lu)
-  let expected_det : Complex = { re: -2.0, im: 0.0 }
+  let expected_det : Complex = { re: -2.0, im: 0.0, }
   assert_true(c_approx(det, expected_det, 1.0e-12))
   // A = P^T L U (piv is identity here)
   assert_true(mat_c_approx(reconstruct(a, lu), a, 1.0e-12))
@@ -115,12 +115,12 @@ test "complex_lu_no_pivoting_reconstruct" {
 ///|
 test "complex_lu_with_pivoting_reconstruct" {
   let a : Array[Array[Complex]] = [
-    [{ re: 0.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
-    [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
+    [{ re: 0.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
+    [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
   ]
   let lu = complex_lu_decompose(a)
   let det = complex_lu_determinant(lu)
-  let expected_det : Complex = { re: -1.0, im: 0.0 }
+  let expected_det : Complex = { re: -1.0, im: 0.0, }
   assert_true(c_approx(det, expected_det, 1.0e-12))
   let rec = reconstruct(a, lu)
   assert_true(mat_c_approx(rec, a, 1.0e-12))
@@ -129,12 +129,12 @@ test "complex_lu_with_pivoting_reconstruct" {
 ///|
 test "complex_lu_solve_known_rhs" {
   let a : Array[Array[Complex]] = [
-    [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
-    [{ re: 1.0, im: 0.0 }, { re: -1.0, im: 0.0 }],
+    [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
+    [{ re: 1.0, im: 0.0, }, { re: -1.0, im: 0.0, }],
   ]
   let lu = complex_lu_decompose(a)
-  let b : Array[Complex] = [{ re: 5.0, im: 0.0 }, { re: -1.0, im: 0.0 }]
-  let expected : Array[Complex] = [{ re: 2.0, im: 0.0 }, { re: 3.0, im: 0.0 }]
+  let b : Array[Complex] = [{ re: 5.0, im: 0.0, }, { re: -1.0, im: 0.0, }]
+  let expected : Array[Complex] = [{ re: 2.0, im: 0.0, }, { re: 3.0, im: 0.0, }]
   match complex_lu_solve(lu, b) {
     Some(x) => assert_true(c_arr_approx(x, expected, 1.0e-12))
     None => assert_true(false)
@@ -144,12 +144,12 @@ test "complex_lu_solve_known_rhs" {
 ///|
 test "complex_lu_solve_with_pivoting" {
   let a : Array[Array[Complex]] = [
-    [{ re: 0.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
-    [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }],
+    [{ re: 0.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
+    [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }],
   ]
   let lu = complex_lu_decompose(a)
-  let b : Array[Complex] = [{ re: 4.0, im: 0.0 }, { re: 7.0, im: 0.0 }]
-  let expected : Array[Complex] = [{ re: 3.0, im: 0.0 }, { re: 4.0, im: 0.0 }]
+  let b : Array[Complex] = [{ re: 4.0, im: 0.0, }, { re: 7.0, im: 0.0, }]
+  let expected : Array[Complex] = [{ re: 3.0, im: 0.0, }, { re: 4.0, im: 0.0, }]
   match complex_lu_solve(lu, b) {
     Some(x) => assert_true(c_arr_approx(x, expected, 1.0e-12))
     None => assert_true(false)
@@ -159,15 +159,15 @@ test "complex_lu_solve_with_pivoting" {
 ///|
 test "complex_lu_solve_complex_rhs" {
   let a : Array[Array[Complex]] = [
-    [{ re: 0.0, im: 1.0 }, { re: 0.0, im: 0.0 }],
-    [{ re: 0.0, im: 0.0 }, { re: 0.0, im: 1.0 }],
+    [{ re: 0.0, im: 1.0, }, { re: 0.0, im: 0.0, }],
+    [{ re: 0.0, im: 0.0, }, { re: 0.0, im: 1.0, }],
   ]
   let lu = complex_lu_decompose(a)
   let det = complex_lu_determinant(lu)
-  let expected_det : Complex = { re: -1.0, im: 0.0 }
+  let expected_det : Complex = { re: -1.0, im: 0.0, }
   assert_true(c_approx(det, expected_det, 1.0e-12))
-  let b : Array[Complex] = [{ re: 0.0, im: 1.0 }, { re: 0.0, im: 1.0 }]
-  let expected : Array[Complex] = [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }]
+  let b : Array[Complex] = [{ re: 0.0, im: 1.0, }, { re: 0.0, im: 1.0, }]
+  let expected : Array[Complex] = [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }]
   match complex_lu_solve(lu, b) {
     Some(x) => assert_true(c_arr_approx(x, expected, 1.0e-12))
     None => assert_true(false)
@@ -178,11 +178,11 @@ test "complex_lu_solve_complex_rhs" {
 test "complex_lu_solve_singular_returns_none" {
   // Singular matrix: rows linearly dependent.
   let a : Array[Array[Complex]] = [
-    [{ re: 1.0, im: 0.0 }, { re: 2.0, im: 0.0 }],
-    [{ re: 2.0, im: 0.0 }, { re: 4.0, im: 0.0 }],
+    [{ re: 1.0, im: 0.0, }, { re: 2.0, im: 0.0, }],
+    [{ re: 2.0, im: 0.0, }, { re: 4.0, im: 0.0, }],
   ]
   let lu = complex_lu_decompose(a)
-  let b : Array[Complex] = [{ re: 1.0, im: 0.0 }, { re: 1.0, im: 0.0 }]
+  let b : Array[Complex] = [{ re: 1.0, im: 0.0, }, { re: 1.0, im: 0.0, }]
   match complex_lu_solve(lu, b) {
     Some(_) => assert_true(false)
     None => ()

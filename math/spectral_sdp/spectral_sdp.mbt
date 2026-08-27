@@ -23,7 +23,7 @@ pub fn SdpProblem::new(
   n : Int,
   m : Int,
 ) -> SdpProblem {
-  { c, a, b, n, m }
+  { c, a, b, n, m, }
 }
 
 ///|
@@ -88,5 +88,5 @@ pub fn sdp_solve(problem : SdpProblem, max_iter : Int) -> SdpSolution {
     }
   }
   let y = Array::make(problem.m, 0.0)
-  { x, y, objective, violation }
+  { x, y, objective, violation, }
 }

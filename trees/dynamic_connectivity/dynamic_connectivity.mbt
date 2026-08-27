@@ -112,7 +112,7 @@ pub fn DynamicConnectivity::new(n : Int) -> DynamicConnectivity {
     tree_adj.push([])
     non_tree_adj.push([])
   }
-  { n, tree_adj, non_tree_adj, component_count: n, edge_count: 0 }
+  { n, tree_adj, non_tree_adj, component_count: n, edge_count: 0, }
 }
 
 ///|

@@ -70,7 +70,7 @@ pub struct McRng {
 /// PRNG state).
 pub fn McRng::new(seed : UInt64) -> McRng {
   let s = if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed }
-  { state: @utils.XorShift64::new(s), cache: 0.0, has_cache: false }
+  { state: @utils.XorShift64::new(s), cache: 0.0, has_cache: false, }
 }
 
 ///|
@@ -587,7 +587,7 @@ pub fn mc_var_portfolio(
   let var_std_err = estimate_var_std_err(losses, var_value, alpha, n_paths)
   let z_ci = 1.96 // 95% CI z-value
   let var_ci = (var_value - z_ci * var_std_err, var_value + z_ci * var_std_err)
-  Some({ var_value, cvar, n_paths, var_std_err, var_ci })
+  Some({ var_value, cvar, n_paths, var_std_err, var_ci, })
 }
 
 ///|
@@ -637,7 +637,7 @@ fn compute_var_from_prices(
   let var_std_err = estimate_var_std_err(losses, var_value, alpha, n_paths)
   let z_ci = 1.96
   let var_ci = (var_value - z_ci * var_std_err, var_value + z_ci * var_std_err)
-  { var_value, cvar, n_paths, var_std_err, var_ci }
+  { var_value, cvar, n_paths, var_std_err, var_ci, }
 }
 
 ///|
@@ -850,7 +850,7 @@ test "mc_var: antithetic reduces variance" {
 
 ///|
 test "mc_var: jump-diffusion produces larger VaR than GBM" {
-  let jd = { lambda: 5.0, mu_j: -0.05, sigma_j: 0.03 }
+  let jd = { lambda: 5.0, mu_j: -0.05, sigma_j: 0.03, }
   let r_gbm = mc_var_gbm(100.0, 0.05, 0.15, 1.0 / 252.0, 0.995, 10000, 42UL)
   let r_jd = mc_var_jump_diffusion(
     100.0,

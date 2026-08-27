@@ -12,7 +12,7 @@ fn stats(
   n_pages : Int,
   indexes : Array[String],
 ) -> TableStats {
-  { name, n_rows, n_pages, indexes }
+  { name, n_rows, n_pages, indexes, }
 }
 
 // Enums here don't implement Eq/Debug, so compare via a stable Int mapping.

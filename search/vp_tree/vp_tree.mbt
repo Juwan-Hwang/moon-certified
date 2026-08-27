@@ -39,14 +39,14 @@ pub struct VPTree {
 /// Build a VP-Tree from `n` points with the given metric distance function.
 pub fn build(n : Int, dist : (Int, Int) -> Double) -> VPTree {
   if n == 0 {
-    return { root: Empty, n: 0, dist }
+    return { root: Empty, n: 0, dist, }
   }
   let indices : Array[Int] = []
   for i = 0; i < n; i = i + 1 {
     indices.push(i)
   }
   let root = build_recursive(indices, dist)
-  { root, n, dist }
+  { root, n, dist, }
 }
 
 ///|

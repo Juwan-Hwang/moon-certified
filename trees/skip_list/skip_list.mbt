@@ -70,7 +70,7 @@ pub struct SkipList {
 /// Create an empty skip list.
 pub fn SkipList::new() -> SkipList {
   {
-    header: { key: 0, value: 0, forward: FixedArray::make(MAX_LEVEL, None) },
+    header: { key: 0, value: 0, forward: FixedArray::make(MAX_LEVEL, None), },
     level: 1,
     count: 0,
     // A non-zero seed; any fixed value makes the sequence deterministic.

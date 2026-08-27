@@ -61,7 +61,7 @@ priv struct Lcg {
 /// Create an LCG whose state is the seed masked to 31 bits (always
 /// non-negative, even for negative or wrapped seeds).
 fn Lcg::new(seed : Int) -> Lcg {
-  { state: seed & 0x7FFFFFFF }
+  { state: seed & 0x7FFFFFFF, }
 }
 
 ///|

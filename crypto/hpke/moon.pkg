@@ -1,9 +1,9 @@
 import {
-  "moon-certified/crypto/hkdf",
-  "moon-certified/crypto/x25519",
-  "moon-certified/crypto/sha256",
-  "moon-certified/crypto/aes",
-  "moon-certified/crypto/chacha20_poly1305",
+  "Juwan-Hwang/moon-certified/crypto/hkdf",
+  "Juwan-Hwang/moon-certified/crypto/x25519",
+  "Juwan-Hwang/moon-certified/crypto/sha256",
+  "Juwan-Hwang/moon-certified/crypto/aes",
+  "Juwan-Hwang/moon-certified/crypto/chacha20_poly1305",
 }
 
 options(

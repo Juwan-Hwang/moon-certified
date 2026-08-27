@@ -60,7 +60,7 @@ pub struct Point3D {
 ///|
 /// Construct a 3D point.
 pub fn point3d(x : Int, y : Int, z : Int) -> Point3D {
-  { x, y, z }
+  { x, y, z, }
 }
 
 ///|
@@ -123,12 +123,12 @@ fn orient64(a : Point3D, b : Point3D, c : Point3D, d : Point3D) -> Int64 {
 pub fn build(points : Array[Point3D]) -> ConvexHull3D {
   let n = points.length()
   if n < 4 {
-    return { points, faces: [] }
+    return { points, faces: [], }
   }
 
   let (p0, p1, p2, p3, found) = find_initial_tetrahedron(points)
   if !found {
-    return { points, faces: [] }
+    return { points, faces: [], }
   }
 
   // Create initial tetrahedron with correctly-oriented faces.
@@ -136,27 +136,27 @@ pub fn build(points : Array[Point3D]) -> ConvexHull3D {
   let mut faces : Array[Face] = []
   // Face (p0, p1, p2), opposite p3
   if orient64(points[p0], points[p1], points[p2], points[p3]) > 0L {
-    faces.push({ v0: p0, v1: p2, v2: p1 })
+    faces.push({ v0: p0, v1: p2, v2: p1, })
   } else {
-    faces.push({ v0: p0, v1: p1, v2: p2 })
+    faces.push({ v0: p0, v1: p1, v2: p2, })
   }
   // Face (p0, p1, p3), opposite p2
   if orient64(points[p0], points[p1], points[p3], points[p2]) > 0L {
-    faces.push({ v0: p0, v1: p3, v2: p1 })
+    faces.push({ v0: p0, v1: p3, v2: p1, })
   } else {
-    faces.push({ v0: p0, v1: p1, v2: p3 })
+    faces.push({ v0: p0, v1: p1, v2: p3, })
   }
   // Face (p0, p2, p3), opposite p1
   if orient64(points[p0], points[p2], points[p3], points[p1]) > 0L {
-    faces.push({ v0: p0, v1: p3, v2: p2 })
+    faces.push({ v0: p0, v1: p3, v2: p2, })
   } else {
-    faces.push({ v0: p0, v1: p2, v2: p3 })
+    faces.push({ v0: p0, v1: p2, v2: p3, })
   }
   // Face (p1, p2, p3), opposite p0
   if orient64(points[p1], points[p2], points[p3], points[p0]) > 0L {
-    faces.push({ v0: p1, v1: p3, v2: p2 })
+    faces.push({ v0: p1, v1: p3, v2: p2, })
   } else {
-    faces.push({ v0: p1, v1: p2, v2: p3 })
+    faces.push({ v0: p1, v1: p2, v2: p3, })
   }
 
   // Mark which points are already in the tetrahedron.
@@ -173,7 +173,7 @@ pub fn build(points : Array[Point3D]) -> ConvexHull3D {
     }
   }
 
-  { points, faces }
+  { points, faces, }
 }
 
 ///|
@@ -305,7 +305,7 @@ fn add_point(
   }
   for i = 0; i < horizon.length(); i = i + 1 {
     let (a, b) = horizon[i]
-    new_faces.push({ v0: a, v1: b, v2: pi })
+    new_faces.push({ v0: a, v1: b, v2: pi, })
   }
 
   new_faces
@@ -342,7 +342,7 @@ pub fn get_faces(hull : ConvexHull3D) -> Array[(Int, Int, Int)] {
 ///
 /// The actual volume is `volume6 / 6.0`. Returns 0 for degenerate hulls.
 pub fn get_volume6(hull : ConvexHull3D) -> Int64 {
-  let origin = { x: 0, y: 0, z: 0 }
+  let origin = { x: 0, y: 0, z: 0, }
   let mut total = 0L
   for i = 0; i < hull.faces.length(); i = i + 1 {
     let f = hull.faces[i]

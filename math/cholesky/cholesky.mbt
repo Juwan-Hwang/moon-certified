@@ -126,7 +126,7 @@ pub fn decompose(a : FixedArray[Double], n : Int) -> Cholesky? {
       l[i * n + j] = s / diag
     }
   }
-  Some({ l, n })
+  Some({ l, n, })
 }
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@
 /// default parameters. This prevents the "all instances share the same
 /// priority sequence" pitfall while remaining fully deterministic within
 /// a single process run.
-let instance_counter : Ref[Int] = { val: 0 }
+let instance_counter : Ref[Int] = { val: 0, }
 
 ///|
 /// Derive a fresh non-zero seed for a new algorithm instance.

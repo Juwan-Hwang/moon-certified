@@ -1,6 +1,6 @@
 import {
-  "moon-certified/crypto/chacha20",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/crypto/chacha20",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

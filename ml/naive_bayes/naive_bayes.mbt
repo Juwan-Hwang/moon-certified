@@ -157,7 +157,7 @@ pub fn gaussian_fit(
       variances[c][j] = variances[c][j] + eps
     }
   }
-  { classes, class_priors, means, variances, n_features }
+  { classes, class_priors, means, variances, n_features, }
 }
 
 ///|
@@ -291,7 +291,7 @@ pub fn multinomial_fit(
       feature_log_probs[c][j] = @math.ln((feature_counts[c][j] + alpha) / total)
     }
   }
-  { classes, class_log_priors, feature_log_probs, n_features }
+  { classes, class_log_priors, feature_log_probs, n_features, }
 }
 
 ///|

@@ -6,8 +6,11 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  MOONBIT_VERSION: "0.1.20260819"
+# Note: the MoonBit CDN only serves the "latest" build (dated versions are
+# rotated off quickly), so CI installs latest and the repository is kept
+# formatted with the latest formatter. If a new toolchain release changes
+# formatting rules or adds deprecations, re-run `moon fmt` / fix warnings
+# and commit.
 
 jobs:
   format-check:
@@ -15,9 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (latest)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Fetch dependency registry
@@ -36,17 +39,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-${{ runner.os }}
-
       - name: Install MoonBit (Unix)
         if: runner.os != 'Windows'
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Install MoonBit (Windows)
@@ -54,7 +50,6 @@ jobs:
         shell: pwsh
         run: |
           Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-          $env:MOONBIT_VERSION = "${{ env.MOONBIT_VERSION }}"
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           Add-Content -Path $env:GITHUB_PATH -Value "$HOME/.moon/bin"
 
@@ -91,16 +86,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
-
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (latest)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Fetch dependency registry
@@ -188,16 +176,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
-
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (latest)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Fetch dependency registry

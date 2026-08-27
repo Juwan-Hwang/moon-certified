@@ -41,7 +41,7 @@ pub struct SplitMix64 {
 /// A seed of 0 is valid; the first call to `next_u64` will return a
 /// non-zero value due to the mixing function.
 pub fn SplitMix64::new(seed : UInt64) -> SplitMix64 {
-  { state: seed }
+  { state: seed, }
 }
 
 ///|
@@ -126,7 +126,7 @@ pub struct XorShift64 {
 /// A seed of 0 is replaced with a default non-zero seed to avoid the
 /// degenerate all-zero state.
 pub fn XorShift64::new(seed : UInt64) -> XorShift64 {
-  { state: if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed } }
+  { state: if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed }, }
 }
 
 ///|

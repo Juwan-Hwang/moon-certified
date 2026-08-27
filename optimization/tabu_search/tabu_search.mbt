@@ -99,7 +99,7 @@ priv struct XorShift64 {
 ///|
 fn xs64_new(seed : UInt64) -> XorShift64 {
   let s = if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed }
-  { state: s }
+  { state: s, }
 }
 
 ///|
@@ -140,7 +140,7 @@ priv struct TabuList {
 ///|
 fn TabuList::new(tenure : Int) -> TabuList {
   let t = if tenure < 1 { 1 } else { tenure }
-  { buffer: Array::make(t, 0UL), head: 0, tenure: t }
+  { buffer: Array::make(t, 0UL), head: 0, tenure: t, }
 }
 
 ///|
@@ -260,7 +260,7 @@ pub fn[T] optimize(
       improvements = improvements + 1
     }
   }
-  { best, best_cost, iterations: config.max_iter, improvements }
+  { best, best_cost, iterations: config.max_iter, improvements, }
 }
 
 // ---------------------------------------------------------------------------

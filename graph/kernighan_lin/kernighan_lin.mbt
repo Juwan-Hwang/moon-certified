@@ -79,7 +79,7 @@ fn build_graph(n : Int, edges : Array[(Int, Int, Double)]) -> Graph {
       weight[v][u] = weight[v][u] + w
     }
   }
-  { n, weight }
+  { n, weight, }
 }
 
 // ---------------------------------------------------------------------------
@@ -245,7 +245,7 @@ pub fn kernighan_lin(
   max_passes : Int,
 ) -> KLResult {
   if n <= 1 {
-    return { partition: Array::make(n, 0), cut_size: 0.0, passes: 0 }
+    return { partition: Array::make(n, 0), cut_size: 0.0, passes: 0, }
   }
   let graph = build_graph(n, edges)
   // Initial partition: first half → set 0, second half → set 1.
@@ -274,7 +274,7 @@ pub fn kernighan_lin(
     }
   }
   let cut = compute_cut_size(graph, partition)
-  { partition, cut_size: cut, passes: pass_count }
+  { partition, cut_size: cut, passes: pass_count, }
 }
 
 ///|

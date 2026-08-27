@@ -173,11 +173,11 @@ test "mfcc_rejects_invalid_config" {
     }
   }
 
-  assert_true(bad_config(fn(c) { { ..c, sample_rate: 0 } }))
-  assert_true(bad_config(fn(c) { { ..c, n_cepstral: 0 } }))
-  assert_true(bad_config(fn(c) { { ..c, n_cepstral: 41 } })) // > n_mels
-  assert_true(bad_config(fn(c) { { ..c, pre_emphasis: 1.0 } })) // must be < 1
-  assert_true(bad_config(fn(c) { { ..c, fmax: 9000.0 } })) // above Nyquist
+  assert_true(bad_config(fn(c) { { ..c, sample_rate: 0, } }))
+  assert_true(bad_config(fn(c) { { ..c, n_cepstral: 0, } }))
+  assert_true(bad_config(fn(c) { { ..c, n_cepstral: 41, } })) // > n_mels
+  assert_true(bad_config(fn(c) { { ..c, pre_emphasis: 1.0, } })) // must be < 1
+  assert_true(bad_config(fn(c) { { ..c, fmax: 9000.0, } })) // above Nyquist
   // Too short to hold a single frame (valid config, short signal)
   expect_none(mfcc(Array::make(100, 0.0), mfcc_default_config()))
 }

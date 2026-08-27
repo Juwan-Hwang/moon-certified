@@ -4,9 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
-env:
-  MOONBIT_VERSION: "0.1.20260819"
+permissions:
+  contents: write
+
+# Installs the latest MoonBit toolchain (dated versions are rotated off
+# the CDN, so pinning is not viable).
 
 jobs:
   publish:
@@ -15,16 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
-
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (latest)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: MoonBit version
@@ -70,9 +67,12 @@ jobs:
 
       - name: Publish to mooncakes.io
         continue-on-error: true
+        run: |
+          mkdir -p "$HOME/.moon"
+          printf '%s' "$MOON_CREDENTIALS" | tr -d '[:space:]' | base64 -d > "$HOME/.moon/credentials.json"
+          moon publish
         env:
           MOON_CREDENTIALS: ${{ secrets.MOON_CREDENTIALS }}
-        run: moon publish
 
       - name: Generate source tarball and checksums
         run: |

@@ -251,7 +251,7 @@ fn new_blowfish() -> Blowfish {
   for i = 0; i < 1024; i = i + 1 {
     s[i] = _s_init[i]
   }
-  Blowfish::{ p, s }
+  Blowfish::{ p, s, }
 }
 
 ///|

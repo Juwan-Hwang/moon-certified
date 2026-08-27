@@ -27,7 +27,7 @@ priv struct SplitRng {
 ///|
 fn SplitRng::new(seed : Int) -> SplitRng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -182,7 +182,7 @@ pub fn KFold::new(n : Int, k : Int) -> KFold? {
   for i = 0; i < remainder; i = i + 1 {
     fold_sizes[i] = fold_sizes[i] + 1
   }
-  Some({ n, k, current_fold: 0, fold_sizes })
+  Some({ n, k, current_fold: 0, fold_sizes, })
 }
 
 ///|
@@ -235,7 +235,12 @@ pub fn KFold::n_samples(kf : KFold) -> Int {
 /// Get all folds as an array of (train, test) pairs.
 pub fn KFold::all_folds(kf : KFold) -> Array[(Array[Int], Array[Int])] {
   let result : Array[(Array[Int], Array[Int])] = []
-  let kf_copy = { n: kf.n, k: kf.k, current_fold: 0, fold_sizes: kf.fold_sizes }
+  let kf_copy = {
+    n: kf.n,
+    k: kf.k,
+    current_fold: 0,
+    fold_sizes: kf.fold_sizes,
+  }
   let mut done = false
   while !done {
     match KFold::next(kf_copy) {

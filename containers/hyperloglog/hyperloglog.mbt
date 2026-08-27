@@ -132,7 +132,7 @@ pub fn new(precision : Int) -> HyperLogLog {
     precision
   }
   let m = 1 << precision
-  { registers: FixedArray::make(m, 0), precision, m }
+  { registers: FixedArray::make(m, 0), precision, m, }
 }
 
 // ---------------------------------------------------------------------------
@@ -273,7 +273,7 @@ pub fn merge(hll1 : HyperLogLog, hll2 : HyperLogLog) -> HyperLogLog? {
     let b = hll2.registers[j]
     merged[j] = if a > b { a } else { b }
   }
-  Some({ registers: merged, precision: hll1.precision, m })
+  Some({ registers: merged, precision: hll1.precision, m, })
 }
 
 // ---------------------------------------------------------------------------

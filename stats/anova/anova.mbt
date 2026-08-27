@@ -150,7 +150,7 @@ pub fn one_way_anova(groups : Array[Array[Double]]) -> OneWayAnovaResult {
     msb / msw
   }
   let p_value = f_upper_tail_pvalue(f_statistic, df_between, df_within)
-  { ssb, ssw, sst, df_between, df_within, msb, msw, f_statistic, p_value }
+  { ssb, ssw, sst, df_between, df_within, msb, msw, f_statistic, p_value, }
 }
 
 // ---------------------------------------------------------------------------

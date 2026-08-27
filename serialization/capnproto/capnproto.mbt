@@ -16,7 +16,7 @@ pub struct CapnpBuilder {
 ///|
 /// Create a new Cap'n Proto builder.
 pub fn CapnpBuilder::new() -> CapnpBuilder {
-  { segments: [Array::make(64, 0)], current_segment: 0 }
+  { segments: [Array::make(64, 0)], current_segment: 0, }
 }
 
 ///|

@@ -161,7 +161,7 @@ pub fn build(data_blocks : Array[Bytes]) -> MerkleTree? {
     current_size = next_size
   }
   let root = nodes[nodes.length() - 1]
-  Some({ leaves, nodes, num_leaves: n, level_offsets, level_sizes, root })
+  Some({ leaves, nodes, num_leaves: n, level_offsets, level_sizes, root, })
 }
 
 ///|

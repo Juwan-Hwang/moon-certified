@@ -110,7 +110,7 @@ pub fn de_bruijn(k : Int, n : Int) -> FixedArray[Int] {
   if k == 1 {
     return FixedArray::make(1, 0)
   }
-  let state : FkmState = { k, n, a: Array::make(n + 1, 0), output: [] }
+  let state : FkmState = { k, n, a: Array::make(n + 1, 0), output: [], }
   fkm_visit(state, 1, 1)
   FixedArray::makei(state.output.length(), fn(i) { state.output[i] })
 }

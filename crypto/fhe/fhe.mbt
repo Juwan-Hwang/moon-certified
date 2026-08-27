@@ -335,7 +335,7 @@ pub fn bfv_keygen(seed : Bytes) -> (BfvPublicKey, BfvSecretKey) raise {
   let e = bfv_rand_poly_ternary(rng)
   // pk = (-(a·s) + e, a)
   let p0 = bfv_poly_add(bfv_poly_neg(bfv_poly_mul(a, s)), e)
-  ({ p0, p1: a }, { poly: s })
+  ({ p0, p1: a, }, { poly: s, })
 }
 
 ///|
@@ -363,7 +363,7 @@ pub fn bfv_eval_key(sk : BfvSecretKey, seed : Bytes) -> BfvEvalKey raise {
     e1s.push(a)
     base_pow = bfv_mul_mod(base_pow, 1 << BFV_RELIN_BASE_BITS, BFV_Q)
   }
-  { e0: e0s, e1: e1s }
+  { e0: e0s, e1: e1s, }
 }
 
 ///|
@@ -388,7 +388,7 @@ pub fn bfv_encrypt(
   // ct = (pk0·u + e1 + Δ·m, pk1·u + e2)
   let c0 = bfv_poly_add(bfv_poly_add(bfv_poly_mul(pk.p0, u), e1), scaled)
   let c1 = bfv_poly_add(bfv_poly_mul(pk.p1, u), e2)
-  { c0, c1 }
+  { c0, c1, }
 }
 
 ///|
@@ -423,19 +423,19 @@ pub fn bfv_decrypt(sk : BfvSecretKey, ct : BfvCiphertext) -> Array[Int] {
 ///|
 /// Homomorphic addition.
 pub fn bfv_add(ct1 : BfvCiphertext, ct2 : BfvCiphertext) -> BfvCiphertext {
-  { c0: bfv_poly_add(ct1.c0, ct2.c0), c1: bfv_poly_add(ct1.c1, ct2.c1) }
+  { c0: bfv_poly_add(ct1.c0, ct2.c0), c1: bfv_poly_add(ct1.c1, ct2.c1), }
 }
 
 ///|
 /// Homomorphic subtraction.
 pub fn bfv_sub(ct1 : BfvCiphertext, ct2 : BfvCiphertext) -> BfvCiphertext {
-  { c0: bfv_poly_sub(ct1.c0, ct2.c0), c1: bfv_poly_sub(ct1.c1, ct2.c1) }
+  { c0: bfv_poly_sub(ct1.c0, ct2.c0), c1: bfv_poly_sub(ct1.c1, ct2.c1), }
 }
 
 ///|
 /// Homomorphic negation.
 pub fn bfv_negate(ct : BfvCiphertext) -> BfvCiphertext {
-  { c0: bfv_poly_neg(ct.c0), c1: bfv_poly_neg(ct.c1) }
+  { c0: bfv_poly_neg(ct.c0), c1: bfv_poly_neg(ct.c1), }
 }
 
 ///|
@@ -449,7 +449,7 @@ pub fn bfv_mul_scalar(ct : BfvCiphertext, k : Int) -> BfvCiphertext {
     c0[i] = bfv_mul_mod(ct.c0[i], kk, BFV_Q)
     c1[i] = bfv_mul_mod(ct.c1[i], kk, BFV_Q)
   }
-  { c0, c1 }
+  { c0, c1, }
 }
 
 ///|
@@ -485,7 +485,7 @@ pub fn bfv_mul(
     c0 = bfv_poly_add(c0, bfv_poly_mul(digit, evk.e0[j]))
     c1 = bfv_poly_add(c1, bfv_poly_mul(digit, evk.e1[j]))
   }
-  { c0, c1 }
+  { c0, c1, }
 }
 
 ///|

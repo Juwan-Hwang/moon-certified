@@ -48,7 +48,7 @@ pub struct FibHeap {
 ///|
 /// Create an empty Fibonacci heap.
 pub fn fib_heap_new() -> FibHeap {
-  { min_node: None, node_count: 0, next_id: 0, node_map: Map([]) }
+  { min_node: None, node_count: 0, next_id: 0, node_map: Map([]), }
 }
 
 ///|

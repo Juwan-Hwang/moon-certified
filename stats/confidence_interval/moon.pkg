@@ -1,9 +1,9 @@
 import {
   "moonbitlang/core/math",
   "moonbitlang/core/double",
-  "moon-certified/stats/descriptive",
-  "moon-certified/stats/hypothesis_testing",
-  "moon-certified/math/special_functions",
+  "Juwan-Hwang/moon-certified/stats/descriptive",
+  "Juwan-Hwang/moon-certified/stats/hypothesis_testing",
+  "Juwan-Hwang/moon-certified/math/special_functions",
 }
 
 options(

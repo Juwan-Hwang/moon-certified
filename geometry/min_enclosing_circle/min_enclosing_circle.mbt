@@ -56,7 +56,7 @@ fn circle_three(
     let c2 = cx * cx + cy * cy
     let ux = (a2 * (by - cy) + b2 * (cy - ay) + c2 * (ay - by)) / d
     let uy = (a2 * (cx - bx) + b2 * (ax - cx) + c2 * (bx - ax)) / d
-    { cx: ux, cy: uy, r: dist2(ux, uy, ax, ay).sqrt() }
+    { cx: ux, cy: uy, r: dist2(ux, uy, ax, ay).sqrt(), }
   }
 }
 
@@ -64,7 +64,7 @@ fn circle_three(
 pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
   let n = points.length()
   if n == 0 {
-    return { cx: 0.0, cy: 0.0, r: 0.0 }
+    return { cx: 0.0, cy: 0.0, r: 0.0, }
   }
   let pts = points.copy()
   let mut seed = 42
@@ -76,11 +76,11 @@ pub fn min_enclosing_circle(points : Array[(Double, Double)]) -> Circle {
     pts[j] = tmp
   }
   let (x0, y0) = pts[0]
-  let mut c = { cx: x0, cy: y0, r: 0.0 }
+  let mut c = { cx: x0, cy: y0, r: 0.0, }
   for i = 1; i < n; i = i + 1 {
     let (px, py) = pts[i]
     if !in_circle(c, px, py) {
-      c = { cx: px, cy: py, r: 0.0 }
+      c = { cx: px, cy: py, r: 0.0, }
       for j = 0; j < i; j = j + 1 {
         let (qx, qy) = pts[j]
         if !in_circle(c, qx, qy) {

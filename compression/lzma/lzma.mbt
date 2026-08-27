@@ -94,7 +94,7 @@ priv struct RangeEncoder {
 
 ///|
 fn RangeEncoder::new() -> RangeEncoder {
-  { low: 0UL, range: 0xFFFFFFFFU, cache: 0U, cache_size: 1UL, out: [] }
+  { low: 0UL, range: 0xFFFFFFFFU, cache: 0U, cache_size: 1UL, out: [], }
 }
 
 ///|
@@ -265,7 +265,7 @@ priv struct RangeDecoder {
 
 ///|
 fn RangeDecoder::_new(data : Bytes) -> RangeDecoder {
-  let rd = { range: 0xFFFFFFFFU, code: 0U, data, pos: 1 }
+  let rd = { range: 0xFFFFFFFFU, code: 0U, data, pos: 1, }
   for _i = 0; _i < 4; _i = _i + 1 {
     rd.code = (rd.code << 8) | rd.next_byte()
   }
@@ -1094,7 +1094,7 @@ pub fn decompress(data : Bytes) -> Bytes? {
     return None
   }
   // Initialize range decoder: skip byte 9 (0x00 cache byte), read bytes 10-13 into code
-  let rd : RangeDecoder = { range: 0xFFFFFFFFU, code: 0U, data, pos: 10 }
+  let rd : RangeDecoder = { range: 0xFFFFFFFFU, code: 0U, data, pos: 10, }
   for _i = 0; _i < 4; _i = _i + 1 {
     rd.code = (rd.code << 8) | rd.next_byte()
   }

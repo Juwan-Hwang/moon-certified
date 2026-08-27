@@ -66,7 +66,7 @@ pub fn rate_model_params(
   sigma : Double,
   r0 : Double,
 ) -> RateModelParams {
-  { kappa, theta, sigma, r0 }
+  { kappa, theta, sigma, r0, }
 }
 
 // ===========================================================================

@@ -165,7 +165,7 @@ pub struct Art {
 ///|
 /// Create an empty ART.
 pub fn art_new() -> Art {
-  { root: make_null(), size: 0 }
+  { root: make_null(), size: 0, }
 }
 
 ///|

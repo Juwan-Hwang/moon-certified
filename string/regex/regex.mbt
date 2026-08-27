@@ -143,7 +143,7 @@ priv struct Builder {
 ///|
 /// Create a new builder for `pattern`.
 fn new_builder(pattern : String) -> Builder {
-  { pattern, pos: 0, states: [], group_count: 0 }
+  { pattern, pos: 0, states: [], group_count: 0, }
 }
 
 ///|
@@ -230,7 +230,7 @@ fn new_accept(b : Builder) -> Int {
 /// Uses a Split state with one dangling out-transition.
 fn empty_frag(b : Builder) -> Frag {
   let s = new_split(b, -1, -1)
-  { start: s, out: [(s, 0)] }
+  { start: s, out: [(s, 0)], }
 }
 
 ///|
@@ -290,7 +290,7 @@ fn parse_alternation(b : Builder) -> Frag? {
                 for i = 0; i < second.out.length(); i = i + 1 {
                   combined.push(second.out[i])
                 }
-                frag = { start: split, out: combined }
+                frag = { start: split, out: combined, }
               }
             }
           }
@@ -323,7 +323,7 @@ fn parse_concat(b : Builder) -> Frag? {
             Some(next) => {
               // Concatenate: patch frag's dangling outs to next's start.
               patch(b, frag.out, next.start)
-              frag = { start: frag.start, out: next.out }
+              frag = { start: frag.start, out: next.out, }
             }
           }
         }
@@ -346,7 +346,7 @@ fn parse_quantified(b : Builder) -> Frag? {
           // Patch frag's dangling outs back to the split (loop).
           patch(b, frag.out, split)
           // The dangling out is split's out2.
-          Some({ start: split, out: [(split, 1)] })
+          Some({ start: split, out: [(split, 1)], })
         }
         Some(43) => {
           // '+' — one or more
@@ -355,7 +355,7 @@ fn parse_quantified(b : Builder) -> Frag? {
           // Patch frag's dangling outs back to the split (loop).
           patch(b, frag.out, split)
           // Start is frag.start; dangling out is split's out2.
-          Some({ start: frag.start, out: [(split, 1)] })
+          Some({ start: frag.start, out: [(split, 1)], })
         }
         Some(63) => {
           // '?' — zero or one
@@ -367,7 +367,7 @@ fn parse_quantified(b : Builder) -> Frag? {
             combined.push(frag.out[i])
           }
           combined.push((split, 1))
-          Some({ start: split, out: combined })
+          Some({ start: split, out: combined, })
         }
         _ => Some(frag) // No quantifier
       }
@@ -400,7 +400,7 @@ fn parse_atom(b : Builder) -> Frag? {
                 // Connect: cap_start -> frag -> cap_end
                 patch(b, [(cap_start, 0)], frag.start)
                 patch(b, frag.out, cap_end)
-                Some({ start: cap_start, out: [(cap_end, 0)] })
+                Some({ start: cap_start, out: [(cap_end, 0)], })
               }
               _ => None // Missing ')'
             }
@@ -411,7 +411,7 @@ fn parse_atom(b : Builder) -> Frag? {
           None => None
           Some(matcher) => {
             let s = new_match(b, matcher)
-            Some({ start: s, out: [(s, 0)] })
+            Some({ start: s, out: [(s, 0)], })
           }
         }
       } else if c == 92 {
@@ -500,12 +500,12 @@ fn parse_atom(b : Builder) -> Frag? {
             match shorthand {
               Some(m) => {
                 let s = new_match(b, m)
-                Some({ start: s, out: [(s, 0)] })
+                Some({ start: s, out: [(s, 0)], })
               }
               None => {
                 // Regular escaped character
                 let s = new_match(b, Char(escaped))
-                Some({ start: s, out: [(s, 0)] })
+                Some({ start: s, out: [(s, 0)], })
               }
             }
           }
@@ -513,15 +513,15 @@ fn parse_atom(b : Builder) -> Frag? {
       } else if c == 46 {
         // '.' — any character
         let s = new_match(b, AnyChar)
-        Some({ start: s, out: [(s, 0)] })
+        Some({ start: s, out: [(s, 0)], })
       } else if c == 94 {
         // '^' — start of string anchor (zero-width assertion)
         let s = new_match(b, StartAnchor)
-        Some({ start: s, out: [(s, 0)] })
+        Some({ start: s, out: [(s, 0)], })
       } else if c == 36 {
         // '$' — end of string anchor (zero-width assertion)
         let s = new_match(b, EndAnchor)
-        Some({ start: s, out: [(s, 0)] })
+        Some({ start: s, out: [(s, 0)], })
       } else if c == 41 || c == 124 || c == 42 || c == 43 || c == 63 {
         // ')', '|', '*', '+', '?' — these should not start an atom
         b.pos = b.pos - 1 // Unconsume
@@ -529,7 +529,7 @@ fn parse_atom(b : Builder) -> Frag? {
       } else {
         // Literal character
         let s = new_match(b, Char(c))
-        Some({ start: s, out: [(s, 0)] })
+        Some({ start: s, out: [(s, 0)], })
       }
   }
 }
@@ -668,7 +668,7 @@ pub fn compile(pattern : String) -> Regex? {
     Some(frag) => {
       let accept = new_accept(b)
       patch(b, frag.out, accept)
-      Some({ states: b.states, start: frag.start, num_groups: b.group_count })
+      Some({ states: b.states, start: frag.start, num_groups: b.group_count, })
     }
   }
 }
@@ -1067,7 +1067,7 @@ pub fn find_captures(re : Regex, text : String) -> CaptureMatch? {
           }
         None => ()
       }
-      return Some({ start: s, end: best_end, groups })
+      return Some({ start: s, end: best_end, groups, })
     }
   }
   None

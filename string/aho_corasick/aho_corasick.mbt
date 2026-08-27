@@ -121,7 +121,7 @@ pub struct AcAutomaton {
 ///|
 /// Create a fresh node: no children, fail = 0, empty output.
 fn make_node() -> AcNode {
-  { children: [], fail: 0, output: [] }
+  { children: [], fail: 0, output: [], }
 }
 
 ///|
@@ -241,7 +241,7 @@ pub fn build(patterns : Array[String]) -> AcAutomaton {
     }
   }
 
-  { nodes, pattern_count: patterns.length() }
+  { nodes, pattern_count: patterns.length(), }
 }
 
 ///|

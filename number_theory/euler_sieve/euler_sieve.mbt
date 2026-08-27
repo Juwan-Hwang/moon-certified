@@ -85,7 +85,7 @@ pub fn sieve(n : Int) -> EulerSieve? {
   for i = 0; i < count; i = i + 1 {
     primes[i] = primes_buf[i]
   }
-  Some({ primes, spf, limit: n })
+  Some({ primes, spf, limit: n, })
 }
 
 ///|

@@ -43,7 +43,7 @@ const DEFAULT_MERGE_ARITY : Int = 4
 pub fn config(buffer_size : Int, merge_arity : Int) -> ExternalSortConfig {
   let bs = if buffer_size > 0 { buffer_size } else { DEFAULT_BUFFER_SIZE }
   let ma = if merge_arity > 1 { merge_arity } else { DEFAULT_MERGE_ARITY }
-  ExternalSortConfig::{ buffer_size: bs, merge_arity: ma }
+  ExternalSortConfig::{ buffer_size: bs, merge_arity: ma, }
 }
 
 // ---------------------------------------------------------------------------

@@ -51,7 +51,7 @@ pub fn new(rows : Int, cols : Int) -> BIT2D {
   for i = 0; i <= rows; i = i + 1 {
     tree[i] = FixedArray::make(cols + 1, 0L)
   }
-  { rows, cols, tree }
+  { rows, cols, tree, }
 }
 
 ///|

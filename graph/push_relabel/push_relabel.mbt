@@ -47,7 +47,7 @@ pub fn new(n : Int) -> PushRelabel {
     height.push(0)
     excess.push(0L)
   }
-  { n, adj, height, excess, count }
+  { n, adj, height, excess, count, }
 }
 
 ///|
@@ -59,8 +59,8 @@ pub fn PushRelabel::add_edge(
   v : Int,
   cap : Int,
 ) -> Unit {
-  let forward = { to: v, cap, flow: 0, rev: self.adj[v].length() }
-  let backward = { to: u, cap: 0, flow: 0, rev: self.adj[u].length() }
+  let forward = { to: v, cap, flow: 0, rev: self.adj[v].length(), }
+  let backward = { to: u, cap: 0, flow: 0, rev: self.adj[u].length(), }
   self.adj[u].push(forward)
   self.adj[v].push(backward)
 }

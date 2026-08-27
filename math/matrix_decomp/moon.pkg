@@ -1,5 +1,5 @@
 import {
-  "moon-certified/math/newton_method",
+  "Juwan-Hwang/moon-certified/math/newton_method",
 }
 
 options(

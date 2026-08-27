@@ -95,7 +95,7 @@ fn find_child(children : Array[(Int, Int, Int, Int)], ch : Int) -> Int {
 ///|
 /// Create a fresh node (no children, no suffix link, zero leaf count).
 fn new_node() -> STNode {
-  { children: [], link: -1, leaf_count: 0 }
+  { children: [], link: -1, leaf_count: 0, }
 }
 
 // ---------------------------------------------------------------------------

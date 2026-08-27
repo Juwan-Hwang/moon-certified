@@ -142,7 +142,7 @@ priv struct TicTacToe {
 
 ///|
 fn TicTacToe::new() -> TicTacToe {
-  { board: FixedArray::make(9, 0), player: 1 }
+  { board: FixedArray::make(9, 0), player: 1, }
 }
 
 ///|
@@ -151,7 +151,7 @@ fn TicTacToe::clone(self : TicTacToe) -> TicTacToe {
   for i = 0; i < 9; i = i + 1 {
     b[i] = self.board[i]
   }
-  { board: b, player: self.player }
+  { board: b, player: self.player, }
 }
 
 ///|

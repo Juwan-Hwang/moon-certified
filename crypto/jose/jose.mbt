@@ -262,25 +262,25 @@ pub struct JwsHeader {
 ///|
 /// Create a JWS header with the given algorithm.
 pub fn JwsHeader::new(alg : String) -> JwsHeader {
-  { alg, typ: None, cty: None, kid: None }
+  { alg, typ: None, cty: None, kid: None, }
 }
 
 ///|
 /// Set the `typ` header parameter.
 pub fn JwsHeader::with_typ(self : JwsHeader, typ : String) -> JwsHeader {
-  { ..self, typ: Some(typ) }
+  { ..self, typ: Some(typ), }
 }
 
 ///|
 /// Set the `kid` header parameter.
 pub fn JwsHeader::with_kid(self : JwsHeader, kid : String) -> JwsHeader {
-  { ..self, kid: Some(kid) }
+  { ..self, kid: Some(kid), }
 }
 
 ///|
 /// Set the `cty` header parameter.
 pub fn JwsHeader::with_cty(self : JwsHeader, cty : String) -> JwsHeader {
-  { ..self, cty: Some(cty) }
+  { ..self, cty: Some(cty), }
 }
 
 ///|
@@ -313,7 +313,7 @@ fn parse_header(json_str : String) -> JwsHeader? {
           let typ = @json.get_str(v, "typ")
           let kid = @json.get_str(v, "kid")
           let cty = @json.get_str(v, "cty")
-          Some({ alg, typ, kid, cty })
+          Some({ alg, typ, kid, cty, })
         }
         None => None
       }
@@ -399,31 +399,31 @@ pub fn jws_verify(
   }
   // Algorithm cross-check (prevents algorithm confusion).
   if header.alg != expected_alg {
-    return Some({ header, payload, valid: false })
+    return Some({ header, payload, valid: false, })
   }
   // Handle "none" algorithm.
   if header.alg == "none" {
     // Valid only if signature segment is empty.
     let valid = signature_b64.length() == 0
-    return Some({ header, payload, valid })
+    return Some({ header, payload, valid, })
   }
   // Decode signature.
   let provided_sig = match b64url_decode(signature_b64) {
     Some(b) => b
-    None => return Some({ header, payload, valid: false })
+    None => return Some({ header, payload, valid: false, })
   }
   // Recompute signature.
   let signing_input = @utils.string_to_bytes(header_b64 + "." + payload_b64)
   let expected_sig = match compute_signature(header.alg, key, signing_input) {
     Some(s) => s
-    None => return Some({ header, payload, valid: false })
+    None => return Some({ header, payload, valid: false, })
   }
   // Constant-time comparison.
   if expected_sig.length() != provided_sig.length() {
-    return Some({ header, payload, valid: false })
+    return Some({ header, payload, valid: false, })
   }
   let valid = @hmac.constant_time_eq(expected_sig, provided_sig)
-  Some({ header, payload, valid })
+  Some({ header, payload, valid, })
 }
 
 // ---------------------------------------------------------------------------
@@ -459,43 +459,43 @@ pub fn JwtClaims::new() -> JwtClaims {
 ///|
 /// Set the `iss` (issuer) claim.
 pub fn JwtClaims::with_iss(self : JwtClaims, iss : String) -> JwtClaims {
-  { ..self, iss: Some(iss) }
+  { ..self, iss: Some(iss), }
 }
 
 ///|
 /// Set the `sub` (subject) claim.
 pub fn JwtClaims::with_sub(self : JwtClaims, sub : String) -> JwtClaims {
-  { ..self, sub: Some(sub) }
+  { ..self, sub: Some(sub), }
 }
 
 ///|
 /// Set the `aud` (audience) claim.
 pub fn JwtClaims::with_aud(self : JwtClaims, aud : String) -> JwtClaims {
-  { ..self, aud: Some(aud) }
+  { ..self, aud: Some(aud), }
 }
 
 ///|
 /// Set the `exp` (expiration time) claim.
 pub fn JwtClaims::with_exp(self : JwtClaims, exp : Int64) -> JwtClaims {
-  { ..self, exp: Some(exp) }
+  { ..self, exp: Some(exp), }
 }
 
 ///|
 /// Set the `nbf` (not before) claim.
 pub fn JwtClaims::with_nbf(self : JwtClaims, nbf : Int64) -> JwtClaims {
-  { ..self, nbf: Some(nbf) }
+  { ..self, nbf: Some(nbf), }
 }
 
 ///|
 /// Set the `iat` (issued at) claim.
 pub fn JwtClaims::with_iat(self : JwtClaims, iat : Int64) -> JwtClaims {
-  { ..self, iat: Some(iat) }
+  { ..self, iat: Some(iat), }
 }
 
 ///|
 /// Set the `jti` (JWT ID) claim.
 pub fn JwtClaims::with_jti(self : JwtClaims, jti : String) -> JwtClaims {
-  { ..self, jti: Some(jti) }
+  { ..self, jti: Some(jti), }
 }
 
 ///|
@@ -550,37 +550,37 @@ fn parse_claims(json_str : String) -> JwtClaims? {
             match key {
               "iss" =>
                 match @json.as_string(val) {
-                  Some(s) => claims = { ..claims, iss: Some(s) }
+                  Some(s) => claims = { ..claims, iss: Some(s), }
                   None => ()
                 }
               "sub" =>
                 match @json.as_string(val) {
-                  Some(s) => claims = { ..claims, sub: Some(s) }
+                  Some(s) => claims = { ..claims, sub: Some(s), }
                   None => ()
                 }
               "aud" =>
                 match @json.as_string(val) {
-                  Some(s) => claims = { ..claims, aud: Some(s) }
+                  Some(s) => claims = { ..claims, aud: Some(s), }
                   None => ()
                 }
               "exp" =>
                 match @json.as_number(val) {
-                  Some(n) => claims = { ..claims, exp: Some(n.to_int64()) }
+                  Some(n) => claims = { ..claims, exp: Some(n.to_int64()), }
                   None => ()
                 }
               "nbf" =>
                 match @json.as_number(val) {
-                  Some(n) => claims = { ..claims, nbf: Some(n.to_int64()) }
+                  Some(n) => claims = { ..claims, nbf: Some(n.to_int64()), }
                   None => ()
                 }
               "iat" =>
                 match @json.as_number(val) {
-                  Some(n) => claims = { ..claims, iat: Some(n.to_int64()) }
+                  Some(n) => claims = { ..claims, iat: Some(n.to_int64()), }
                   None => ()
                 }
               "jti" =>
                 match @json.as_string(val) {
-                  Some(s) => claims = { ..claims, jti: Some(s) }
+                  Some(s) => claims = { ..claims, jti: Some(s), }
                   None => ()
                 }
               _ => () // non-standard claims ignored
@@ -628,7 +628,7 @@ pub fn JwtOptions::with_expected_alg(
   self : JwtOptions,
   alg : String,
 ) -> JwtOptions {
-  { ..self, expected_alg: alg }
+  { ..self, expected_alg: alg, }
 }
 
 ///|
@@ -637,7 +637,7 @@ pub fn JwtOptions::with_expected_iss(
   self : JwtOptions,
   iss : String,
 ) -> JwtOptions {
-  { ..self, expected_iss: Some(iss) }
+  { ..self, expected_iss: Some(iss), }
 }
 
 ///|
@@ -646,7 +646,7 @@ pub fn JwtOptions::with_expected_aud(
   self : JwtOptions,
   aud : String,
 ) -> JwtOptions {
-  { ..self, expected_aud: Some(aud) }
+  { ..self, expected_aud: Some(aud), }
 }
 
 ///|
@@ -655,7 +655,7 @@ pub fn JwtOptions::with_clock_skew(
   self : JwtOptions,
   skew : Int64,
 ) -> JwtOptions {
-  { ..self, clock_skew: skew }
+  { ..self, clock_skew: skew, }
 }
 
 // ---------------------------------------------------------------------------
@@ -770,7 +770,7 @@ pub fn jwt_verify(
       }
     None => ()
   }
-  Ok({ header: result.header, claims, raw_payload: result.payload })
+  Ok({ header: result.header, claims, raw_payload: result.payload, })
 }
 
 // ---------------------------------------------------------------------------
@@ -1121,7 +1121,7 @@ test "jose: jwt_verify rejects none algorithm by default" {
     }
   }
   // Default options should reject "none".
-  let options = { ..JwtOptions::default(), expected_alg: "none" }
+  let options = { ..JwtOptions::default(), expected_alg: "none", }
   match jwt_verify(token, key, options, 1500000000L) {
     Ok(_) => assert_true(false) // should reject
     Err(NoneNotAllowed) => assert_true(true)

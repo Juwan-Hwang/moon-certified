@@ -60,7 +60,7 @@ pub fn keygen(secret : @bigint.BigInt) -> (BlsPrivateKey, BlsPublicKey) {
   let sk : BlsPrivateKey = { secret, }
   let g2 = @pairing.g2_generator()
   let pk_point = @pairing.g2_scalar_mul(secret, g2)
-  let pk : BlsPublicKey = { point: pk_point }
+  let pk : BlsPublicKey = { point: pk_point, }
   (sk, pk)
 }
 
@@ -82,7 +82,7 @@ fn hash_to_g1(msg : String) -> @pairing.G1Point {
 pub fn sign(sk : BlsPrivateKey, msg : String) -> BlsSignature {
   let h = hash_to_g1(msg)
   let sig_point = @pairing.g1_scalar_mul(sk.secret, h)
-  ({ point: sig_point } : BlsSignature)
+  ({ point: sig_point, } : BlsSignature)
 }
 
 ///|
@@ -105,7 +105,7 @@ pub fn aggregate_signatures(sigs : Array[BlsSignature]) -> BlsSignature {
   for sig in sigs {
     result = @pairing.g1_add(result, sig.point)
   }
-  ({ point: result } : BlsSignature)
+  ({ point: result, } : BlsSignature)
 }
 
 ///|

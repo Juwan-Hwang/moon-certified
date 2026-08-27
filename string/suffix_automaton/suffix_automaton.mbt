@@ -80,7 +80,7 @@ pub struct SuffixAutomaton {
 /// pre-computed.
 pub fn build(s : String) -> SuffixAutomaton {
   let sam : SuffixAutomaton = {
-    states: [{ len: 0, link: -1, trans: [], cnt: 1 }],
+    states: [{ len: 0, link: -1, trans: [], cnt: 1, }],
     last: 0,
   }
   for i = 0; i < s.length(); i = i + 1 {
@@ -95,7 +95,7 @@ pub fn build(s : String) -> SuffixAutomaton {
 fn extend_sam(sam : SuffixAutomaton, c : Int) -> Unit {
   let cur = sam.states.length()
   let last_len = sam.states[sam.last].len
-  sam.states.push({ len: last_len + 1, link: -1, trans: [], cnt: 1 })
+  sam.states.push({ len: last_len + 1, link: -1, trans: [], cnt: 1, })
   let mut p = sam.last
   // Add transitions from all states reachable via suffix links that don't
   // yet have a transition on `c`.

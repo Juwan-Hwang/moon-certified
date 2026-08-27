@@ -474,7 +474,7 @@ test "knn: empty training set returns default label 0" {
 
 ///|
 test "knn: single training point echoes its label" {
-  let train = [{ label: 7, coords: [0.0, 0.0] }]
+  let train = [{ label: 7, coords: [0.0, 0.0], }]
   assert_eq(knn_classify(train, [10.0, 10.0], 1), 7)
 }
 
@@ -482,12 +482,12 @@ test "knn: single training point echoes its label" {
 test "knn: query near its own class is classified correctly" {
   // Two classes on the x-axis: label 1 near x=0, label 2 near x=10.
   let train = [
-    { label: 1, coords: [0.0] },
-    { label: 1, coords: [0.5] },
-    { label: 1, coords: [1.0] },
-    { label: 2, coords: [10.0] },
-    { label: 2, coords: [10.5] },
-    { label: 2, coords: [11.0] },
+    { label: 1, coords: [0.0], },
+    { label: 1, coords: [0.5], },
+    { label: 1, coords: [1.0], },
+    { label: 2, coords: [10.0], },
+    { label: 2, coords: [10.5], },
+    { label: 2, coords: [11.0], },
   ]
   assert_eq(knn_classify(train, [0.2], 3), 1) // near the left blob
   assert_eq(knn_classify(train, [10.8], 3), 2) // near the right blob
@@ -496,9 +496,9 @@ test "knn: query near its own class is classified correctly" {
 ///|
 test "knn: k=1 picks the single nearest neighbour" {
   let train = [
-    { label: 1, coords: [0.0, 0.0] },
-    { label: 2, coords: [3.0, 0.0] },
-    { label: 3, coords: [5.0, 0.0] },
+    { label: 1, coords: [0.0, 0.0], },
+    { label: 2, coords: [3.0, 0.0], },
+    { label: 3, coords: [5.0, 0.0], },
   ]
   // Query at x=4.5 is closest to label 3 (dist^2 0.25), then label 2 (dist^2
   // 2.25), then label 1 (dist^2 20.25); no distance tie at the boundary.
@@ -509,7 +509,7 @@ test "knn: k=1 picks the single nearest neighbour" {
 test "knn: vote tie is broken by the lowest label" {
   // Two equidistant neighbours with different labels; with k=2 the vote is
   // 1-1, so the lowest label (1) must win.
-  let train = [{ label: 1, coords: [0.0] }, { label: 2, coords: [2.0] }]
+  let train = [{ label: 1, coords: [0.0], }, { label: 2, coords: [2.0], }]
   // Query at x=1 is exactly equidistant (dist^2 = 1) from both.
   assert_eq(knn_classify(train, [1.0], 2), 1)
 }
@@ -519,9 +519,9 @@ test "knn: three-way vote tie picks the lowest label" {
   // Three 2-D points all exactly distance 1 from the query, with labels
   // 5, 3, 9. With k=3 every label votes once, so the lowest label (3) wins.
   let train = [
-    { label: 5, coords: [1.0, 0.0] },
-    { label: 3, coords: [-1.0, 0.0] },
-    { label: 9, coords: [0.0, 1.0] },
+    { label: 5, coords: [1.0, 0.0], },
+    { label: 3, coords: [-1.0, 0.0], },
+    { label: 9, coords: [0.0, 1.0], },
   ]
   assert_eq(knn_classify(train, [0.0, 0.0], 3), 3)
 }
@@ -529,9 +529,9 @@ test "knn: three-way vote tie picks the lowest label" {
 ///|
 test "knn: k greater than training size is clamped" {
   let train = [
-    { label: 1, coords: [0.0] },
-    { label: 1, coords: [1.0] },
-    { label: 2, coords: [9.0] },
+    { label: 1, coords: [0.0], },
+    { label: 1, coords: [1.0], },
+    { label: 2, coords: [9.0], },
   ]
   // k=100 -> clamped to 3; majority of {1,1,2} is label 1.
   assert_eq(knn_classify(train, [0.5], 100), 1)
@@ -539,7 +539,7 @@ test "knn: k greater than training size is clamped" {
 
 ///|
 test "knn: k <= 0 is treated as k = 1" {
-  let train = [{ label: 1, coords: [0.0] }, { label: 2, coords: [9.0] }]
+  let train = [{ label: 1, coords: [0.0], }, { label: 2, coords: [9.0], }]
   assert_eq(knn_classify(train, [0.2], 0), 1)
   assert_eq(knn_classify(train, [8.9], -5), 2)
 }
@@ -549,10 +549,10 @@ test "knn: 2-D classification with overlapping-ish classes" {
   // Class 0 around (0,0), class 1 around (4,4); query near (0,0) -> 0.
   let train : Array[KNNEntry] = []
   for i = 0; i < 5; i = i + 1 {
-    train.push({ label: 0, coords: [i.to_double() * 0.1, 0.0] })
+    train.push({ label: 0, coords: [i.to_double() * 0.1, 0.0], })
   }
   for i = 0; i < 5; i = i + 1 {
-    train.push({ label: 1, coords: [4.0 + i.to_double() * 0.1, 4.0] })
+    train.push({ label: 1, coords: [4.0 + i.to_double() * 0.1, 4.0], })
   }
   assert_eq(knn_classify(train, [0.05, 0.0], 3), 0)
   assert_eq(knn_classify(train, [4.05, 4.0], 3), 1)
@@ -563,11 +563,11 @@ test "knn: majority overrides a single nearest outlier" {
   // Nearest neighbour is label 2, but the next four are label 1, so k=5 votes
   // 4-to-1 for label 1.
   let train = [
-    { label: 2, coords: [0.9] }, // closest to query 1.0 (dist^2 0.01)
-    { label: 1, coords: [1.1] }, // dist^2 0.01 (tie, lower label first)
-    { label: 1, coords: [1.2] }, // dist^2 0.04
-    { label: 1, coords: [1.3] }, // dist^2 0.09
-    { label: 1, coords: [1.4] }, // dist^2 0.16
+    { label: 2, coords: [0.9], }, // closest to query 1.0 (dist^2 0.01)
+    { label: 1, coords: [1.1], }, // dist^2 0.01 (tie, lower label first)
+    { label: 1, coords: [1.2], }, // dist^2 0.04
+    { label: 1, coords: [1.3], }, // dist^2 0.09
+    { label: 1, coords: [1.4], }, // dist^2 0.16
   ]
   assert_eq(knn_classify(train, [1.0], 5), 1)
 }
@@ -578,9 +578,9 @@ test "knn: dimension-mismatched training point is never preferred" {
   // dimension disagrees with the query, so it is ranked last (+inf) and the
   // 2-D points decide the vote.
   let train = [
-    { label: 9, coords: [0.0, 0.0, 0.0] }, // wrong dim -> +inf
-    { label: 1, coords: [0.0, 0.0] }, // dist^2 1.0
-    { label: 1, coords: [1.0, 1.0] }, // dist^2 0.0 -> nearest
+    { label: 9, coords: [0.0, 0.0, 0.0], }, // wrong dim -> +inf
+    { label: 1, coords: [0.0, 0.0], }, // dist^2 1.0
+    { label: 1, coords: [1.0, 1.0], }, // dist^2 0.0 -> nearest
   ]
   assert_eq(knn_classify(train, [1.0, 1.0], 1), 1)
 }
@@ -591,11 +591,11 @@ test "knn: fast variant matches brute force on large dataset" {
   let train : Array[KNNEntry] = []
   // Class 0: points near (0, 0).
   for i = 0; i < 20; i = i + 1 {
-    train.push({ label: 0, coords: [i.to_double() * 0.05, 0.0] })
+    train.push({ label: 0, coords: [i.to_double() * 0.05, 0.0], })
   }
   // Class 1: points near (10, 10).
   for i = 0; i < 20; i = i + 1 {
-    train.push({ label: 1, coords: [10.0 + i.to_double() * 0.05, 10.0] })
+    train.push({ label: 1, coords: [10.0 + i.to_double() * 0.05, 10.0], })
   }
   // Query near class 0.
   let q1 = [0.1, 0.0]
@@ -609,8 +609,8 @@ test "knn: fast variant matches brute force on large dataset" {
 test "knn: fast variant handles small datasets via fallback" {
   // Small dataset → falls back to brute force.
   let train = [
-    { label: 1, coords: [0.0, 0.0] },
-    { label: 2, coords: [3.0, 0.0] },
+    { label: 1, coords: [0.0, 0.0], },
+    { label: 2, coords: [3.0, 0.0], },
   ]
   assert_eq(knn_classify_fast(train, [0.5, 0.0], 1), 1)
 }

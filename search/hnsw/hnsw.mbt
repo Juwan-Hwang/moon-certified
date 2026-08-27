@@ -147,7 +147,7 @@ pub fn insert(h : HNSW, id : Int, vec : Array[Double]) -> Unit {
   let level = random_level(h)
   let internal_idx = h.nodes.length()
   let neighbors = FixedArray::makei(level + 1, fn(_) { [] })
-  h.nodes.push({ id, neighbors })
+  h.nodes.push({ id, neighbors, })
   h.data.push(Array::copy(vec))
   if h.entry_point == -1 {
     h.entry_point = internal_idx

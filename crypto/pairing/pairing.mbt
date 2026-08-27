@@ -116,7 +116,7 @@ test "bls12_381 — G2 negation: G + (-G) = O" {
 ///|
 test "bls12_381 — Fp2 arithmetic: u^2 = -1" {
   // u = (0, 1), u^2 should be (-1, 0)
-  let u : Fp2 = { c0: @bigint.zero(), c1: @bigint.one() }
+  let u : Fp2 = { c0: @bigint.zero(), c1: @bigint.one(), }
   let u2 = fp2_sqr(u)
   let neg_one : Fp2 = {
     c0: fp_sub(@bigint.zero(), @bigint.one()),
@@ -146,14 +146,14 @@ test "bls12_381 — Fp12 inverse: a * a^(-1) = 1" {
   // Create a non-trivial Fp12 element
   let a : Fp12 = {
     c0: {
-      c0: { c0: @bigint.from_int_value(3), c1: @bigint.from_int_value(5) },
-      c1: { c0: @bigint.from_int_value(7), c1: @bigint.from_int_value(11) },
-      c2: { c0: @bigint.from_int_value(13), c1: @bigint.from_int_value(17) },
+      c0: { c0: @bigint.from_int_value(3), c1: @bigint.from_int_value(5), },
+      c1: { c0: @bigint.from_int_value(7), c1: @bigint.from_int_value(11), },
+      c2: { c0: @bigint.from_int_value(13), c1: @bigint.from_int_value(17), },
     },
     c1: {
-      c0: { c0: @bigint.from_int_value(19), c1: @bigint.from_int_value(23) },
-      c1: { c0: @bigint.from_int_value(29), c1: @bigint.from_int_value(31) },
-      c2: { c0: @bigint.from_int_value(37), c1: @bigint.from_int_value(41) },
+      c0: { c0: @bigint.from_int_value(19), c1: @bigint.from_int_value(23), },
+      c1: { c0: @bigint.from_int_value(29), c1: @bigint.from_int_value(31), },
+      c2: { c0: @bigint.from_int_value(37), c1: @bigint.from_int_value(41), },
     },
   }
   let a_inv = fp12_inv(a)

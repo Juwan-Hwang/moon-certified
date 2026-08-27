@@ -79,7 +79,7 @@ fn new_tree() -> PalindromicTree {
     count: 0,
     first_pos: -1,
   })
-  { nodes, last: 1, s: [], n: 0 }
+  { nodes, last: 1, s: [], n: 0, }
 }
 
 ///|

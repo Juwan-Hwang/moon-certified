@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/math",
-  "moon-certified/math/cholesky",
+  "Juwan-Hwang/moon-certified/math/cholesky",
 }
 
 options(

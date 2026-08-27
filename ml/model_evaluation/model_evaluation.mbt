@@ -91,7 +91,7 @@ pub fn make_confusion_matrix(
   tn : Int,
   fneg : Int,
 ) -> ConfusionMatrix {
-  { tp, fp, tn, fneg }
+  { tp, fp, tn, fneg, }
 }
 
 ///|
@@ -121,7 +121,7 @@ pub fn confusion_matrix(
       fneg = fneg + 1
     }
   }
-  { tp, fp, tn, fneg }
+  { tp, fp, tn, fneg, }
 }
 
 ///|

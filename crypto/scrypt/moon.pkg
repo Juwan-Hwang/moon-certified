@@ -1,6 +1,6 @@
 import {
-  "moon-certified/crypto/pbkdf2",
-  "moon-certified/crypto/hex",
+  "Juwan-Hwang/moon-certified/crypto/pbkdf2",
+  "Juwan-Hwang/moon-certified/crypto/hex",
 }
 
 options(

@@ -60,7 +60,7 @@ pub fn gf256_new() -> GF256 {
   for i = 255; i < 512; i = i + 1 {
     exp[i] = exp[i - 255]
   }
-  GF256::{ exp_table: exp, log_table: log }
+  GF256::{ exp_table: exp, log_table: log, }
 }
 
 ///|

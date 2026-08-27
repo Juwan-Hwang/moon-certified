@@ -123,7 +123,7 @@ fn dijkstra_reweighted(
   @graph_utils.MinHeap::push(heap, 0L, src)
   while @graph_utils.MinHeap::len(heap) > 0 {
     match @graph_utils.MinHeap::pop(heap) {
-      Some({ dist: d, vertex: u }) =>
+      Some({ dist: d, vertex: u, }) =>
         if !visited[u] {
           visited[u] = true
           let neighbors = graph[u]

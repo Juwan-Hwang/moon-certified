@@ -53,7 +53,7 @@ pub struct FPoint {
 ///|
 /// Construct an [`FPoint`].
 pub fn fpoint(x : Double, y : Double) -> FPoint {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -243,7 +243,7 @@ fn circumcircle(
 pub fn fortune(sites : Array[FPoint]) -> FortuneResult {
   let n = sites.length()
   if n < 2 {
-    return { vertices: [], edges: [], num_sites: n }
+    return { vertices: [], edges: [], num_sites: n, }
   }
   // --- Deduplicate and sort sites by y (descending), then x ---
   let sorted : Array[FPoint] = []
@@ -277,7 +277,7 @@ pub fn fortune(sites : Array[FPoint]) -> FortuneResult {
   }
   let m = unique.length()
   if m < 2 {
-    return { vertices: [], edges: [], num_sites: m }
+    return { vertices: [], edges: [], num_sites: m, }
   }
   // --- Data structures ---
   let pq : @priority_queue.PriorityQueue[Event] = @priority_queue.PriorityQueue::new(fn(
@@ -424,7 +424,7 @@ pub fn fortune(sites : Array[FPoint]) -> FortuneResult {
         alive: true,
         edge_idx: -1,
       })
-    None => return { vertices: [], edges: [], num_sites: m }
+    None => return { vertices: [], edges: [], num_sites: m, }
   }
   // --- Main event loop ---
   while !pq.is_empty() {
@@ -529,7 +529,7 @@ pub fn fortune(sites : Array[FPoint]) -> FortuneResult {
         continue
       }
       // Add the Voronoi vertex.
-      vertices.push({ x: ev.center_x, y: ev.center_y })
+      vertices.push({ x: ev.center_x, y: ev.center_y, })
       // Complete the two half-edges meeting at this vertex.
       // The left edge of the disappearing arc (traced by prev's right breakpoint).
       let prev_edge = arcs[prev_idx].edge_idx
@@ -613,7 +613,7 @@ pub fn fortune(sites : Array[FPoint]) -> FortuneResult {
       })
     }
   }
-  { vertices, edges, num_sites: m }
+  { vertices, edges, num_sites: m, }
 }
 
 // ---------------------------------------------------------------------------

@@ -141,7 +141,7 @@ pub fn build(adj : Array[Array[Int]], root : Int, n : Int) -> HLD {
     }
   }
 
-  { n, parent, depth, heavy, head, pos, size }
+  { n, parent, depth, heavy, head, pos, size, }
 }
 
 // ---------------------------------------------------------------------------
@@ -177,7 +177,7 @@ pub fn path_segments(hld : HLD, u_in : Int, v_in : Int) -> Array[PathSegment] {
       v = tmp
     }
     // Add segment from head[u] to u.
-    segments.push({ l: hld.pos[hld.head[u]], r: hld.pos[u] })
+    segments.push({ l: hld.pos[hld.head[u]], r: hld.pos[u], })
     u = hld.parent[hld.head[u]]
   }
   // Now u and v are on the same chain.
@@ -186,7 +186,7 @@ pub fn path_segments(hld : HLD, u_in : Int, v_in : Int) -> Array[PathSegment] {
     u = v
     v = tmp
   }
-  segments.push({ l: hld.pos[u], r: hld.pos[v] })
+  segments.push({ l: hld.pos[u], r: hld.pos[v], })
   segments
 }
 
@@ -209,18 +209,18 @@ pub fn path_directed(
   let mut v = v_in
   while hld.head[u] != hld.head[v] {
     if hld.depth[hld.head[u]] >= hld.depth[hld.head[v]] {
-      u_segs.push({ l: hld.pos[hld.head[u]], r: hld.pos[u] })
+      u_segs.push({ l: hld.pos[hld.head[u]], r: hld.pos[u], })
       u = hld.parent[hld.head[u]]
     } else {
-      v_segs.push({ l: hld.pos[hld.head[v]], r: hld.pos[v] })
+      v_segs.push({ l: hld.pos[hld.head[v]], r: hld.pos[v], })
       v = hld.parent[hld.head[v]]
     }
   }
   // Same chain now.
   if hld.depth[u] <= hld.depth[v] {
-    u_segs.push({ l: hld.pos[u], r: hld.pos[v] })
+    u_segs.push({ l: hld.pos[u], r: hld.pos[v], })
   } else {
-    u_segs.push({ l: hld.pos[v], r: hld.pos[u] })
+    u_segs.push({ l: hld.pos[v], r: hld.pos[u], })
   }
   (u_segs, v_segs)
 }
@@ -230,7 +230,7 @@ pub fn path_directed(
 /// entire subtree of `v`. This is a single contiguous range because the
 /// HLD linearisation is a DFS order.
 pub fn subtree_range(hld : HLD, v : Int) -> PathSegment {
-  { l: hld.pos[v], r: hld.pos[v] + hld.size[v] - 1 }
+  { l: hld.pos[v], r: hld.pos[v] + hld.size[v] - 1, }
 }
 
 ///|

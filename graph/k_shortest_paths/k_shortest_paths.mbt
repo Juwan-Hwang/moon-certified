@@ -20,7 +20,7 @@ pub struct KEdge {
 ///|
 /// Construct a [`KEdge`] with the given destination and weight.
 pub fn k_edge(to : Int, weight : Int) -> KEdge {
-  { to, weight }
+  { to, weight, }
 }
 
 ///|
@@ -240,9 +240,9 @@ fn paths_equal(a : Array[Int], b : Array[Int]) -> Bool {
 test "k_shortest_paths: basic" {
   // Graph: 0->1 (1), 0->2 (2), 1->3 (2), 2->3 (1), 0->3 (10)
   let adj : Array[Array[KEdge]] = [
-    [{ to: 1, weight: 1 }, { to: 2, weight: 2 }, { to: 3, weight: 10 }],
-    [{ to: 3, weight: 2 }],
-    [{ to: 3, weight: 1 }],
+    [{ to: 1, weight: 1, }, { to: 2, weight: 2, }, { to: 3, weight: 10, }],
+    [{ to: 3, weight: 2, }],
+    [{ to: 3, weight: 1, }],
     [],
   ]
   let paths = k_shortest_paths(4, adj, 0, 3, 3)
@@ -255,7 +255,7 @@ test "k_shortest_paths: basic" {
 
 ///|
 test "k_shortest_paths: single path" {
-  let adj : Array[Array[KEdge]] = [[{ to: 1, weight: 5 }], []]
+  let adj : Array[Array[KEdge]] = [[{ to: 1, weight: 5, }], []]
   let paths = k_shortest_paths(2, adj, 0, 1, 3)
   assert_eq(paths.length(), 1)
   assert_eq(paths[0].0, 5)

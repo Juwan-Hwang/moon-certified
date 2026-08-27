@@ -41,18 +41,18 @@ fn line_eval(
   let vw_coeff = fp2_mul(fp2_sub(fp2_mul(lam, rx), ry), xi_inv)
   // coefficient of v²w: (-λ·x_P) / ξ
   let v2w_coeff = fp2_neg(fp2_mul(fp2_mul(lam, px), xi_inv))
-  let c0 : Fp6 = { c0: py, c1: fp2_zero(), c2: fp2_zero() }
-  let c1 : Fp6 = { c0: fp2_zero(), c1: vw_coeff, c2: v2w_coeff }
-  { c0, c1 }
+  let c0 : Fp6 = { c0: py, c1: fp2_zero(), c2: fp2_zero(), }
+  let c1 : Fp6 = { c0: fp2_zero(), c1: vw_coeff, c2: v2w_coeff, }
+  { c0, c1, }
 }
 
 ///|
 /// Evaluate the vertical line X - x_R at P exactly:
 /// (x_P - x_R/v) = x_P - (x_R/ξ)·v².
 fn vertical_line_eval(rx : Fp2, px : Fp2, xi_inv : Fp2) -> Fp12 {
-  let c0 : Fp6 = { c0: px, c1: fp2_zero(), c2: fp2_neg(fp2_mul(rx, xi_inv)) }
+  let c0 : Fp6 = { c0: px, c1: fp2_zero(), c2: fp2_neg(fp2_mul(rx, xi_inv)), }
   let c1 : Fp6 = fp6_zero()
-  { c0, c1 }
+  { c0, c1, }
 }
 
 ///|

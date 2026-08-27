@@ -530,7 +530,7 @@ pub fn ns_params(
   beta3 : Double,
   lambda1 : Double,
 ) -> NSParams {
-  { beta1, beta2, beta3, lambda1 }
+  { beta1, beta2, beta3, lambda1, }
 }
 
 ///|
@@ -586,7 +586,7 @@ pub fn nelson_siegel_fit(
 ) -> NSParams {
   let n = tenors.length()
   if n == 0 {
-    return { beta1: 0.0, beta2: 0.0, beta3: 0.0, lambda1: 1.0 }
+    return { beta1: 0.0, beta2: 0.0, beta3: 0.0, lambda1: 1.0, }
   }
   // Grid search over lambda
   let mut best_lambda = 1.0
@@ -655,7 +655,7 @@ pub fn nelson_siegel_fit(
     let mut sse = 0.0
     for i = 0; i < n; i = i + 1 {
       let tau = tenors[i]
-      let pred = nelson_siegel_eval({ beta1, beta2, beta3, lambda1: lam }, tau)
+      let pred = nelson_siegel_eval({ beta1, beta2, beta3, lambda1: lam, }, tau)
       let resid = rates[i] - pred
       sse = sse + resid * resid
     }
@@ -698,7 +698,7 @@ pub fn nss_params(
   lambda1 : Double,
   lambda2 : Double,
 ) -> NSSParams {
-  { beta1, beta2, beta3, beta4, lambda1, lambda2 }
+  { beta1, beta2, beta3, beta4, lambda1, lambda2, }
 }
 
 ///|

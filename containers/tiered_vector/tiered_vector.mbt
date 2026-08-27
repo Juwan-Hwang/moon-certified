@@ -28,7 +28,7 @@ pub fn TieredVector::new(initial_capacity : Int) -> TieredVector {
   for i = 0; i < tc; i = i + 1 {
     data.push(Array::make(tc, 0))
   }
-  { tier_count: tc, tier_capacity: tc, data, size: 0 }
+  { tier_count: tc, tier_capacity: tc, data, size: 0, }
 }
 
 ///|

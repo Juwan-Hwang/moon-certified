@@ -41,7 +41,7 @@ pub fn build(arr : FixedArray[Int]) -> Fenwick {
       tree[j] = tree[j] + tree[i]
     }
   }
-  { tree, n }
+  { tree, n, }
 }
 
 ///|
@@ -106,7 +106,7 @@ pub struct FenwickRange {
 /// Create an empty range-add Fenwick of size `n`.
 pub fn build_range(n : Int) -> FenwickRange {
   let n = if n < 0 { 0 } else { n }
-  { diff: FixedArray::make(n + 1, 0), n }
+  { diff: FixedArray::make(n + 1, 0), n, }
 }
 
 ///|
@@ -353,7 +353,7 @@ pub fn build64(arr : FixedArray[Int64]) -> Fenwick64 {
       tree[j] = tree[j] + tree[i]
     }
   }
-  { tree, n }
+  { tree, n, }
 }
 
 ///|

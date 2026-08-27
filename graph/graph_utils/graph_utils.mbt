@@ -32,7 +32,7 @@ pub struct MinHeap {
 ///|
 /// Create an empty min-heap.
 pub fn MinHeap::new() -> MinHeap {
-  { data: [] }
+  { data: [], }
 }
 
 ///|
@@ -46,7 +46,7 @@ pub fn MinHeap::len(heap : MinHeap) -> Int {
 ///
 /// Time: O(log n).
 pub fn MinHeap::push(heap : MinHeap, dist : Int64, vertex : Int) -> Unit {
-  heap.data.push({ dist, vertex })
+  heap.data.push({ dist, vertex, })
   let mut i = heap.data.length() - 1
   while i > 0 {
     let parent = (i - 1) / 2

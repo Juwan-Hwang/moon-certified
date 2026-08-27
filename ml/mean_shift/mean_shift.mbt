@@ -68,7 +68,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -422,7 +422,7 @@ pub fn mean_shift(
 ) -> MeanShiftResult {
   let n = data.length()
   if n == 0 {
-    return { cluster_centers: [], labels: [], n_clusters: 0, bandwidth: 0.0 }
+    return { cluster_centers: [], labels: [], n_clusters: 0, bandwidth: 0.0, }
   }
   if n == 1 {
     let center = Array::make(data[0].length(), 0.0)
@@ -442,7 +442,7 @@ pub fn mean_shift(
   }
   let d = data[0].length()
   if d == 0 {
-    return { cluster_centers: [], labels: [], n_clusters: 0, bandwidth: 0.0 }
+    return { cluster_centers: [], labels: [], n_clusters: 0, bandwidth: 0.0, }
   }
   // Determine bandwidth
   let h = if config.bandwidth > 0.0 {

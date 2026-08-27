@@ -78,7 +78,7 @@ struct MaxHeap {
 ///|
 /// Create an empty max-heap.
 fn MaxHeap::new() -> MaxHeap {
-  { data: [0L], size: 0 }
+  { data: [0L], size: 0, }
 }
 
 ///|
@@ -195,7 +195,7 @@ pub struct SlopeTrick {
 ///|
 /// Create a new `SlopeTrick` representing the zero function `f(x) = 0`.
 pub fn SlopeTrick::new() -> SlopeTrick {
-  { min_value: 0L, left_heap: MaxHeap::new(), lazy_left: 0L }
+  { min_value: 0L, left_heap: MaxHeap::new(), lazy_left: 0L, }
 }
 
 ///|

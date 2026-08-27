@@ -51,7 +51,7 @@ pub struct MonotonicStack {
 /// - `increasing = false`: the stack maintains a non-increasing sequence.
 ///   Pushing `v` pops all elements `< v` (strictly less), keeping `≥ v`.
 fn MonotonicStack::new(increasing : Bool) -> MonotonicStack {
-  { data: [], increasing }
+  { data: [], increasing, }
 }
 
 ///|

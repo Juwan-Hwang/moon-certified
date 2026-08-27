@@ -41,13 +41,13 @@ pub struct GCounter {
 ///|
 /// Create a new GCounter for a cluster of `n` nodes.
 pub fn gcounter_new(node_id : Int, n_nodes : Int) -> GCounter {
-  { node_id, counts: Array::make(n_nodes, 0) }
+  { node_id, counts: Array::make(n_nodes, 0), }
 }
 
 ///|
 /// Increment the counter for this node.
 pub fn gcounter_increment(c : GCounter) -> GCounter {
-  let result = { ..c, counts: Array::copy(c.counts) }
+  let result = { ..c, counts: Array::copy(c.counts), }
   result.counts[c.node_id] = result.counts[c.node_id] + 1
   result
 }
@@ -76,7 +76,7 @@ pub fn gcounter_merge(a : GCounter, b : GCounter) -> GCounter {
     let vb = if i < b.counts.length() { b.counts[i] } else { 0 }
     counts[i] = if va > vb { va } else { vb }
   }
-  { node_id: a.node_id, counts }
+  { node_id: a.node_id, counts, }
 }
 
 // ===========================================================================
@@ -97,13 +97,13 @@ pub struct PNCounter {
 ///|
 /// Create a new PNCounter for `n` nodes.
 pub fn pncounter_new(node_id : Int, n_nodes : Int) -> PNCounter {
-  { node_id, p: Array::make(n_nodes, 0), n: Array::make(n_nodes, 0) }
+  { node_id, p: Array::make(n_nodes, 0), n: Array::make(n_nodes, 0), }
 }
 
 ///|
 /// Increment the counter.
 pub fn pncounter_increment(c : PNCounter) -> PNCounter {
-  let result = { ..c, p: Array::copy(c.p), n: Array::copy(c.n) }
+  let result = { ..c, p: Array::copy(c.p), n: Array::copy(c.n), }
   result.p[c.node_id] = result.p[c.node_id] + 1
   result
 }
@@ -111,7 +111,7 @@ pub fn pncounter_increment(c : PNCounter) -> PNCounter {
 ///|
 /// Decrement the counter.
 pub fn pncounter_decrement(c : PNCounter) -> PNCounter {
-  let result = { ..c, p: Array::copy(c.p), n: Array::copy(c.n) }
+  let result = { ..c, p: Array::copy(c.p), n: Array::copy(c.n), }
   result.n[c.node_id] = result.n[c.node_id] + 1
   result
 }
@@ -144,7 +144,7 @@ pub fn pncounter_merge(a : PNCounter, b : PNCounter) -> PNCounter {
     let nb = if i < b.n.length() { b.n[i] } else { 0 }
     n_arr[i] = if na > nb { na } else { nb }
   }
-  { node_id: a.node_id, p, n: n_arr }
+  { node_id: a.node_id, p, n: n_arr, }
 }
 
 // ===========================================================================
@@ -162,7 +162,7 @@ pub struct GSet {
 ///|
 /// Create an empty GSet.
 pub fn gset_new() -> GSet {
-  { elements: [] }
+  { elements: [], }
 }
 
 ///|
@@ -171,7 +171,7 @@ pub fn gset_insert(s : GSet, elem : Int) -> GSet {
   if gset_contains(s, elem) {
     return s
   }
-  let result = { elements: Array::copy(s.elements) }
+  let result = { elements: Array::copy(s.elements), }
   result.elements.push(elem)
   result
 }
@@ -202,7 +202,7 @@ pub fn gset_elements(s : GSet) -> Array[Int] {
 ///|
 /// Merge two GSets (union).
 pub fn gset_merge(a : GSet, b : GSet) -> GSet {
-  let result = { elements: Array::copy(a.elements) }
+  let result = { elements: Array::copy(a.elements), }
   for i = 0; i < b.elements.length(); i = i + 1 {
     if !gset_contains(result, b.elements[i]) {
       result.elements.push(b.elements[i])
@@ -229,19 +229,19 @@ pub struct TwoPhaseSet {
 ///|
 /// Create an empty 2P-Set.
 pub fn twophase_new() -> TwoPhaseSet {
-  { adds: gset_new(), removes: gset_new() }
+  { adds: gset_new(), removes: gset_new(), }
 }
 
 ///|
 /// Add an element.
 pub fn twophase_add(s : TwoPhaseSet, elem : Int) -> TwoPhaseSet {
-  { adds: gset_insert(s.adds, elem), removes: s.removes }
+  { adds: gset_insert(s.adds, elem), removes: s.removes, }
 }
 
 ///|
 /// Remove an element (must have been added first).
 pub fn twophase_remove(s : TwoPhaseSet, elem : Int) -> TwoPhaseSet {
-  { adds: s.adds, removes: gset_insert(s.removes, elem) }
+  { adds: s.adds, removes: gset_insert(s.removes, elem), }
 }
 
 ///|
@@ -284,7 +284,7 @@ pub struct LWWMap {
 ///|
 /// Create an empty LWWMap.
 pub fn lwwmap_new(node_id : Int) -> LWWMap {
-  { node_id, entries: [] }
+  { node_id, entries: [], }
 }
 
 ///|
@@ -295,8 +295,8 @@ pub fn lwwmap_put(
   value : Int,
   timestamp : Int,
 ) -> LWWMap {
-  let entry = { value, timestamp, node_id: m.node_id }
-  let result = { ..m, entries: [] }
+  let entry = { value, timestamp, node_id: m.node_id, }
+  let result = { ..m, entries: [], }
   let mut found = false
   for i = 0; i < m.entries.length(); i = i + 1 {
     let (k, e) = m.entries[i]
@@ -334,7 +334,7 @@ pub fn lwwmap_get(m : LWWMap, key : Int) -> Int {
 ///|
 /// Merge two LWWMaps.
 pub fn lwwmap_merge(a : LWWMap, b : LWWMap) -> LWWMap {
-  let result = { node_id: a.node_id, entries: Array::copy(a.entries) }
+  let result = { node_id: a.node_id, entries: Array::copy(a.entries), }
   for i = 0; i < b.entries.length(); i = i + 1 {
     let (k, e_b) = b.entries[i]
     let mut found = false
@@ -377,7 +377,7 @@ pub struct ORSet {
 ///|
 /// Create an empty ORSet.
 pub fn orset_new(node_id : Int) -> ORSet {
-  { node_id, counter: 0, elements: [], tombstones: [] }
+  { node_id, counter: 0, elements: [], tombstones: [], }
 }
 
 ///|
@@ -518,5 +518,5 @@ pub fn orset_merge(a : ORSet, b : ORSet) -> ORSet {
 
   // Update counter for merged result
   counter = if counter > a.counter { counter } else { a.counter }
-  { node_id: a.node_id, counter, elements: merged, tombstones: all_tags }
+  { node_id: a.node_id, counter, elements: merged, tombstones: all_tags, }
 }

@@ -124,7 +124,7 @@ priv struct XorShift64 {
 fn xs64_new(seed : UInt64) -> XorShift64 {
   // Avoid the all-zero state (which would produce only zeros).
   let s = if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed }
-  { state: s }
+  { state: s, }
 }
 
 ///|
@@ -329,7 +329,7 @@ pub fn[T] optimize(
   if temp <= config.min_temp {
     converged = true
   }
-  { best, best_cost, iterations: total_iter, converged }
+  { best, best_cost, iterations: total_iter, converged, }
 }
 
 ///|

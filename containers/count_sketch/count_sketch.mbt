@@ -45,7 +45,7 @@ pub fn new(width : Int, depth : Int, hash_fn : (String) -> Int) -> CountSketch {
   let w = if width < 1 { 1 } else { width }
   let d = if depth < 1 { 1 } else { depth }
   let table = FixedArray::makei(d, fn(_) { FixedArray::make(w, 0L) })
-  { table, width: w, depth: d, hash_fn }
+  { table, width: w, depth: d, hash_fn, }
 }
 
 ///|

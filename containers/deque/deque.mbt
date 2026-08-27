@@ -49,7 +49,7 @@ pub fn[T] deque_with_capacity(capacity : Int) -> Deque[T] {
     p = p * 2
   }
   cap = p
-  { buf: FixedArray::make(cap, None), head: 0, tail: 0, len: 0, mask: cap - 1 }
+  { buf: FixedArray::make(cap, None), head: 0, tail: 0, len: 0, mask: cap - 1, }
 }
 
 ///|

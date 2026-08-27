@@ -111,7 +111,7 @@ pub fn build(arr : FixedArray[Int]) -> SegmentTree {
   if n > 0 {
     build_helper(arr, tree, 1, 0, n)
   }
-  SegmentTree::{ tree, n }
+  SegmentTree::{ tree, n, }
 }
 
 ///|
@@ -163,7 +163,7 @@ pub fn lazy_build(arr : FixedArray[Int]) -> LazySegTree {
   if n > 0 {
     lazy_build_helper(arr, tree, 1, 0, n)
   }
-  LazySegTree::{ tree, pending, n }
+  LazySegTree::{ tree, pending, n, }
 }
 
 ///|
@@ -657,7 +657,7 @@ pub fn build64(arr : FixedArray[Int64]) -> SegmentTree64 {
   if n > 0 {
     build_helper64(arr, tree, 1, 0, n)
   }
-  SegmentTree64::{ tree, n }
+  SegmentTree64::{ tree, n, }
 }
 
 ///|

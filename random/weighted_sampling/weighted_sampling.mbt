@@ -36,7 +36,7 @@ priv struct SplitMix64 {
 ///|
 /// Create a SplitMix64 PRNG seeded with `seed`.
 fn splitmix64_new(seed : Int64) -> SplitMix64 {
-  { state: seed }
+  { state: seed, }
 }
 
 ///|
@@ -84,7 +84,7 @@ pub fn build_alias(weights : FixedArray[Double]) -> AliasTable {
     // All weights zero: uniform distribution.
     let prob = FixedArray::makei(n, fn(_i) { 1.0 })
     let alias_idx = FixedArray::makei(n, fn(i) { i })
-    return AliasTable::{ prob, alias_idx, n }
+    return AliasTable::{ prob, alias_idx, n, }
   }
   let scale = n.to_double() / total
   let prob = FixedArray::makei(n, fn(i) { weights[i] * scale })
@@ -114,7 +114,7 @@ pub fn build_alias(weights : FixedArray[Double]) -> AliasTable {
     }
   }
   // Any remaining should have prob ≈ 1.0 (floating point).
-  AliasTable::{ prob, alias_idx, n }
+  AliasTable::{ prob, alias_idx, n, }
 }
 
 ///|

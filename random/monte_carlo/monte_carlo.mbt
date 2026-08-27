@@ -46,7 +46,7 @@ pub struct XorShift64 {
 /// fixed nonzero constant to avoid the degenerate all-zero state.
 pub fn XorShift64::new(seed : Int64) -> XorShift64 {
   let s = if seed == 0L { 0x9E3779B97F4A7C15L } else { seed }
-  { state: s }
+  { state: s, }
 }
 
 ///|

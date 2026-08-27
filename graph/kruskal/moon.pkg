@@ -1,5 +1,5 @@
 import {
-  "moon-certified/containers/union_find",
+  "Juwan-Hwang/moon-certified/containers/union_find",
 }
 
 options(

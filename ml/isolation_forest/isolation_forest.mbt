@@ -76,7 +76,7 @@ fn rng_new(seed : Int64) -> Rng {
   let lo = (seed & 0xFFFFFFFFL).to_int()
   let hi = (seed.reinterpret_as_uint64() >> 32).to_int()
   let s = lo ^ hi
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -144,7 +144,7 @@ struct ITreeNode {
 ///|
 /// Create a leaf node with the given number of points.
 fn make_leaf(size : Int) -> ITreeNode {
-  { feature: -1, threshold: 0.0, left: None, right: None, size }
+  { feature: -1, threshold: 0.0, left: None, right: None, size, }
 }
 
 ///|
@@ -313,7 +313,7 @@ pub fn isolation_forest_fit(
 ) -> IsolationForest {
   let n = data.length()
   if n == 0 {
-    return { trees: [], subsample_size: 0, train_size: 0 }
+    return { trees: [], subsample_size: 0, train_size: 0, }
   }
   let nt = if n_trees <= 0 { DEFAULT_N_TREES } else { n_trees }
   let raw_psi = if subsample_size <= 0 {
@@ -351,7 +351,7 @@ pub fn isolation_forest_fit(
     let tree = build_itree(data, subsample, 0, max_depth_int, rng)
     trees.push(tree)
   }
-  { trees, subsample_size: psi, train_size: n }
+  { trees, subsample_size: psi, train_size: n, }
 }
 
 ///|

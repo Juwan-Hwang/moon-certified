@@ -49,7 +49,7 @@ pub struct Wal {
 ///|
 /// Create a new WAL.
 pub fn Wal::new() -> Wal {
-  { records: [], next_lsn: 0, active_txns: [], checkpoint_lsn: 0 }
+  { records: [], next_lsn: 0, active_txns: [], checkpoint_lsn: 0, }
 }
 
 ///|

@@ -1,6 +1,6 @@
 import {
-  "moon-certified/crypto/blake2",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/crypto/blake2",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

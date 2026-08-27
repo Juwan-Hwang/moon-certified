@@ -197,6 +197,8 @@ moon prove
 
 ### 在项目中使用
 
+包已发布到 [mooncakes.io](https://mooncakes.io/docs/Juwan-Hwang/moon-certified)：
+
 ```bash
 moon add Juwan-Hwang/moon-certified
 ```

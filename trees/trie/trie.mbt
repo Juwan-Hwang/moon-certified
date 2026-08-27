@@ -39,7 +39,7 @@ pub struct TrieNode {
 ///|
 /// Create an empty trie (a root node with no children, not a word end).
 pub fn empty() -> TrieNode {
-  { children: [], is_end: false, count: 0 }
+  { children: [], is_end: false, count: 0, }
 }
 
 ///|

@@ -321,7 +321,7 @@ pub fn kf_init(
   x0 : Array[Double],
   p0 : Array[Array[Double]],
 ) -> KFState {
-  { x: x0, p_mat: p0 }
+  { x: x0, p_mat: p0, }
 }
 
 ///|
@@ -351,7 +351,7 @@ pub fn kf_predict(
   let p_pred = mat_add(fpft, config.q_mat, n, n)
   // Symmetrise for numerical stability.
   let p_final = mat_symmetrise(p_pred, n)
-  { x: x_final, p_mat: p_final }
+  { x: x_final, p_mat: p_final, }
 }
 
 ///|
@@ -403,7 +403,7 @@ pub fn kf_update(
   let p_new = mat_add(term1_full, term2, n, n)
   // Symmetrise for numerical stability.
   let p_final = mat_symmetrise(p_new, n)
-  Some({ x: x_new, p_mat: p_final })
+  Some({ x: x_new, p_mat: p_final, })
 }
 
 ///|
@@ -454,7 +454,7 @@ pub struct EKFState {
 ///|
 /// Create a new EKF state with initial estimate and covariance.
 pub fn ekf_init(x0 : Array[Double], p0 : Array[Array[Double]]) -> EKFState {
-  { x: x0, p_mat: p0 }
+  { x: x0, p_mat: p0, }
 }
 
 ///|
@@ -480,7 +480,7 @@ pub fn ekf_predict(
   let fpft = mat_mul(fp, ft, n, n, n)
   let p_pred = mat_add(fpft, config.q_mat, n, n)
   let p_final = mat_symmetrise(p_pred, n)
-  { x: x_pred, p_mat: p_final }
+  { x: x_pred, p_mat: p_final, }
 }
 
 ///|
@@ -529,7 +529,7 @@ pub fn ekf_update(
   let term2 = mat_mul(kr, krt, n, m, n)
   let p_new = mat_add(term1_full, term2, n, n)
   let p_final = mat_symmetrise(p_new, n)
-  Some({ x: x_new, p_mat: p_final })
+  Some({ x: x_new, p_mat: p_final, })
 }
 
 // ---------------------------------------------------------------------------

@@ -69,16 +69,16 @@ priv struct FlowGraph {
 ///|
 /// Build the residual graph from an edge list.
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> FlowGraph {
-  let g : FlowGraph = { head: Array::make(n, nil), edges: [], edge_count: 0 }
+  let g : FlowGraph = { head: Array::make(n, nil), edges: [], edge_count: 0, }
   for k = 0; k < edge_list.length(); k = k + 1 {
     let (u, v, cap) = edge_list[k]
     if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0L {
       continue
     }
-    g.edges.push({ to: v, cap, next: g.head[u] })
+    g.edges.push({ to: v, cap, next: g.head[u], })
     g.head[u] = g.edge_count
     g.edge_count = g.edge_count + 1
-    g.edges.push({ to: u, cap: 0L, next: g.head[v] })
+    g.edges.push({ to: u, cap: 0L, next: g.head[v], })
     g.head[v] = g.edge_count
     g.edge_count = g.edge_count + 1
   }

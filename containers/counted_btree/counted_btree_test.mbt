@@ -26,7 +26,7 @@ struct TestRng {
 
 ///|
 fn TestRng::new(seed : Int) -> TestRng {
-  { state: seed }
+  { state: seed, }
 }
 
 ///|

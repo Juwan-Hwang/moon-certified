@@ -39,7 +39,7 @@ pub struct DcPoint {
 ///|
 /// Construct a point.
 pub fn point(x : Double, y : Double) -> DcPoint {
-  { x, y }
+  { x, y, }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,7 @@ fn new_triangulation(n : Int) -> Triangulation {
   for i = 0; i < n; i = i + 1 {
     adj.push([])
   }
-  { adj, triangles: [], hull: [] }
+  { adj, triangles: [], hull: [], }
 }
 
 ///|
@@ -221,7 +221,7 @@ pub fn delaunay_triangulate(pts : Array[DcPoint]) -> DcResult {
     if n == 2 {
       edges.push((0, 1))
     }
-    return { triangles: [], edges, num_points: n }
+    return { triangles: [], edges, num_points: n, }
   }
   // Sort point indices by x, then y.
   let order : Array[Int] = []
@@ -272,7 +272,7 @@ pub fn delaunay_triangulate(pts : Array[DcPoint]) -> DcResult {
       }
     }
   }
-  { triangles, edges: mapped_edges, num_points: n }
+  { triangles, edges: mapped_edges, num_points: n, }
 }
 
 ///|

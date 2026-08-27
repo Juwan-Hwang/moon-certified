@@ -181,7 +181,7 @@ pub fn[K, V] put(cache : LRUCache[K, V], key : K, value : V) -> Unit {
       } else {
         // Append a new node
         let new_idx = cache.nodes.length()
-        cache.nodes.push({ key, val: value, prev: -1, next: -1 })
+        cache.nodes.push({ key, val: value, prev: -1, next: -1, })
         attach_tail(cache, new_idx)
         cache.count = cache.count + 1
         @hash_table.insert(

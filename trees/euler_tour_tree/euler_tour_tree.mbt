@@ -84,7 +84,7 @@ pub fn EulerTourTree::new(n : Int) -> EulerTourTree {
     component_sizes.push(1)
     adj.push([])
   }
-  { n, component_id, component_sizes, adj, next_component: n }
+  { n, component_id, component_sizes, adj, next_component: n, }
 }
 
 // ---------------------------------------------------------------------------

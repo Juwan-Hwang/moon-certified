@@ -90,7 +90,7 @@ pub struct ScapegoatTree[T] {
 ///|
 /// Create an empty scapegoat tree with the default α = 2/3.
 pub fn[T] ScapegoatTree::new(compare : (T, T) -> Int) -> ScapegoatTree[T] {
-  { root: None, compare, count: 0, max_count: 0, alpha: 2.0 / 3.0 }
+  { root: None, compare, count: 0, max_count: 0, alpha: 2.0 / 3.0, }
 }
 
 ///|
@@ -104,7 +104,7 @@ pub fn[T] ScapegoatTree::with_alpha(
   alpha : Double,
 ) -> ScapegoatTree[T] {
   let a = if alpha <= 0.5 { 0.51 } else if alpha >= 1.0 { 0.99 } else { alpha }
-  { root: None, compare, count: 0, max_count: 0, alpha: a }
+  { root: None, compare, count: 0, max_count: 0, alpha: a, }
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +222,7 @@ pub fn[T] ScapegoatTree::insert(self : ScapegoatTree[T], key : T) -> Bool {
     }
   }
   // Create the new node.
-  let new_node : SgNode[T] = { val: key, left: None, right: None }
+  let new_node : SgNode[T] = { val: key, left: None, right: None, }
   // Attach to parent.
   if path.length() == 0 {
     self.root = Some(new_node)

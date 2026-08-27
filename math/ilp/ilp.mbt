@@ -59,7 +59,7 @@ pub fn solve_ilp(
   constraints : Array[(Array[Double], Double)],
   max_iter : Int,
 ) -> (Double, Array[Int])? {
-  let state = { best_val: -1.0e18, best_sol: Array::make(n_vars, 0) }
+  let state = { best_val: -1.0e18, best_sol: Array::make(n_vars, 0), }
   let lb = Array::make(n_vars, 0)
   let ub = Array::make(n_vars, 1000000)
   branch_and_bound(n_vars, c, constraints, lb, ub, state, max_iter, 0)

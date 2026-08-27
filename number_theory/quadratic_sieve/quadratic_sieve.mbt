@@ -373,10 +373,10 @@ fn build_factor_base(n : Int, bound : Int) -> Array[FBPrime] {
       let n_mod_8 = n % 8
       if n_mod_8 == 1 || n_mod_8 == 7 {
         // n ≡ 1 or 7 (mod 8): Q(x) ≡ 0 (mod 2) has solutions
-        fb.push({ p, log_p: ln_approx(2.0), root1: 0, root2: 0 })
+        fb.push({ p, log_p: ln_approx(2.0), root1: 0, root2: 0, })
       } else if n_mod_8 == 3 || n_mod_8 == 5 {
         // n ≡ 3 or 5 (mod 8): roots are odd
-        fb.push({ p, log_p: ln_approx(2.0), root1: 1, root2: 1 })
+        fb.push({ p, log_p: ln_approx(2.0), root1: 1, root2: 1, })
       }
       continue
     }
@@ -549,7 +549,7 @@ fn sieve_polynomial(
     let ax_b = a.to_int64() * x.to_int64() + b.to_int64()
     let q_val = ax_b * ax_b - n.to_int64()
     match check_smooth(q_val, fb) {
-      Some(parity) => relations.push({ ax_b, parity })
+      Some(parity) => relations.push({ ax_b, parity, })
       None => continue
     }
   }

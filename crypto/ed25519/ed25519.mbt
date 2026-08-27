@@ -186,7 +186,7 @@ priv struct Point {
 ///|
 /// Identity point (0, 1, 1, 0)
 fn identity() -> Point {
-  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.one(), t: @bigint.zero() }
+  { x: @bigint.zero(), y: @bigint.one(), z: @bigint.one(), t: @bigint.zero(), }
 }
 
 ///|
@@ -220,7 +220,7 @@ fn point_add(p1 : Point, p2 : Point) -> Point {
   let g = fe_add(dd, c)
   let h = fe_add(b, a)
 
-  { x: fe_mul(e, f), y: fe_mul(g, h), z: fe_mul(f, g), t: fe_mul(e, h) }
+  { x: fe_mul(e, f), y: fe_mul(g, h), z: fe_mul(f, g), t: fe_mul(e, h), }
 }
 
 ///|
@@ -380,7 +380,7 @@ fn point_decode(data : Bytes) -> Point? {
     }
   }
   // Build point in extended coordinates (x, y, 1, x*y)
-  Some({ x, y, z: @bigint.one(), t: fe_mul(x, y) })
+  Some({ x, y, z: @bigint.one(), t: fe_mul(x, y), })
 }
 
 // ---------------------------------------------------------------------------
@@ -480,7 +480,7 @@ fn compute_base_point() -> Point {
   if @bigint.is_odd(bx) {
     bx = fe_sub(p, bx)
   }
-  { x: bx, y: by, z: @bigint.one(), t: fe_mul(bx, by) }
+  { x: bx, y: by, z: @bigint.one(), t: fe_mul(bx, by), }
 }
 
 ///|

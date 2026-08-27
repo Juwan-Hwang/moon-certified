@@ -48,7 +48,7 @@ pub struct DPoint {
 ///|
 /// Construct a `DPoint`.
 pub fn dpoint(x : Double, y : Double) -> DPoint {
-  { x, y }
+  { x, y, }
 }
 
 // =============================================================================
@@ -92,7 +92,7 @@ pub fn bezier_eval_de_casteljau(
 ) -> DPoint {
   let n = control_points.length()
   if n == 0 {
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   if n == 1 {
     return control_points[0]
@@ -132,7 +132,7 @@ pub fn bezier_eval_bernstein(
 ) -> DPoint {
   let n = control_points.length() - 1
   if n < 0 {
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   if n == 0 {
     return control_points[0]
@@ -146,7 +146,7 @@ pub fn bezier_eval_bernstein(
     x = x + term * control_points[i].x
     y = y + term * control_points[i].y
   }
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -204,7 +204,7 @@ pub fn bezier_eval_derivative(
 ) -> DPoint {
   let dcps = bezier_derivative_control_points(control_points)
   if dcps.length() == 0 {
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   bezier_eval_de_casteljau(dcps, t)
 }
@@ -228,7 +228,7 @@ pub fn bezier_eval_nth_derivative(
   }
   let n = control_points.length()
   if k >= n {
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   // Iteratively compute derivative control points
   let mut current = Array::copy(control_points)
@@ -236,7 +236,7 @@ pub fn bezier_eval_nth_derivative(
     current = bezier_derivative_control_points(current)
   }
   if current.length() == 0 {
-    return { x: 0.0, y: 0.0 }
+    return { x: 0.0, y: 0.0, }
   }
   bezier_eval_de_casteljau(current, t)
 }
@@ -459,8 +459,8 @@ pub fn hermite_to_bezier(
 ) -> Array[DPoint] {
   [
     p0,
-    { x: p0.x + t0.x / 3.0, y: p0.y + t0.y / 3.0 },
-    { x: p1.x - t1.x / 3.0, y: p1.y - t1.y / 3.0 },
+    { x: p0.x + t0.x / 3.0, y: p0.y + t0.y / 3.0, },
+    { x: p1.x - t1.x / 3.0, y: p1.y - t1.y / 3.0, },
     p1,
   ]
 }
@@ -514,7 +514,7 @@ pub fn bezier_cubic(
 pub fn bezier_bounding_box(control_points : Array[DPoint]) -> (DPoint, DPoint) {
   let samples = bezier_generate_points(control_points, 100)
   if samples.length() == 0 {
-    return ({ x: 0.0, y: 0.0 }, { x: 0.0, y: 0.0 })
+    return ({ x: 0.0, y: 0.0, }, { x: 0.0, y: 0.0, })
   }
   let mut min_x = samples[0].x
   let mut max_x = samples[0].x
@@ -535,5 +535,5 @@ pub fn bezier_bounding_box(control_points : Array[DPoint]) -> (DPoint, DPoint) {
       max_y = p.y
     }
   }
-  ({ x: min_x, y: min_y }, { x: max_x, y: max_y })
+  ({ x: min_x, y: min_y, }, { x: max_x, y: max_y, })
 }

@@ -148,7 +148,7 @@ pub struct BinaryField {
 ///   coefficient of x^i. Must include the leading term (bit `n` must be set).
 /// - `n`: the degree of the field.
 pub fn binary_field(mod_poly : Int64, n : Int) -> BinaryField {
-  { mod_poly, n }
+  { mod_poly, n, }
 }
 
 ///|

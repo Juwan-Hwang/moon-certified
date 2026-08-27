@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/math",
-  "moon-certified/geometry/geometry_utils",
+  "Juwan-Hwang/moon-certified/geometry/geometry_utils",
 }
 
 options(

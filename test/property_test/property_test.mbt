@@ -185,7 +185,7 @@ pub fn check_property_int(
       }
     }
   }
-  { passed: true, num_tests, counterexample: None, num_shrinks: 0 }
+  { passed: true, num_tests, counterexample: None, num_shrinks: 0, }
 }
 
 ///|
@@ -212,7 +212,7 @@ pub fn check_property_int_array(
       }
     }
   }
-  { passed: true, num_tests, counterexample: None, num_shrinks: 0 }
+  { passed: true, num_tests, counterexample: None, num_shrinks: 0, }
 }
 
 ///|

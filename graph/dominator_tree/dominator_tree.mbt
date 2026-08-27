@@ -158,7 +158,7 @@ pub fn build_dominator_tree(
   root : Int,
 ) -> DominatorTree {
   if n <= 0 || root < 0 || root >= n {
-    return DominatorTree::{ idom: FixedArray::make(0, 0), root: -1, n: 0 }
+    return DominatorTree::{ idom: FixedArray::make(0, 0), root: -1, n: 0, }
   }
   // Phase 1: DFS to compute discovery order
   let dfs_num = FixedArray::make(n, -1) // dfs_num[v] = discovery index
@@ -191,7 +191,7 @@ pub fn build_dominator_tree(
   }
   // If root unreachable (shouldn't happen)
   if dfs_num[root] == -1 {
-    return DominatorTree::{ idom: FixedArray::make(n, -1), root, n }
+    return DominatorTree::{ idom: FixedArray::make(n, -1), root, n, }
   }
   // Build reverse adjacency for predecessor lookup
   let radj : Array[Array[Int]] = Array::makei(n, fn(_i) { [] })
@@ -277,7 +277,7 @@ pub fn build_dominator_tree(
     i = i + 1
   }
   idom_arr[root] = root
-  DominatorTree::{ idom: idom_arr, root, n }
+  DominatorTree::{ idom: idom_arr, root, n, }
 }
 
 ///|

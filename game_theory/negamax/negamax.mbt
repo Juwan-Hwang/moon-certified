@@ -55,11 +55,11 @@ pub fn[G : Game] negamax(
   beta : Double,
 ) -> SearchResult {
   if depth == 0 || state.is_terminal() {
-    return { best_move: None, score: state.evaluate() }
+    return { best_move: None, score: state.evaluate(), }
   }
   let moves = state.legal_moves()
   if moves.length() == 0 {
-    return { best_move: None, score: state.evaluate() }
+    return { best_move: None, score: state.evaluate(), }
   }
   let mut best_score = -1.0e18
   let mut best_move : Int? = None
@@ -80,7 +80,7 @@ pub fn[G : Game] negamax(
       break // Beta cutoff
     }
   }
-  { best_move, score: best_score }
+  { best_move, score: best_score, }
 }
 
 ///|
@@ -119,7 +119,7 @@ impl Game for TTTState with fn make_move(self : TTTState, mv : Int) -> TTTState 
     new_board[i] = self.board[i]
   }
   new_board[mv] = self.player
-  { board: new_board, player: -self.player }
+  { board: new_board, player: -self.player, }
 }
 
 ///|
@@ -182,7 +182,7 @@ impl Game for TTTState with fn is_terminal(self : TTTState) -> Bool {
 ///|
 test "negamax: finds winning move" {
   // X can win by placing at position 2 (top row: X X _)
-  let state : TTTState = { board: [1, 1, 0, -1, -1, 0, 0, 0, 0], player: 1 }
+  let state : TTTState = { board: [1, 1, 0, -1, -1, 0, 0, 0, 0], player: 1, }
   let mv = find_best_move(state, 5)
   match mv {
     Some(m) => assert_eq(m, 2)
@@ -194,7 +194,7 @@ test "negamax: finds winning move" {
 test "negamax: blocks opponent win" {
   // O threatens to win at position 5 (row 1: O O _); X must block
   // X at position 0 prevents O from creating a fork via the center
-  let state : TTTState = { board: [1, 0, 0, -1, -1, 0, 0, 0, 0], player: 1 }
+  let state : TTTState = { board: [1, 0, 0, -1, -1, 0, 0, 0, 0], player: 1, }
   let mv = find_best_move(state, 5)
   match mv {
     Some(m) => assert_eq(m, 5) // Block the row
@@ -204,7 +204,7 @@ test "negamax: blocks opponent win" {
 
 ///|
 test "negamax: empty board returns a move" {
-  let state : TTTState = { board: [0, 0, 0, 0, 0, 0, 0, 0, 0], player: 1 }
+  let state : TTTState = { board: [0, 0, 0, 0, 0, 0, 0, 0, 0], player: 1, }
   let mv = find_best_move(state, 3)
   match mv {
     Some(_) => assert_true(true)

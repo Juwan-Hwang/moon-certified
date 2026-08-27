@@ -13,28 +13,28 @@ pub struct Fp12 {
 
 ///|
 pub fn fp12_zero() -> Fp12 {
-  { c0: fp6_zero(), c1: fp6_zero() }
+  { c0: fp6_zero(), c1: fp6_zero(), }
 }
 
 ///|
 pub fn fp12_one() -> Fp12 {
-  { c0: fp6_one(), c1: fp6_zero() }
+  { c0: fp6_one(), c1: fp6_zero(), }
 }
 
 ///|
 pub fn fp12_add(a : Fp12, b : Fp12) -> Fp12 {
-  { c0: fp6_add(a.c0, b.c0), c1: fp6_add(a.c1, b.c1) }
+  { c0: fp6_add(a.c0, b.c0), c1: fp6_add(a.c1, b.c1), }
 }
 
 ///|
 pub fn fp12_sub(a : Fp12, b : Fp12) -> Fp12 {
-  { c0: fp6_sub(a.c0, b.c0), c1: fp6_sub(a.c1, b.c1) }
+  { c0: fp6_sub(a.c0, b.c0), c1: fp6_sub(a.c1, b.c1), }
 }
 
 ///|
 /// The nonresidue v for Fp12/Fp6, as an Fp6 element: {0, 1, 0}
 fn fp12_nonresidue_v() -> Fp6 {
-  { c0: fp2_zero(), c1: fp2_one(), c2: fp2_zero() }
+  { c0: fp2_zero(), c1: fp2_one(), c2: fp2_zero(), }
 }
 
 ///|
@@ -45,7 +45,7 @@ pub fn fp12_mul(a : Fp12, b : Fp12) -> Fp12 {
   let a1b1 = fp6_mul(a.c1, b.c1)
   let c0 = fp6_add(a0b0, fp6_mul(a1b1, v_elem))
   let c1 = fp6_add(fp6_mul(a.c0, b.c1), fp6_mul(a.c1, b.c0))
-  { c0, c1 }
+  { c0, c1, }
 }
 
 ///|
@@ -66,13 +66,13 @@ pub fn fp12_inv(a : Fp12) -> Fp12 {
   let a1_sqr = fp6_sqr(a.c1)
   let denom = fp6_sub(a0_sqr, fp6_mul(a1_sqr, v_elem))
   let denom_inv = fp6_inv(denom)
-  { c0: fp6_mul(a.c0, denom_inv), c1: fp6_mul(fp6_neg(a.c1), denom_inv) }
+  { c0: fp6_mul(a.c0, denom_inv), c1: fp6_mul(fp6_neg(a.c1), denom_inv), }
 }
 
 ///|
 /// Fp12 conjugate (in Fp12/Fp6): (a0+a1*w) -> (a0-a1*w)
 pub fn fp12_conjugate(a : Fp12) -> Fp12 {
-  { c0: a.c0, c1: fp6_neg(a.c1) }
+  { c0: a.c0, c1: fp6_neg(a.c1), }
 }
 
 ///|
@@ -104,8 +104,8 @@ pub fn fp12_frobenius(a : Fp12) -> Fp12 {
 /// slots 0, 1, 4 — hence "mul_by_014" (zkcrypto convention).
 pub fn fp12_mul_by_014(f : Fp12, c0 : Fp2, c1 : Fp2, c2 : Fp2) -> Fp12 {
   // sparse = (c0 + c1·v) + (c2·v)·w
-  let sparse_c0 : Fp6 = { c0, c1, c2: fp2_zero() }
-  let sparse_c1 : Fp6 = { c0: fp2_zero(), c1: c2, c2: fp2_zero() }
-  let sparse : Fp12 = { c0: sparse_c0, c1: sparse_c1 }
+  let sparse_c0 : Fp6 = { c0, c1, c2: fp2_zero(), }
+  let sparse_c1 : Fp6 = { c0: fp2_zero(), c1: c2, c2: fp2_zero(), }
+  let sparse : Fp12 = { c0: sparse_c0, c1: sparse_c1, }
   fp12_mul(f, sparse)
 }

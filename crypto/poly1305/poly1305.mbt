@@ -25,7 +25,7 @@ priv struct U130 {
 
 ///|
 fn u130_zero() -> U130 {
-  { l0: 0UL, l1: 0UL, l2: 0UL, l3: 0UL, l4: 0UL }
+  { l0: 0UL, l1: 0UL, l2: 0UL, l3: 0UL, l4: 0UL, }
 }
 
 ///|
@@ -201,7 +201,7 @@ fn u130_from_le16(data : FixedArray[Byte]) -> U130 {
   let l2 = (v >> 52).lor(v2 << 12) & MASK26
   let l3 = (v2 >> 14) & MASK26
   let l4 = (v2 >> 40) & MASK26
-  { l0, l1, l2, l3, l4 }
+  { l0, l1, l2, l3, l4, }
 }
 
 ///|
@@ -224,7 +224,7 @@ fn u130_from_le_block(data : Bytes, offset : Int, len : Int) -> U130 {
   let l2 = (lo >> 52).lor(hi << 12) & MASK26
   let l3 = (hi >> 14) & MASK26
   let l4 = (hi >> 40) & MASK26
-  let result = { l0, l1, l2, l3, l4 }
+  let result = { l0, l1, l2, l3, l4, }
   // Add the 0x01 bit at position len*8 (the "high bit" of the block).
   let bit_pos = len * 8
   let limb_idx = bit_pos / 26

@@ -1,7 +1,7 @@
 import {
-  "moon-certified/number_theory/bigint",
-  "moon-certified/crypto/sha256",
-  "moon-certified/crypto/hmac",
+  "Juwan-Hwang/moon-certified/number_theory/bigint",
+  "Juwan-Hwang/moon-certified/crypto/sha256",
+  "Juwan-Hwang/moon-certified/crypto/hmac",
 }
 
 options(

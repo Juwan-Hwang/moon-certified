@@ -146,7 +146,7 @@ priv struct NodeHeap[T] {
 
 ///|
 fn[T] NodeHeap::new() -> NodeHeap[T] {
-  { data: [] }
+  { data: [], }
 }
 
 ///|
@@ -231,7 +231,7 @@ priv struct NodeQueue[T] {
 
 ///|
 fn[T] NodeQueue::new() -> NodeQueue[T] {
-  { data: [], head: 0 }
+  { data: [], head: 0, }
 }
 
 ///|
@@ -282,7 +282,7 @@ priv struct NodeStack[T] {
 
 ///|
 fn[T] NodeStack::new() -> NodeStack[T] {
-  { data: [] }
+  { data: [], }
 }
 
 ///|
@@ -471,7 +471,7 @@ pub fn[T] optimize(
       }
     }
   }
-  { best, best_cost, nodes_expanded, nodes_pruned, completed, all_optimal }
+  { best, best_cost, nodes_expanded, nodes_pruned, completed, all_optimal, }
 }
 
 // ---------------------------------------------------------------------------
@@ -481,7 +481,7 @@ pub fn[T] optimize(
 ///|
 /// Create a best-first configuration with unlimited nodes.
 pub fn default_config() -> BbConfig {
-  { max_nodes: 0, strategy: BestFirst, collect_all_optimal: false }
+  { max_nodes: 0, strategy: BestFirst, collect_all_optimal: false, }
 }
 
 // ---------------------------------------------------------------------------

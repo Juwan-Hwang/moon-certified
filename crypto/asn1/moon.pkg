@@ -1,5 +1,5 @@
 import {
-  "moon-certified/number_theory/bigint",
+  "Juwan-Hwang/moon-certified/number_theory/bigint",
 }
 
 options(

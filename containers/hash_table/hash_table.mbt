@@ -311,7 +311,7 @@ pub fn hashtable_new(
   hash_fn : (String) -> Int,
   eq_fn : (String, String) -> Bool,
 ) -> StringHashTable {
-  { inner: new(capacity), hash_fn, eq_fn }
+  { inner: new(capacity), hash_fn, eq_fn, }
 }
 
 ///|

@@ -82,18 +82,23 @@ priv struct DinicGraph {
 /// (skipped) — callers should pre-validate their input if these conditions
 /// indicate a modeling error.
 fn build_graph(n : Int, edge_list : Array[(Int, Int, Int64)]) -> DinicGraph {
-  let g : DinicGraph = { n, head: Array::make(n, -1), edges: [], edge_count: 0 }
+  let g : DinicGraph = {
+    n,
+    head: Array::make(n, -1),
+    edges: [],
+    edge_count: 0,
+  }
   for k = 0; k < edge_list.length(); k = k + 1 {
     let (u, v, cap) = edge_list[k]
     if u < 0 || u >= n || v < 0 || v >= n || u == v || cap <= 0L {
       continue
     }
     // Forward edge: capacity `cap`, linked to the current head of u's list.
-    g.edges.push({ to: v, cap, next: g.head[u] })
+    g.edges.push({ to: v, cap, next: g.head[u], })
     g.head[u] = g.edge_count
     g.edge_count = g.edge_count + 1
     // Reverse edge: capacity 0, linked to the current head of v's list.
-    g.edges.push({ to: u, cap: 0L, next: g.head[v] })
+    g.edges.push({ to: u, cap: 0L, next: g.head[v], })
     g.head[v] = g.edge_count
     g.edge_count = g.edge_count + 1
   }

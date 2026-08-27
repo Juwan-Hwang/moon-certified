@@ -67,7 +67,7 @@ priv struct SparseTable {
 fn build_sparse_table(arr : FixedArray[Int]) -> SparseTable {
   let n = arr.length()
   if n == 0 {
-    return { table: [], log_table: [] }
+    return { table: [], log_table: [], }
   }
   // Precompute floor(log2(k)) for k = 0..n.
   let log_table = Array::make(n + 1, 0)
@@ -101,7 +101,7 @@ fn build_sparse_table(arr : FixedArray[Int]) -> SparseTable {
       i = i + 1
     }
   }
-  { table, log_table }
+  { table, log_table, }
 }
 
 ///|
@@ -159,10 +159,10 @@ fn compute_lpf(
   let lpf = Array::make(n, 0)
   let prev_occ = Array::make(n, -1)
   if n == 0 {
-    return { lpf, prev_occ }
+    return { lpf, prev_occ, }
   }
   if n == 1 {
-    return { lpf, prev_occ }
+    return { lpf, prev_occ, }
   }
   // Build sparse table for RMQ on LCP.
   let st = build_sparse_table(lcp)
@@ -216,7 +216,7 @@ fn compute_lpf(
       prev_rank[s] = p
     }
   }
-  { lpf, prev_occ }
+  { lpf, prev_occ, }
 }
 
 // ---------------------------------------------------------------------------
@@ -277,19 +277,19 @@ pub fn lz_factorize(text : String) -> Array[LzFactor] {
   }
   let lcp = @lcp_array.build(sa_fa, text)
   // Compute LPF (Longest Previous Factor).
-  let { lpf, prev_occ } = compute_lpf(sa, lcp, isa, n)
+  let { lpf, prev_occ, } = compute_lpf(sa, lcp, isa, n)
   // Derive LZ factorization from LPF.
   let factors : Array[LzFactor] = []
   let mut i = 0
   while i < n {
     if lpf[i] == 0 {
       // Literal: single character not seen before.
-      factors.push({ pos: i, len: 1, ref_pos: -1, is_literal: true })
+      factors.push({ pos: i, len: 1, ref_pos: -1, is_literal: true, })
       i = i + 1
     } else {
       // Match: longest previous factor.
       let len = lpf[i]
-      factors.push({ pos: i, len, ref_pos: prev_occ[i], is_literal: false })
+      factors.push({ pos: i, len, ref_pos: prev_occ[i], is_literal: false, })
       i = i + len
     }
   }
@@ -353,7 +353,7 @@ pub fn lpf_array(text : String) -> (Array[Int], Array[Int]) {
     sa_fa[i] = sa[i]
   }
   let lcp = @lcp_array.build(sa_fa, text)
-  let { lpf, prev_occ } = compute_lpf(sa, lcp, isa, n)
+  let { lpf, prev_occ, } = compute_lpf(sa, lcp, isa, n)
   (lpf, prev_occ)
 }
 

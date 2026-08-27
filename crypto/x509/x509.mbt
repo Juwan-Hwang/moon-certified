@@ -72,7 +72,7 @@ priv struct DerCursor {
 
 ///|
 fn DerCursor::new(data : Bytes) -> DerCursor {
-  { data, pos: 0, len: data.length() }
+  { data, pos: 0, len: data.length(), }
 }
 
 ///|
@@ -253,7 +253,7 @@ pub fn AlgorithmIdentifier::new(
   oid : Array[Int],
   parameters : Bytes?,
 ) -> AlgorithmIdentifier {
-  { oid, parameters }
+  { oid, parameters, }
 }
 
 ///|
@@ -267,7 +267,7 @@ pub struct Validity {
 
 ///|
 pub fn Validity::new(not_before : String, not_after : String) -> Validity {
-  { not_before, not_after }
+  { not_before, not_after, }
 }
 
 ///|
@@ -284,7 +284,7 @@ pub fn SubjectPublicKeyInfo::new(
   algorithm : AlgorithmIdentifier,
   subject_public_key : Bytes,
 ) -> SubjectPublicKeyInfo {
-  { algorithm, subject_public_key }
+  { algorithm, subject_public_key, }
 }
 
 ///|
@@ -298,7 +298,7 @@ pub struct RdnAttribute {
 
 ///|
 pub fn RdnAttribute::new(oid : Array[Int], value : String) -> RdnAttribute {
-  { oid, value }
+  { oid, value, }
 }
 
 ///|
@@ -332,7 +332,7 @@ pub fn Extension::new(
   critical : Bool,
   value : Bytes,
 ) -> Extension {
-  { oid, critical, value }
+  { oid, critical, value, }
 }
 
 ///|
@@ -396,7 +396,7 @@ pub fn Certificate::new(
   signature_algorithm : AlgorithmIdentifier,
   signature_value : Bytes,
 ) -> Certificate {
-  { tbs_certificate, signature_algorithm, signature_value }
+  { tbs_certificate, signature_algorithm, signature_value, }
 }
 
 // ===========================================================================
@@ -428,7 +428,7 @@ fn parse_algorithm_identifier(cursor : DerCursor) -> AlgorithmIdentifier {
   } else {
     None
   }
-  { oid, parameters }
+  { oid, parameters, }
 }
 
 ///|
@@ -456,7 +456,7 @@ fn parse_distinguished_name(cursor : DerCursor) -> DistinguishedName {
     // Read value (can be various string types)
     let value_tag = cursor.peek_tag()
     let value = cursor.read_string(value_tag)
-    attributes.push({ oid, value })
+    attributes.push({ oid, value, })
   }
   { attributes, }
 }
@@ -472,7 +472,7 @@ fn parse_validity(cursor : DerCursor) -> Validity {
   let not_before = cursor.read_string(not_before_tag)
   let not_after_tag = cursor.peek_tag()
   let not_after = cursor.read_string(not_after_tag)
-  { not_before, not_after }
+  { not_before, not_after, }
 }
 
 ///|
@@ -484,7 +484,7 @@ fn parse_subject_public_key_info(cursor : DerCursor) -> SubjectPublicKeyInfo {
   let _ = cursor.read_length()
   let algorithm = parse_algorithm_identifier(cursor)
   let subject_public_key = cursor.read_bit_string()
-  { algorithm, subject_public_key }
+  { algorithm, subject_public_key, }
 }
 
 ///|
@@ -514,7 +514,7 @@ fn parse_extensions(cursor : DerCursor) -> Array[Extension] {
     }
     let value_len = cursor.read_length()
     let value = cursor.read_bytes(value_len)
-    extensions.push({ oid, critical, value })
+    extensions.push({ oid, critical, value, })
   }
   extensions
 }
@@ -587,7 +587,7 @@ pub fn parse_certificate(der_data : Bytes) -> Certificate {
   let _ = cursor.read_byte() // unused bits
   let remaining = cursor.remaining()
   let signature_value = cursor.read_bytes(remaining)
-  { tbs_certificate, signature_algorithm, signature_value }
+  { tbs_certificate, signature_algorithm, signature_value, }
 }
 
 ///|

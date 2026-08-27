@@ -35,7 +35,7 @@ pub fn MolpProblem::new(
   n_objectives : Int,
   n_constraints : Int,
 ) -> MolpProblem {
-  { objectives, constraints, rhs, n_vars, n_objectives, n_constraints }
+  { objectives, constraints, rhs, n_vars, n_objectives, n_constraints, }
 }
 
 ///|
@@ -226,7 +226,7 @@ pub fn solve_molp_weighted_sum(
       obj_values[k] = obj_values[k] + problem.objectives[k][j] * x[j]
     }
   }
-  { x, objective_values: obj_values }
+  { x, objective_values: obj_values, }
 }
 
 ///|
@@ -272,7 +272,7 @@ pub fn solve_molp_epsilon(
       obj_values[k] = obj_values[k] + problem.objectives[k][j] * x[j]
     }
   }
-  { x, objective_values: obj_values }
+  { x, objective_values: obj_values, }
 }
 
 ///|

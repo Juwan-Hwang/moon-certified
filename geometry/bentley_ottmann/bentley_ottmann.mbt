@@ -98,7 +98,7 @@ priv struct EventQueue {
 
 ///|
 fn queue_new() -> EventQueue {
-  { data: [] }
+  { data: [], }
 }
 
 ///|
@@ -263,7 +263,7 @@ fn Status::insert(
     Some(_) => return
     None => ()
   }
-  let node = { key, priority: rng.next(), left: None, right: None }
+  let node = { key, priority: rng.next(), left: None, right: None, }
   let (l, r) = self.split(self.root, key, cmp)
   self.root = self.merge(self.merge(l, Some(node)), r)
 }
@@ -533,7 +533,7 @@ fn schedule(
         }
         if !already {
           scheduled[(a, b)] = (px, py)
-          q.push({ x: px, y: py, kind: 1, seg: a, seg2: b })
+          q.push({ x: px, y: py, kind: 1, seg: a, seg2: b, })
         }
       }
   }
@@ -583,15 +583,15 @@ pub fn find_intersections(
       norm.push((x2, y2, x1, y1))
     }
   }
-  let ctx : Ctx = { segments: norm, sweep_x: 0.0 }
+  let ctx : Ctx = { segments: norm, sweep_x: 0.0, }
   let q = queue_new()
-  let rng : RNG64 = { state: 0xDEADBEEFCAFEBABEL }
+  let rng : RNG64 = { state: 0xDEADBEEFCAFEBABEL, }
   for i = 0; i < n; i = i + 1 {
     let (x1, y1, x2, y2) = norm[i]
-    q.push({ x: x1, y: y1, kind: 0, seg: i, seg2: -1 })
-    q.push({ x: x2, y: y2, kind: 2, seg: i, seg2: -1 })
+    q.push({ x: x1, y: y1, kind: 0, seg: i, seg2: -1, })
+    q.push({ x: x2, y: y2, kind: 2, seg: i, seg2: -1, })
   }
-  let status : Status = { root: None }
+  let status : Status = { root: None, }
   let result : Array[(Double, Double)] = []
   // Track scheduled intersection events to avoid duplicates: a pair (i, j)
   // with i < j is scheduled at most once at a time.

@@ -201,7 +201,7 @@ pub fn parse(data : Bytes) -> WavFile? {
       if block_align != channels * bytes_per_sample(format) {
         return None
       }
-      fmt = Some({ sample_rate, channels, bits, format })
+      fmt = Some({ sample_rate, channels, bits, format, })
     } else if tag(data, pos, b'd', b'a', b't', b'a') {
       let meta = match fmt {
         Some(m) => m

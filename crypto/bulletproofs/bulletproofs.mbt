@@ -154,7 +154,7 @@ pub struct BpPoint {
 
 ///|
 fn bp_infinity() -> BpPoint {
-  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero(), }
 }
 
 ///|
@@ -181,7 +181,7 @@ fn bp_double(pt : BpPoint) -> BpPoint {
   let yr = bp_field_sub(bp_field_mul(m, bp_field_sub(s, xr)), xsq8)
   let zr = bp_field_mul(two, bp_field_mul(pt.y, pt.z))
   let _ = q
-  { x: xr, y: yr, z: zr }
+  { x: xr, y: yr, z: zr, }
 }
 
 ///|
@@ -217,7 +217,7 @@ fn bp_add(a : BpPoint, b : BpPoint) -> BpPoint {
     bp_field_mul(s1, h3),
   )
   let zr = bp_field_mul(h, bp_field_mul(a.z, b.z))
-  { x: xr, y: yr, z: zr }
+  { x: xr, y: yr, z: zr, }
 }
 
 ///|
@@ -225,7 +225,7 @@ fn bp_neg(pt : BpPoint) -> BpPoint {
   if bp_is_infinity(pt) {
     pt
   } else {
-    { x: pt.x, y: bp_field_sub(bp_field_q(), pt.y), z: pt.z }
+    { x: pt.x, y: bp_field_sub(bp_field_q(), pt.y), z: pt.z, }
   }
 }
 
@@ -355,7 +355,7 @@ fn bp_point_decompress(data : Bytes) -> BpPoint? {
   } else {
     bp_field_sub(bp_field_q(), y)
   }
-  Some({ x, y: y_final, z: @bigint.one() })
+  Some({ x, y: y_final, z: @bigint.one(), })
 }
 
 ///|
@@ -397,7 +397,7 @@ fn bp_hash_to_point(label : Bytes, index : Int) -> BpPoint {
         match @bigint.mod_pow(y2, exp, bp_field_q()) {
           Some(y) =>
             if @bigint.compare(bp_field_mul(y, y), y2) == 0 {
-              result = Some({ x: cand, y, z: @bigint.one() })
+              result = Some({ x: cand, y, z: @bigint.one(), })
             }
           None => ()
         }
@@ -470,7 +470,7 @@ fn BpTranscript::new(label : String) -> BpTranscript {
   for ch in label {
     arr.push(ch.to_int().to_byte())
   }
-  { state: @sha256.sha256(Bytes::from_array(arr)) }
+  { state: @sha256.sha256(Bytes::from_array(arr)), }
 }
 
 ///|
@@ -556,7 +556,7 @@ pub struct RangeProof {
 
 ///|
 pub fn RangeProof::new(proof_data : Bytes) -> RangeProof {
-  { data: proof_data }
+  { data: proof_data, }
 }
 
 // ===========================================================================
@@ -792,7 +792,7 @@ pub fn prove_range(
   }
   bp_emit_scalar(out, avec[0])
   bp_emit_scalar(out, bvec[0])
-  { data: Bytes::from_array(out) }
+  { data: Bytes::from_array(out), }
 }
 
 ///|

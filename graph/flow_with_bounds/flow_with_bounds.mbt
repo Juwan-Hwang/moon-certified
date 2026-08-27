@@ -44,7 +44,7 @@ pub fn bounded_edge(
   lower : Int,
   upper : Int,
 ) -> BoundedEdge {
-  { from, to, lower, upper }
+  { from, to, lower, upper, }
 }
 
 ///|
@@ -116,8 +116,8 @@ fn build_ctx(n : Int, edges : Array[(Int, Int, Int)]) -> DinicCtx {
   let head : FixedArray[Array[Int]] = FixedArray::makei(n, fn(_i) { [] })
   for i = 0; i < m; i = i + 1 {
     let (u, v, c) = edges[i]
-    edge_arr.push(MEdge::{ to: v, cap: c })
-    edge_arr.push(MEdge::{ to: u, cap: 0 })
+    edge_arr.push(MEdge::{ to: v, cap: c, })
+    edge_arr.push(MEdge::{ to: u, cap: 0, })
     head[u].push(2 * i)
     head[v].push(2 * i + 1)
   }
@@ -301,7 +301,7 @@ pub fn feasible_flow(
     let flow_pushed = initial_cap - fwd_edge.cap
     edge_flows[i] = edge_lower[i] + flow_pushed
   }
-  BoundedFlowResult::{ feasible, total_flow: flow, n, edge_flows }
+  BoundedFlowResult::{ feasible, total_flow: flow, n, edge_flows, }
 }
 
 ///|
@@ -416,7 +416,7 @@ pub fn bounded_max_flow(
     }
   }
   let total = total_s_out - total_s_in
-  BoundedFlowResult::{ feasible: true, total_flow: total, n, edge_flows }
+  BoundedFlowResult::{ feasible: true, total_flow: total, n, edge_flows, }
 }
 
 // ---------------------------------------------------------------------------

@@ -76,7 +76,7 @@ priv struct UnionFind {
 
 ///|
 fn uf_new(n : Int) -> UnionFind {
-  { parent: FixedArray::makei(n, fn(i) { i }), rank: FixedArray::make(n, 0) }
+  { parent: FixedArray::makei(n, fn(i) { i }), rank: FixedArray::make(n, 0), }
 }
 
 ///|
@@ -348,7 +348,7 @@ pub fn max_matching(adj : Array[Array[Int]], n : Int) -> Matching {
     }
   }
 
-  { matches: match_arr, card }
+  { matches: match_arr, card, }
 }
 
 ///|

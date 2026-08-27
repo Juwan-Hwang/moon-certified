@@ -53,7 +53,7 @@ pub struct Line {
 ///|
 /// Construct a [`Line`].
 pub fn line(m : Int64, b : Int64) -> Line {
-  { m, b }
+  { m, b, }
 }
 
 ///|
@@ -80,7 +80,7 @@ pub struct CHTMin {
 ///|
 /// Create an empty [`CHTMin`].
 pub fn new_min() -> CHTMin {
-  { lines: [], head: 0 }
+  { lines: [], head: 0, }
 }
 
 ///|

@@ -55,17 +55,17 @@ pub struct DsaParams {
 
 ///|
 pub fn ml_dsa_44() -> DsaParams {
-  { k: 4, l: 4, eta: 2, tau: 39, gamma1: 131072, gamma2: 95232, omega: 80 }
+  { k: 4, l: 4, eta: 2, tau: 39, gamma1: 131072, gamma2: 95232, omega: 80, }
 }
 
 ///|
 pub fn ml_dsa_65() -> DsaParams {
-  { k: 6, l: 5, eta: 4, tau: 49, gamma1: 523288, gamma2: 261888, omega: 55 }
+  { k: 6, l: 5, eta: 4, tau: 49, gamma1: 523288, gamma2: 261888, omega: 55, }
 }
 
 ///|
 pub fn ml_dsa_87() -> DsaParams {
-  { k: 8, l: 7, eta: 2, tau: 60, gamma1: 523288, gamma2: 261888, omega: 75 }
+  { k: 8, l: 7, eta: 2, tau: 60, gamma1: 523288, gamma2: 261888, omega: 75, }
 }
 
 // ---------------------------------------------------------------------------
@@ -370,7 +370,7 @@ priv struct BitWriter {
 
 ///|
 fn BitWriter::new() -> BitWriter {
-  { buf: [], pos: 0 }
+  { buf: [], pos: 0, }
 }
 
 ///|
@@ -798,7 +798,7 @@ pub fn dilithium_sig_from_bytes(
   for j = 0; j < params.omega + params.k; j = j + 1 {
     h[j] = arr[h_off + j]
   }
-  Some({ c_tilde: Bytes::from_array(ct_arr), z, h })
+  Some({ c_tilde: Bytes::from_array(ct_arr), z, h, })
 }
 
 // ---------------------------------------------------------------------------
@@ -868,7 +868,7 @@ fn mldsa_keygen_internal(
     t1[i] = r1
     t0[i] = r0
   }
-  let pk : DilithiumPublicKey = { params, rho, t1 }
+  let pk : DilithiumPublicKey = { params, rho, t1, }
   let tr = @sha3.shake256(dilithium_pk_to_bytes(pk), 64)
   let sk : DilithiumSecretKey = {
     params,

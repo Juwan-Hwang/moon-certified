@@ -109,7 +109,7 @@ pub fn SignerInfo::new(
   signature_algorithm : String,
   signature : Bytes,
 ) -> SignerInfo {
-  { issuer, serial_number, digest_algorithm, signature_algorithm, signature }
+  { issuer, serial_number, digest_algorithm, signature_algorithm, signature, }
 }
 
 ///|
@@ -150,7 +150,7 @@ pub fn RecipientInfo::new(
   key_encryption_algorithm : String,
   encrypted_key : Bytes,
 ) -> RecipientInfo {
-  { issuer, serial_number, key_encryption_algorithm, encrypted_key }
+  { issuer, serial_number, key_encryption_algorithm, encrypted_key, }
 }
 
 ///|

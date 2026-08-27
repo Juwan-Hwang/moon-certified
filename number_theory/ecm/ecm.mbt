@@ -273,7 +273,7 @@ fn ladder_step(
     n,
   )
 
-  ({ x: x_double, z: z_double }, { x: x_add, z: z_add })
+  ({ x: x_double, z: z_double, }, { x: x_add, z: z_add, })
 }
 
 ///|
@@ -285,10 +285,10 @@ fn ladder_step(
 /// Returns `(X:Z) = kP` (projective x-coordinate).
 fn scalar_mult(k : Int64, curve : MontCurve, n : Int64) -> MontPoint {
   if k == 0L {
-    return { x: 0L, z: 0L } // O (point at infinity)
+    return { x: 0L, z: 0L, } // O (point at infinity)
   }
   if k == 1L {
-    return { x: curve.x0, z: curve.z0 }
+    return { x: curve.x0, z: curve.z0, }
   }
   // Find highest set bit.
   let mut hi = 62
@@ -297,7 +297,7 @@ fn scalar_mult(k : Int64, curve : MontCurve, n : Int64) -> MontPoint {
   }
   // Initialize: (X₁:Z₁) = P, (X₂:Z₂) = 2P
   // We start from the second-highest bit, so initial state is m=1.
-  let p1 = { x: curve.x0, z: curve.z0 }
+  let p1 = { x: curve.x0, z: curve.z0, }
   // Compute 2P for initial p2.
   let u = @int64_utils.mod64(curve.x0 + curve.z0, n)
   let v = @int64_utils.mod64(curve.x0 - curve.z0, n)
@@ -310,7 +310,7 @@ fn scalar_mult(k : Int64, curve : MontCurve, n : Int64) -> MontPoint {
     @int64_utils.mod64(vv + @int64_utils.mul_mod(curve.a24, w, n), n),
     n,
   )
-  let mut p2 = { x: p2_x, z: p2_z }
+  let mut p2 = { x: p2_x, z: p2_z, }
   let mut p1_mut = p1
   // Process remaining bits from hi-1 down to 0.
   for bit = hi - 1; bit >= 0; bit = bit - 1 {
@@ -400,7 +400,7 @@ fn stage1(
   max_prime : Int,
 ) -> MontPoint {
   // Start with P = (X₀:Z₀).
-  let mut q_point = { x: curve.x0, z: curve.z0 }
+  let mut q_point = { x: curve.x0, z: curve.z0, }
   for i = 0; i < primes.length(); i = i + 1 {
     let q = primes[i]
     // Compute largest power q^e ≤ B₁.
@@ -416,7 +416,7 @@ fn stage1(
     // Q = q^e · Q (Montgomery ladder).
     q_point = scalar_mult(
       qe.to_int64(),
-      { a24: curve.a24, x0: q_point.x, z0: q_point.z },
+      { a24: curve.a24, x0: q_point.x, z0: q_point.z, },
       n,
     )
   }
@@ -442,7 +442,7 @@ fn stage1_backtrack(
   primes : Array[Int],
   max_prime : Int,
 ) -> Int64? {
-  let mut q_point = { x: curve.x0, z: curve.z0 }
+  let mut q_point = { x: curve.x0, z: curve.z0, }
   for i = 0; i < primes.length(); i = i + 1 {
     let q = primes[i]
     // Compute largest power q^e ≤ B₁.
@@ -461,7 +461,7 @@ fn stage1_backtrack(
     while pow <= qe {
       q_test = scalar_mult(
         q.to_int64(),
-        { a24: curve.a24, x0: q_test.x, z0: q_test.z },
+        { a24: curve.a24, x0: q_test.x, z0: q_test.z, },
         n,
       )
       let g = @int64_utils.gcd64(q_test.z, n)
@@ -511,7 +511,7 @@ fn stage2(
 ) -> Int64? {
   let d = stage2_d
   // Create a curve with Q as the base point for further multiplications.
-  let curve_q = { a24: curve.a24, x0: q_point.x, z0: q_point.z }
+  let curve_q = { a24: curve.a24, x0: q_point.x, z0: q_point.z, }
   // Compute baby steps: iQ for i = 1, ..., D.
   let baby_x : FixedArray[Int64] = FixedArray::make(d + 1, 0L)
   let baby_z : FixedArray[Int64] = FixedArray::make(d + 1, 0L)
@@ -532,11 +532,11 @@ fn stage2(
     )
     // Compute iQ = (i-1)Q + Q using differential addition with diff = (i-2)Q.
     for i = 3; i <= d; i = i + 1 {
-      let curve_diff = { a24: curve.a24, x0: baby_x[i - 2], z0: baby_z[i - 2] }
+      let curve_diff = { a24: curve.a24, x0: baby_x[i - 2], z0: baby_z[i - 2], }
       // P1 = Q, P2 = (i-1)Q, diff = P2-P1 = (i-2)Q.
       // ladder_step returns (2*P1, P1+P2); we use P1+P2 = iQ.
-      let p1 = { x: q_point.x, z: q_point.z }
-      let p2 = { x: baby_x[i - 1], z: baby_z[i - 1] }
+      let p1 = { x: q_point.x, z: q_point.z, }
+      let p2 = { x: baby_x[i - 1], z: baby_z[i - 1], }
       let (_, iQ) = ladder_step(p1, p2, curve_diff, n)
       baby_x[i] = iQ.x
       baby_z[i] = iQ.z
@@ -639,13 +639,13 @@ fn stage2(
         n,
       )
       s_prev = giant
-      giant = { x: next_x, z: next_z }
+      giant = { x: next_x, z: next_z, }
       first_giant = false
     } else {
       // S_{j+1} = S_j + DQ, diff = S_{j-1} = s_prev.
-      let curve_gs = { a24: curve.a24, x0: s_prev.x, z0: s_prev.z }
+      let curve_gs = { a24: curve.a24, x0: s_prev.x, z0: s_prev.z, }
       let (_, next_giant) = ladder_step(
-        { x: dq.x, z: dq.z },
+        { x: dq.x, z: dq.z, },
         giant,
         curve_gs,
         n,

@@ -108,13 +108,13 @@ pub fn build_freq_table(data : Array[Byte], scale_bits : Int) -> FreqTable {
     let freqs = Array::make(max_alphabet, 0)
     freqs[0] = m
     let cum = Array::make(max_alphabet, 0)
-    return { freqs, cum, total: m, scale_bits: sb, alphabet: [0] }
+    return { freqs, cum, total: m, scale_bits: sb, alphabet: [0], }
   }
   if alphabet.length() == 1 {
     let freqs = Array::make(max_alphabet, 0)
     freqs[alphabet[0]] = m
     let cum = Array::make(max_alphabet, 0)
-    return { freqs, cum, total: m, scale_bits: sb, alphabet }
+    return { freqs, cum, total: m, scale_bits: sb, alphabet, }
   }
   let norm = Array::make(max_alphabet, 0)
   let mut remaining = m
@@ -169,7 +169,7 @@ pub fn build_freq_table(data : Array[Byte], scale_bits : Int) -> FreqTable {
     cum[i] = acc
     acc = acc + norm[i]
   }
-  { freqs: norm, cum, total: m, scale_bits: sb, alphabet }
+  { freqs: norm, cum, total: m, scale_bits: sb, alphabet, }
 }
 
 // ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ priv struct BitWriter {
 
 ///|
 fn bw_new() -> BitWriter {
-  { bytes: [], bit_buf: 0U, bit_count: 0 }
+  { bytes: [], bit_buf: 0U, bit_count: 0, }
 }
 
 ///|
@@ -218,7 +218,7 @@ priv struct BitReader {
 
 ///|
 fn br_new(bytes : Array[Byte]) -> BitReader {
-  { bytes, pos: 0, bit_buf: 0U, bit_count: 0 }
+  { bytes, pos: 0, bit_buf: 0U, bit_count: 0, }
 }
 
 ///|
@@ -543,7 +543,7 @@ fn build_tans_table(ft : FreqTable) -> TansTable {
     let q_max = (ts - r - 1) / f
     let k = bit_length(q_max)
     let base = r + 1
-    decode_table[x_prime] = { symbol: s, num_bits: k, base }
+    decode_table[x_prime] = { symbol: s, num_bits: k, base, }
   }
 
   // --- Build encode table from decode table ---
@@ -553,7 +553,7 @@ fn build_tans_table(ft : FreqTable) -> TansTable {
   //     If x is in [1, ts], set encode_table[s][x] = (k, q, x')
   let encode_table : Array[Array[TansEncodeEntry]] = Array::make(
     max_alphabet,
-    Array::make(0, { num_bits: 0, bits_val: 0, next_state: 0 }),
+    Array::make(0, { num_bits: 0, bits_val: 0, next_state: 0, }),
   )
   for s = 0; s < max_alphabet; s = s + 1 {
     if freqs[s] > 0 {
@@ -575,7 +575,11 @@ fn build_tans_table(ft : FreqTable) -> TansTable {
       let x = base + q * f
       if x >= 1 && x <= ts {
         if encode_table[s][x].next_state == 0 {
-          encode_table[s][x] = { num_bits: k, bits_val: q, next_state: x_prime }
+          encode_table[s][x] = {
+            num_bits: k,
+            bits_val: q,
+            next_state: x_prime,
+          }
         }
       }
     }
@@ -592,12 +596,16 @@ fn build_tans_table(ft : FreqTable) -> TansTable {
           let k = bit_length(q_max)
           // x' is the (r+1)-th state assigned to symbol s
           let x_prime = sym_states[s][r]
-          encode_table[s][x] = { num_bits: k, bits_val: q, next_state: x_prime }
+          encode_table[s][x] = {
+            num_bits: k,
+            bits_val: q,
+            next_state: x_prime,
+          }
         }
       }
     }
   }
-  { table_size: ts, decode_table, encode_table }
+  { table_size: ts, decode_table, encode_table, }
 }
 
 ///|
@@ -715,7 +723,7 @@ pub fn tans_decompress(data : Array[Byte]) -> Array[Byte] {
     cum[i] = acc
     acc = acc + freqs[i]
   }
-  let ft : FreqTable = { freqs, cum, total: m, scale_bits: sb, alphabet }
+  let ft : FreqTable = { freqs, cum, total: m, scale_bits: sb, alphabet, }
   let table = build_tans_table(ft)
   let mut state = read_u32_le(data, pos).reinterpret_as_int()
   pos = pos + 4

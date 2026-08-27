@@ -350,7 +350,7 @@ pub fn solve(
   lr : Double,
 ) -> SDPResult {
   if n == 0 {
-    return { x: [], objective: 0.0, converged: true, iterations: 0 }
+    return { x: [], objective: 0.0, converged: true, iterations: 0, }
   }
   // Start with a feasible point: satisfy constraints, then project to PSD
   let x = zeros(n)
@@ -383,7 +383,7 @@ pub fn solve(
     prev_obj = obj
   }
   let obj = frobenius(c, x_current, n)
-  { x: x_current, objective: obj, converged, iterations: iter }
+  { x: x_current, objective: obj, converged, iterations: iter, }
 }
 
 ///|
@@ -462,7 +462,7 @@ test "sdp: solve trivial problem" {
   let a1 = zeros(2)
   a1[0][0] = 1.0
   a1[1][1] = 1.0
-  let constraints : Array[Constraint] = [{ a: a1, b: 2.0 }]
+  let constraints : Array[Constraint] = [{ a: a1, b: 2.0, }]
   let result = solve(c, constraints, 2, 500, 0.01)
   // Objective should be close to 2
   assert_true(result.objective < 3.0)

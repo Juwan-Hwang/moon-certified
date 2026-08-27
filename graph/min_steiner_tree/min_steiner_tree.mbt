@@ -65,7 +65,7 @@ pub fn min_steiner_tree(
 ) -> SteinerResult? {
   let k = terminals.length()
   if k <= 1 {
-    return Some(SteinerResult::{ cost: 0L, n })
+    return Some(SteinerResult::{ cost: 0L, n, })
   }
   if n <= 0 {
     return None
@@ -193,7 +193,7 @@ pub fn min_steiner_tree(
       result = dp[full_mask * n + v]
     }
   }
-  Some(SteinerResult::{ cost: result, n })
+  Some(SteinerResult::{ cost: result, n, })
 }
 
 // ---------------------------------------------------------------------------

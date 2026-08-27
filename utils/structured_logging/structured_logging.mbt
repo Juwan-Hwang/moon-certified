@@ -58,25 +58,25 @@ pub struct LogField {
 ///|
 /// Create a string log field.
 pub fn field(key : String, value : String) -> LogField {
-  { key, value }
+  { key, value, }
 }
 
 ///|
 /// Create an int log field.
 pub fn int_field(key : String, value : Int) -> LogField {
-  { key, value: value.to_string() }
+  { key, value: value.to_string(), }
 }
 
 ///|
 /// Create a double log field.
 pub fn double_field(key : String, value : Double) -> LogField {
-  { key, value: value.to_string() }
+  { key, value: value.to_string(), }
 }
 
 ///|
 /// Create a bool log field.
 pub fn bool_field(key : String, value : Bool) -> LogField {
-  { key, value: if value { "true" } else { "false" } }
+  { key, value: if value { "true" } else { "false" }, }
 }
 
 ///|
@@ -90,19 +90,19 @@ pub struct Logger {
 ///|
 /// Create a new logger with default settings (INFO level, text format).
 pub fn new() -> Logger {
-  { min_level: Info, fields: [], use_json: false }
+  { min_level: Info, fields: [], use_json: false, }
 }
 
 ///|
 /// Create a new logger with a specific minimum level.
 pub fn with_level(level : LogLevel) -> Logger {
-  { min_level: level, fields: [], use_json: false }
+  { min_level: level, fields: [], use_json: false, }
 }
 
 ///|
 /// Create a new JSON-format logger.
 pub fn json_logger(level : LogLevel) -> Logger {
-  { min_level: level, fields: [], use_json: true }
+  { min_level: level, fields: [], use_json: true, }
 }
 
 ///|

@@ -44,7 +44,7 @@ pub fn parallel_bfs(
   let dist = Array::make(n, -1)
   let parent = Array::make(n, -1)
   if source < 0 || source >= n {
-    return { dist, parent, visited: 0, levels: 0 }
+    return { dist, parent, visited: 0, levels: 0, }
   }
   dist[source] = 0
   let mut frontier : Array[Int] = [source]
@@ -82,7 +82,7 @@ pub fn parallel_bfs(
     }
     frontier = next_frontier
   }
-  { dist, parent, visited, levels }
+  { dist, parent, visited, levels, }
 }
 
 ///|

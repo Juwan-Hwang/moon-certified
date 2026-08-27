@@ -176,7 +176,7 @@ pub fn compute_xva(
   let cva = compute_cva(params, positive_exposures, times)
   let dva = compute_dva(params, negative_exposures, times)
   let fva = compute_fva(params, funding_exposures, times)
-  { cva, dva, fva, total_xva: cva - dva + fva }
+  { cva, dva, fva, total_xva: cva - dva + fva, }
 }
 
 ///|

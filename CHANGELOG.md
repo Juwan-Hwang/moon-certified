@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Stability: 9 packages in the Verified tier, 254 in the Stable tier,
 > 74 in the Experimental tier (APIs not yet frozen). See
 > `docs/API_STABILITY.md`.
+>
+> Distribution: published to mooncakes.io as `Juwan-Hwang/moon-certified`
+> (`moon add Juwan-Hwang/moon-certified`), and as a GitHub Release with
+> source tarball + SHA256 checksums. Tagging `v*` triggers CI release
+> automation including `moon publish`.
 
 #### Hardening since the 0.1.0 development snapshot
 - Rewrote 12 packages that were placeholder implementations into spec-conformant ones: `crypto/kyber` (FIPS 203 ML-KEM), `crypto/dilithium` (FIPS 204 ML-DSA), `crypto/sphincs_plus` (SLH-DSA shape), `crypto/hpke` (RFC 9180), `crypto/tls13` (RFC 8446 record layer + handshake), `crypto/threshold_sig` (Shamir + threshold Schnorr), `crypto/mpc` (BGW honest-majority), `crypto/fhe` (BFV), `crypto/bulletproofs`, `compression/paq`, `containers/mass_tree`, `containers/counted_btree`

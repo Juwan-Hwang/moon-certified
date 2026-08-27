@@ -1,5 +1,5 @@
 import {
-  "moon-certified/compression/huffman",
+  "Juwan-Hwang/moon-certified/compression/huffman",
 }
 
 options(

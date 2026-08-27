@@ -172,7 +172,7 @@ pub struct BoundedQueue[T] {
 /// Create a bounded queue with the given capacity.
 pub fn[T] BoundedQueue::new(capacity : Int) -> BoundedQueue[T] {
   let cap = if capacity < 1 { 1 } else { capacity }
-  { buf: Array::make(cap, None), head: 0, tail: 0, count: 0, capacity: cap }
+  { buf: Array::make(cap, None), head: 0, tail: 0, count: 0, capacity: cap, }
 }
 
 ///|
@@ -271,7 +271,7 @@ pub fn[K, V] SnapshotMap::new(bucket_count : Int) -> SnapshotMap[K, V] {
   for i = 0; i < bc; i = i + 1 {
     buckets.push([])
   }
-  { buckets, size: 0, bucket_count: bc }
+  { buckets, size: 0, bucket_count: bc, }
 }
 
 ///|
@@ -397,7 +397,7 @@ pub fn[K, V] SnapshotMap::snapshot(
   for i = 0; i < map.bucket_count; i = i + 1 {
     buckets_copy.push(map.buckets[i])
   }
-  { buckets: buckets_copy, size: map.size, bucket_count: map.bucket_count }
+  { buckets: buckets_copy, size: map.size, bucket_count: map.bucket_count, }
 }
 
 ///|

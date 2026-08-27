@@ -25,7 +25,7 @@ struct TreeNode {
 
 ///|
 fn TreeNode::new() -> TreeNode {
-  { feature: -1, threshold: 0.0, leaf_value: 0.0, left: -1, right: -1 }
+  { feature: -1, threshold: 0.0, leaf_value: 0.0, left: -1, right: -1, }
 }
 
 ///|
@@ -154,7 +154,7 @@ fn find_best_split(
       }
     }
   }
-  { threshold: best_threshold, gain: best_gain }
+  { threshold: best_threshold, gain: best_gain, }
 }
 
 // ===========================================================================
@@ -169,7 +169,7 @@ fn build_tree(
   max_depth : Int,
   min_samples_split : Int,
 ) -> DecisionTree {
-  let tree = { nodes: [] }
+  let tree = { nodes: [], }
   if indices.length() == 0 {
     tree.nodes.push(TreeNode::new())
     return tree
@@ -306,7 +306,7 @@ pub fn gbdt_fit(
     }
     trees.push(tree)
   }
-  { trees, init_value, learning_rate: params.learning_rate }
+  { trees, init_value, learning_rate: params.learning_rate, }
 }
 
 ///|

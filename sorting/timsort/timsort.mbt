@@ -513,7 +513,7 @@ pub fn[T] timsort(xs : FixedArray[T], cmp : (T, T) -> Int) -> Unit {
   }
   let mrl = min_run_length(n)
   // Self-tuning galloping state, shared across all merges (like CPython).
-  let state : TimsortState = { min_gallop: GALLOP_THRESHOLD }
+  let state : TimsortState = { min_gallop: GALLOP_THRESHOLD, }
   // Merge stack.
   let stack_base : Array[Int] = []
   let stack_len : Array[Int] = []

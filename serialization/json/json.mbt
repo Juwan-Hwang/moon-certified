@@ -383,7 +383,7 @@ priv struct Parser {
 /// Returns `Some(value)` on success, or `None` if the input is not valid
 /// JSON (including trailing garbage after the root value).
 pub fn parse(input : String) -> JsonValue? {
-  let p : Parser = { input, pos: 0, depth: 0 }
+  let p : Parser = { input, pos: 0, depth: 0, }
   Parser::skip_ws(p)
   match Parser::parse_value(p) {
     None => None

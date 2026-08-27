@@ -42,7 +42,7 @@ struct Heap {
 /// Create an empty `Heap` with the given fixed `capacity`.
 /// All slots are zero-initialised; `size` starts at 0.
 pub fn heap_new(capacity : Int) -> Heap {
-  { data: FixedArray::make(capacity, 0), size: 0 }
+  { data: FixedArray::make(capacity, 0), size: 0, }
 }
 
 ///|
@@ -142,7 +142,7 @@ pub struct HeapG[T] {
 ///
 /// The backing `Array` grows automatically as elements are pushed.
 pub fn[T] HeapG::new(compare : (T, T) -> Int) -> HeapG[T] {
-  { data: [], size: 0, compare }
+  { data: [], size: 0, compare, }
 }
 
 ///|

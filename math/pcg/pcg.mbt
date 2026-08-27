@@ -96,7 +96,7 @@ fn build_preconditioner(
   match kind {
     Identity => {
       let diag_inv = Array::make(n, 1.0)
-      { diag_inv, ssor_a: [], ic_L: [], kind }
+      { diag_inv, ssor_a: [], ic_L: [], kind, }
     }
     Jacobi => {
       let diag_inv = Array::make(n, 0.0)
@@ -107,7 +107,7 @@ fn build_preconditioner(
           diag_inv[i] = 1.0
         }
       }
-      { diag_inv, ssor_a: [], ic_L: [], kind }
+      { diag_inv, ssor_a: [], ic_L: [], kind, }
     }
     SSOR(_omega) => {
       let diag_inv = Array::make(n, 0.0)
@@ -118,7 +118,7 @@ fn build_preconditioner(
           diag_inv[i] = 1.0
         }
       }
-      { diag_inv, ssor_a: a, ic_L: [], kind }
+      { diag_inv, ssor_a: a, ic_L: [], kind, }
     }
     IncompleteCholesky => {
       // IC0: incomplete Cholesky factorization with same sparsity pattern as A.
@@ -159,7 +159,7 @@ fn build_preconditioner(
           }
         }
       }
-      { diag_inv, ssor_a: [], ic_L: l, kind }
+      { diag_inv, ssor_a: [], ic_L: l, kind, }
     }
   }
 }

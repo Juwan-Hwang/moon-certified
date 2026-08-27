@@ -3,9 +3,9 @@
 **Project:** moon-certified — Formally verified core algorithms and data structures for MoonBit
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
-**Current version:** 0.1.0 (development — not yet formally released)
-**Document version:** 2.1
-**Last updated:** 2026-07-29
+**Current version:** 0.1.0 (first official release, 2026-08-27)
+**Document version:** 2.2
+**Last updated:** 2026-08-27
 
 ---
 
@@ -70,11 +70,11 @@ The version string `MAJOR.MINOR.PATCH` is interpreted as follows:
 | `MINOR` | New functionality is added in a backwards-compatible manner: new packages, new public functions, new types, performance improvements, new verification results. | **Full** backwards compatibility. Code targeting `0.x.y` continues to compile and behave identically on `0.x.(y+1)`. |
 | `PATCH` | Backwards-compatible bug fixes, documentation improvements, test additions, or internal refactors with no observable behaviour change. | **Full** backwards compatibility, including identical observable output. |
 
-**Pre-1.0 caveat.** The project is currently at version `0.1.0` and has not
-been formally released. Under SemVer, `0.x` releases may contain breaking
-changes in any bump. Until the project reaches `1.0`, consumers should expect
-that APIs may change. The API stability tiers below describe the *intended*
-guarantees once the project stabilises.
+**Pre-1.0 caveat.** The project's first official release is `0.1.0`. Under
+SemVer, `0.x` releases may contain breaking changes in any bump. Until the
+project reaches `1.0`, consumers should expect that APIs of Experimental-tier
+packages may change. The API stability tiers below describe the guarantees
+that apply within the tier system.
 
 **Versioning of verified contracts.** When a package's formal-verification
 contract (its `proof_require` / `proof_ensure` / `proof_invariant` annotations

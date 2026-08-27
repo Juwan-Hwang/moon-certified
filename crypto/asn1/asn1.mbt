@@ -116,7 +116,7 @@ pub struct DerWriter {
 ///|
 /// Create a new DER writer.
 pub fn DerWriter::new() -> DerWriter {
-  { buf: [], stack: [] }
+  { buf: [], stack: [], }
 }
 
 ///|
@@ -722,7 +722,7 @@ pub struct DerReader {
 ///|
 /// Create a DER reader from a byte buffer.
 pub fn DerReader::new(buf : Array[Byte]) -> DerReader {
-  { buf, pos: 0 }
+  { buf, pos: 0, }
 }
 
 ///|
@@ -797,7 +797,7 @@ pub fn DerReader::read_element(self : DerReader) -> DerElement? {
     content.push(self.buf[self.pos])
     self.pos = self.pos + 1
   }
-  Some({ tag: tag_byte, tag_class, constructed, tag_num, content })
+  Some({ tag: tag_byte, tag_class, constructed, tag_num, content, })
 }
 
 ///|

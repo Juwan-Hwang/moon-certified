@@ -45,7 +45,7 @@ pub struct TranspositionTable {
 ///|
 /// Create a new empty transposition table.
 pub fn new() -> TranspositionTable {
-  { table: {}, hits: 0, misses: 0 }
+  { table: {}, hits: 0, misses: 0, }
 }
 
 ///|
@@ -66,7 +66,7 @@ pub fn store(
       }
     None => ()
   }
-  tt.table.set(hash, { depth, score, node_type, best_move })
+  tt.table.set(hash, { depth, score, node_type, best_move, })
 }
 
 ///|

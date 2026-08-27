@@ -30,3 +30,4 @@ pkg.generated.mbti
 # Environment
 .env
 .env.local
+trace.json

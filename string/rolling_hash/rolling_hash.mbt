@@ -95,7 +95,7 @@ pub fn RollingHash::new(s : String) -> RollingHash {
     rev1[i] = (mod_mul(rev1[i - 1], BASE, MOD1) + c) % MOD1
     rev2[i] = (mod_mul(rev2[i - 1], BASE, MOD2) + c) % MOD2
   }
-  { n, fwd1, fwd2, rev1, rev2, pow1, pow2 }
+  { n, fwd1, fwd2, rev1, rev2, pow1, pow2, }
 }
 
 ///|
@@ -183,7 +183,7 @@ pub fn RollingHash::substring_hash(
   l : Int,
   r : Int,
 ) -> DoubleHash {
-  { h1: self.fwd_hash1(l, r), h2: self.fwd_hash2(l, r) }
+  { h1: self.fwd_hash1(l, r), h2: self.fwd_hash2(l, r), }
 }
 
 ///|

@@ -44,7 +44,7 @@ pub struct BipartiteGraph {
 /// Create an empty bipartite graph with `n` left and `m` right vertices.
 pub fn new_graph(n : Int, m : Int) -> BipartiteGraph {
   let adj : Array[Array[Int]] = Array::makei(n, fn(_) { [] })
-  { n, m, adj }
+  { n, m, adj, }
 }
 
 ///|

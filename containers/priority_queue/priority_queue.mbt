@@ -83,7 +83,7 @@ pub struct PriorityQueue[T] {
 /// `compare(a, b)` returns `< 0` if `a` has higher priority than `b`
 /// (min-heap: `a < b`), `0` if equal, `> 0` otherwise.
 pub fn[T] PriorityQueue::new(compare : (T, T) -> Int) -> PriorityQueue[T] {
-  { heap: [], entries: [], compare, free_list: [] }
+  { heap: [], entries: [], compare, free_list: [], }
 }
 
 ///|
@@ -94,9 +94,9 @@ pub fn[T] PriorityQueue::from_array(
   compare : (T, T) -> Int,
   arr : Array[T],
 ) -> PriorityQueue[T] {
-  let pq : PriorityQueue[T] = { heap: [], entries: [], compare, free_list: [] }
+  let pq : PriorityQueue[T] = { heap: [], entries: [], compare, free_list: [], }
   for i = 0; i < arr.length(); i = i + 1 {
-    let entry : PQEntry[T] = { val: arr[i], heap_idx: i, entry_idx: i }
+    let entry : PQEntry[T] = { val: arr[i], heap_idx: i, entry_idx: i, }
     pq.entries.push(entry)
     pq.heap.push(entry)
   }
@@ -156,7 +156,7 @@ pub fn[T] PriorityQueue::push(self : PriorityQueue[T], val : T) -> PQHandle {
         i
       }
     }
-    self.entries[idx] = { val, heap_idx: self.heap.length(), entry_idx: idx }
+    self.entries[idx] = { val, heap_idx: self.heap.length(), entry_idx: idx, }
     idx
   } else {
     let idx = self.entries.length()

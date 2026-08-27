@@ -21,7 +21,7 @@ pub struct BoundedBuffer {
 ///|
 /// Create a bounded buffer.
 pub fn BoundedBuffer::new(capacity : Int) -> BoundedBuffer {
-  { buf: Array::make(capacity, 0), head: 0, tail: 0, count: 0, capacity }
+  { buf: Array::make(capacity, 0), head: 0, tail: 0, count: 0, capacity, }
 }
 
 ///|
@@ -61,7 +61,7 @@ pub struct Barrier {
 ///|
 /// Create a barrier for n workers.
 pub fn Barrier::new(n_workers : Int) -> Barrier {
-  { count: 0, generation: 0, n_workers }
+  { count: 0, generation: 0, n_workers, }
 }
 
 ///|
@@ -233,7 +233,7 @@ pub struct WorkStealingDeque {
 ///|
 /// Create a work-stealing deque.
 pub fn WorkStealingDeque::new(capacity : Int) -> WorkStealingDeque {
-  { buf: Array::make(capacity, None), top: 0, bottom: 0, capacity }
+  { buf: Array::make(capacity, None), top: 0, bottom: 0, capacity, }
 }
 
 ///|

@@ -70,18 +70,18 @@ pub struct MassTree {
 
 ///|
 fn mass_leaf_new() -> MassLeaf {
-  { keys: Array::new(), values: Array::new(), count: 0 }
+  { keys: Array::new(), values: Array::new(), count: 0, }
 }
 
 ///|
 fn mass_internal_new() -> MassInternal {
-  { keys: Array::new(), children: Array::new(), count: 0 }
+  { keys: Array::new(), children: Array::new(), count: 0, }
 }
 
 ///|
 /// Create a new MassTree.
 pub fn MassTree::new() -> MassTree {
-  let t : MassTree = { leaves: [], internals: [], root: -1, depth: 0, size: 0 }
+  let t : MassTree = { leaves: [], internals: [], root: -1, depth: 0, size: 0, }
   t.leaves.push(mass_leaf_new())
   t.root = 0
   t

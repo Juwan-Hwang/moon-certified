@@ -54,7 +54,7 @@ pub struct WaveletTree {
 pub fn build(text : String) -> WaveletTree {
   let n = text.length()
   if n == 0 {
-    return { nodes: [], n: 0, alphabet: [], char_index: Map([]) }
+    return { nodes: [], n: 0, alphabet: [], char_index: Map([]), }
   }
   // Collect and sort alphabet.
   let char_set : Map[Int, Unit] = Map([])
@@ -82,7 +82,7 @@ pub fn build(text : String) -> WaveletTree {
   // Build the tree recursively.
   let nodes : Array[WTNode] = []
   let _ = build_node(nodes, indices, 0, n, 0, alphabet.length() - 1, alphabet)
-  { nodes, n, alphabet, char_index }
+  { nodes, n, alphabet, char_index, }
 }
 
 ///|

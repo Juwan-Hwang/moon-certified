@@ -64,7 +64,7 @@ fn uf_new(n : Int) -> UF {
   for i = 0; i < n; i = i + 1 {
     parent[i] = i
   }
-  { parent, count: n }
+  { parent, count: n, }
 }
 
 ///|
@@ -103,7 +103,7 @@ fn uf_copy(uf : UF) -> UF {
   for i = 0; i < n; i = i + 1 {
     parent[i] = uf.parent[i]
   }
-  { parent, count: uf.count }
+  { parent, count: uf.count, }
 }
 
 // ---------------------------------------------------------------------------
@@ -334,7 +334,7 @@ pub fn karger_stein(
   num_trials : Int,
 ) -> MinCutResult {
   if n <= 1 {
-    return { cut_value: 0.0, partition: Array::make(n, 0), trials: 0 }
+    return { cut_value: 0.0, partition: Array::make(n, 0), trials: 0, }
   }
   // Filter valid edges (no self-loops, in-range, positive weight).
   let clean_edges : Array[(Int, Int, Double)] = []
@@ -345,7 +345,7 @@ pub fn karger_stein(
     }
   }
   if clean_edges.length() == 0 {
-    return { cut_value: 0.0, partition: Array::make(n, 0), trials: 0 }
+    return { cut_value: 0.0, partition: Array::make(n, 0), trials: 0, }
   }
   let mut best_cut = INF
   let mut best_partition = Array::make(n, 0)
@@ -359,7 +359,7 @@ pub fn karger_stein(
       best_partition = recover_partition(uf, n)
     }
   }
-  { cut_value: best_cut, partition: best_partition, trials }
+  { cut_value: best_cut, partition: best_partition, trials, }
 }
 
 ///|

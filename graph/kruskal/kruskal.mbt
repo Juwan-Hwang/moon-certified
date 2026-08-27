@@ -30,7 +30,7 @@ pub struct Edge {
 /// Construct an [`Edge`]. This is the canonical way for external callers to
 /// create edges.
 pub fn edge(from : Int, to : Int, weight : Int) -> Edge {
-  { from, to, weight }
+  { from, to, weight, }
 }
 
 ///|

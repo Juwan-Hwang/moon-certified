@@ -57,7 +57,7 @@ priv struct NmfRng {
 ///|
 fn NmfRng::new(seed : Int) -> NmfRng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -211,11 +211,11 @@ pub fn nmf(
 ) -> NMFResult {
   let n = v.length()
   if n == 0 {
-    return { w: [], h: [], reconstruction_err: 0.0, n_iter: 0 }
+    return { w: [], h: [], reconstruction_err: 0.0, n_iter: 0, }
   }
   let d = v[0].length()
   if d == 0 {
-    return { w: [], h: [], reconstruction_err: 0.0, n_iter: 0 }
+    return { w: [], h: [], reconstruction_err: 0.0, n_iter: 0, }
   }
   // Clamp n_components
   let max_k = if n < d { n } else { d }
@@ -307,7 +307,7 @@ pub fn nmf(
     }
     prev_err = err
   }
-  { w, h, reconstruction_err: prev_err, n_iter: iter_done }
+  { w, h, reconstruction_err: prev_err, n_iter: iter_done, }
 }
 
 ///|

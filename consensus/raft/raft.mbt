@@ -263,10 +263,10 @@ pub fn raft_node_create(
     persistent: {
       current_term: 0,
       voted_for: -1,
-      log: [{ term: 0, command: 0 }], // sentinel entry at index 0
+      log: [{ term: 0, command: 0, }], // sentinel entry at index 0
     },
-    vol_state: { commit_index: 0, last_applied: 0 },
-    leader_state: { next_index: [], match_index: [] },
+    vol_state: { commit_index: 0, last_applied: 0, },
+    leader_state: { next_index: [], match_index: [], },
     leader_id: -1,
     election_elapsed: 0,
     election_timeout: timeout,
@@ -796,7 +796,7 @@ fn apply_committed(node : RaftNode) -> Unit {
 pub fn raft_submit(node : RaftNode, command : Int) -> Bool {
   match node.role {
     Leader => {
-      node.persistent.log.push({ term: node.persistent.current_term, command })
+      node.persistent.log.push({ term: node.persistent.current_term, command, })
       true
     }
     _ => false
@@ -929,7 +929,7 @@ pub fn raft_test_add_log_entry(
   term : Int,
   command : Int,
 ) -> Unit {
-  node.persistent.log.push({ term, command })
+  node.persistent.log.push({ term, command, })
 }
 
 ///|
@@ -959,5 +959,5 @@ pub fn raft_test_set_next_index(
 ///|
 /// Create a LogEntry value (for testing).
 pub fn raft_test_make_log_entry(term : Int, command : Int) -> LogEntry {
-  { term, command }
+  { term, command, }
 }

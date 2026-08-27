@@ -223,7 +223,7 @@ pub fn create_cipher(key : Bytes, nonce : Bytes) -> ChaCha20Cipher? {
   if key.length() != KEY_SIZE || nonce.length() != NONCE_SIZE {
     return None
   }
-  Some({ key: key_to_words(key), nonce: nonce_to_words(nonce), counter: 0U })
+  Some({ key: key_to_words(key), nonce: nonce_to_words(nonce), counter: 0U, })
 }
 
 ///|

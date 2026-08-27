@@ -48,7 +48,7 @@ let b32_hex_decode : FixedArray[Int] = FixedArray::make(128, -1)
 
 ///|
 /// Flag to ensure tables are initialised exactly once.
-let b32_tables_init : Ref[Bool] = { val: false }
+let b32_tables_init : Ref[Bool] = { val: false, }
 
 ///|
 /// Initialise decode tables. Idempotent.

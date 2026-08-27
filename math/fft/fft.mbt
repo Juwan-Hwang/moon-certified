@@ -62,7 +62,7 @@ pub struct Complex {
 ///|
 /// Construct the complex number `real + imag * i`.
 pub fn complex(real : Double, imag : Double) -> Complex {
-  { real, imag }
+  { real, imag, }
 }
 
 ///|
@@ -80,13 +80,13 @@ pub fn im(c : Complex) -> Double {
 ///|
 /// Complex addition: `(a + b)`.
 pub fn c_add(a : Complex, b : Complex) -> Complex {
-  { real: a.real + b.real, imag: a.imag + b.imag }
+  { real: a.real + b.real, imag: a.imag + b.imag, }
 }
 
 ///|
 /// Complex subtraction: `(a - b)`.
 pub fn c_sub(a : Complex, b : Complex) -> Complex {
-  { real: a.real - b.real, imag: a.imag - b.imag }
+  { real: a.real - b.real, imag: a.imag - b.imag, }
 }
 
 ///|
@@ -148,7 +148,7 @@ pub fn c_abs(c : Complex) -> Double {
 ///|
 /// Complex conjugate `conj(a + bi) = a - bi`.
 pub fn c_conj(c : Complex) -> Complex {
-  { real: c.real, imag: -c.imag }
+  { real: c.real, imag: -c.imag, }
 }
 
 // ---------------------------------------------------------------------------
@@ -276,7 +276,7 @@ fn fft_core(a : Array[Complex], invert : Bool, n : Int) -> Unit {
   if invert {
     let inv_n = 1.0 / n.to_double()
     for i = 0; i < n; i = i + 1 {
-      a[i] = { real: a[i].real * inv_n, imag: a[i].imag * inv_n }
+      a[i] = { real: a[i].real * inv_n, imag: a[i].imag * inv_n, }
     }
   }
 }

@@ -458,7 +458,7 @@ test "dbscan: empty input returns no clusters" {
 
 ///|
 test "dbscan: single point with min_pts=1 forms a singleton cluster" {
-  let pts = [{ id: 0, coords: [5.0, 5.0] }]
+  let pts = [{ id: 0, coords: [5.0, 5.0], }]
   let r = dbscan(pts, 1.0, 1)
   assert_eq(r.length(), 1)
   assert_eq(r[0].length(), 1)
@@ -467,7 +467,7 @@ test "dbscan: single point with min_pts=1 forms a singleton cluster" {
 
 ///|
 test "dbscan: isolated point is noise when min_pts=2" {
-  let pts = [{ id: 0, coords: [5.0, 5.0] }]
+  let pts = [{ id: 0, coords: [5.0, 5.0], }]
   let r = dbscan(pts, 1.0, 2)
   assert_eq(r.length(), 0) // the lone point is noise, excluded
 }
@@ -478,15 +478,15 @@ test "dbscan: two well-separated 2-D clusters, one noise point" {
   // Cluster B: four points packed near (10, 10).
   // Noise:    a lone point at (100, 100).
   let pts = [
-    { id: 0, coords: [0.0, 0.0] }, // A
-    { id: 1, coords: [0.0, 1.0] }, // A
-    { id: 2, coords: [1.0, 0.0] }, // A
-    { id: 3, coords: [1.0, 1.0] }, // A
-    { id: 4, coords: [10.0, 10.0] }, // B
-    { id: 5, coords: [10.0, 11.0] }, // B
-    { id: 6, coords: [11.0, 10.0] }, // B
-    { id: 7, coords: [11.0, 11.0] }, // B
-    { id: 8, coords: [100.0, 100.0] }, // noise
+    { id: 0, coords: [0.0, 0.0], }, // A
+    { id: 1, coords: [0.0, 1.0], }, // A
+    { id: 2, coords: [1.0, 0.0], }, // A
+    { id: 3, coords: [1.0, 1.0], }, // A
+    { id: 4, coords: [10.0, 10.0], }, // B
+    { id: 5, coords: [10.0, 11.0], }, // B
+    { id: 6, coords: [11.0, 10.0], }, // B
+    { id: 7, coords: [11.0, 11.0], }, // B
+    { id: 8, coords: [100.0, 100.0], }, // noise
   ]
   // eps=1.5 (eps_sq=2.25): within-cluster pairs are at most sqrt(2) apart,
   // between-cluster pairs are far apart; the noise point is far from all.
@@ -518,7 +518,7 @@ test "dbscan: arbitrary-shape cluster via a connected chain" {
   // density method keeps it as one connected cluster.
   let pts : Array[DBSCANPoint] = []
   for i = 0; i < 10; i = i + 1 {
-    pts.push({ id: i, coords: [i.to_double() * 0.5, 0.0] })
+    pts.push({ id: i, coords: [i.to_double() * 0.5, 0.0], })
   }
   let r = dbscan(pts, 1.0, 2)
   assert_eq(r.length(), 1)
@@ -530,10 +530,10 @@ test "dbscan: 3-D clusters separate correctly" {
   // Two tight 3-D blobs far apart.
   let pts : Array[DBSCANPoint] = []
   for i = 0; i < 4; i = i + 1 {
-    pts.push({ id: i, coords: [0.0, 0.0, i.to_double()] }) // blob at origin
+    pts.push({ id: i, coords: [0.0, 0.0, i.to_double()], }) // blob at origin
   }
   for i = 0; i < 4; i = i + 1 {
-    pts.push({ id: 100 + i, coords: [50.0, 50.0, i.to_double()] }) // far blob
+    pts.push({ id: 100 + i, coords: [50.0, 50.0, i.to_double()], }) // far blob
   }
   let r = dbscan(pts, 2.0, 2)
   assert_eq(r.length(), 2)
@@ -550,9 +550,9 @@ test "dbscan: 3-D clusters separate correctly" {
 ///|
 test "dbscan: min_pts=1 makes every point a core point" {
   let pts = [
-    { id: 0, coords: [0.0] },
-    { id: 1, coords: [5.0] }, // distance 5 > eps
-    { id: 2, coords: [100.0] }, // distance 95 > eps
+    { id: 0, coords: [0.0], },
+    { id: 1, coords: [5.0], }, // distance 5 > eps
+    { id: 2, coords: [100.0], }, // distance 95 > eps
   ]
   let r = dbscan(pts, 1.0, 1)
   // With min_pts=1 every point is core, so each isolated point is its own
@@ -565,10 +565,10 @@ test "dbscan: min_pts=1 makes every point a core point" {
 test "dbscan: coincident points collapse into one cluster (eps=0)" {
   // eps=0 keeps only distance-exactly-0 neighbours, i.e. coincident points.
   let pts = [
-    { id: 0, coords: [2.0, 2.0] },
-    { id: 1, coords: [2.0, 2.0] },
-    { id: 2, coords: [2.0, 2.0] },
-    { id: 3, coords: [9.0, 9.0] }, // not coincident -> noise (min_pts=2)
+    { id: 0, coords: [2.0, 2.0], },
+    { id: 1, coords: [2.0, 2.0], },
+    { id: 2, coords: [2.0, 2.0], },
+    { id: 3, coords: [9.0, 9.0], }, // not coincident -> noise (min_pts=2)
   ]
   let r = dbscan(pts, 0.0, 2)
   assert_eq(r.length(), 1)
@@ -581,9 +581,9 @@ test "dbscan: border point attaches to first cluster that reaches it" {
   // A bridge point exactly eps from two cores lands in whichever cluster
   // reaches it first (here, the lower-id cluster scanned first).
   let pts = [
-    { id: 0, coords: [0.0] }, // core of cluster A
-    { id: 1, coords: [1.0] }, // within eps=1.5 of both 0 and 2 (border)
-    { id: 2, coords: [2.0] }, // core of cluster B
+    { id: 0, coords: [0.0], }, // core of cluster A
+    { id: 1, coords: [1.0], }, // within eps=1.5 of both 0 and 2 (border)
+    { id: 2, coords: [2.0], }, // core of cluster B
   ]
   let r = dbscan(pts, 1.5, 2)
   // 0 and 2 are each core (neighbourhoods {0,1} and {1,2}); 1 is a border
@@ -597,9 +597,9 @@ test "dbscan: dimension-mismatched points are treated as noise" {
   // A 2-D point can never be a neighbour of a 3-D point (infinite distance),
   // so the 3-D outlier is noise even though it sits at a "small" coordinate.
   let pts = [
-    { id: 0, coords: [0.0, 0.0] },
-    { id: 1, coords: [0.0, 1.0] },
-    { id: 2, coords: [0.0, 0.0, 0.0] }, // different dimension
+    { id: 0, coords: [0.0, 0.0], },
+    { id: 1, coords: [0.0, 1.0], },
+    { id: 2, coords: [0.0, 0.0, 0.0], }, // different dimension
   ]
   let r = dbscan(pts, 2.0, 2)
   // ids 0 and 1 form a cluster; id 2 is unreachable (infinite distance) and

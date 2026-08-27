@@ -222,7 +222,7 @@ fn hierholzer(adj : Array[Array[Int]], n : Int, start : Int) -> FixedArray[Int] 
 /// large graphs.
 pub fn find_euler_path(adj : Array[Array[Int]], n : Int) -> EulerResult {
   if n <= 0 || adj.length() < n {
-    return { path: FixedArray::make(0, 0), is_circuit: false }
+    return { path: FixedArray::make(0, 0), is_circuit: false, }
   }
   // Count total edges (only valid edges — invalid neighbours are skipped
   // by hierholzer and compute_degrees, so they must be skipped here too
@@ -238,7 +238,7 @@ pub fn find_euler_path(adj : Array[Array[Int]], n : Int) -> EulerResult {
   }
   if total_edges == 0 {
     // Empty graph: trivial circuit on vertex 0 (if it exists).
-    return { path: FixedArray::make(0, 0), is_circuit: false }
+    return { path: FixedArray::make(0, 0), is_circuit: false, }
   }
   let (in_deg, out_deg) = compute_degrees(adj, n)
   // Classify vertices.
@@ -255,7 +255,7 @@ pub fn find_euler_path(adj : Array[Array[Int]], n : Int) -> EulerResult {
       is_circuit = false
     } else if diff != 0 {
       // No Euler path possible.
-      return { path: FixedArray::make(0, 0), is_circuit: false }
+      return { path: FixedArray::make(0, 0), is_circuit: false, }
     }
   }
   // Validate: exactly 0 or 2 special vertices.
@@ -267,26 +267,26 @@ pub fn find_euler_path(adj : Array[Array[Int]], n : Int) -> EulerResult {
       s = s + 1
     }
     if s >= n {
-      return { path: FixedArray::make(0, 0), is_circuit: false }
+      return { path: FixedArray::make(0, 0), is_circuit: false, }
     }
     start = s
   } else {
     if start_candidates.length() != 1 || end_candidates.length() != 1 {
-      return { path: FixedArray::make(0, 0), is_circuit: false }
+      return { path: FixedArray::make(0, 0), is_circuit: false, }
     }
     start = start_candidates[0]
   }
   // Check connectivity.
   if !check_connectivity(adj, n, start) {
-    return { path: FixedArray::make(0, 0), is_circuit: false }
+    return { path: FixedArray::make(0, 0), is_circuit: false, }
   }
   // Run Hierholzer.
   let path = hierholzer(adj, n, start)
   // Verify: the path should have total_edges + 1 vertices.
   if path.length() != total_edges + 1 {
-    return { path: FixedArray::make(0, 0), is_circuit: false }
+    return { path: FixedArray::make(0, 0), is_circuit: false, }
   }
-  { path, is_circuit }
+  { path, is_circuit, }
 }
 
 ///|

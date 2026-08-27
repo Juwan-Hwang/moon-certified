@@ -60,7 +60,7 @@ pub struct DAWG {
 /// Create a new empty DAWG.
 pub fn new() -> DAWG {
   {
-    root: { id: 0, is_final: false, transitions: Map([]) },
+    root: { id: 0, is_final: false, transitions: Map([]), },
     register: [],
     unchecked_suffix: [],
     word_count: 0,
@@ -75,7 +75,7 @@ pub fn new() -> DAWG {
 fn dawg_new_state(dawg : DAWG) -> DAWGState {
   let id = dawg.next_id
   dawg.next_id = dawg.next_id + 1
-  { id, is_final: false, transitions: Map([]) }
+  { id, is_final: false, transitions: Map([]), }
 }
 
 ///|

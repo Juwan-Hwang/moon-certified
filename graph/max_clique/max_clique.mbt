@@ -51,7 +51,7 @@ pub struct Graph {
 ///
 /// `n` must be at most 60 (limited by Int bit-width).
 pub fn new_graph(n : Int) -> Graph {
-  { n, adj: Array::make(n, 0) }
+  { n, adj: Array::make(n, 0), }
 }
 
 ///|

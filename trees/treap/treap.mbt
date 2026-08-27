@@ -93,7 +93,7 @@ pub struct Treap[T] {
 ///
 /// For full control over the seed, use [`empty_with_seed`].
 pub fn[T] empty() -> Treap[T] {
-  { root: Empty, rng: @utils.fresh_seed(rng_seed) }
+  { root: Empty, rng: @utils.fresh_seed(rng_seed), }
 }
 
 ///|
@@ -104,7 +104,7 @@ pub fn[T] empty() -> Treap[T] {
 /// This is the recommended constructor for production code where multiple
 /// independent treaps are needed.
 pub fn[T] empty_with_seed(seed : Int) -> Treap[T] {
-  { root: Empty, rng: seed & 0x7FFFFFFF }
+  { root: Empty, rng: seed & 0x7FFFFFFF, }
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ fn[T] mknode(
 /// inserted and whose `rng` is advanced one step. Expected O(log n).
 pub fn[T] insert(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
   let p = next_priority(t.rng)
-  { root: insert_node(t.root, key, p, cmp), rng: p }
+  { root: insert_node(t.root, key, p, cmp), rng: p, }
 }
 
 ///|
@@ -306,7 +306,7 @@ fn[T] search_node(root : TreapNode[T], key : T, cmp : (T, T) -> Int) -> Bool {
 /// can be removed. Each recursive step sinks the target by one level, so the
 /// recursion always terminates.
 pub fn[T] delete(t : Treap[T], key : T, cmp : (T, T) -> Int) -> Treap[T] {
-  { root: delete_node(t.root, key, cmp), rng: t.rng }
+  { root: delete_node(t.root, key, cmp), rng: t.rng, }
 }
 
 ///|
@@ -364,7 +364,7 @@ pub fn[T] split(
   // Advance RNG for the right treap to prevent both treaps from
   // drawing the same priority sequence on subsequent inserts.
   let right_rng = next_priority(t.rng)
-  ({ root: l, rng: t.rng }, { root: r, rng: right_rng })
+  ({ root: l, rng: t.rng, }, { root: r, rng: right_rng, })
 }
 
 ///|
@@ -397,7 +397,7 @@ fn[T] split_node(
 ///
 /// `merge` only consults priorities (not keys), so no comparator is needed.
 pub fn[T] merge(left : Treap[T], right : Treap[T]) -> Treap[T] {
-  { root: merge_node(left.root, right.root), rng: left.rng }
+  { root: merge_node(left.root, right.root), rng: left.rng, }
 }
 
 ///|

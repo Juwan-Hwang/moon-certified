@@ -51,7 +51,7 @@ let pcg_default_inc : UInt64 = 1442695040888963407UL
 /// stream to use (must be odd for full-period; even values are forced odd).
 pub fn new(seed : UInt64, stream : UInt64) -> PCG32 {
   let inc = (stream << 1) | 1UL
-  let pcg = { state: 0UL, increment: inc }
+  let pcg = { state: 0UL, increment: inc, }
   // Initialize: state = 0; next(); state += seed; next();
   pcg.state = pcg.state * pcg_mult + pcg.increment
   pcg.state = pcg.state + seed

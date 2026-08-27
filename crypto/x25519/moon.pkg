@@ -1,9 +1,9 @@
 import {
-  "moon-certified/number_theory/bigint",
+  "Juwan-Hwang/moon-certified/number_theory/bigint",
 }
 
 import {
-  "moon-certified/crypto/hex",
+  "Juwan-Hwang/moon-certified/crypto/hex",
 } for "test"
 
 options(

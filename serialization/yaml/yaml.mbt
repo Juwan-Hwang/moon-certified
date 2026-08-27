@@ -30,7 +30,7 @@ priv struct YamlAnchors {
 
 ///|
 fn YamlAnchors::new() -> YamlAnchors {
-  { entries: [] }
+  { entries: [], }
 }
 
 ///|

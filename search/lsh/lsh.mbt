@@ -72,7 +72,7 @@ priv struct LCG {
 
 ///|
 fn lcg_new(seed : Int) -> LCG {
-  { state: seed.to_int64() & 0x7FFFFFFFFFFFFFFFL }
+  { state: seed.to_int64() & 0x7FFFFFFFFFFFFFFFL, }
 }
 
 ///|
@@ -221,7 +221,7 @@ fn bucket_get_or_create(table : LSHTable, key : String) -> Array[Int] {
     Some(bucket) => bucket
     None => {
       let bucket : Array[Int] = []
-      table.buckets.push({ key, indices: bucket })
+      table.buckets.push({ key, indices: bucket, })
       bucket
     }
   }
@@ -262,7 +262,7 @@ pub fn build(
       projections.push(proj)
       offsets.push(lcg_next_double(rng) * w)
     }
-    let table : LSHTable = { projections, offsets, w, buckets: [] }
+    let table : LSHTable = { projections, offsets, w, buckets: [], }
     // Insert all points into this table.
     for i = 0; i < n; i = i + 1 {
       let h = hash_point(table, points[i])
@@ -271,7 +271,7 @@ pub fn build(
     }
     tables.push(table)
   }
-  { tables, k, l, w, d, points, seed }
+  { tables, k, l, w, d, points, seed, }
 }
 
 ///|

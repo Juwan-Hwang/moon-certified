@@ -8,9 +8,10 @@ outlines the process for contributing algorithms, fixes, and improvements.
 ```bash
 git clone https://github.com/Juwan-Hwang/moon-certified.git
 cd moon-certified
-moon check   # Type check (must pass with 0 errors)
-moon test    # Run all tests (must pass)
-moon prove   # Formal verification (requires Why3 1.7.2 + Z3 4.12.x)
+moon check --deny-warn   # Type check (must pass with 0 errors AND 0 warnings)
+moon fmt --check         # Formatting check (must be clean)
+moon test                # Run all tests (must pass)
+moon prove               # Formal verification (requires Why3 1.7.2 + Z3 4.12.x)
 ```
 
 ## Code Standards
@@ -30,9 +31,11 @@ moon prove   # Formal verification (requires Why3 1.7.2 + Z3 4.12.x)
    (graph distances, flow capacities, combinatorial counts). Document any
    remaining overflow risks.
 
-4. **Stack safety**: Recursive implementations must include a `guard_depth`
-   parameter or equivalent protection against stack overflow on degenerate
-   inputs. Prefer iterative implementations where practical.
+4. **Stack safety**: Self-balancing trees (AVL, red-black tree, B-tree,
+   treap) rely on their structural invariants to guarantee O(log n)
+   recursion depth — do not add arbitrary depth limits that silently drop
+   data. For other recursive algorithms, prefer iterative implementations
+   where practical, and document recursion-depth bounds.
 
 5. **Testing**: Every public function must have at least one test. Include:
    - Basic functionality test
@@ -64,7 +67,8 @@ has formal verification proofs.
 1. **Open an issue** describing the algorithm or fix you want to contribute.
 2. **Fork and branch**: `git checkout -b feature/your-algorithm`
 3. **Implement** following the standards above
-4. **Test**: `moon check && moon test` must pass with 0 errors
+4. **Test**: `moon check --deny-warn && moon test` must pass with 0 errors
+   and 0 warnings
 5. **Document**: Update README.md project structure and CHANGELOG.md
 6. **Submit PR**: Include a description of the algorithm, complexity, and
    test coverage

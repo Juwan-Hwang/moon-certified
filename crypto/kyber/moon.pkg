@@ -1,5 +1,5 @@
 import {
-  "moon-certified/crypto/sha3",
+  "Juwan-Hwang/moon-certified/crypto/sha3",
 }
 
 options(

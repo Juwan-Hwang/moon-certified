@@ -116,7 +116,7 @@ fn build_graph(n : Int, edges : Array[(Int, Int, Double)]) -> LouvainGraph {
     }
     degree[i] = d
   }
-  { n, adj, self_loop, m: total_weight, degree }
+  { n, adj, self_loop, m: total_weight, degree, }
 }
 
 // ---------------------------------------------------------------------------
@@ -440,10 +440,10 @@ pub fn louvain(
   tolerance : Double,
 ) -> LouvainResult {
   if n <= 0 {
-    return { communities: [], num_communities: 0, modularity: 0.0, levels: 0 }
+    return { communities: [], num_communities: 0, modularity: 0.0, levels: 0, }
   }
   if n == 1 {
-    return { communities: [0], num_communities: 1, modularity: 0.0, levels: 0 }
+    return { communities: [0], num_communities: 1, modularity: 0.0, levels: 0, }
   }
   let original_graph = build_graph(n, edges)
   // mapping[i] = which current-level graph node original node i belongs to.

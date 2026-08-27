@@ -42,17 +42,17 @@ pub struct KyberParams {
 
 ///|
 pub fn ml_kem_512() -> KyberParams {
-  { k: 2, eta1: 3, eta2: 2, du: 10, dv: 4 }
+  { k: 2, eta1: 3, eta2: 2, du: 10, dv: 4, }
 }
 
 ///|
 pub fn ml_kem_768() -> KyberParams {
-  { k: 3, eta1: 2, eta2: 2, du: 10, dv: 4 }
+  { k: 3, eta1: 2, eta2: 2, du: 10, dv: 4, }
 }
 
 ///|
 pub fn ml_kem_1024() -> KyberParams {
-  { k: 4, eta1: 2, eta2: 2, du: 11, dv: 5 }
+  { k: 4, eta1: 2, eta2: 2, du: 11, dv: 5, }
 }
 
 // ---------------------------------------------------------------------------
@@ -738,10 +738,10 @@ fn mlkem_keygen_internal(
   z : Bytes,
 ) -> (KyberPublicKey, KyberSecretKey) {
   let (s_hat, t_hat, rho) = kpke_keygen(params, d)
-  let pk : KyberPublicKey = { params, t_hat, rho }
+  let pk : KyberPublicKey = { params, t_hat, rho, }
   let pk_bytes = encode_pk(pk)
   let h = @sha3.sha3_256(pk_bytes)
-  let sk : KyberSecretKey = { params, s_hat, t_hat, rho, h, z }
+  let sk : KyberSecretKey = { params, s_hat, t_hat, rho, h, z, }
   (pk, sk)
 }
 
@@ -758,7 +758,7 @@ fn mlkem_encaps_internal(
   }
   let m_bits = bytes_to_array(m)
   let (u, v) = kpke_encrypt(pk.params, pk.t_hat, pk.rho, m_bits, r)
-  let ct : KyberCiphertext = { params: pk.params, u, v }
+  let ct : KyberCiphertext = { params: pk.params, u, v, }
   (ct, k_bar)
 }
 
@@ -776,7 +776,7 @@ fn mlkem_decaps_internal(sk : KyberSecretKey, ct : KyberCiphertext) -> Bytes {
   // Re-encrypt: K-PKE.Encrypt(ek, m', r') and compare the compressed
   // byte encodings with c (FIPS 203 Algorithm 18, step 5 compares c').
   let (u2, v2) = kpke_encrypt(sk.params, sk.t_hat, sk.rho, m_prime, r_prime)
-  let c_prime = ct_to_bytes({ params: sk.params, u: u2, v: v2 })
+  let c_prime = ct_to_bytes({ params: sk.params, u: u2, v: v2, })
   // Constant-time comparison (OR of XORs, no early exit) so decapsulation
   // timing does not reveal where the re-encryption differs from c.
   let mut diff = c_prime.length() ^ c_bytes.length()
@@ -848,7 +848,7 @@ fn ct_from_bytes(params : KyberParams, data : Array[Byte]) -> KyberCiphertext {
   for x = 0; x < 256; x = x + 1 {
     v[x] = decompress(v[x], params.dv)
   }
-  { params, u, v }
+  { params, u, v, }
 }
 
 ///|

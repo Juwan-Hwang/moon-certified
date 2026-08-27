@@ -68,7 +68,7 @@ pub fn Rng::new(seed : UInt) -> Rng {
   let s1 = next_state() | 1U
   let s2 = next_state() | 1U
   let s3 = next_state() | 1U
-  { s0, s1, s2, s3 }
+  { s0, s1, s2, s3, }
 }
 
 ///|
@@ -238,7 +238,7 @@ pub fn metropolis_hastings(
     }
     samples.push(current)
   }
-  { samples, burn_in, thin: if thin < 1 { 1 } else { thin } }
+  { samples, burn_in, thin: if thin < 1 { 1 } else { thin }, }
 }
 
 ///|
@@ -272,7 +272,7 @@ pub fn metropolis_hastings_mv(
 ) -> Array[MCMCSamples] {
   let per_dim : Array[MCMCSamples] = []
   for d = 0; d < dim; d = d + 1 {
-    per_dim.push({ samples: [], burn_in: 0, thin: 1 })
+    per_dim.push({ samples: [], burn_in: 0, thin: 1, })
   }
   let current = FixedArray::make(dim, 0.0)
   for d = 0; d < dim; d = d + 1 {
@@ -344,7 +344,7 @@ pub fn gibbs_sampling(
 ) -> Array[MCMCSamples] {
   let per_dim : Array[MCMCSamples] = []
   for d = 0; d < dim; d = d + 1 {
-    per_dim.push({ samples: [], burn_in: 0, thin: 1 })
+    per_dim.push({ samples: [], burn_in: 0, thin: 1, })
   }
   let state = FixedArray::make(dim, 0.0)
   for d = 0; d < dim; d = d + 1 {
@@ -451,7 +451,7 @@ pub fn hmc(
     }
     samples.push(q)
   }
-  { samples, burn_in, thin: if thin < 1 { 1 } else { thin } }
+  { samples, burn_in, thin: if thin < 1 { 1 } else { thin }, }
 }
 
 // ---------------------------------------------------------------------------
@@ -1005,19 +1005,19 @@ test "beta_variance: known values" {
 
 ///|
 test "sample_mean: empty samples return zero" {
-  let s : MCMCSamples = { samples: [], burn_in: 0, thin: 1 }
+  let s : MCMCSamples = { samples: [], burn_in: 0, thin: 1, }
   assert_true(sample_mean(s) == 0.0)
 }
 
 ///|
 test "sample_variance: fewer than 2 samples returns zero" {
-  let s : MCMCSamples = { samples: [1.0], burn_in: 0, thin: 1 }
+  let s : MCMCSamples = { samples: [1.0], burn_in: 0, thin: 1, }
   assert_true(sample_variance(s) == 0.0)
 }
 
 ///|
 test "effective_samples: empty samples" {
-  let s : MCMCSamples = { samples: [], burn_in: 0, thin: 1 }
+  let s : MCMCSamples = { samples: [], burn_in: 0, thin: 1, }
   let eff = effective_samples(s)
   assert_eq(eff.length(), 0)
 }

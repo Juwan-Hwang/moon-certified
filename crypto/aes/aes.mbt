@@ -344,7 +344,7 @@ pub fn new_key(key : FixedArray[Byte]) -> AesKey? {
     }
     rk
   })
-  Some({ round_keys, nr })
+  Some({ round_keys, nr, })
 }
 
 // ---------------------------------------------------------------------------
@@ -887,7 +887,7 @@ pub fn encrypt_gcm(
   for i = 0; i < 16; i = i + 1 {
     tag[i] = s[i] ^ ghash_result[i]
   }
-  Some({ ciphertext, tag })
+  Some({ ciphertext, tag, })
 }
 
 ///|

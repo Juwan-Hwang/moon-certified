@@ -1,5 +1,5 @@
 import {
-  "moon-certified/graph/max_flow",
+  "Juwan-Hwang/moon-certified/graph/max_flow",
 }
 
 options(

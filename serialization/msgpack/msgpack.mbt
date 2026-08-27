@@ -313,7 +313,7 @@ pub fn unpack(data : Bytes) -> Result[MsgPack, String] {
   if data.length() == 0 {
     return Err("empty input")
   }
-  let pos = { idx: 0 }
+  let pos = { idx: 0, }
   unpack_one(data, pos)
 }
 

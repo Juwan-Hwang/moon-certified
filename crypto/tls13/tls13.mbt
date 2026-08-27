@@ -96,7 +96,7 @@ pub fn tls13_config_new(
   cipher_suite : TlsCipherSuite,
   trusted_server_key : Bytes?,
 ) -> Tls13Config {
-  { cipher_suite, trusted_server_key }
+  { cipher_suite, trusted_server_key, }
 }
 
 ///|

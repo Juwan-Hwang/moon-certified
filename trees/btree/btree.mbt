@@ -46,12 +46,12 @@ pub fn[T] new() -> BTreeNode[T] {
 /// with large block sizes. `t < 2` is clamped to 2.
 pub fn[T] new_with_degree(degree : Int) -> BTreeNode[T] {
   let t = if degree < 2 { BTREE_DEFAULT_DEGREE } else { degree }
-  { keys: [], children: [], leaf: true, count: 0, degree: t }
+  { keys: [], children: [], leaf: true, count: 0, degree: t, }
 }
 
 ///|
 fn[T] btree_create(leaf : Bool, degree : Int) -> BTreeNode[T] {
-  { keys: [], children: [], leaf, count: 0, degree }
+  { keys: [], children: [], leaf, count: 0, degree, }
 }
 
 // ---------------------------------------------------------------------------

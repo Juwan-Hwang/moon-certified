@@ -228,14 +228,14 @@ pub fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
   let mut order = 0
   for b = 0; b < 256; b = b + 1 {
     if freq[b] > 0 {
-      heap_push(heap, { freq: freq[b], order, node: Leaf(b) })
+      heap_push(heap, { freq: freq[b], order, node: Leaf(b), })
       order = order + 1
     }
   }
   // Edge case: empty input — no symbols.
   if heap.length() == 0 {
     let empty : Array[Bool] = []
-    return { root: None, codes: FixedArray::make(256, empty) }
+    return { root: None, codes: FixedArray::make(256, empty), }
   }
   // Edge case: single unique symbol — assign a 1-bit code so that
   // decoding works (each bit decodes to one copy of the byte).
@@ -249,16 +249,16 @@ pub fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
         // Internal node as the only entry should not happen because we
         // only push Leaf nodes into the initial heap. Return an empty
         // code table as a safe fallback.
-        return { root: None, codes: FixedArray::make(256, []) }
+        return { root: None, codes: FixedArray::make(256, []), }
     }
-    return { root: Some(only.node), codes }
+    return { root: Some(only.node), codes, }
   }
   // Standard Huffman construction: merge two smallest until one tree remains.
   while heap.length() > 1 {
     let a = heap_pop(heap)
     let b = heap_pop(heap)
     let merged : HNode = Internal(a.node, b.node)
-    heap_push(heap, { freq: a.freq + b.freq, order, node: merged })
+    heap_push(heap, { freq: a.freq + b.freq, order, node: merged, })
     order = order + 1
   }
   let root = heap_pop(heap).node
@@ -266,7 +266,7 @@ pub fn build_tree_from_freq(freq : FixedArray[Int]) -> HuffmanTree {
   let empty : Array[Bool] = []
   let codes = FixedArray::make(256, empty)
   build_codes(root, [], codes)
-  { root: Some(root), codes }
+  { root: Some(root), codes, }
 }
 
 ///|
@@ -578,16 +578,16 @@ fn serialize_node(node : HNode, bits : Array[Bool]) -> Unit {
 pub fn deserialize_tree(data : Bytes, bit_count : Int) -> HuffmanTree? {
   if bit_count == 0 {
     let empty : Array[Bool] = []
-    return Some({ root: None, codes: FixedArray::make(256, empty) })
+    return Some({ root: None, codes: FixedArray::make(256, empty), })
   }
-  let cursor = BitCursor::{ pos: 0 }
+  let cursor = BitCursor::{ pos: 0, }
   match deserialize_node(data, bit_count, cursor) {
     None => None
     Some(root) => {
       let empty : Array[Bool] = []
       let codes : FixedArray[Array[Bool]] = FixedArray::make(256, empty)
       build_codes(root, [], codes)
-      Some({ root: Some(root), codes })
+      Some({ root: Some(root), codes, })
     }
   }
 }

@@ -514,7 +514,7 @@ fn chunk_contains(chunk : Chunk, val : UInt) -> Bool {
 ///|
 /// Create an empty Roaring Bitmap.
 pub fn roaring_create() -> RoaringBitmap {
-  { chunks: [], cardinality: 0 }
+  { chunks: [], cardinality: 0, }
 }
 
 ///|
@@ -576,7 +576,11 @@ pub fn roaring_add(rb : RoaringBitmap, val : UInt) -> Bool {
   }
   // Create new chunk.
   let insert_pos = -(idx + 1)
-  let chunk : Chunk = { high, container: new_array_container(), cardinality: 0 }
+  let chunk : Chunk = {
+    high,
+    container: new_array_container(),
+    cardinality: 0,
+  }
   rb.chunks.insert(insert_pos, chunk)
   if chunk_add(chunk, low) {
     rb.cardinality = rb.cardinality + 1
@@ -1018,7 +1022,7 @@ fn chunk_merge(
       let container = make_container(arr)
       let card = container_cardinality(container)
       if card > 0 {
-        result.chunks.push({ high: ca[i].high, container, cardinality: card })
+        result.chunks.push({ high: ca[i].high, container, cardinality: card, })
       }
       i = i + 1
     } else if ca[i].high > cb[j].high {
@@ -1027,7 +1031,7 @@ fn chunk_merge(
       let container = make_container(arr)
       let card = container_cardinality(container)
       if card > 0 {
-        result.chunks.push({ high: cb[j].high, container, cardinality: card })
+        result.chunks.push({ high: cb[j].high, container, cardinality: card, })
       }
       j = j + 1
     } else {
@@ -1051,7 +1055,7 @@ fn chunk_merge(
     let container = make_container(arr)
     let card = container_cardinality(container)
     if card > 0 {
-      result.chunks.push({ high: ca[i].high, container, cardinality: card })
+      result.chunks.push({ high: ca[i].high, container, cardinality: card, })
     }
     i = i + 1
   }
@@ -1061,7 +1065,7 @@ fn chunk_merge(
     let container = make_container(arr)
     let card = container_cardinality(container)
     if card > 0 {
-      result.chunks.push({ high: cb[j].high, container, cardinality: card })
+      result.chunks.push({ high: cb[j].high, container, cardinality: card, })
     }
     j = j + 1
   }
@@ -1155,7 +1159,7 @@ pub fn roaring_andnot(a : RoaringBitmap, b : RoaringBitmap) -> RoaringBitmap {
       let container = make_container(arr)
       let card = container_cardinality(container)
       if card > 0 {
-        result.chunks.push({ high: ca[i].high, container, cardinality: card })
+        result.chunks.push({ high: ca[i].high, container, cardinality: card, })
       }
       i = i + 1
     } else if ca[i].high > cb[j].high {
@@ -1255,7 +1259,11 @@ pub fn roaring_add_range(rb : RoaringBitmap, start : UInt, end : UInt) -> Unit {
       rb.chunks[idx]
     } else {
       let insert_pos = -(idx + 1)
-      let c : Chunk = { high, container: new_array_container(), cardinality: 0 }
+      let c : Chunk = {
+        high,
+        container: new_array_container(),
+        cardinality: 0,
+      }
       rb.chunks.insert(insert_pos, c)
       rb.chunks[insert_pos]
     }

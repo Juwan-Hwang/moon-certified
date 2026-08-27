@@ -42,7 +42,7 @@ pub struct Fst {
 pub fn Fst::build(entries : Array[(String, Int)]) -> Fst {
   // Simplified: build a trie (not a minimal transducer)
   let states : Array[FstState] = [
-    { transitions: [], is_final: false, final_output: 0 },
+    { transitions: [], is_final: false, final_output: 0, },
   ]
   for entry in entries {
     let key = entry.0
@@ -61,7 +61,7 @@ pub fn Fst::build(entries : Array[(String, Int)]) -> Fst {
       }
       if !found {
         // Create new state
-        states.push({ transitions: [], is_final: false, final_output: 0 })
+        states.push({ transitions: [], is_final: false, final_output: 0, })
         let new_idx = states.length() - 1
         states[curr].transitions.push((ch, new_idx, value))
         curr = new_idx
@@ -70,7 +70,7 @@ pub fn Fst::build(entries : Array[(String, Int)]) -> Fst {
     states[curr].is_final = true
     states[curr].final_output = value
   }
-  { states, root: 0 }
+  { states, root: 0, }
 }
 
 ///|

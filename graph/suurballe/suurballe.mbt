@@ -59,7 +59,7 @@ fn dijkstra_with_path(
   @graph_utils.MinHeap::push(heap, 0L, src)
   while @graph_utils.MinHeap::len(heap) > 0 {
     match @graph_utils.MinHeap::pop(heap) {
-      Some({ dist: d, vertex: u }) =>
+      Some({ dist: d, vertex: u, }) =>
         if !visited[u] {
           visited[u] = true
           for j = 0; j < graph[u].length(); j = j + 1 {
@@ -77,7 +77,7 @@ fn dijkstra_with_path(
       None => break
     }
   }
-  { dist, prev }
+  { dist, prev, }
 }
 
 ///|
@@ -333,7 +333,7 @@ pub fn suurballe(
     }
   }
 
-  Some({ path1, path2, total_weight: total })
+  Some({ path1, path2, total_weight: total, })
 }
 
 ///|

@@ -64,7 +64,7 @@ pub struct OrderStatisticTree[T] {
 pub fn[T] OrderStatisticTree::new(
   compare : (T, T) -> Int,
 ) -> OrderStatisticTree[T] {
-  { root: None, compare }
+  { root: None, compare, }
 }
 
 // ---------------------------------------------------------------------------

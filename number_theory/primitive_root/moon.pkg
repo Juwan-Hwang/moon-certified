@@ -1,6 +1,6 @@
 import {
-  "moon-certified/number_theory/int64_utils",
-  "moon-certified/test/test_utils",
+  "Juwan-Hwang/moon-certified/number_theory/int64_utils",
+  "Juwan-Hwang/moon-certified/test/test_utils",
 }
 
 options(

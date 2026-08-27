@@ -228,7 +228,7 @@ pub fn ivf_build(
     let c = ivf_nearest_centroid(data, i, dim, k, centroids)
     inverted_lists[c].push(i)
   }
-  { dim, nlist: k, centroids, inverted_lists, vector_data: data, n_vectors: n }
+  { dim, nlist: k, centroids, inverted_lists, vector_data: data, n_vectors: n, }
 }
 
 ///|
@@ -317,7 +317,7 @@ pub fn ivf_search(
     cand_indices[i] = cand_indices[min_idx]
     cand_indices[min_idx] = tmp
   }
-  let result = Array::make(kk, { index: 0, distance: 0.0 })
+  let result = Array::make(kk, { index: 0, distance: 0.0, })
   for i = 0; i < kk; i = i + 1 {
     result[i] = {
       index: candidates[cand_indices[i]],

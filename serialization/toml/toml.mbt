@@ -232,7 +232,7 @@ pub fn as_table(v : TomlValue?) -> Array[(String, TomlValue)]? {
 /// TOML (including trailing garbage after the last statement).
 pub fn parse(input : String) -> TomlValue? {
   let root : Array[(String, TomlValue)] = []
-  let p : TomlParser = { input, pos: 0, root, current: root }
+  let p : TomlParser = { input, pos: 0, root, current: root, }
   let mut ok = true
   let mut continue_loop = true
   while continue_loop {
@@ -1275,7 +1275,7 @@ fn TomlParser::parse_inline_table(self : TomlParser) -> TomlValue? {
 /// headers for arrays-of-tables; scalar/array values are emitted inline.
 /// The result re-parses to an equal value tree.
 pub fn to_toml(v : TomlValue) -> String {
-  let s : TomlSerializer = { buf: StringBuilder(), started: false }
+  let s : TomlSerializer = { buf: StringBuilder(), started: false, }
   match v {
     Table(entries) => toml_serialize_section(s, entries, [], true)
     _ => ()

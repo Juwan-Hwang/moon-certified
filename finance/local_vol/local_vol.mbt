@@ -27,7 +27,7 @@ pub fn OptionQuote::new(
   maturity : Double,
   price : Double,
 ) -> OptionQuote {
-  { strike, maturity, price }
+  { strike, maturity, price, }
 }
 
 ///|
@@ -157,7 +157,7 @@ pub fn compute_local_vol(
         let denominator = c.strike * c.strike * d2C_dK2
         if denominator > 0.0 && numerator > 0.0 {
           let vol = (numerator / denominator).sqrt()
-          result.push({ strike: c.strike, maturity: mat, vol })
+          result.push({ strike: c.strike, maturity: mat, vol, })
         }
       }
     }

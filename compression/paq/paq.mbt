@@ -87,7 +87,7 @@ priv struct RCEncoder {
 
 ///|
 fn RCEncoder::new() -> RCEncoder {
-  { low: 0L, range: RC_MASK, out: [] }
+  { low: 0L, range: RC_MASK, out: [], }
 }
 
 ///|
@@ -148,7 +148,7 @@ fn RCDecoder::new(data : Bytes, start : Int) -> RCDecoder {
     let b = if start + i < data.length() { data[start + i].to_int() } else { 0 }
     code = (code << 8) | b.to_int64()
   }
-  { low: 0L, range: RC_MASK, code, data, pos: start + 4 }
+  { low: 0L, range: RC_MASK, code, data, pos: start + 4, }
 }
 
 ///|

@@ -66,7 +66,7 @@ pub struct BPTree[K, V] {
 /// For `Int` keys, pass `fn(a, b) { a - b }` or use the `new_int` convenience
 /// constructor.
 pub fn[K, V] new(cmp_fn : (K, K) -> Int) -> BPTree[K, V] {
-  { root: Leaf({ keys: [], values: [], next: None }), size: 0, cmp_fn }
+  { root: Leaf({ keys: [], values: [], next: None, }), size: 0, cmp_fn, }
 }
 
 ///|
@@ -191,7 +191,7 @@ fn[K, V] split_leaf(
   leaf : BPTreeLeaf[K, V],
 ) -> (BPTreeLeaf[K, V], BPTreeLeaf[K, V], K) {
   let mid = leaf.keys.length() / 2
-  let right : BPTreeLeaf[K, V] = { keys: [], values: [], next: leaf.next }
+  let right : BPTreeLeaf[K, V] = { keys: [], values: [], next: leaf.next, }
   for i = mid; i < leaf.keys.length(); i = i + 1 {
     right.keys.push(leaf.keys[i])
     right.values.push(leaf.values[i])
@@ -213,7 +213,7 @@ fn[K, V] split_node(
 ) -> (BPTreeNode[K, V], BPTreeNode[K, V], K) {
   let mid = node.keys.length() / 2
   let sep = node.keys[mid]
-  let right : BPTreeNode[K, V] = { keys: [], children: [] }
+  let right : BPTreeNode[K, V] = { keys: [], children: [], }
   // Right gets keys[mid+1..] and children[mid+1..].
   for i = mid + 1; i < node.keys.length(); i = i + 1 {
     right.keys.push(node.keys[i])

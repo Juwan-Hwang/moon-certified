@@ -155,7 +155,7 @@ pub fn build(graph : FixedArray[Int], n : Int) -> GomoryHuTree? {
       }
     }
   }
-  Some({ parent, weight, n })
+  Some({ parent, weight, n, })
 }
 
 ///|

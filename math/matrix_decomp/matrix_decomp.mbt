@@ -123,7 +123,7 @@ pub fn lu_decompose(a : FixedArray[Double], n : Int) -> LU? {
       }
     }
   }
-  Some({ lu, piv, sign })
+  Some({ lu, piv, sign, })
 }
 
 ///|
@@ -228,7 +228,7 @@ pub fn qr_decompose(a : FixedArray[Double], m : Int, n : Int) -> QR {
       }
     }
   }
-  { q, r }
+  { q, r, }
 }
 
 // ---------------------------------------------------------------------------
@@ -343,7 +343,7 @@ pub fn svd_decompose(a : FixedArray[Double], m : Int, n : Int) -> SVD {
       }
     }
   }
-  { u, s, v }
+  { u, s, v, }
 }
 
 // ---------------------------------------------------------------------------

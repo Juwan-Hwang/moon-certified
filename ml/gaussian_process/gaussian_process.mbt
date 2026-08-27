@@ -238,7 +238,7 @@ pub fn fit(
   // Solve L · α' = y, then L^T · α = α'
   let y_intermediate = forward_sub(l, y_train, n)
   let alpha = back_sub(l, y_intermediate, n)
-  { x_train, y_train, kernel, noise_variance, chol: l, alpha }
+  { x_train, y_train, kernel, noise_variance, chol: l, alpha, }
 }
 
 ///|
@@ -248,7 +248,7 @@ pub fn fit(
 pub fn predict(model : GPModel, x_test : Array[Double]) -> GPPrediction {
   let n = model.x_train.length()
   if n == 0 {
-    return { mean: 0.0, variance: 0.0 }
+    return { mean: 0.0, variance: 0.0, }
   }
   // Compute k_s = [k(x*, X_1), ..., k(x*, X_n)]
   let k_s : Array[Double] = Array::make(n, 0.0)
@@ -273,7 +273,7 @@ pub fn predict(model : GPModel, x_test : Array[Double]) -> GPPrediction {
   if variance < 0.0 {
     variance = 0.0
   }
-  { mean, variance }
+  { mean, variance, }
 }
 
 ///|

@@ -144,17 +144,17 @@ priv struct Complex {
 
 ///|
 fn c_add(a : Complex, b : Complex) -> Complex {
-  Complex::{ re: a.re + b.re, im: a.im + b.im }
+  Complex::{ re: a.re + b.re, im: a.im + b.im, }
 }
 
 ///|
 fn c_sub(a : Complex, b : Complex) -> Complex {
-  Complex::{ re: a.re - b.re, im: a.im - b.im }
+  Complex::{ re: a.re - b.re, im: a.im - b.im, }
 }
 
 ///|
 fn c_mul(a : Complex, b : Complex) -> Complex {
-  Complex::{ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }
+  Complex::{ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re, }
 }
 
 ///|
@@ -169,13 +169,13 @@ fn c_div(a : Complex, b : Complex) -> Complex {
 ///|
 fn c_exp(a : Complex) -> Complex {
   let e = @math.exp(a.re)
-  Complex::{ re: e * @math.cos(a.im), im: e * @math.sin(a.im) }
+  Complex::{ re: e * @math.cos(a.im), im: e * @math.sin(a.im), }
 }
 
 ///|
 fn c_log(a : Complex) -> Complex {
   let r = (a.re * a.re + a.im * a.im).sqrt()
-  Complex::{ re: @math.ln(r), im: @math.atan2(a.im, a.re) }
+  Complex::{ re: @math.ln(r), im: @math.atan2(a.im, a.re), }
 }
 
 ///|
@@ -183,17 +183,17 @@ fn c_sqrt(a : Complex) -> Complex {
   let r = (a.re * a.re + a.im * a.im).sqrt()
   let theta = @math.atan2(a.im, a.re) / 2.0
   let s = r.sqrt()
-  Complex::{ re: s * @math.cos(theta), im: s * @math.sin(theta) }
+  Complex::{ re: s * @math.cos(theta), im: s * @math.sin(theta), }
 }
 
 ///|
 fn c_scalar_mul(s : Double, a : Complex) -> Complex {
-  Complex::{ re: s * a.re, im: s * a.im }
+  Complex::{ re: s * a.re, im: s * a.im, }
 }
 
 ///|
 fn c_from_real(x : Double) -> Complex {
-  Complex::{ re: x, im: 0.0 }
+  Complex::{ re: x, im: 0.0, }
 }
 
 // ---------------------------------------------------------------------------
@@ -212,16 +212,16 @@ fn heston_cf(
   tau : Double,
   p : HestonParams,
 ) -> Complex {
-  let i_unit = Complex::{ re: 0.0, im: 1.0 }
+  let i_unit = Complex::{ re: 0.0, im: 1.0, }
   // d = sqrt((kappa - i*rho*sigma*u)^2 + (u^2 + i*u)*sigma^2)
-  let term1 = Complex::{ re: p.kappa, im: -p.rho * p.sigma * u }
+  let term1 = Complex::{ re: p.kappa, im: -p.rho * p.sigma * u, }
   let term1_sq = c_mul(term1, term1)
-  let term2 = c_scalar_mul(p.sigma * p.sigma, Complex::{ re: u * u, im: u })
+  let term2 = c_scalar_mul(p.sigma * p.sigma, Complex::{ re: u * u, im: u, })
   let d = c_sqrt(c_add(term1_sq, term2))
   // numer = kappa - i*rho*sigma*u - d
-  let numer = Complex::{ re: p.kappa - d.re, im: -p.rho * p.sigma * u - d.im }
+  let numer = Complex::{ re: p.kappa - d.re, im: -p.rho * p.sigma * u - d.im, }
   // denom = kappa - i*rho*sigma*u + d
-  let denom = Complex::{ re: p.kappa + d.re, im: -p.rho * p.sigma * u + d.im }
+  let denom = Complex::{ re: p.kappa + d.re, im: -p.rho * p.sigma * u + d.im, }
   let g2 = c_div(numer, denom)
   let exp_term = c_exp(c_scalar_mul(tau, numer))
   let one = c_from_real(1.0)
@@ -261,10 +261,10 @@ fn heston_cf_complex_shift(
 ) -> Complex {
   // Evaluate CF at z = u - i (real part = u, imag part = -1)
   // kappa - i*rho*sigma*z = kappa - i*rho*sigma*(u-i) = kappa - rho*sigma - i*rho*sigma*u
-  let t1 = Complex::{ re: p.kappa - p.rho * p.sigma, im: -p.rho * p.sigma * u }
+  let t1 = Complex::{ re: p.kappa - p.rho * p.sigma, im: -p.rho * p.sigma * u, }
   let t1_sq = c_mul(t1, t1)
   // (z^2 + i*z) * sigma^2 = (u^2 - iu) * sigma^2
-  let t2 = c_scalar_mul(p.sigma * p.sigma, Complex::{ re: u * u, im: -u })
+  let t2 = c_scalar_mul(p.sigma * p.sigma, Complex::{ re: u * u, im: -u, })
   let d = c_sqrt(c_add(t1_sq, t2))
   // numer = kappa - rho*sigma - i*rho*sigma*u - d
   let numer = Complex::{
@@ -283,7 +283,7 @@ fn heston_cf_complex_shift(
   let d_frac_den = c_sub(one, c_mul(g2, exp_term))
   let d_val = c_mul(d_num, c_div(d_frac_num, d_frac_den))
   // i*z = iu + 1
-  let c_drift = c_scalar_mul((p.r - p.q) * tau, Complex::{ re: 1.0, im: u })
+  let c_drift = c_scalar_mul((p.r - p.q) * tau, Complex::{ re: 1.0, im: u, })
   let c_coeff = p.kappa * p.theta / (p.sigma * p.sigma)
   let c_log_arg = c_div(c_sub(one, c_mul(g2, exp_term)), c_sub(one, g2))
   let c_log = c_log(c_log_arg)
@@ -343,7 +343,7 @@ pub fn price_european(
     }
     // phi * e_term / (iu) = (phi * e_term) * (-i/u)
     let integrand = c_mul(phi, e_term)
-    let integrand = Complex::{ re: integrand.im / u, im: -integrand.re / u }
+    let integrand = Complex::{ re: integrand.im / u, im: -integrand.re / u, }
     sum_p2 = sum_p2 + integrand.re
     // P1 uses φ(u-i)
     let phi_umi = heston_cf_complex_shift(u, s0, p.v0, tau, p)
@@ -627,8 +627,8 @@ test "heston: zero rate gives zero drift" {
 
 ///|
 test "heston: complex number arithmetic" {
-  let a = Complex::{ re: 3.0, im: 4.0 }
-  let b = Complex::{ re: 1.0, im: 2.0 }
+  let a = Complex::{ re: 3.0, im: 4.0, }
+  let b = Complex::{ re: 1.0, im: 2.0, }
   let sum = c_add(a, b)
   assert_true((sum.re - 4.0).abs() < 1.0e-10)
   assert_true((sum.im - 6.0).abs() < 1.0e-10)
@@ -638,7 +638,7 @@ test "heston: complex number arithmetic" {
   // (3+4i)/(1+2i) = (11-2i)/5
   assert_true((div.re - 2.2).abs() < 1.0e-10)
   assert_true((div.im - -0.4).abs() < 1.0e-10)
-  let e = c_exp(Complex::{ re: 0.0, im: @math.PI })
+  let e = c_exp(Complex::{ re: 0.0, im: @math.PI, })
   assert_true((e.re + 1.0).abs() < 1.0e-10)
   assert_true(e.im.abs() < 1.0e-10)
 }

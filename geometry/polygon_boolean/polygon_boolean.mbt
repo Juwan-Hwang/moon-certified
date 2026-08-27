@@ -45,7 +45,7 @@ pub struct Point {
 ///|
 /// Construct a point.
 pub fn point(x : Double, y : Double) -> Point {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -55,7 +55,7 @@ pub type Polygon = Array[Point]
 ///|
 /// Construct a point from Int coordinates.
 pub fn ipoint(x : Int, y : Int) -> Point {
-  { x: x.to_double(), y: y.to_double() }
+  { x: x.to_double(), y: y.to_double(), }
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ fn line_intersection(
   } else {
     ((edge_start.x - p1.x) * dy - (edge_start.y - p1.y) * dx) / denom
   }
-  { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y) }
+  { x: p1.x + t * (p2.x - p1.x), y: p1.y + t * (p2.y - p1.y), }
 }
 
 ///|
@@ -229,7 +229,7 @@ fn segment_intersection_param(
   if t < -1.0e-9 || t > 1.0 + 1.0e-9 || u < -1.0e-9 || u > 1.0 + 1.0e-9 {
     return None
   }
-  Some(({ x: a1.x + t * d1x, y: a1.y + t * d1y }, t, u))
+  Some(({ x: a1.x + t * d1x, y: a1.y + t * d1y, }, t, u))
 }
 
 ///|
@@ -245,7 +245,7 @@ fn find_crossings(a : Array[Point], b : Array[Point]) -> Array[Crossing] {
       match segment_intersection_param(a1, a2, b1, b2) {
         None => ()
         Some((pt, t_a, t_b)) =>
-          crossings.push({ pt, a_edge: ia, b_edge: ib, t_a, t_b })
+          crossings.push({ pt, a_edge: ia, b_edge: ib, t_a, t_b, })
       }
     }
   }
@@ -264,7 +264,7 @@ fn build_augmented(
   let aug : Array[AugPt] = []
   for i = 0; i < n; i = i + 1 {
     // Add the original vertex.
-    aug.push({ pt: poly[i], crossing_id: -1 })
+    aug.push({ pt: poly[i], crossing_id: -1, })
     // Collect crossings on this edge.
     let edge_cs : Array[(Int, Double)] = []
     for ci = 0; ci < crossings.length(); ci = ci + 1 {
@@ -290,7 +290,7 @@ fn build_augmented(
     // Insert sorted crossings.
     for j = 0; j < edge_cs.length(); j = j + 1 {
       let (ci, _) = edge_cs[j]
-      aug.push({ pt: crossings[ci].pt, crossing_id: ci })
+      aug.push({ pt: crossings[ci].pt, crossing_id: ci, })
     }
   }
   aug

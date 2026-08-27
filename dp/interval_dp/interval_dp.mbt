@@ -89,10 +89,10 @@ pub struct MatrixChainResult {
 pub fn matrix_chain(dims : FixedArray[Int]) -> MatrixChainResult {
   let n = dims.length() - 1
   if n <= 0 {
-    return { min_cost: 0L, parenthesization: "" }
+    return { min_cost: 0L, parenthesization: "", }
   }
   if n == 1 {
-    return { min_cost: 0L, parenthesization: "A0" }
+    return { min_cost: 0L, parenthesization: "A0", }
   }
   // dp[i][j] = minimum cost to multiply matrices i..j (inclusive).
   let dp = make2d(n, n, 0L)

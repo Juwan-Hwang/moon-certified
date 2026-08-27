@@ -132,7 +132,7 @@ pub fn cluster(
     for i = 0; i < n; i = i + 1 {
       labels.push(0)
     }
-    return { merges: [], labels }
+    return { merges: [], labels, }
   }
   // Compute initial pairwise distances
   let dist : Array[Array[Double]] = Array::make(n, [])
@@ -249,7 +249,7 @@ pub fn cluster(
   for i = 0; i < n; i = i + 1 {
     labels[i] = label_map.get(cluster_of[i]).unwrap_or(0)
   }
-  { merges, labels }
+  { merges, labels, }
 }
 
 ///|

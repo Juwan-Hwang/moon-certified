@@ -51,7 +51,7 @@ pub struct MvccStore {
 ///|
 /// Create a new MVCC store.
 pub fn MvccStore::new() -> MvccStore {
-  { versions: [], txns: [], next_txn_id: 1, global_ts: 1 }
+  { versions: [], txns: [], next_txn_id: 1, global_ts: 1, }
 }
 
 ///|
@@ -60,7 +60,7 @@ pub fn MvccStore::begin_txn(self : MvccStore) -> Int {
   let txn_id = self.next_txn_id
   self.next_txn_id = self.next_txn_id + 1
   let ts = self.global_ts
-  let txn = { txn_id, begin_ts: ts, commit_ts: 0, is_active: true }
+  let txn = { txn_id, begin_ts: ts, commit_ts: 0, is_active: true, }
   self.txns.push(txn)
   txn_id
 }

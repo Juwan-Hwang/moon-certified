@@ -60,7 +60,7 @@ pub fn[V] new() -> SkipList[V] {
   // Sentinel header: forward array has MAX_LEVEL slots, all None.
   // key and value are placeholders (never accessed by callers).
   {
-    head: { key: 0, value: None, forward: Array::make(MAX_LEVEL, None) },
+    head: { key: 0, value: None, forward: Array::make(MAX_LEVEL, None), },
     level: 0,
     p: DEFAULT_P,
     size: 0,

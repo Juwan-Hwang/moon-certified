@@ -47,13 +47,13 @@ pub struct DPoint {
 ///|
 /// Construct a [`DPoint`].
 pub fn dpoint(x : Int, y : Int) -> DPoint {
-  { x: x.to_int64(), y: y.to_int64() }
+  { x: x.to_int64(), y: y.to_int64(), }
 }
 
 ///|
 /// Construct a [`DPoint`] from `Int64` coordinates.
 pub fn dpoint64(x : Int64, y : Int64) -> DPoint {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -67,7 +67,7 @@ pub struct Triangle {
 ///|
 /// Construct a [`Triangle`].
 pub fn triangle(v0 : Int, v1 : Int, v2 : Int) -> Triangle {
-  { v0, v1, v2 }
+  { v0, v1, v2, }
 }
 
 ///|
@@ -410,7 +410,7 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
   }
   let n = unique_pts.length()
   if n < 3 {
-    return { triangles: FixedArray::make(0, 0), count: 0 }
+    return { triangles: FixedArray::make(0, 0), count: 0, }
   }
   // --- Bounding box and super-triangle ---
   let mut min_x = unique_pts[0].x
@@ -447,12 +447,12 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
   for i = 0; i < n; i = i + 1 {
     all_points.push(unique_pts[i])
   }
-  all_points.push({ x: midx - st, y: midy - st }) // index n
-  all_points.push({ x: midx + st, y: midy - st }) // index n+1
-  all_points.push({ x: midx, y: midy + st }) // index n+2
+  all_points.push({ x: midx - st, y: midy - st, }) // index n
+  all_points.push({ x: midx + st, y: midy - st, }) // index n+1
+  all_points.push({ x: midx, y: midy + st, }) // index n+2
   // --- Initialize triangulation with super-triangle ---
   let tris : Array[Tri] = [
-    Tri::{ v0: n, v1: n + 1, v2: n + 2, n0: -1, n1: -1, n2: -1, alive: true },
+    Tri::{ v0: n, v1: n + 1, v2: n + 2, n0: -1, n1: -1, n2: -1, alive: true, },
   ]
   let mut hint = 0
   // --- Shuffle insertion order ---
@@ -531,7 +531,7 @@ pub fn triangulate(pts : Array[DPoint]) -> DelaunayResult {
     result[i * 3 + 1] = final_tris[i].v1
     result[i * 3 + 2] = final_tris[i].v2
   }
-  { triangles: result, count }
+  { triangles: result, count, }
 }
 
 // ---------------------------------------------------------------------------

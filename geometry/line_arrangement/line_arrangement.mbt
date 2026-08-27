@@ -79,7 +79,7 @@ pub fn line(a : Double, b : Double, c : Double) -> Line? {
   if norm < EPS {
     return None
   }
-  Some({ a: a / norm, b: b / norm, c: c / norm })
+  Some({ a: a / norm, b: b / norm, c: c / norm, })
 }
 
 ///|
@@ -238,7 +238,7 @@ pub fn build(lines : Array[Line]) -> Arrangement {
       match intersect(lines[i], lines[j]) {
         Some((x, y)) => {
           let vidx = vertices.length()
-          vertices.push({ x, y, line_i: i, line_j: j })
+          vertices.push({ x, y, line_i: i, line_j: j, })
           // Compute parameter along each line.
           // Parameter = dot product of (x, y) with direction vector of the line.
           // Direction of line i: (-b_i, a_i) (perpendicular to normal).
@@ -282,19 +282,19 @@ pub fn build(lines : Array[Line]) -> Arrangement {
     let lvs = line_vertices[i]
     if lvs.length() == 0 {
       // No intersections on this line: single unbounded edge.
-      edges.push({ line_idx: i, v_start: -1, v_end: -1 })
+      edges.push({ line_idx: i, v_start: -1, v_end: -1, })
     } else {
       // Unbounded edge before the first vertex.
-      edges.push({ line_idx: i, v_start: -1, v_end: lvs[0] })
+      edges.push({ line_idx: i, v_start: -1, v_end: lvs[0], })
       // Bounded edges between consecutive vertices.
       for k = 0; k < lvs.length() - 1; k = k + 1 {
-        edges.push({ line_idx: i, v_start: lvs[k], v_end: lvs[k + 1] })
+        edges.push({ line_idx: i, v_start: lvs[k], v_end: lvs[k + 1], })
       }
       // Unbounded edge after the last vertex.
-      edges.push({ line_idx: i, v_start: lvs[lvs.length() - 1], v_end: -1 })
+      edges.push({ line_idx: i, v_start: lvs[lvs.length() - 1], v_end: -1, })
     }
   }
-  { lines, vertices, edges, line_vertices }
+  { lines, vertices, edges, line_vertices, }
 }
 
 // ---------------------------------------------------------------------------

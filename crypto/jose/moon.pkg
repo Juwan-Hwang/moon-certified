@@ -1,8 +1,8 @@
 import {
-  "moon-certified/crypto/hmac",
-  "moon-certified/crypto/sha512",
-  "moon-certified/serialization/json",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/crypto/hmac",
+  "Juwan-Hwang/moon-certified/crypto/sha512",
+  "Juwan-Hwang/moon-certified/serialization/json",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

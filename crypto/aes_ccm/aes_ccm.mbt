@@ -265,7 +265,7 @@ pub fn encrypt(
     pos = pos + block_len
     ctr = ctr + 1
   }
-  Some({ ciphertext, tag: u })
+  Some({ ciphertext, tag: u, })
 }
 
 ///|

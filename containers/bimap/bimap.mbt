@@ -20,7 +20,7 @@ pub struct BiMap {
 ///|
 /// Create a new empty BiMap.
 pub fn new() -> BiMap {
-  { forward: {}, backward: {} }
+  { forward: {}, backward: {}, }
 }
 
 ///|

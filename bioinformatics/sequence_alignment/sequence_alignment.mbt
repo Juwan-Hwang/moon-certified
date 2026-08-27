@@ -149,7 +149,13 @@ pub fn affine_scoring(
   gap_open : Int,
   gap_extend : Int,
 ) -> Scoring {
-  { match_score, mismatch_penalty, gap_penalty: gap_open, gap_open, gap_extend }
+  {
+    match_score,
+    mismatch_penalty,
+    gap_penalty: gap_open,
+    gap_open,
+    gap_extend,
+  }
 }
 
 // ---------------------------------------------------------------------------

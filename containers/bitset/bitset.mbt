@@ -50,7 +50,7 @@ pub fn bitset_new(
 } {
   let cap = if capacity < 0 { 0 } else { capacity }
   let num_words = (cap + 63) / 64
-  { bits: FixedArray::make(num_words, 0UL), capacity: cap }
+  { bits: FixedArray::make(num_words, 0UL), capacity: cap, }
 }
 
 ///|
@@ -109,7 +109,7 @@ pub fn bitset_union(a : BitSet, b : BitSet) -> BitSet {
     let vb = if i < nb { b.bits[i] } else { 0UL }
     result[i] = va | vb
   }
-  { bits: result, capacity: cap }
+  { bits: result, capacity: cap, }
 }
 
 ///|
@@ -122,7 +122,7 @@ pub fn bitset_intersection(a : BitSet, b : BitSet) -> BitSet {
   for i = 0; i < num_words; i = i + 1 {
     result[i] = a.bits[i] & b.bits[i]
   }
-  { bits: result, capacity: cap }
+  { bits: result, capacity: cap, }
 }
 
 ///|
@@ -138,7 +138,7 @@ pub fn bitset_difference(a : BitSet, b : BitSet) -> BitSet {
     let vb = if i < nb { b.bits[i] } else { 0UL }
     result[i] = a.bits[i] & (0xFFFFFFFFFFFFFFFFUL ^ vb)
   }
-  { bits: result, capacity: cap }
+  { bits: result, capacity: cap, }
 }
 
 ///|

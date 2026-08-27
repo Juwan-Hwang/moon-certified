@@ -84,7 +84,7 @@ pub struct GARng {
 /// Create a new RNG with the given seed. Avoids the all-zero state.
 pub fn GARng::new(seed : UInt64) -> GARng {
   let s = if seed == 0UL { 0xDEADBEEFCAFEBABEUL } else { seed }
-  { state: s }
+  { state: s, }
 }
 
 ///|
@@ -254,7 +254,7 @@ pub fn[T] optimize(
       } else {
         child
       }
-      new_pop.push({ individual: mutated, cost: cost(mutated) })
+      new_pop.push({ individual: mutated, cost: cost(mutated), })
     }
     population = new_pop
   }
@@ -265,7 +265,7 @@ pub fn[T] optimize(
     best_cost = population[0].cost
     improvements = improvements + 1
   }
-  { best, best_cost, generations: config.max_generations, improvements }
+  { best, best_cost, generations: config.max_generations, improvements, }
 }
 
 // ---------------------------------------------------------------------------

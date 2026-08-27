@@ -124,7 +124,7 @@ pub fn sparse_svd(
   let kk = if k < m { k } else { m }
   let kk = if kk < n { kk } else { n }
   if kk <= 0 {
-    return { singular_values: [], u_vectors: [], v_vectors: [] }
+    return { singular_values: [], u_vectors: [], v_vectors: [], }
   }
 
   let iters = if max_iter > kk * 2 { max_iter } else { kk * 2 }
@@ -228,7 +228,7 @@ pub fn sparse_svd(
     }
   }
 
-  { singular_values: result_sv, u_vectors: result_u, v_vectors: result_v }
+  { singular_values: result_sv, u_vectors: result_u, v_vectors: result_v, }
 }
 
 ///|

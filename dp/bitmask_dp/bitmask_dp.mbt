@@ -67,7 +67,7 @@ pub fn new_graph(n : Int) -> BitGraph? {
   if n < 0 || n > 60 {
     return None
   }
-  Some({ n, adj: Array::make(n, 0) })
+  Some({ n, adj: Array::make(n, 0), })
 }
 
 ///|

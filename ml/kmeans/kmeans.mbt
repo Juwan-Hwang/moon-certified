@@ -21,7 +21,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -261,7 +261,7 @@ pub fn kmeans_with_seed(
 ) -> KMeansResult {
   let n = points.length()
   if n == 0 {
-    return { centroids: [], assignments: [] }
+    return { centroids: [], assignments: [], }
   }
   let k_eff = if k < 1 { 1 } else if k > n { n } else { k }
   let rng = Rng::new(seed)
@@ -280,7 +280,7 @@ pub fn kmeans_with_seed(
       cur_assignments = new_assignments
     }
   }
-  { centroids: cur_centroids, assignments: cur_assignments }
+  { centroids: cur_centroids, assignments: cur_assignments, }
 }
 
 // ---------------------------------------------------------------------------

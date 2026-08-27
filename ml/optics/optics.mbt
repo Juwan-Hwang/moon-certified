@@ -134,7 +134,7 @@ priv struct SeedHeap {
 
 ///|
 fn heap_new() -> SeedHeap {
-  { heap_key: [], heap_val: [] }
+  { heap_key: [], heap_val: [], }
 }
 
 ///|
@@ -230,7 +230,7 @@ pub fn optics(
 ) -> OpticsResult {
   let n = points.length()
   if n == 0 || eps <= 0.0 || min_pts < 1 {
-    return { ordering: [], reachability: [], core_distances: [], labels: [] }
+    return { ordering: [], reachability: [], core_distances: [], labels: [], }
   }
   // For min_pts == 1, every point is its own neighbour and core_dist = 0.
   // This degenerates to single-linkage; still valid.
@@ -251,7 +251,7 @@ pub fn optics(
       ordering,
     )
   }
-  { ordering, reachability, core_distances, labels: [] }
+  { ordering, reachability, core_distances, labels: [], }
 }
 
 ///|

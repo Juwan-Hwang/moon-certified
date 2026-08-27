@@ -98,10 +98,10 @@ pub struct FractionalCascading {
 pub fn build(arrays : Array[Array[Int64]]) -> FractionalCascading {
   let k = arrays.length()
   if k == 0 {
-    return { levels: [], num_arrays: 0 }
+    return { levels: [], num_arrays: 0, }
   }
   // Build levels from the last to the first.
-  let levels : Array[CascadeLevel] = Array::make(k, { entries: [], values: [] })
+  let levels : Array[CascadeLevel] = Array::make(k, { entries: [], values: [], })
   // Level k-1 (last): just the original array, no sampling.
   let last_arr = arrays[k - 1]
   let last_entries : Array[CascadeEntry] = []
@@ -115,7 +115,7 @@ pub fn build(arrays : Array[Array[Int64]]) -> FractionalCascading {
     })
     last_values.push(last_arr[i])
   }
-  levels[k - 1] = { entries: last_entries, values: last_values }
+  levels[k - 1] = { entries: last_entries, values: last_values, }
   // Build levels k-2 down to 0.
   for lev = k - 2; lev >= 0; lev = lev - 1 {
     let cur_arr = arrays[lev]
@@ -162,9 +162,9 @@ pub fn build(arrays : Array[Array[Int64]]) -> FractionalCascading {
         j = j + 1
       }
     }
-    levels[lev] = { entries, values }
+    levels[lev] = { entries, values, }
   }
-  { levels, num_arrays: k }
+  { levels, num_arrays: k, }
 }
 
 // ---------------------------------------------------------------------------

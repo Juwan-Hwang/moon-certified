@@ -94,7 +94,7 @@ fn from_int(n : Int) -> BigInt {
 /// bit pattern equals `|n|` as an unsigned value).
 fn from_int64(n : Int64) -> BigInt {
   if n == 0L {
-    return { limbs: [0U], is_negative: false }
+    return { limbs: [0U], is_negative: false, }
   }
   let neg = n < 0L
   let u : UInt64 = if neg {
@@ -112,7 +112,7 @@ fn from_int64(n : Int64) -> BigInt {
   let l0 = (u & 0xFFFFFFFFUL).to_uint()
   let l1 = ((u >> 32) & 0xFFFFFFFFUL).to_uint()
   let limbs : Array[UInt] = if l1 != 0U { [l0, l1] } else { [l0] }
-  let b : BigInt = { limbs, is_negative: neg }
+  let b : BigInt = { limbs, is_negative: neg, }
   trim(b)
   b
 }
@@ -124,7 +124,7 @@ pub fn copy(b : BigInt) -> BigInt {
   for i = 0; i < b.limbs.length(); i = i + 1 {
     limbs.push(b.limbs[i])
   }
-  { limbs, is_negative: b.is_negative }
+  { limbs, is_negative: b.is_negative, }
 }
 
 ///|
@@ -590,22 +590,22 @@ pub fn from_uint64_value(n : UInt64) -> BigInt {
   let lo = (n & 0xFFFFFFFFUL).to_uint()
   let hi = (n >> 32).to_uint()
   if hi == 0U {
-    { limbs: [lo], is_negative: false }
+    { limbs: [lo], is_negative: false, }
   } else {
-    { limbs: [lo, hi], is_negative: false }
+    { limbs: [lo, hi], is_negative: false, }
   }
 }
 
 ///|
 /// Create BigInt zero.
 pub fn zero() -> BigInt {
-  { limbs: [0U], is_negative: false }
+  { limbs: [0U], is_negative: false, }
 }
 
 ///|
 /// Create BigInt one.
 pub fn one() -> BigInt {
-  { limbs: [1U], is_negative: false }
+  { limbs: [1U], is_negative: false, }
 }
 
 ///|
@@ -880,7 +880,7 @@ pub fn add(a : BigInt, b : BigInt) -> BigInt {
   if a.is_negative == b.is_negative {
     // Same sign: add magnitudes.
     let result_limbs = uadd(a.limbs, b.limbs)
-    let result : BigInt = { limbs: result_limbs, is_negative: a.is_negative }
+    let result : BigInt = { limbs: result_limbs, is_negative: a.is_negative, }
     trim(result)
     result
   } else {
@@ -892,13 +892,13 @@ pub fn add(a : BigInt, b : BigInt) -> BigInt {
     if cmp > 0 {
       // |a| > |b|
       let result_limbs = usub(a.limbs, b.limbs)
-      let result : BigInt = { limbs: result_limbs, is_negative: a.is_negative }
+      let result : BigInt = { limbs: result_limbs, is_negative: a.is_negative, }
       trim(result)
       result
     } else {
       // |b| > |a|
       let result_limbs = usub(b.limbs, a.limbs)
-      let result : BigInt = { limbs: result_limbs, is_negative: b.is_negative }
+      let result : BigInt = { limbs: result_limbs, is_negative: b.is_negative, }
       trim(result)
       result
     }
@@ -1102,7 +1102,7 @@ pub fn shl(b : BigInt, n : Int) -> BigInt {
     }
     result[b.limbs.length() + limb_shift] = carry
   }
-  let r : BigInt = { limbs: result, is_negative: b.is_negative }
+  let r : BigInt = { limbs: result, is_negative: b.is_negative, }
   trim(r)
   r
 }
@@ -1135,7 +1135,7 @@ pub fn shr(b : BigInt, n : Int) -> BigInt {
       result[i] = (cur >> bit_shift) | (next << (32 - bit_shift))
     }
   }
-  let r : BigInt = { limbs: result, is_negative: b.is_negative }
+  let r : BigInt = { limbs: result, is_negative: b.is_negative, }
   trim(r)
   r
 }
@@ -1152,7 +1152,7 @@ pub fn bit_and(a : BigInt, b : BigInt) -> BigInt {
   for i = 0; i < n; i = i + 1 {
     result[i] = a.limbs[i] & b.limbs[i]
   }
-  let r : BigInt = { limbs: result, is_negative: false }
+  let r : BigInt = { limbs: result, is_negative: false, }
   trim(r)
   r
 }
@@ -1171,7 +1171,7 @@ pub fn bit_or(a : BigInt, b : BigInt) -> BigInt {
     let bv = if i < b.limbs.length() { b.limbs[i] } else { 0U }
     result[i] = av | bv
   }
-  let r : BigInt = { limbs: result, is_negative: false }
+  let r : BigInt = { limbs: result, is_negative: false, }
   trim(r)
   r
 }
@@ -1190,7 +1190,7 @@ pub fn bit_xor(a : BigInt, b : BigInt) -> BigInt {
     let bv = if i < b.limbs.length() { b.limbs[i] } else { 0U }
     result[i] = av ^ bv
   }
-  let r : BigInt = { limbs: result, is_negative: false }
+  let r : BigInt = { limbs: result, is_negative: false, }
   trim(r)
   r
 }
@@ -1333,7 +1333,7 @@ pub fn barrett_new(modulus : BigInt) -> BarrettCtx {
   }
   // Precompute b^(k+1) for Barrett reduction step 7 (add-back).
   let b_k1 = shl(one(), 32 * (k + 1))
-  { modulus: copy(modulus), mu, k, b_k1 }
+  { modulus: copy(modulus), mu, k, b_k1, }
 }
 
 ///|
@@ -1378,7 +1378,7 @@ fn mask_limbs(b : BigInt, n : Int) -> BigInt {
     result.push(b.limbs[i])
   }
   // Trim in case the masked-out high limbs were the only nonzero part
-  let r : BigInt = { limbs: result, is_negative: false }
+  let r : BigInt = { limbs: result, is_negative: false, }
   trim(r)
   r
 }

@@ -178,7 +178,7 @@ pub fn build(adj : Array[Array[Int]], n : Int) -> CentroidDecomp {
     }
   }
 
-  { n, centroid_parent, centroid_depth, root: root_centroid }
+  { n, centroid_parent, centroid_depth, root: root_centroid, }
 }
 
 // ---------------------------------------------------------------------------

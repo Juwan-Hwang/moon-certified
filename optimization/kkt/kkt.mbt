@@ -58,7 +58,7 @@ pub fn KktSystem::new(
   mu : Array[Double],
   n : Int,
 ) -> KktSystem {
-  { hessian, grad, a_ineq, b_ineq, a_eq, b_eq, lambda, mu, n }
+  { hessian, grad, a_ineq, b_ineq, a_eq, b_eq, lambda, mu, n, }
 }
 
 ///|
@@ -332,7 +332,7 @@ pub fn solve_kkt(
       mu[j] = mu[j] + alpha_d * step[n + j]
     }
   }
-  { x, lambda, mu, converged, iterations: iter }
+  { x, lambda, mu, converged, iterations: iter, }
 }
 
 ///|

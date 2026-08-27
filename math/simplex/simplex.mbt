@@ -145,7 +145,7 @@ fn Tableau::build(
       basis.push(n + i)
     }
   }
-  { tab, basis, artificial, ncols, m, n, num_art }
+  { tab, basis, artificial, ncols, m, n, num_art, }
 }
 
 ///|

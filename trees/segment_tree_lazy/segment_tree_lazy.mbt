@@ -99,10 +99,10 @@ pub fn build(arr : FixedArray[Int]) -> LazySegTree {
   for i = 0; i < n; i = i + 1 {
     values[i] = arr[i].to_int64()
   }
-  let st : LazySegTree = { nodes: [], n, values }
+  let st : LazySegTree = { nodes: [], n, values, }
   // Allocate 4*n nodes.
   for i = 0; i < 4 * n + 4; i = i + 1 {
-    st.nodes.push({ sum: 0L, mn: INF_LAZY, mx: NEG_INF_LAZY, lazy_val: 0L })
+    st.nodes.push({ sum: 0L, mn: INF_LAZY, mx: NEG_INF_LAZY, lazy_val: 0L, })
   }
   if n > 0 {
     build_helper(st, arr, 1, 0, n - 1)

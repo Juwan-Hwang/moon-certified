@@ -64,7 +64,7 @@ pub struct CountedBTree {
 ///|
 /// Create a new counted B-tree.
 pub fn CountedBTree::new() -> CountedBTree {
-  { root: counted_node_new(true), size: 0 }
+  { root: counted_node_new(true), size: 0, }
 }
 
 ///|

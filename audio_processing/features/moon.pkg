@@ -1,8 +1,8 @@
 import {
   "moonbitlang/core/math",
-  "moon-certified/math/fft",
-  "moon-certified/math/dct",
-  "moon-certified/signal_processing/filter_design",
+  "Juwan-Hwang/moon-certified/math/fft",
+  "Juwan-Hwang/moon-certified/math/dct",
+  "Juwan-Hwang/moon-certified/signal_processing/filter_design",
 }
 
 options(

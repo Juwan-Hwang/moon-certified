@@ -188,7 +188,7 @@ pub fn pq_train(
   seed : Int,
 ) -> PQModel {
   if n_subquantizers <= 0 || dim % n_subquantizers != 0 {
-    return { sub_dim: 0, n_subquantizers: 0, n_centroids: 0, centroids: [] }
+    return { sub_dim: 0, n_subquantizers: 0, n_centroids: 0, centroids: [], }
   }
   let sub_dim = dim / n_subquantizers
   let total_centroids = n_subquantizers * n_centroids * sub_dim
@@ -213,7 +213,7 @@ pub fn pq_train(
       centroids[sq * n_centroids * sub_dim + idx] = sub_centroids[idx]
     }
   }
-  { sub_dim, n_subquantizers, n_centroids, centroids }
+  { sub_dim, n_subquantizers, n_centroids, centroids, }
 }
 
 ///|
@@ -250,7 +250,7 @@ pub fn pq_encode_batch(
   data : Array[Double],
   n : Int,
 ) -> Array[PQCode] {
-  let result = Array::make(n, { codes: [] })
+  let result = Array::make(n, { codes: [], })
   let dim = model.sub_dim * model.n_subquantizers
   for i = 0; i < n; i = i + 1 {
     let vec = Array::make(dim, 0.0)
@@ -420,9 +420,9 @@ pub fn pq_search(
     indices[i] = indices[min_idx]
     indices[min_idx] = tmp
   }
-  let result = Array::make(kk, { index: 0, distance: 0.0 })
+  let result = Array::make(kk, { index: 0, distance: 0.0, })
   for i = 0; i < kk; i = i + 1 {
-    result[i] = { index: indices[i], distance: distances[indices[i]] }
+    result[i] = { index: indices[i], distance: distances[indices[i]], }
   }
   result
 }

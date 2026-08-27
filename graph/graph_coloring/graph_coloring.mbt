@@ -77,7 +77,7 @@ pub fn color_count(c : Coloring) -> Int {
 /// O(V² + E).
 pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
   if n == 0 {
-    return { colors: FixedArray::make(0, 0), num_colors: 0 }
+    return { colors: FixedArray::make(0, 0), num_colors: 0, }
   }
   let colors = FixedArray::make(n, -1)
   // Saturation degree: number of distinct colours among neighbours.
@@ -139,7 +139,7 @@ pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
     }
   }
 
-  { colors, num_colors }
+  { colors, num_colors, }
 }
 
 // ---------------------------------------------------------------------------
@@ -155,7 +155,7 @@ pub fn dsatur(adj : Array[Array[Int]], n : Int) -> Coloring {
 /// O(V + E).
 pub fn greedy_color(adj : Array[Array[Int]], n : Int) -> Coloring {
   if n == 0 {
-    return { colors: FixedArray::make(0, 0), num_colors: 0 }
+    return { colors: FixedArray::make(0, 0), num_colors: 0, }
   }
   let colors = FixedArray::make(n, -1)
   let mut num_colors = 0
@@ -186,7 +186,7 @@ pub fn greedy_color(adj : Array[Array[Int]], n : Int) -> Coloring {
       num_colors = c + 1
     }
   }
-  { colors, num_colors }
+  { colors, num_colors, }
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ pub fn greedy_color(adj : Array[Array[Int]], n : Int) -> Coloring {
 /// O(V log V + E).
 pub fn welsh_powell(adj : Array[Array[Int]], n : Int) -> Coloring {
   if n == 0 {
-    return { colors: FixedArray::make(0, 0), num_colors: 0 }
+    return { colors: FixedArray::make(0, 0), num_colors: 0, }
   }
   // Sort vertex indices by descending degree.
   let order : Array[Int] = []
@@ -236,7 +236,7 @@ pub fn welsh_powell(adj : Array[Array[Int]], n : Int) -> Coloring {
       num_colors = c + 1
     }
   }
-  { colors, num_colors }
+  { colors, num_colors, }
 }
 
 // ---------------------------------------------------------------------------
@@ -413,14 +413,14 @@ test "dsatur: wheel graph W5 (5-cycle + hub)" {
 ///|
 test "is_valid_coloring: rejects invalid colouring" {
   let adj : Array[Array[Int]] = [[1], [0]]
-  let bad = { colors: FixedArray::make(2, 0), num_colors: 1 }
+  let bad = { colors: FixedArray::make(2, 0), num_colors: 1, }
   assert_false(is_valid_coloring(adj, 2, bad))
 }
 
 ///|
 test "is_valid_coloring: accepts valid colouring" {
   let adj : Array[Array[Int]] = [[1], [0]]
-  let good = { colors: FixedArray::make(2, 0), num_colors: 2 }
+  let good = { colors: FixedArray::make(2, 0), num_colors: 2, }
   good.colors[1] = 1
   assert_true(is_valid_coloring(adj, 2, good))
 }

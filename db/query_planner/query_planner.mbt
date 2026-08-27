@@ -242,7 +242,7 @@ pub fn choose_scan_method(
 ///|
 /// Build a sample plan tree for API documentation and type validation.
 fn _sample_plan() -> PlanNode {
-  let t : TableStats = { name: "t", n_rows: 100, n_pages: 10, indexes: [] }
+  let t : TableStats = { name: "t", n_rows: 100, n_pages: 10, indexes: [], }
   let _ = t
   Project(
     ["id"],

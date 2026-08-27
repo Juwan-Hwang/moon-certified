@@ -344,7 +344,7 @@ priv struct Point {
 
 ///|
 fn point_infinity() -> Point {
-  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero(), }
 }
 
 ///|
@@ -388,7 +388,7 @@ fn point_double(pt : Point, params : CurveParams) -> Point {
     p,
   ) // Y3 = E*(D - X3) - 8*C
   let z3 = fe_mul(fe_mul(@bigint.from_int_value(2), y, p), z, p) // Z3 = 2*Y*Z
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -434,7 +434,7 @@ fn point_add(p1 : Point, p2 : Point, params : CurveParams) -> Point {
   )
   let y3 = fe_sub(fe_mul(r, fe_sub(u1_h_2, x3, p), p), fe_mul(s1, h_3, p), p)
   let z3 = fe_mul(fe_mul(z1, z2, p), h, p)
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -493,7 +493,7 @@ fn to_affine(
 
 ///|
 fn generator_point(params : CurveParams) -> Point {
-  { x: params.gx, y: params.gy, z: @bigint.one() }
+  { x: params.gx, y: params.gy, z: @bigint.one(), }
 }
 
 // ===========================================================================
@@ -550,7 +550,7 @@ fn point_decode_uncompressed(data : Bytes, params : CurveParams) -> Point? {
   if !@bigint.equal(lhs, rhs) {
     return None
   }
-  Some({ x, y, z: @bigint.one() })
+  Some({ x, y, z: @bigint.one(), })
 }
 
 // ===========================================================================

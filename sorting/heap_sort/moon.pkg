@@ -1,6 +1,6 @@
 import {
-  "moon-certified/test/test_utils",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/test/test_utils",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

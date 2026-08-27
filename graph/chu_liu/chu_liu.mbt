@@ -60,7 +60,7 @@ pub fn min_arborescence(
   for i = 0; i < edges.length(); i = i + 1 {
     let (f, t, c) = edges[i]
     if t != root && f >= 0 && f < n && t >= 0 && t < n {
-      edge_list.push({ from: f, to: t, cost: c })
+      edge_list.push({ from: f, to: t, cost: c, })
     }
   }
   let result = chu_liu_edmonds(n, edge_list, root)
@@ -165,7 +165,7 @@ fn chu_liu_edmonds(n : Int, edges : Array[DirEdge], root : Int) -> Int {
           cost: e.cost - min_cost[e.to],
         })
       } else {
-        new_edges.push({ from: nf, to: nt, cost: e.cost })
+        new_edges.push({ from: nf, to: nt, cost: e.cost, })
       }
     }
   }

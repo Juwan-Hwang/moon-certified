@@ -143,7 +143,7 @@ pub fn SuffixBalancedTree::from_array(text : Array[Int]) -> SuffixBalancedTree {
     sorted[i] = i
   }
   merge_sort_suffixes(text, sorted)
-  { text, sorted }
+  { text, sorted, }
 }
 
 ///|

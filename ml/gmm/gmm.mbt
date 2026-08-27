@@ -39,7 +39,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int) -> Rng {
   let s = seed & 0x7FFFFFFF
-  { state: if s == 0 { 1 } else { s } }
+  { state: if s == 0 { 1 } else { s }, }
 }
 
 ///|
@@ -181,7 +181,7 @@ pub fn fit(
   let n = data.length()
   let d = if n > 0 { data[0].length() } else { 0 }
   if n == 0 || k <= 0 || d == 0 {
-    return { components: [], log_likelihood: 0.0, iterations: 0 }
+    return { components: [], log_likelihood: 0.0, iterations: 0, }
   }
   let kk = if k > n { n } else { k }
   let rng = Rng::new(seed)
@@ -327,7 +327,7 @@ pub fn fit(
       break
     }
   }
-  { components, log_likelihood: prev_ll, iterations: iter }
+  { components, log_likelihood: prev_ll, iterations: iter, }
 }
 
 ///|

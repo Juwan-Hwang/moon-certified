@@ -101,7 +101,7 @@ fn get_or_create_position(portfolio : Portfolio, symbol : String) -> Position {
       return pos
     }
   }
-  let pos : Position = { quantity: 0.0, avg_price: 0.0 }
+  let pos : Position = { quantity: 0.0, avg_price: 0.0, }
   portfolio.positions.push((symbol, pos))
   pos
 }
@@ -625,7 +625,7 @@ test "backtest: buy and hold single asset" {
     if step == 0 {
       let price = 100.0
       let qty = (portfolio.cash / price).floor()
-      return [{ symbol: "AAPL", quantity: qty }]
+      return [{ symbol: "AAPL", quantity: qty, }]
     }
     []
   })
@@ -657,7 +657,7 @@ test "backtest: multi-asset portfolio" {
         let (sym, price) = prices[j]
         let qty = (portfolio.cash * 0.5 / price).floor()
         if qty > 0.0 {
-          orders.push({ symbol: sym, quantity: qty })
+          orders.push({ symbol: sym, quantity: qty, })
         }
       }
       orders
@@ -688,7 +688,7 @@ test "backtest: commission reduces returns" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -702,7 +702,7 @@ test "backtest: commission reduces returns" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -824,7 +824,7 @@ test "slippage: zero slippage fills at reference price" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -850,7 +850,7 @@ test "slippage: fixed bps increases buy cost" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -866,7 +866,7 @@ test "slippage: fixed bps increases buy cost" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -890,7 +890,7 @@ test "slippage: sqrt impact scales with order size" {
     zero_commission(),
     sqrt_impact_slippage(0.5),
     10000.0, // ADV
-    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 10.0 }] },
+    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 10.0, }] },
   )
   // Large order: 1000 shares (10% of ADV)
   let result_large = run_backtest_with_slippage(
@@ -900,7 +900,7 @@ test "slippage: sqrt impact scales with order size" {
     zero_commission(),
     sqrt_impact_slippage(0.5),
     10000.0, // ADV
-    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 1000.0 }] },
+    fn(_step, _prices, _portfolio) { [{ symbol: "AAPL", quantity: 1000.0, }] },
   )
   // Both buy at step 0, price stays at 100, so equity = cash - cost of buying
   // Large order has more impact → higher fill price → more cost → lower equity
@@ -927,7 +927,7 @@ test "slippage: missing price skips order" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }
@@ -953,7 +953,7 @@ test "slippage: zero/negative price treated as halt" {
     fn(step, _prices, portfolio) {
       if step == 0 {
         let qty = (portfolio.cash / 100.0).floor()
-        [{ symbol: "AAPL", quantity: qty }]
+        [{ symbol: "AAPL", quantity: qty, }]
       } else {
         []
       }

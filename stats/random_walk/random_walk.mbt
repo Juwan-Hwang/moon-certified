@@ -68,7 +68,7 @@ pub fn RWState::new(seed : Int64) -> RWState {
     x = x ^ (x >> 7)
     x = x ^ (x << 17)
   }
-  { state: x }
+  { state: x, }
 }
 
 ///|
@@ -268,7 +268,7 @@ pub fn simulate_gaussian(
       min_pos = pos
     }
   }
-  { final_position: pos, max_position: max_pos, min_position: min_pos, path }
+  { final_position: pos, max_position: max_pos, min_position: min_pos, path, }
 }
 
 // ---------------------------------------------------------------------------
@@ -312,7 +312,7 @@ pub fn simulate_multidim(
   for d = 0; d < dim; d = d + 1 {
     rsq = rsq + pos[d] * pos[d]
   }
-  { final_position: pos, r_squared: rsq, path }
+  { final_position: pos, r_squared: rsq, path, }
 }
 
 // ---------------------------------------------------------------------------
@@ -345,7 +345,7 @@ pub fn simulate_custom(
       min_pos = pos
     }
   }
-  { final_position: pos, max_position: max_pos, min_position: min_pos, path }
+  { final_position: pos, max_position: max_pos, min_position: min_pos, path, }
 }
 
 // ---------------------------------------------------------------------------

@@ -178,7 +178,7 @@ pub fn flow_graph(n : Int) -> FlowGraph {
   for _ in 0..<n {
     adj.push([])
   }
-  { adj, n }
+  { adj, n, }
 }
 
 ///|
@@ -194,9 +194,9 @@ pub fn add_edge(graph : FlowGraph, from : Int, to : Int, cap : Int) -> Unit {
     return
   }
   // Forward edge: capacity = cap, rev points to the reverse edge in adj[to].
-  let fwd = { to, cap, rev: graph.adj[to].length() }
+  let fwd = { to, cap, rev: graph.adj[to].length(), }
   // Reverse edge: capacity = 0 (no initial flow), rev points to fwd in adj[from].
-  let rev = { to: from, cap: 0, rev: graph.adj[from].length() }
+  let rev = { to: from, cap: 0, rev: graph.adj[from].length(), }
   graph.adj[from].push(fwd)
   graph.adj[to].push(rev)
 }

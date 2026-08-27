@@ -104,7 +104,7 @@ pub fn[T] CartesianTree::from_array(
   // Initialize nodes
   let nodes : Array[CtNode] = []
   for i = 0; i < n; i = i + 1 {
-    nodes.push({ parent: -1, left: -1, right: -1 })
+    nodes.push({ parent: -1, left: -1, right: -1, })
   }
   // Stack-based O(n) construction.
   // Stack holds indices of nodes on the rightmost path.

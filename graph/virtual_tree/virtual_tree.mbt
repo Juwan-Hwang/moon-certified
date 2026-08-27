@@ -177,7 +177,7 @@ pub fn build(
       up[k][v] = up[k - 1][up[k - 1][v]]
     }
   }
-  { up, depth, tin, tout, log_n, n, root }
+  { up, depth, tin, tout, log_n, n, root, }
 }
 
 ///|
@@ -217,7 +217,7 @@ pub fn build_virtual(
 ) -> VirtualTree {
   let k = vertices_in.length()
   if k == 0 {
-    return { adj: [], vertices: [], root: -1 }
+    return { adj: [], vertices: [], root: -1, }
   }
   // Work on a copy sorted by DFS entry time.
   let verts : Array[Int] = []
@@ -288,7 +288,7 @@ pub fn build_virtual(
     adj[pos[b]].push(a)
     let _ = stack.pop()
   }
-  { adj, vertices: uniq, root: uniq[0] }
+  { adj, vertices: uniq, root: uniq[0], }
 }
 
 // ---------------------------------------------------------------------------

@@ -84,7 +84,7 @@ fn new_model() -> FreqModel {
     total = total + freq[i]
   }
   cum[NUM_SYMBOLS] = total
-  { freq, cum, total }
+  { freq, cum, total, }
 }
 
 ///|
@@ -114,7 +114,7 @@ priv struct BitWriter {
 
 ///|
 fn new_writer() -> BitWriter {
-  { buffer: [], current: 0U, bit_count: 0 }
+  { buffer: [], current: 0U, bit_count: 0, }
 }
 
 ///|
@@ -149,7 +149,7 @@ priv struct BitReader {
 
 ///|
 fn new_reader(data : Bytes) -> BitReader {
-  { data, pos: 0, current: 0U, bit_count: 0 }
+  { data, pos: 0, current: 0U, bit_count: 0, }
 }
 
 ///|

@@ -68,7 +68,7 @@ priv struct Rng {
 ///|
 fn Rng::new(seed : Int64) -> Rng {
   let s = if seed == 0L { 0x9E3779B97F4A7C15L } else { seed }
-  { state: s.reinterpret_as_uint64() }
+  { state: s.reinterpret_as_uint64(), }
 }
 
 ///|
@@ -109,13 +109,13 @@ priv struct ECCurve {
 ///|
 /// The point at infinity (identity element of the group).
 fn infinity() -> ECPoint {
-  { x: 0L, y: 0L, is_inf: true }
+  { x: 0L, y: 0L, is_inf: true, }
 }
 
 ///|
 /// A finite point (x, y).
 fn point(x : Int64, y : Int64) -> ECPoint {
-  { x, y, is_inf: false }
+  { x, y, is_inf: false, }
 }
 
 ///|
@@ -124,7 +124,7 @@ fn neg(p : ECPoint) -> ECPoint {
   if p.is_inf {
     return p
   }
-  { x: p.x, y: -p.y, is_inf: false }
+  { x: p.x, y: -p.y, is_inf: false, }
 }
 
 ///|
@@ -666,7 +666,7 @@ pub fn verify(cert : EcppCert) -> Bool {
       return false
     }
     // 2. P is on the curve.
-    let curve : ECCurve = { a: step.a, b: step.b, n }
+    let curve : ECCurve = { a: step.a, b: step.b, n, }
     let p = point(step.px, step.py)
     let lhs = @int64_utils.mul_mod(p.y, p.y, n)
     let x_sq = @int64_utils.mul_mod(p.x, p.x, n)
@@ -748,7 +748,7 @@ fn find_step(n : Int64, rng : Rng) -> CertStep? {
     if @int64_utils.mod64(a3 + b2, n) == 0L {
       continue
     }
-    let curve : ECCurve = { a, b, n }
+    let curve : ECCurve = { a, b, n, }
     // Count the curve order.
     let m = match curve_order(curve, rng) {
       Some(v) => v
@@ -808,7 +808,7 @@ fn find_step(n : Int64, rng : Rng) -> CertStep? {
               Point(qp) =>
                 if qp.is_inf {
                   // Found a valid point!
-                  return Some({ n, a, b, px: x, py: 0L, m, q })
+                  return Some({ n, a, b, px: x, py: 0L, m, q, })
                 }
               FactorFound(_) => continue
             }
@@ -839,7 +839,7 @@ fn find_step(n : Int64, rng : Rng) -> CertStep? {
             Point(qp) =>
               if qp.is_inf {
                 found_point = true
-                return Some({ n, a, b, px: x, py: y, m, q })
+                return Some({ n, a, b, px: x, py: y, m, q, })
               }
             FactorFound(_) => continue
           }
@@ -909,7 +909,7 @@ pub fn prove(n : Int64) -> EcppCert? {
   if !is_prime_small(current_n) {
     return None
   }
-  Some({ steps, trivial: 0L })
+  Some({ steps, trivial: 0L, })
 }
 
 ///|
@@ -930,12 +930,12 @@ fn prove_small(n : Int64) -> EcppCert? {
   for _round = 0; _round < 20; _round = _round + 1 {
     let rng = Rng::new(seed)
     match find_step(n, rng) {
-      Some(step) => return Some({ steps: [step], trivial: 0L })
+      Some(step) => return Some({ steps: [step], trivial: 0L, })
       None => seed = seed + 1000003L
     }
   }
   // Trial-division certificate (exact proof for small n).
-  Some({ steps: [], trivial: n })
+  Some({ steps: [], trivial: n, })
 }
 
 ///|

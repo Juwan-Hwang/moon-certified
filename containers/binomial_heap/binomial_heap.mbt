@@ -78,7 +78,7 @@ pub struct BinomialHeap[T] {
 ///|
 /// Create an empty binomial heap with the given comparator.
 pub fn[T] new(compare : (T, T) -> Int) -> BinomialHeap[T] {
-  { roots: [], compare, count: 0 }
+  { roots: [], compare, count: 0, }
 }
 
 // ---------------------------------------------------------------------------
@@ -131,10 +131,10 @@ fn[T] link(
   if compare(t1.val, t2.val) <= 0 {
     // t1 becomes root, t2 becomes its leftmost child.
     t1.children.push(t2)
-    { val: t1.val, degree: t1.degree + 1, children: t1.children }
+    { val: t1.val, degree: t1.degree + 1, children: t1.children, }
   } else {
     t2.children.push(t1)
-    { val: t2.val, degree: t2.degree + 1, children: t2.children }
+    { val: t2.val, degree: t2.degree + 1, children: t2.children, }
   }
 }
 
@@ -206,7 +206,7 @@ fn[T] merge_roots(
 ///|
 /// Insert a value into the heap. O(log n).
 pub fn[T] insert(heap : BinomialHeap[T], val : T) -> Unit {
-  let node : BinomialNode[T] = { val, degree: 0, children: [] }
+  let node : BinomialNode[T] = { val, degree: 0, children: [], }
   let single : Array[BinomialNode[T]] = [node]
   heap.roots = merge_roots(heap.roots, single, heap.compare)
   heap.count = heap.count + 1

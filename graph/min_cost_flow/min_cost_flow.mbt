@@ -82,7 +82,7 @@ pub fn min_cost_flow(
   supply : FixedArray[Int],
 ) -> MCFResult? {
   if n <= 0 {
-    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L), })
   }
   // Check supply balance.
   let mut total_supply = 0L
@@ -100,7 +100,7 @@ pub fn min_cost_flow(
         return None
       }
     }
-    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L) })
+    return Some(MCFResult::{ total_cost: 0L, flows: FixedArray::make(0, 0L), })
   }
   // Build residual graph.
   // Each arc i generates:
@@ -252,7 +252,7 @@ pub fn min_cost_flow(
   for i = 0; i < m; i = i + 1 {
     total_cost = total_cost + real_flows[i] * arcs_cost[i].to_int64()
   }
-  Some(MCFResult::{ total_cost, flows: real_flows })
+  Some(MCFResult::{ total_cost, flows: real_flows, })
 }
 
 // ---------------------------------------------------------------------------

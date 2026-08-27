@@ -43,9 +43,9 @@ struct Prng {
 /// Create a PRNG with the given 64-bit seed.
 fn Prng::new(seed : Int64) -> Prng {
   if seed == 0L {
-    { state: 88172645463325252L } // default seed
+    { state: 88172645463325252L, } // default seed
   } else {
-    { state: seed }
+    { state: seed, }
   }
 }
 

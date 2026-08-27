@@ -55,7 +55,7 @@ pub struct DPoint {
 ///|
 /// Construct a [`DPoint`].
 pub fn dpoint(x : Double, y : Double) -> DPoint {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -72,7 +72,7 @@ pub struct HalfPlane {
 /// Construct a [`HalfPlane`] — the region to the left of the directed line
 /// `p -> q`.
 pub fn half_plane(p : DPoint, q : DPoint) -> HalfPlane {
-  { p, q }
+  { p, q, }
 }
 
 // ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ fn dot_v(a : DPoint, b : DPoint) -> Double {
 ///|
 /// Direction vector of a half-plane (`q - p`).
 fn hp_dir(h : HalfPlane) -> DPoint {
-  { x: h.q.x - h.p.x, y: h.q.y - h.p.y }
+  { x: h.q.x - h.p.x, y: h.q.y - h.p.y, }
 }
 
 ///|
@@ -136,10 +136,10 @@ fn hp_intersect(a : HalfPlane, b : HalfPlane) -> DPoint {
   let denom = cross_v(da, db)
   let mag = if denom < 0.0 { -denom } else { denom }
   if mag < 1.0e-12 {
-    return { x: 1.0e15, y: 1.0e15 }
+    return { x: 1.0e15, y: 1.0e15, }
   }
-  let t = cross_v({ x: b.p.x - a.p.x, y: b.p.y - a.p.y }, db) / denom
-  { x: a.p.x + t * da.x, y: a.p.y + t * da.y }
+  let t = cross_v({ x: b.p.x - a.p.x, y: b.p.y - a.p.y, }, db) / denom
+  { x: a.p.x + t * da.x, y: a.p.y + t * da.y, }
 }
 
 // ---------------------------------------------------------------------------
@@ -210,10 +210,10 @@ pub fn intersect(half_planes : Array[HalfPlane]) -> Array[DPoint] {
   for i = 0; i < n0; i = i + 1 {
     hps.push(half_planes[i])
   }
-  hps.push({ p: { x: lo, y: lo }, q: { x: hi, y: lo } }) // bottom: y >= lo
-  hps.push({ p: { x: hi, y: lo }, q: { x: hi, y: hi } }) // right:  x <= hi
-  hps.push({ p: { x: hi, y: hi }, q: { x: lo, y: hi } }) // top:    y <= hi
-  hps.push({ p: { x: lo, y: hi }, q: { x: lo, y: lo } }) // left:   x >= lo
+  hps.push({ p: { x: lo, y: lo, }, q: { x: hi, y: lo, }, }) // bottom: y >= lo
+  hps.push({ p: { x: hi, y: lo, }, q: { x: hi, y: hi, }, }) // right:  x <= hi
+  hps.push({ p: { x: hi, y: hi, }, q: { x: lo, y: hi, }, }) // top:    y <= hi
+  hps.push({ p: { x: lo, y: hi, }, q: { x: lo, y: lo, }, }) // left:   x >= lo
   hps.sort_by(cmp_angle)
 
   // Deduplicate parallel same-direction half-planes, keeping the single

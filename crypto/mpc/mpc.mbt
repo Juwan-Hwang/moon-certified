@@ -193,7 +193,7 @@ pub fn shamir_split(
   }
   let shares : Array[ShamirShare] = []
   for x = 1; x <= n; x = x + 1 {
-    shares.push({ x, y: mpc_poly_eval(coeffs, x) })
+    shares.push({ x, y: mpc_poly_eval(coeffs, x), })
   }
   shares
 }
@@ -286,7 +286,7 @@ pub fn mpc_secure_mul(
   }
   let result : Array[ShamirShare] = []
   for j = 0; j < n; j = j + 1 {
-    result.push({ x: shares_a[j].x, y: accum[j] })
+    result.push({ x: shares_a[j].x, y: accum[j], })
   }
   result
 }

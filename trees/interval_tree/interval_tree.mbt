@@ -51,7 +51,7 @@ pub struct IntervalTree {
 ///|
 /// Create an empty interval tree.
 pub fn new() -> IntervalTree {
-  { root: None, size: 0 }
+  { root: None, size: 0, }
 }
 
 ///|
@@ -60,14 +60,14 @@ pub fn insert(tree : IntervalTree, lo : Int, hi : Int, data : Int) -> Unit {
   if hi <= lo {
     return
   }
-  tree.root = insert_node(tree.root, { lo, hi, data })
+  tree.root = insert_node(tree.root, { lo, hi, data, })
   tree.size = tree.size + 1
 }
 
 ///|
 fn insert_node(root : Node?, interval : Interval) -> Node? {
   match root {
-    None => Some({ interval, max_hi: interval.hi, left: None, right: None })
+    None => Some({ interval, max_hi: interval.hi, left: None, right: None, })
     Some(node) => {
       if interval.lo < node.interval.lo {
         node.left = insert_node(node.left, interval)

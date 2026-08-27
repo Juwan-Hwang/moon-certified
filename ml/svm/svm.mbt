@@ -114,7 +114,7 @@ pub fn make_config(
   tol : Double,
   eps : Double,
 ) -> SVMConfig {
-  { c, max_iter, tol, eps, kernel: Linear, gamma: 0.0, degree: 3, coef0: 0.0 }
+  { c, max_iter, tol, eps, kernel: Linear, gamma: 0.0, degree: 3, coef0: 0.0, }
 }
 
 ///|
@@ -138,7 +138,7 @@ pub fn make_kernel_config(
   degree : Int,
   coef0 : Double,
 ) -> SVMConfig {
-  { c, max_iter, tol, eps, kernel, gamma, degree, coef0 }
+  { c, max_iter, tol, eps, kernel, gamma, degree, coef0, }
 }
 
 ///|
@@ -572,7 +572,7 @@ pub fn train_multiclass(
       None => return None
     }
   }
-  Some({ models, classes })
+  Some({ models, classes, })
 }
 
 ///|

@@ -8,7 +8,7 @@
 /// G2 curve coefficient b' = 4(1+u) in Fp2
 pub fn g2_b() -> Fp2 {
   let four = @bigint.from_int_value(4)
-  { c0: four, c1: four } // 4 + 4u = 4(1+u)
+  { c0: four, c1: four, } // 4 + 4u = 4(1+u)
 }
 
 ///|
@@ -64,7 +64,7 @@ pub struct G2Point {
 ///|
 /// G2 point at infinity (identity): (0, 1, 0) in Fp2
 pub fn g2_identity() -> G2Point {
-  { x: fp2_zero(), y: fp2_one(), z: fp2_zero() }
+  { x: fp2_zero(), y: fp2_one(), z: fp2_zero(), }
 }
 
 ///|
@@ -75,7 +75,7 @@ pub fn g2_is_identity(p : G2Point) -> Bool {
 ///|
 /// G2 generator point
 pub fn g2_generator() -> G2Point {
-  { x: g2_gx(), y: g2_gy(), z: fp2_one() }
+  { x: g2_gx(), y: g2_gy(), z: fp2_one(), }
 }
 
 ///|
@@ -107,7 +107,7 @@ pub fn g2_double(p : G2Point) -> G2Point {
   }
   let y3 = fp2_sub(fp2_mul(e, d_x3), eight_c) // Y3 = E*(D - X3) - 8*C
   let z3 = fp2_mul(fp2_add(p.y, p.y), p.z) // Z3 = 2*Y*Z
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -158,7 +158,7 @@ pub fn g2_add(p : G2Point, q : G2Point) -> G2Point {
     let two = @bigint.from_int_value(2)
     fp2_mul(fp2_mul_fp(z1z2, two), h) // Z3 = 2*Z1*Z2*H
   }
-  { x: x3, y: y3, z: z3 }
+  { x: x3, y: y3, z: z3, }
 }
 
 ///|
@@ -194,7 +194,7 @@ pub fn g2_to_affine(p : G2Point) -> (Fp2, Fp2) {
 ///|
 /// G2 negation: (X, Y, Z) -> (X, -Y, Z)
 pub fn g2_neg(p : G2Point) -> G2Point {
-  { x: p.x, y: fp2_neg(p.y), z: p.z }
+  { x: p.x, y: fp2_neg(p.y), z: p.z, }
 }
 
 ///|

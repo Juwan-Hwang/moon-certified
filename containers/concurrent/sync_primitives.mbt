@@ -72,7 +72,7 @@ pub struct RwLock[T] {
 ///|
 /// Create a new `RwLock` protecting `value`.
 pub fn[T] RwLock::new(value : T) -> RwLock[T] {
-  { value, readers: 0, writer: false }
+  { value, readers: 0, writer: false, }
 }
 
 ///|
@@ -182,7 +182,7 @@ pub struct Semaphore {
 /// If `count` is negative, it is clamped to 0.
 pub fn Semaphore::new(count : Int) -> Semaphore {
   let c = if count < 0 { 0 } else { count }
-  { permits: c, max_permits: c }
+  { permits: c, max_permits: c, }
 }
 
 ///|
@@ -283,7 +283,7 @@ pub struct ConditionVariable {
 ///|
 /// Create a new condition variable with no pending signals.
 pub fn ConditionVariable::new() -> ConditionVariable {
-  { pending_signals: 0, total_signals: 0, total_broadcasts: 0 }
+  { pending_signals: 0, total_signals: 0, total_broadcasts: 0, }
 }
 
 ///|

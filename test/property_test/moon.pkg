@@ -1,5 +1,5 @@
 import {
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 // Suppress false-positive unused_package warning: @utils.SplitMix64 is used

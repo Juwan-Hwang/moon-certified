@@ -110,7 +110,7 @@ pub struct FusionTree {
 /// Larger `b` means wider (but shorter) trees.
 pub fn FusionTree::new(b : Int) -> FusionTree {
   let actual_b = if b < 2 { default_b } else { b }
-  { root: { keys: [], children: [], is_leaf: true }, b: actual_b, size: 0 }
+  { root: { keys: [], children: [], is_leaf: true, }, b: actual_b, size: 0, }
 }
 
 ///|
@@ -266,7 +266,7 @@ pub fn fusion_insert(t : FusionTree, key : Int) -> Unit {
   let root = t.root
   if root.keys.length() == 2 * t.b - 1 {
     // Root is full: split it.
-    let new_root : FusionNode = { keys: [], children: [root], is_leaf: false }
+    let new_root : FusionNode = { keys: [], children: [root], is_leaf: false, }
     split_child(new_root, 0, t.b)
     t.root = new_root
     insert_non_full(new_root, key, t.b)

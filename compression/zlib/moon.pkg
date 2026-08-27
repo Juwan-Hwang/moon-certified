@@ -1,6 +1,6 @@
 import {
-  "moon-certified/compression/deflate",
-  "moon-certified/utils",
+  "Juwan-Hwang/moon-certified/compression/deflate",
+  "Juwan-Hwang/moon-certified/utils",
 }
 
 options(

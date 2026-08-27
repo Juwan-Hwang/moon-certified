@@ -217,7 +217,7 @@ pub fn fit(documents : Array[Array[String]]) -> TfidfVectorizer {
     idf_arr[i] = @math.ln((1.0 + num_docs.to_double()) / (1.0 + df.to_double())) +
       1.0
   }
-  { vocabulary: vocab, idf: idf_arr, num_docs }
+  { vocabulary: vocab, idf: idf_arr, num_docs, }
 }
 
 ///|

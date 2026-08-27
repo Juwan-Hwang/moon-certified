@@ -99,7 +99,7 @@ pub fn Wavedec::make(
   lengths : Array[Int],
   original_len : Int,
 ) -> Wavedec {
-  { coeffs, lengths, original_len }
+  { coeffs, lengths, original_len, }
 }
 
 ///|
@@ -268,7 +268,7 @@ pub fn wavedec(x : Array[Double], w : Wavelet, level : Int) -> Wavedec? {
       coeffs.push(v)
     }
   }
-  Some({ coeffs, lengths, original_len: n })
+  Some({ coeffs, lengths, original_len: n, })
 }
 
 ///|

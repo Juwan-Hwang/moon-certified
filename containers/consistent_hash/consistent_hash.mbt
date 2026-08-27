@@ -64,7 +64,7 @@ pub fn new() -> ConsistentHash {
 /// but use more memory.
 pub fn new_with_vnodes(num_vnodes : Int) -> ConsistentHash {
   let v = if num_vnodes < 1 { 1 } else { num_vnodes }
-  { ring: [], nodes: Map([]), num_vnodes: v }
+  { ring: [], nodes: Map([]), num_vnodes: v, }
 }
 
 ///|
@@ -106,7 +106,7 @@ pub fn add_node(ch : ConsistentHash, node_name : String) -> Unit {
   for i = 0; i < ch.num_vnodes; i = i + 1 {
     let key = node_name + ":" + i.to_string()
     let h = ring_hash(key)
-    ch.ring.push({ hash: h, node_name })
+    ch.ring.push({ hash: h, node_name, })
   }
   // Keep ring sorted by hash for binary search.
   ch.ring.sort_by(fn(a, b) { a.hash - b.hash })

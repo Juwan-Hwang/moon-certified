@@ -35,7 +35,7 @@ pub fn point(x : Int, y : Int) -> @geometry_utils.Point {
 ///|
 /// Construct a segment.
 pub fn segment(p : @geometry_utils.Point, q : @geometry_utils.Point) -> Segment {
-  { p, q }
+  { p, q, }
 }
 
 ///|

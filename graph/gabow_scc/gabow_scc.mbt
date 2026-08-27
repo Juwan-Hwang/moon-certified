@@ -157,7 +157,7 @@ fn gabow_scc_core(adj : Array[Array[Int]], n : Int) -> GabowSCCResult {
       }
     }
   }
-  { component_id, num_sccs: sccs.length(), sccs }
+  { component_id, num_sccs: sccs.length(), sccs, }
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +182,7 @@ fn gabow_scc_core(adj : Array[Array[Int]], n : Int) -> GabowSCCResult {
 /// O(V + E) time, O(V) space.
 pub fn gabow_scc(n : Int, edges : Array[(Int, Int)]) -> GabowSCCResult {
   if n <= 0 {
-    return { component_id: [], num_sccs: 0, sccs: [] }
+    return { component_id: [], num_sccs: 0, sccs: [], }
   }
   let adj = build_adj_list(n, edges)
   gabow_scc_core(adj, n)

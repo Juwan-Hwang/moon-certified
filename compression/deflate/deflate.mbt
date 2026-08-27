@@ -132,18 +132,18 @@ priv struct FixedLitCode {
 ///|
 /// Build the fixed literal/length Huffman code table (288 entries).
 fn build_fixed_lit_codes() -> FixedArray[FixedLitCode] {
-  let table = FixedArray::make(288, { code: 0, len: 0 })
+  let table = FixedArray::make(288, { code: 0, len: 0, })
   for i = 0; i < 144; i = i + 1 {
-    table[i] = { code: 48 + i, len: 8 }
+    table[i] = { code: 48 + i, len: 8, }
   }
   for i = 144; i < 256; i = i + 1 {
-    table[i] = { code: 400 + (i - 144), len: 9 }
+    table[i] = { code: 400 + (i - 144), len: 9, }
   }
   for i = 256; i < 280; i = i + 1 {
-    table[i] = { code: i - 256, len: 7 }
+    table[i] = { code: i - 256, len: 7, }
   }
   for i = 280; i < 288; i = i + 1 {
-    table[i] = { code: 192 + (i - 280), len: 8 }
+    table[i] = { code: 192 + (i - 280), len: 8, }
   }
   table
 }
@@ -212,7 +212,7 @@ priv struct BitWriter {
 
 ///|
 fn new_bit_writer() -> BitWriter {
-  { output: [], current_byte: 0, bit_count: 0 }
+  { output: [], current_byte: 0, bit_count: 0, }
 }
 
 ///|
@@ -269,7 +269,7 @@ priv struct BitReader {
 
 ///|
 fn new_bit_reader(data : Bytes) -> BitReader {
-  { data, byte_pos: 0, bit_pos: 0 }
+  { data, byte_pos: 0, bit_pos: 0, }
 }
 
 ///|
@@ -411,7 +411,7 @@ fn build_huffman_table(code_lengths : FixedArray[Int]) -> HuffmanTable {
       break
     }
   }
-  { codes, lengths: code_lengths, max_bits: if mb > 0 { mb } else { 1 } }
+  { codes, lengths: code_lengths, max_bits: if mb > 0 { mb } else { 1 }, }
 }
 
 ///|
@@ -710,7 +710,7 @@ fn build_optimal_lengths(
   let mut num_leaves = 0
   for i = 0; i < num_symbols; i = i + 1 {
     if freqs[i] > 0 {
-      nodes.push({ freq: freqs[i], left: -1, right: -1, symbol: i })
+      nodes.push({ freq: freqs[i], left: -1, right: -1, symbol: i, })
       heap.push(nodes.length() - 1)
       num_leaves = num_leaves + 1
     }

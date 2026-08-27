@@ -24,7 +24,7 @@ pub struct Point {
 ///|
 /// Construct a [`Point`] with the given coordinates.
 pub fn point(x : Int, y : Int) -> Point {
-  { x, y }
+  { x, y, }
 }
 
 ///|
@@ -89,7 +89,7 @@ test "geometry_utils: point construction and field access" {
   let p = point(3, 4)
   assert_eq(p.x, 3)
   assert_eq(p.y, 4)
-  let q : Point = { x: 5, y: 6 }
+  let q : Point = { x: 5, y: 6, }
   assert_eq(q.x, 5)
   assert_eq(q.y, 6)
 }

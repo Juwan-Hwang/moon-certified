@@ -308,11 +308,11 @@ pub fn lda(
 ) -> LDAResult {
   let n = data.length()
   if n == 0 || labels.length() != n {
-    return { scalings: [], mean: [], explained_variance: [] }
+    return { scalings: [], mean: [], explained_variance: [], }
   }
   let d = data[0].length()
   if d == 0 {
-    return { scalings: [], mean: [], explained_variance: [] }
+    return { scalings: [], mean: [], explained_variance: [], }
   }
   // Collect unique classes and their indices
   let class_map : Map[Int, Array[Int]] = Map([])
@@ -328,7 +328,7 @@ pub fn lda(
   }
   let n_classes = class_map.length()
   if n_classes < 2 {
-    return { scalings: [], mean: [], explained_variance: [] }
+    return { scalings: [], mean: [], explained_variance: [], }
   }
   // Clamp n_components
   let max_comp = if n_classes - 1 < d { n_classes - 1 } else { d }
@@ -426,7 +426,7 @@ pub fn lda(
   // Compute SW^(-1)
   let sw_inv = match lda_matrix_inverse(sw, d) {
     Some(inv) => inv
-    None => return { scalings: [], mean: [], explained_variance: [] }
+    None => return { scalings: [], mean: [], explained_variance: [], }
   }
   // M = SW^(-1) * SB
   let m = lda_mat_mul(sw_inv, sb, d)
@@ -498,7 +498,7 @@ pub fn lda(
       ratios.push(0.0)
     }
   }
-  { scalings: components, mean, explained_variance: ratios }
+  { scalings: components, mean, explained_variance: ratios, }
 }
 
 ///|

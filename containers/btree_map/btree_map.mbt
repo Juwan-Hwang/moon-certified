@@ -39,7 +39,7 @@ fn BTreeMap::make_node(leaf : Bool) -> BTreeNode {
 ///|
 /// Create a new BTreeMap.
 pub fn BTreeMap::new() -> BTreeMap {
-  { nodes: [BTreeMap::make_node(true)], root: 0, size: 0 }
+  { nodes: [BTreeMap::make_node(true)], root: 0, size: 0, }
 }
 
 ///|

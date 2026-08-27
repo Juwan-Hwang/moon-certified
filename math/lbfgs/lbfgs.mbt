@@ -249,7 +249,7 @@ fn _minimize_impl(
     let ys = _dot(y, s, n)
     // Curvature condition: yᵀs > 0 (required for positive-definiteness of H).
     if ys > 1.0e-16 {
-      let entry : HistoryEntry = { s, y, rho: 1.0 / ys }
+      let entry : HistoryEntry = { s, y, rho: 1.0 / ys, }
       history.push(entry)
       if history.length() > m {
         // Discard oldest by shifting left and popping the tail.
@@ -373,14 +373,14 @@ fn _armijo_line_search(
     let f_trial = f(x_trial)
     // Armijo condition: f(x + αd) ≤ f(x) + c₁ α ∇fᵀd
     if f_trial <= f_old + lbfgs_c1 * alpha * dg {
-      return { success: true, alpha }
+      return { success: true, alpha, }
     }
     alpha = alpha * lbfgs_beta
     if alpha < lbfgs_alpha_min {
-      return { success: false, alpha }
+      return { success: false, alpha, }
     }
   }
-  { success: false, alpha }
+  { success: false, alpha, }
 }
 
 // ---------------------------------------------------------------------------

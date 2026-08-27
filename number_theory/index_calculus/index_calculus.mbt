@@ -101,7 +101,7 @@ priv struct XorShift64 {
 ///|
 fn XorShift64::new(seed : Int64) -> XorShift64 {
   let s = if seed == 0L { 0x9E3779B97F4A7C15L } else { seed }
-  { state: s.reinterpret_as_uint64() }
+  { state: s.reinterpret_as_uint64(), }
 }
 
 ///|

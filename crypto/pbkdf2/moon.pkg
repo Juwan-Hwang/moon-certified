@@ -1,5 +1,5 @@
 import {
-  "moon-certified/crypto/hmac",
+  "Juwan-Hwang/moon-certified/crypto/hmac",
 }
 
 options(

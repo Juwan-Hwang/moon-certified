@@ -55,7 +55,7 @@ pub const HPKE_AEAD_CHACHA20POLY1305 : Int = 0x0003
 
 ///|
 pub fn HpkeConfig::new(kem_id : Int, kdf_id : Int, aead_id : Int) -> HpkeConfig {
-  { kem_id, kdf_id, aead_id }
+  { kem_id, kdf_id, aead_id, }
 }
 
 ///|
@@ -312,7 +312,7 @@ pub fn hpke_setup_base_sender(
   let (key, base_nonce, exporter_secret) = hpke_key_schedule(
     config, shared, info,
   )
-  (enc, { config, key, base_nonce, exporter_secret, seq: 0L })
+  (enc, { config, key, base_nonce, exporter_secret, seq: 0L, })
 }
 
 ///|
@@ -331,7 +331,7 @@ pub fn hpke_setup_base_receiver(
   let (key, base_nonce, exporter_secret) = hpke_key_schedule(
     config, shared, info,
   )
-  { config, key, base_nonce, exporter_secret, seq: 0L }
+  { config, key, base_nonce, exporter_secret, seq: 0L, }
 }
 
 // ===========================================================================

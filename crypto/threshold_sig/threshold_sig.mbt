@@ -182,7 +182,7 @@ priv struct TsPoint {
 
 ///|
 fn ts_point_infinity() -> TsPoint {
-  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero() }
+  { x: @bigint.one(), y: @bigint.one(), z: @bigint.zero(), }
 }
 
 ///|
@@ -210,7 +210,7 @@ fn ts_point_double(pt : TsPoint) -> TsPoint {
   let yr = ts_mod_sub(ts_mod_mul(m, ts_mod_sub(s, xr, p), p), xsq8, p)
   let zr = ts_mod_mul(two, ts_mod_mul(pt.y, pt.z, p), p)
   let _ = one
-  { x: xr, y: yr, z: zr }
+  { x: xr, y: yr, z: zr, }
 }
 
 ///|
@@ -249,7 +249,7 @@ fn ts_point_add(a : TsPoint, b : TsPoint) -> TsPoint {
     p,
   )
   let zr = ts_mod_mul(h, ts_mod_mul(a.z, b.z, p), p)
-  { x: xr, y: yr, z: zr }
+  { x: xr, y: yr, z: zr, }
 }
 
 ///|
@@ -294,7 +294,7 @@ fn ts_scalar_mul(k : @bigint.BigInt, pt : TsPoint) -> TsPoint {
 
 ///|
 fn ts_generator() -> TsPoint {
-  { x: ts_gx, y: ts_gy, z: @bigint.one() }
+  { x: ts_gx, y: ts_gy, z: @bigint.one(), }
 }
 
 // ===========================================================================
@@ -368,7 +368,7 @@ fn ts_point_decompress(data : Bytes) -> TsPoint? {
   let want_odd = prefix == 3
   let y_final = if y_is_odd == want_odd { y } else { ts_mod_sub(p, y, p) }
   let _ = three
-  Some({ x, y: y_final, z: @bigint.one() })
+  Some({ x, y: y_final, z: @bigint.one(), })
 }
 
 // ===========================================================================
@@ -487,7 +487,7 @@ pub fn threshold_keygen(
   for idx = 1; idx <= n; idx = idx + 1 {
     let x = @bigint.from_int_value(idx)
     let v = ts_poly_eval(coeffs, x)
-    shares.push({ index: idx, value: ts_bigint_to_32(v) })
+    shares.push({ index: idx, value: ts_bigint_to_32(v), })
   }
   (pubkey, shares)
 }
@@ -537,7 +537,7 @@ pub fn threshold_nonce_generate(seed : Bytes) -> NoncePair raise {
     Some(c) => c
     None => fail("threshold_sig: invalid nonce commitment")
   }
-  { secret: ts_bigint_to_32(k), commitment: comm }
+  { secret: ts_bigint_to_32(k), commitment: comm, }
 }
 
 ///|

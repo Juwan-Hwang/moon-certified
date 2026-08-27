@@ -33,7 +33,7 @@ pub struct AvroEncoder {
 ///|
 /// Create a new Avro encoder.
 pub fn AvroEncoder::new() -> AvroEncoder {
-  { buf: Array::make(256, 0), pos: 0 }
+  { buf: Array::make(256, 0), pos: 0, }
 }
 
 ///|
@@ -93,7 +93,7 @@ pub struct AvroDecoder {
 ///|
 /// Create a decoder from bytes.
 pub fn AvroDecoder::new(data : Bytes) -> AvroDecoder {
-  { data, pos: 0 }
+  { data, pos: 0, }
 }
 
 ///|

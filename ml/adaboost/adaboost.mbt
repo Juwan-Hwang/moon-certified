@@ -154,7 +154,7 @@ fn best_stump(
 ) -> (Stump, Double) {
   let n = x.length()
   let mut best_err = 2.0 // above 1 → impossible, acts as +inf
-  let mut best = { feature: 0, threshold: 0.0, polarity: 1 }
+  let mut best = { feature: 0, threshold: 0.0, polarity: 1, }
   for f = 0; f < n_features; f = f + 1 {
     // Candidate thresholds: sorted unique values of feature f.
     let values : Array[Double] = []
@@ -172,7 +172,7 @@ fn best_stump(
       // both polarities
       for pol = 0; pol < 2; pol = pol + 1 {
         let polarity = if pol == 0 { 1 } else { -1 }
-        let s = { feature: f, threshold: thresh, polarity }
+        let s = { feature: f, threshold: thresh, polarity, }
         let mut err = 0.0
         for i = 0; i < n; i = i + 1 {
           if stump_predict(s, x[i]) != y[i] {

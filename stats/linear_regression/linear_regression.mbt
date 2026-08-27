@@ -72,7 +72,7 @@ pub fn fit_linear(xs : Array[Double], ys : Array[Double]) -> LinearFit? {
   } else {
     1.0 - ss_res / ss_tot
   }
-  Some({ slope, intercept, r_squared: r_sq })
+  Some({ slope, intercept, r_squared: r_sq, })
 }
 
 ///|

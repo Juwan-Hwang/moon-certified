@@ -52,7 +52,7 @@ pub struct PersistentVector[T] {
 ///|
 /// Create an empty PersistentVector.
 pub fn[T] empty() -> PersistentVector[T] {
-  { root: None, size: 0, shift: 0, tail: [], tail_len: 0 }
+  { root: None, size: 0, shift: 0, tail: [], tail_len: 0, }
 }
 
 ///|
@@ -118,7 +118,7 @@ pub fn[T] push(v : PersistentVector[T], value : T) -> PersistentVector[T] {
       new_tail.push(v.tail[i])
     }
     new_tail.push(value)
-    { ..v, size: v.size + 1, tail: new_tail, tail_len: v.tail_len + 1 }
+    { ..v, size: v.size + 1, tail: new_tail, tail_len: v.tail_len + 1, }
   } else {
     // Tail is full: push the old tail into the trie, start a fresh tail.
     let full_tail = Leaf(v.tail)
@@ -235,11 +235,11 @@ pub fn[T] set(
       new_tail.push(v.tail[i])
     }
     new_tail[index - tail_start] = value
-    return { ..v, tail: new_tail }
+    return { ..v, tail: new_tail, }
   }
   // Update in trie with path copying.
   let new_root = set_in_trie(v.root, index, value, v.shift)
-  { ..v, root: Some(new_root) }
+  { ..v, root: Some(new_root), }
 }
 
 ///|

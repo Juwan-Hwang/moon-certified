@@ -54,7 +54,7 @@ pub struct MCTS {
 /// Create a new MCTS engine.
 pub fn new(seed : Int) -> MCTS {
   // Use SplitMix64 to initialize — higher quality than LCG.
-  { nodes: [], rng_state: Int64::from_int(seed) }
+  { nodes: [], rng_state: Int64::from_int(seed), }
 }
 
 ///|
@@ -237,7 +237,7 @@ priv struct MCTTTT {
 
 ///|
 fn MCTTTT::new() -> MCTTTT {
-  { board: FixedArray::make(9, 0), player: 1 }
+  { board: FixedArray::make(9, 0), player: 1, }
 }
 
 ///|
@@ -246,7 +246,7 @@ fn MCTTTT::clone(self : MCTTTT) -> MCTTTT {
   for i = 0; i < 9; i = i + 1 {
     b[i] = self.board[i]
   }
-  { board: b, player: self.player }
+  { board: b, player: self.player, }
 }
 
 ///|

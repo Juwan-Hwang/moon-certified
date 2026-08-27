@@ -48,7 +48,7 @@ pub struct Line {
 ///|
 /// Construct a line `y = m·x + b`.
 pub fn line(m : Int64, b : Int64) -> Line {
-  { m, b }
+  { m, b, }
 }
 
 ///|
@@ -90,7 +90,7 @@ pub struct LiChaoTreeMax {
 ///|
 /// A sentinel line that evaluates to Int64::MAX, so any real line is smaller.
 fn max_line() -> Line {
-  { m: 0L, b: 9223372036854775807L }
+  { m: 0L, b: 9223372036854775807L, }
 }
 
 ///|
@@ -109,7 +109,7 @@ pub fn new_min(lo : Int64, hi : Int64) -> LiChaoTreeMin {
     lines.push(max_line())
     has_line.push(false)
   }
-  { x_lo: lo, x_hi: hi, lines, has_line, size }
+  { x_lo: lo, x_hi: hi, lines, has_line, size, }
 }
 
 ///|
@@ -211,7 +211,7 @@ fn query_min_rec(
 ///|
 /// A sentinel line that evaluates to Int64::MIN, so any real line is larger.
 fn min_line() -> Line {
-  { m: 0L, b: -9223372036854775808L }
+  { m: 0L, b: -9223372036854775808L, }
 }
 
 ///|
@@ -229,7 +229,7 @@ pub fn new_max(lo : Int64, hi : Int64) -> LiChaoTreeMax {
     lines.push(min_line())
     has_line.push(false)
   }
-  { x_lo: lo, x_hi: hi, lines, has_line, size }
+  { x_lo: lo, x_hi: hi, lines, has_line, size, }
 }
 
 ///|

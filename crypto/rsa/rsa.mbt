@@ -657,7 +657,7 @@ pub fn generate_keypair(
     None => return None
     Some(v) => v
   }
-  let pubkey : RSAPublicKey = { n, e, bit_len: bits }
+  let pubkey : RSAPublicKey = { n, e, bit_len: bits, }
   let privkey : RSAPrivateKey = {
     n,
     _e: e,
@@ -705,7 +705,7 @@ fn make_keypair_from_primes(
     Some(v) => v
   }
   let bits = @bigint.bit_length(n)
-  let pubkey : RSAPublicKey = { n, e, bit_len: bits }
+  let pubkey : RSAPublicKey = { n, e, bit_len: bits, }
   let privkey : RSAPrivateKey = {
     n,
     _e: e,

@@ -23,13 +23,13 @@ pub struct ChainError {
 ///|
 /// Create a new root error.
 pub fn new(message : String) -> ChainError {
-  { message, context: [], source: None }
+  { message, context: [], source: None, }
 }
 
 ///|
 /// Wrap an existing error with a new message, creating a chain.
 pub fn wrap(source : ChainError, message : String) -> ChainError {
-  { message, context: [], source: Some(source) }
+  { message, context: [], source: Some(source), }
 }
 
 ///|

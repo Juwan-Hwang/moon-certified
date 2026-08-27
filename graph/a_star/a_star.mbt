@@ -49,7 +49,7 @@ priv struct AStarResult {
 /// Sentinel result for searches that do not reach the goal (invalid input or
 /// no path). The `came_from` array is empty and never indexed by callers.
 fn no_path() -> AStarResult {
-  { goal_g: None, came_from: FixedArray::make(0, 0) }
+  { goal_g: None, came_from: FixedArray::make(0, 0), }
 }
 
 ///|
@@ -87,7 +87,7 @@ fn a_star_search(
     return no_path()
   }
   if start_idx == goal_idx {
-    return { goal_g: Some(0), came_from: FixedArray::make(0, 0) }
+    return { goal_g: Some(0), came_from: FixedArray::make(0, 0), }
   }
   let total = width * height
   let g_score = FixedArray::make(total, -1)
@@ -104,13 +104,13 @@ fn a_star_search(
   let dy = [0, 0, 1, -1]
   while @graph_utils.MinHeap::len(pq) > 0 {
     match @graph_utils.MinHeap::pop(pq) {
-      Some({ dist: _, vertex: current }) => {
+      Some({ dist: _, vertex: current, }) => {
         if closed[current] {
           continue // Skip stale entries (lazy deletion)
         }
         let current_g = g_score[current]
         if current == goal_idx {
-          return { goal_g: Some(current_g), came_from }
+          return { goal_g: Some(current_g), came_from, }
         }
         closed[current] = true
         let cur_x = current % width

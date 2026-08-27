@@ -74,13 +74,13 @@ struct SortedGroup {
 ///|
 /// Create an empty group.
 fn SortedGroup::new() -> SortedGroup {
-  { elements: [] }
+  { elements: [], }
 }
 
 ///|
 /// Create a group from a sorted array.
 fn SortedGroup::from_sorted(arr : Array[Int]) -> SortedGroup {
-  { elements: arr }
+  { elements: arr, }
 }
 
 ///|
@@ -232,7 +232,7 @@ pub fn YFastTrie::new(universe_size : Int) -> YFastTrie {
   let u = if universe_size < 2 { 2 } else { universe_size }
   let bits = ceil_log2(u)
   let threshold = if bits < 4 { 4 } else { bits }
-  { universe: 1 << bits, bits, groups: [], group_threshold: threshold }
+  { universe: 1 << bits, bits, groups: [], group_threshold: threshold, }
 }
 
 ///|

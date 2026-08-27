@@ -33,7 +33,7 @@ pub fn GossipMessage::new(
   value : String,
   version : Int,
 ) -> GossipMessage {
-  { sender_id, key, value, version }
+  { sender_id, key, value, version, }
 }
 
 ///|
@@ -53,7 +53,7 @@ pub struct GossipNode {
 ///|
 /// Create a new gossip node.
 pub fn GossipNode::new(id : Int, peers : Array[Int]) -> GossipNode {
-  { id, peers, data: [], seen: [], infected: [] }
+  { id, peers, data: [], seen: [], infected: [], }
 }
 
 ///|
@@ -137,7 +137,7 @@ pub fn GossipNode::push_messages(
     }
     if is_infected {
       for peer in peers {
-        result.push((peer, { sender_id: self.id, key, value, version }))
+        result.push((peer, { sender_id: self.id, key, value, version, }))
       }
     }
   }

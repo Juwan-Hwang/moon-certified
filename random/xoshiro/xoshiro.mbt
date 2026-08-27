@@ -46,7 +46,7 @@ pub fn new(seed : UInt64) -> Xoshiro256 {
   let w1 = rng.next_u64()
   let w2 = rng.next_u64()
   let w3 = rng.next_u64()
-  { s0: w0, s1: w1, s2: w2, s3: w3 }
+  { s0: w0, s1: w1, s2: w2, s3: w3, }
 }
 
 ///|

@@ -74,7 +74,7 @@ pub fn[T] new(
   let k_raw = k_d.to_int()
   let num_hashes = if k_raw > 1 { k_raw } else { 1 }
   let num_words = (num_bits + 63) / 64
-  { bits: FixedArray::make(num_words, 0UL), num_bits, num_hashes, hash }
+  { bits: FixedArray::make(num_words, 0UL), num_bits, num_hashes, hash, }
 }
 
 ///|

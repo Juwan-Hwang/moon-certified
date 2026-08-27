@@ -110,7 +110,7 @@ pub fn build(arr : FixedArray[Int64], n : Int) -> SegBeats {
   // tree entry alias the same mutable object. Using makei ensures each slot
   // gets a distinct Node.
   let tree = FixedArray::makei(4 * n + 4, fn(_i) { make_node() })
-  let sb = { n, tree }
+  let sb = { n, tree, }
   if n > 0 {
     build_rec(sb, 1, 0, n - 1, arr)
   }

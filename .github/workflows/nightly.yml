@@ -6,8 +6,8 @@ on:
     - cron: "0 0 * * *"
   workflow_dispatch:
 
-env:
-  MOONBIT_VERSION: "0.1.20260819"
+# Installs the latest MoonBit toolchain (dated versions are rotated off
+# the CDN, so pinning is not viable).
 
 jobs:
   nightly-test:
@@ -20,17 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-${{ runner.os }}
-
       - name: Install MoonBit (Unix)
         if: runner.os != 'Windows'
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Install MoonBit (Windows)
@@ -38,7 +31,6 @@ jobs:
         shell: pwsh
         run: |
           Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-          $env:MOONBIT_VERSION = "${{ env.MOONBIT_VERSION }}"
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
           Add-Content -Path $env:GITHUB_PATH -Value "$HOME/.moon/bin"
 
@@ -65,19 +57,13 @@ jobs:
 
   nightly-prove:
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
 
-      - name: Cache MoonBit installation
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.moon
-          key: moonbit-${{ env.MOONBIT_VERSION }}-ubuntu-22.04
-
-      - name: Install MoonBit (pinned version)
+      - name: Install MoonBit (latest)
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | MOONBIT_VERSION=${{ env.MOONBIT_VERSION }} bash
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> $GITHUB_PATH
 
       - name: Fetch dependency registry

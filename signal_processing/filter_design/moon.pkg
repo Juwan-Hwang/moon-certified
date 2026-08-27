@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/math",
-  "moon-certified/math/fft",
+  "Juwan-Hwang/moon-certified/math/fft",
 }
 
 options(

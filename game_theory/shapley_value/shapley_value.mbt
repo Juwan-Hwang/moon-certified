@@ -180,7 +180,7 @@ pub fn shapley_approximate(
     result[0] = v(1) // v({0}) - v(∅) = v(1) - v(0)
     return result
   }
-  let rng = SMRng::{ state: seed }
+  let rng = SMRng::{ state: seed, }
   let result = FixedArray::make(n, 0.0)
   // Players array for shuffling.
   let players = FixedArray::makei(n, fn(i) { i })

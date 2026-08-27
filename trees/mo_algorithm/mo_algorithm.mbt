@@ -41,7 +41,7 @@ pub struct Query {
 ///|
 /// Construct a query.
 pub fn query(l : Int, r : Int, idx : Int) -> Query {
-  { l, r, idx }
+  { l, r, idx, }
 }
 
 // ---------------------------------------------------------------------------

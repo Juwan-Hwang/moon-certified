@@ -49,7 +49,7 @@ pub struct Edge {
 ///|
 /// Construct an [`Edge`].
 pub fn edge(from : Int, to : Int, weight : Int) -> Edge {
-  { from, to, weight }
+  { from, to, weight, }
 }
 
 // ---------------------------------------------------------------------------

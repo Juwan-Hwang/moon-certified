@@ -96,7 +96,7 @@ pub fn[T] mpmc_queue_new(capacity : Int) -> MPMCQueue[T] {
   for i = 0; i < cap; i = i + 1 {
     sequences[i] = i
   }
-  { buffer, sequences, head: 0, tail: 0, mask: cap - 1, capacity: cap }
+  { buffer, sequences, head: 0, tail: 0, mask: cap - 1, capacity: cap, }
 }
 
 ///|

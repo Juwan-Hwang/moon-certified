@@ -1,4 +1,4 @@
-name = "moon-certified"
+name = "Juwan-Hwang/moon-certified"
 
 version = "0.1.0"
 
@@ -7,6 +7,8 @@ description = "Core algorithms and data structures for MoonBit — partially for
 repository = "https://github.com/Juwan-Hwang/moon-certified"
 
 license = "Apache-2.0"
+
+readme = "README.md"
 
 keywords = [
   "moonbit",
