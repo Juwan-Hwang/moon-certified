@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-08-27
+
+### Sync release (no API changes)
+
+- Re-published so the mooncakes.io package matches the GitHub repository
+  exactly (the 0.1.0 package predates the documentation refresh and the
+  re-format under the latest `moon fmt` trailing-comma style)
+- CI now installs the latest MoonBit toolchain (dated CDN builds are
+  rotated off, so pinning is not viable) and auto-publishes to
+  mooncakes.io on every `v*` tag
+- Verified on the latest toolchain: 0 warnings, 6432/6432 tests,
+  17/17 proved packages
+
 ## [0.1.0] - 2026-08-27
 
 ### First official release

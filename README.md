@@ -10,7 +10,7 @@ MoonBit 0.9 引入了 first-class formal verification 能力，`moon prove` 成�
 
 ## 项目状态
 
-**0.1.0**（首个正式发布版本，2026-08-27）— 337 个算法包 + 共享工具模块。发布时质量门槛：`moon check --deny-warn` 0 errors / 0 warnings，`moon test` **6432 个测试全部通过**，`moon fmt --check` 干净，`moon prove` **17 个包全部证明通过**（其中 9 个为 Verified tier）。
+**0.1.1**（2026-08-27，同步 mooncakes.io 与 GitHub 的补丁版；首个正式发布为 0.1.0）— 337 个算法包 + 共享工具模块。发布时质量门槛：`moon check --deny-warn` 0 errors / 0 warnings，`moon test` **6432 个测试全部通过**，`moon fmt --check` 干净，`moon prove` **17 个包全部证明通过**（其中 9 个为 Verified tier）。
 
 稳定性分层（详见 [docs/API_STABILITY.md](docs/API_STABILITY.md)）：
 

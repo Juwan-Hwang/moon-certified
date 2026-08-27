@@ -3,7 +3,7 @@
 **Project:** moon-certified — Formally verified core algorithms and data structures for MoonBit
 **Repository:** https://github.com/Juwan-Hwang/moon-certified
 **License:** Apache-2.0
-**Current version:** 0.1.0 (first official release, 2026-08-27)
+**Current version:** 0.1.1 (sync release, 2026-08-27)
 **Document version:** 2.2
 **Last updated:** 2026-08-27
 
@@ -530,6 +530,7 @@ A green CI is a prerequisite for any release.
 
 | Version | Date | Packages | Tests | Verified | Theme |
 |---------|------|----------|-------|----------|-------|
+| 0.1.1 | 2026-08-27 | 337 | 6432 | 9/9 | Sync release (no API changes): mooncakes package aligned with GitHub, CI follows latest toolchain, tag-driven auto-publish. |
 | 0.1.0 | 2026-08-27 | 337 | 6432 | 9/9 | First official release. 337 packages, 9 verified (5 full + 4 partial), 17 packages pass `moon prove`; zero compiler warnings; spec-conformant post-quantum crypto (FIPS 203/204), HPKE, TLS 1.3. |
 
 Notes:
@@ -537,7 +538,8 @@ Notes:
   The 9 consist of 5 full-correctness proofs and 4 partial proofs.
 - Package counts exclude the `test/` and `benchmarks/` infrastructure packages
   and the `.mooncakes/` dependency directory.
-- 0.1.0 is the first formal release of the project.
+- 0.1.0 is the first formal release of the project; 0.1.1 is a sync patch
+  with no API changes.
 
 ---
 
