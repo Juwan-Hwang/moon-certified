@@ -1,193 +1,174 @@
+// Tests for crypto/hpke — RFC 9180 Base mode over DHKEM(X25519) +
+// HKDF-SHA256 + ChaCha20Poly1305 / AES-128-GCM.
+
 ///|
-/// HPKE (RFC 9180) white-box tests.
-///
-/// NOTE: the bundled implementation is a simplified toy. `hpke_open` is typed
-/// to take a `HpkeSenderContext` (so the seal/open inverse is exercised with a
-/// sender context), and the KEM's "shared secret" is reconstructed element-wise
-/// from `enc` plus the recipient private key bytes (it only matches the sender
-/// when those bytes are all zero). The tests below validate the deterministic
-/// key schedule, the seal/open inverse relationship, and the exporter — the
-/// working surface of this module.
-fn bytes_eq(a : Bytes, b : Bytes) -> Bool {
-  if a.length() != b.length() {
-    return false
+fn hpke_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i = 0; i < 40; i = i + 1 {
+    arr.push(((n * 131 + i * 17 + 3) & 0xFF).to_byte())
   }
-  for i = 0; i < a.length(); i = i + 1 {
-    if a[i] != b[i] {
-      return false
+  Bytes::from_array(arr)
+}
+
+///|
+test "hpke_roundtrip_chacha20poly1305" {
+  let config = hpke_default_config()
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(1))
+  // The recipient key is a real random key (the old toy only worked
+  // with an all-zero private key).
+  let mut all_zero = true
+  for i = 0; i < sk_r.length(); i = i + 1 {
+    if sk_r[i].to_int() != 0 {
+      all_zero = false
     }
   }
-  true
+  assert_eq(all_zero, false)
+  let info = b"hpke test info"
+  let aad = b"associated data"
+  let pt = b"attack at dawn"
+  let (enc, sender) = hpke_setup_base_sender(config, pk_r, info, hpke_seed(2))
+  let ct = hpke_seal(sender, aad, pt)
+  let receiver = hpke_setup_base_receiver(config, enc, sk_r, info)
+  match hpke_open(receiver, aad, ct) {
+    Some(out) => assert_eq(out, pt)
+    None => fail("hpke_open failed on a valid ciphertext")
+  }
 }
 
 ///|
-test "hpke: config struct is accessible" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  assert_eq(cfg.kem_id, 0x20)
-  assert_eq(cfg.aead_id, 1)
-}
-
-///|
-test "hpke: setup sender with aead_id=1 yields 16-byte key" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
+test "hpke_roundtrip_aes128gcm" {
+  let config = HpkeConfig::new(
+    HPKE_KEM_DHKEM_X25519,
+    HPKE_KDF_HKDF_SHA256,
+    HPKE_AEAD_AES128GCM,
+  )
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(3))
   let (enc, sender) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    Bytes::from_array([b'\x0a']),
-    12345,
+    config,
+    pk_r,
+    b"",
+    hpke_seed(4),
   )
-  assert_eq(enc.length(), 32)
-  assert_eq(sender.key.length(), 16)
-  assert_eq(sender.nonce.length(), 12)
-  assert_eq(sender.seq, 0)
+  let ct = hpke_seal(sender, b"meta", b"gcm payload")
+  let receiver = hpke_setup_base_receiver(config, enc, sk_r, b"")
+  match hpke_open(receiver, b"meta", ct) {
+    Some(out) => assert_eq(out, b"gcm payload")
+    None => fail("hpke_open failed for AES-128-GCM")
+  }
 }
 
 ///|
-test "hpke: setup sender with aead_id=2 yields 32-byte key" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 2)
-  let (_enc, sender) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    Bytes::from_array([b'\x0a']),
-    12345,
+test "hpke_wrong_recipient_key_fails" {
+  let config = hpke_default_config()
+  let (_sk_r, pk_r) = hpke_generate_keypair(hpke_seed(5))
+  let (sk_wrong, _) = hpke_generate_keypair(hpke_seed(6))
+  let (enc, sender) = hpke_setup_base_sender(
+    config,
+    pk_r,
+    b"ctx",
+    hpke_seed(7),
   )
-  assert_eq(sender.key.length(), 32)
+  let ct = hpke_seal(sender, b"", b"secret")
+  // Decapsulating with a different private key must not yield the
+  // plaintext: the KEM shared secret differs, so AEAD auth fails.
+  let receiver = hpke_setup_base_receiver(config, enc, sk_wrong, b"ctx")
+  assert_eq(hpke_open(receiver, b"", ct), None)
 }
 
 ///|
-test "hpke: setup receiver returns a context with expected fields" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let (enc, _sender) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    Bytes::from_array([b'\x0a']),
-    12345,
+test "hpke_authentication_properties" {
+  let config = hpke_default_config()
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(8))
+  let (enc, sender) = hpke_setup_base_sender(
+    config,
+    pk_r,
+    b"info",
+    hpke_seed(9),
   )
-  let receiver = hpke_setup_base_receiver(
-    cfg,
-    enc,
-    Bytes::make(32, b'\x00'),
-    Bytes::from_array([b'\x0a']),
-  )
-  assert_eq(receiver.key.length(), 16)
-  assert_eq(receiver.nonce.length(), 12)
-  assert_eq(receiver.seq, 0)
+  let ct = hpke_seal(sender, b"aad", b"payload")
+  // Tampered ciphertext.
+  let tampered = ct.to_array()
+  tampered[0] = (tampered[0].to_int() ^ 0x01).to_byte()
+  let r1 = hpke_setup_base_receiver(config, enc, sk_r, b"info")
+  assert_eq(hpke_open(r1, b"aad", Bytes::from_array(tampered)), None)
+  // Wrong AAD.
+  let r2 = hpke_setup_base_receiver(config, enc, sk_r, b"info")
+  assert_eq(hpke_open(r2, b"other aad", ct), None)
+  // Wrong info (key schedule context).
+  let r3 = hpke_setup_base_receiver(config, enc, sk_r, b"other info")
+  assert_eq(hpke_open(r3, b"aad", ct), None)
 }
 
 ///|
-test "hpke: sender seal / open roundtrip (same seed, seq 0)" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x01', b'\x02'])
-  // Two identically-seeded sender contexts share the same nonce and start at seq 0.
-  let (enc, s1) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    777,
+test "hpke_sequence_advances" {
+  let config = hpke_default_config()
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(10))
+  let (enc, sender) = hpke_setup_base_sender(
+    config,
+    pk_r,
+    b"",
+    hpke_seed(11),
   )
-  let (_enc2, s2) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    777,
-  )
-  // sanity: same enc + same nonce
-  assert_true(bytes_eq(enc, _enc2))
-  assert_true(bytes_eq(s1.nonce, s2.nonce))
-  let pt = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
-  let aad = Bytes::from_array([b'\xaa'])
-  let ct = hpke_seal(s1, aad, pt)
-  let opened = hpke_open(s2, aad, ct)
-  assert_true(opened != None)
-  assert_true(bytes_eq(opened.unwrap(), pt))
+  let ct1 = hpke_seal(sender, b"", b"first")
+  let ct2 = hpke_seal(sender, b"", b"second")
+  // Distinct nonces => distinct ciphertexts for distinct plaintexts,
+  // and in-order open succeeds.
+  let receiver = hpke_setup_base_receiver(config, enc, sk_r, b"")
+  assert_eq(hpke_open(receiver, b"", ct1), Some(b"first"))
+  assert_eq(hpke_open(receiver, b"", ct2), Some(b"second"))
+  // Out-of-order delivery fails authentication (nonce mismatch).
+  let receiver2 = hpke_setup_base_receiver(config, enc, sk_r, b"")
+  assert_eq(hpke_open(receiver2, b"", ct2), None)
 }
 
 ///|
-test "hpke: roundtrip with empty plaintext" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x03'])
-  let (_e1, s1) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 5)
-  let (_e2, s2) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 5)
-  let pt = Bytes::make(0, b'\x00')
-  let ct = hpke_seal(s1, b"", pt)
-  let opened = hpke_open(s2, b"", ct)
-  assert_true(opened != None)
-  assert_eq(opened.unwrap().length(), 0)
-}
-
-///|
-test "hpke: roundtrip with empty aad and long plaintext" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x04'])
-  let (_e1, s1) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 9)
-  let (_e2, s2) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 9)
-  let pt = Bytes::make(40, b'\x2c')
-  let ct = hpke_seal(s1, b"", pt)
-  let opened = hpke_open(s2, b"", ct)
-  assert_true(opened != None)
-  assert_true(bytes_eq(opened.unwrap(), pt))
-}
-
-///|
-test "hpke: open always returns Some (no authentication in toy)" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x05'])
-  let (_e, s) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 1)
-  let garbage = Bytes::from_array([b'\xde', b'\xad', b'\xbe', b'\xef'])
-  let opened = hpke_open(s, b"", garbage)
-  assert_true(opened != None)
-}
-
-///|
-test "hpke: export deterministic" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x09'])
-  let (_e, s) = hpke_setup_base_sender(cfg, Bytes::make(32, b'\x00'), info, 42)
-  let ex = Bytes::from_array([b'\x55'])
-  let e1 = hpke_export(s, ex, 16)
-  let e2 = hpke_export(s, ex, 16)
-  assert_eq(e1.length(), 16)
-  assert_true(bytes_eq(e1, e2))
-  let e3 = hpke_export(s, ex, 32)
-  assert_eq(e3.length(), 32)
-}
-
-///|
-test "hpke: deterministic setup with same seed" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x03'])
-  let (enc1, s1) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    99,
+test "hpke_export_matches_both_sides" {
+  let config = hpke_default_config()
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(12))
+  let (enc, sender) = hpke_setup_base_sender(
+    config,
+    pk_r,
+    b"export test",
+    hpke_seed(13),
   )
-  let (enc2, s2) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    99,
-  )
-  assert_true(bytes_eq(enc1, enc2))
-  assert_true(bytes_eq(s1.key, s2.key))
-  assert_true(bytes_eq(s1.nonce, s2.nonce))
+  let receiver = hpke_setup_base_receiver(config, enc, sk_r, b"export test")
+  let s1 = hpke_export_sender(sender, 32, b"app-context")
+  let s2 = hpke_export_receiver(receiver, 32, b"app-context")
+  assert_eq(s1, s2)
+  assert_eq(s1.length(), 32)
+  // Different export context yields a different secret.
+  let s3 = hpke_export_sender(sender, 32, b"other")
+  assert_true(s1 != s3)
 }
 
 ///|
-test "hpke: different seed produces different enc" {
-  let cfg = HpkeConfig::new(0x20, 0x01, 1)
-  let info = Bytes::from_array([b'\x03'])
-  let (enc1, _s1) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    99,
-  )
-  let (enc2, _s2) = hpke_setup_base_sender(
-    cfg,
-    Bytes::make(32, b'\x00'),
-    info,
-    100,
-  )
-  assert_true(!bytes_eq(enc1, enc2))
+fn hpke_sender_setup_fails(
+  config : HpkeConfig,
+  pk : Bytes,
+  info : Bytes,
+  seed : Bytes,
+) -> Bool {
+  let r = Some(hpke_setup_base_sender(config, pk, info, seed)) catch {
+    _ => None
+  }
+  match r {
+    Some(_) => false
+    None => true
+  }
+}
+
+///|
+test "hpke_rejects_malformed_inputs" {
+  let config = hpke_default_config()
+  let (sk_r, pk_r) = hpke_generate_keypair(hpke_seed(14))
+  assert_eq(hpke_sender_setup_fails(config, b"short", b"", hpke_seed(15)), true)
+  let r2 = Some(
+    hpke_setup_base_receiver(config, Bytes::make(10, b'\x00'), sk_r, b""),
+  ) catch { _ => None }
+  match r2 {
+    Some(_) => fail("malformed enc accepted")
+    None => ()
+  }
+  let bad = HpkeConfig::new(0xFFFF, HPKE_KDF_HKDF_SHA256, HPKE_AEAD_CHACHA20POLY1305)
+  assert_eq(hpke_sender_setup_fails(bad, pk_r, b"", hpke_seed(16)), true)
 }

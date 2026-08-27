@@ -1,7 +1,12 @@
-import {
-  "moon-certified/crypto/hmac",
-}
-
 options(
   "proof-enabled": false,
 )
+import {
+  "moon-certified/crypto/hkdf",
+  "moon-certified/crypto/hmac",
+  "moon-certified/crypto/sha256",
+  "moon-certified/crypto/x25519",
+  "moon-certified/crypto/aes",
+  "moon-certified/crypto/chacha20_poly1305",
+  "moon-certified/crypto/ed25519",
+}

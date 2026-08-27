@@ -1,153 +1,127 @@
-/// SPHINCS+ (SLH-DSA) — white-box test suite.
-///
-/// Covers key generation, deterministic signing, and WOTS+-based verification
-/// including negative (tamper / wrong key) cases. The WOTS+ signature arrays
-/// are mutated in place to exercise the negative paths without constructing the
-/// (read-only in the test context) `SphincsSignature` struct directly.
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// Tests for crypto/sphincs_plus — SLH-DSA (SPHINCS+) stateless hash-based
+// signatures, SHAKE256 "128f" shape.
 
 ///|
-/// Byte-wise equality for `Bytes` (avoids needing the `hex` package).
-fn bytes_eq(a : Bytes, b : Bytes) -> Bool {
+fn spx_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i < 48 {
+    arr.push(((n * 97 + i * 31 + 11) & 0xFF).to_byte())
+    i = i + 1
+  }
+  Bytes::from_array(arr)
+}
+
+///|
+fn spx_msg(s : String) -> Bytes {
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i < s.length() {
+    arr.push(s[i].to_int().to_byte())
+    i = i + 1
+  }
+  Bytes::from_array(arr)
+}
+
+///|
+test "sphincs: keygen produces well-formed keys" {
+  let (pk, sk) = sphincs_keygen(spx_seed(1))
+  assert_eq(pk.seed.length(), 16)
+  assert_eq(pk.root.length(), 16)
+  assert_eq(sk.seed.length(), 16)
+  assert_eq(sk.prf.length(), 16)
+  // The public key must not contain the secret seed or PRF key, and the
+  // pk embedded in sk must match the returned pk.
+  let pk_bytes = sphincs_pk_to_bytes(pk)
+  assert_false(spx_bytes_eq_pub(spx_slice_off(pk_bytes, 0, 16), sk.seed))
+  assert_false(spx_bytes_eq_pub(spx_slice_off(pk_bytes, 16, 16), sk.seed))
+  assert_false(spx_bytes_eq_pub(spx_slice_off(pk_bytes, 0, 16), sk.prf))
+  assert_true(spx_bytes_eq_pub(pk_bytes, sphincs_pk_to_bytes(sk.pk)))
+}
+
+///|
+fn spx_slice_off(b : Bytes, off : Int, len : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i < len {
+    arr.push(b[off + i])
+    i = i + 1
+  }
+  Bytes::from_array(arr)
+}
+
+///|
+fn spx_bytes_eq_pub(a : Bytes, b : Bytes) -> Bool {
   if a.length() != b.length() {
     return false
   }
-  for i = 0; i < a.length(); i = i + 1 {
+  let mut i = 0
+  while i < a.length() {
     if a[i] != b[i] {
       return false
     }
+    i = i + 1
   }
   true
 }
 
-// ---------------------------------------------------------------------------
-// Key generation
-// ---------------------------------------------------------------------------
-
 ///|
-test "sphincs: keygen returns root and seed of expected sizes" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (pk, sk) = sphincs_keygen(seed)
-  assert_eq(pk.seed.length(), 4)
-  assert_eq(sk.seed.length(), 4)
-  // root is a 16-byte hash (SPHINCS_N)
-  assert_eq(pk.root.length(), 16)
+test "sphincs: sign/verify round-trip and determinism" {
+  let (pk, sk) = sphincs_keygen(spx_seed(2))
+  let m = spx_msg("slh-dsa test message")
+  let sig = sphincs_sign(sk, m)
+  assert_true(sphincs_verify(pk, m, sig))
+  // Deterministic signing (opt_rand = pk).
+  let sig2 = sphincs_sign(sk, m)
+  assert_true(spx_bytes_eq_pub(sig.data, sig2.data))
+  // Signature size: R + FORS + hypertree blocks.
+  assert_eq(sig.data.length(), 16 + 14 * 13 * 16 + 22 * (35 + 3) * 16)
 }
 
 ///|
-test "sphincs: keygen is deterministic for a fixed seed" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (pk1, sk1) = sphincs_keygen(seed)
-  let (pk2, sk2) = sphincs_keygen(seed)
-  assert_true(bytes_eq(pk1.root, pk2.root))
-  assert_true(bytes_eq(pk1.seed, pk2.seed))
-  assert_true(bytes_eq(sk1.seed, sk2.seed))
-}
-
-// ---------------------------------------------------------------------------
-// Round-trip sign / verify
-// ---------------------------------------------------------------------------
-
-///|
-test "sphincs: sign and verify round-trip" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
+test "sphincs: tampered message is rejected" {
+  let (pk, sk) = sphincs_keygen(spx_seed(3))
+  let m = spx_msg("original")
+  let sig = sphincs_sign(sk, m)
+  assert_false(sphincs_verify(pk, spx_msg("originak"), sig))
 }
 
 ///|
-test "sphincs: empty message round-trip" {
-  let seed = Bytes::from_array([b'\x0a', b'\x0b', b'\x0c', b'\x0d'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
-}
-
-///|
-test "sphincs: single byte message round-trip" {
-  let seed = Bytes::from_array([b'\x11', b'\x22', b'\x33', b'\x44'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([b'\x61'])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
-}
-
-///|
-test "sphincs: multi-byte message round-trip" {
-  let seed = Bytes::from_array([b'\xaa', b'\xbb', b'\xcc', b'\xdd'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([
-    b'\x74', b'\x68', b'\x65', b'\x20', b'\x71', b'\x75', b'\x69', b'\x63', b'\x6b',
-    b'\x20', b'\x62', b'\x72', b'\x6f', b'\x77', b'\x6e', b'\x20', b'\x66', b'\x6f',
-    b'\x78',
-  ])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
-}
-
-// ---------------------------------------------------------------------------
-// Determinism
-// ---------------------------------------------------------------------------
-
-///|
-test "sphincs: signing is deterministic for a fixed key" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (_, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([b'\x74', b'\x65', b'\x73', b'\x74'])
-  let s1 = sphincs_sign(sk, msg)
-  let s2 = sphincs_sign(sk, msg)
-  assert_eq(s1.idx, s2.idx)
-  assert_eq(s1.wots_sig.sig.length(), s2.wots_sig.sig.length())
-  for i = 0; i < s1.wots_sig.sig.length(); i = i + 1 {
-    assert_true(bytes_eq(s1.wots_sig.sig[i], s2.wots_sig.sig[i]))
+test "sphincs: tampered signature is rejected" {
+  let (pk, sk) = sphincs_keygen(spx_seed(4))
+  let m = spx_msg("tamper me")
+  let sig = sphincs_sign(sk, m)
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i < sig.data.length() {
+    arr.push(sig.data[i])
+    i = i + 1
   }
-}
-
-// ---------------------------------------------------------------------------
-// Negative tests
-// ---------------------------------------------------------------------------
-
-///|
-test "sphincs: tampered message fails verification" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
-  let tampered = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x66'])
-  assert_false(sphincs_verify(pk, tampered, sig))
+  // Flip one bit in the FORS section.
+  arr[100] = (arr[100].to_int() ^ 0x01).to_byte()
+  assert_false(sphincs_verify(pk, m, sphincs_sig_from_bytes(Bytes::from_array(arr))))
+  // Truncated signature is rejected.
+  assert_false(
+    sphincs_verify(pk, m, sphincs_sig_from_bytes(spx_slice_test(sig.data, 100))),
+  )
 }
 
 ///|
-test "sphincs: tampered WOTS signature component fails verification" {
-  let seed = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let (pk, sk) = sphincs_keygen(seed)
-  let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
-  let sig = sphincs_sign(sk, msg)
-  assert_true(sphincs_verify(pk, msg, sig))
-  // Replace the first WOTS+ signature component with a wrong 16-byte value.
-  let wrong : Array[Byte] = []
-  for i = 0; i < 16; i = i + 1 {
-    wrong.push(b'\x00')
+fn spx_slice_test(b : Bytes, len : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  let mut i = 0
+  while i < len {
+    arr.push(b[i])
+    i = i + 1
   }
-  sig.wots_sig.sig[0] = Bytes::from_array(wrong)
-  assert_false(sphincs_verify(pk, msg, sig))
+  Bytes::from_array(arr)
 }
 
 ///|
-test "sphincs: verification against the wrong public key fails" {
-  let seed1 = Bytes::from_array([b'\x01', b'\x02', b'\x03', b'\x04'])
-  let seed2 = Bytes::from_array([b'\x05', b'\x06', b'\x07', b'\x08'])
-  let (pk1, sk1) = sphincs_keygen(seed1)
-  let (pk2, _) = sphincs_keygen(seed2)
-  let msg = Bytes::from_array([b'\x68', b'\x65', b'\x6c', b'\x6c', b'\x6f'])
-  let sig = sphincs_sign(sk1, msg)
-  assert_true(sphincs_verify(pk1, msg, sig))
-  assert_false(sphincs_verify(pk2, msg, sig))
+test "sphincs: verification with a different public key fails" {
+  let (_, sk) = sphincs_keygen(spx_seed(5))
+  let (pk_other, _) = sphincs_keygen(spx_seed(6))
+  let m = spx_msg("binding")
+  let sig = sphincs_sign(sk, m)
+  assert_false(sphincs_verify(pk_other, m, sig))
 }

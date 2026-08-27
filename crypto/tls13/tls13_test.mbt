@@ -1,282 +1,171 @@
-/// Comprehensive tests for TLS 1.3 Protocol (RFC 8446).
+// Tests for crypto/tls13 — RFC 8446 handshake, authentication and
+// protected application data over an in-memory transport.
 
 ///|
-/// Helper: create a Bytes of repeated byte value.
-fn make_bytes(val : Int, n : Int) -> Bytes {
-  Bytes::from_array(Array::make(n, val.to_byte()))
+fn tls13_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i = 0; i < 40; i = i + 1 {
+    arr.push(((n * 97 + i * 13 + 7) & 0xFF).to_byte())
+  }
+  Bytes::from_array(arr)
 }
 
-// ===========================================================================
-// ClientHello tests
-// ===========================================================================
+///|
+/// Run a full handshake; returns (client_conn, server_conn).
+fn tls13_do_handshake(
+  suite : TlsCipherSuite,
+  server_sk : Bytes,
+  cert : Bytes,
+) -> (Tls13Connection, Tls13Connection) raise {
+  let server_pk = @ed25519.derive_public_key(server_sk)
+  let client_config = tls13_config_new(suite, Some(server_pk))
+  let server_config = tls13_config_new(suite, None)
+  let client = tls13_client_new(client_config, tls13_seed(1))
+  let server = tls13_server_new(server_config)
+  let ch = tls13_client_hello(client)
+  let sh = tls13_server_process_hello(server, ch, tls13_seed(2))
+  tls13_client_process_hello(client, sh)
+  let flight = tls13_server_handshake_finish(server, cert, server_sk)
+  tls13_client_process_flight(client, flight)
+  let fin = tls13_client_finished(client)
+  tls13_server_process_client_finished(server, fin)
+  (client, server)
+}
 
 ///|
-test "tls_client_hello: basic structure" {
-  let random = make_bytes(0x42, 32)
-  let key_share = Bytes::from_array([0x01, 0x02, 0x03, 0x04])
-  let hello = tls_client_hello(
-    random,
-    [TlsCipherSuite::aes128_gcm_sha256()],
-    key_share,
+test "tls13_full_handshake_chacha20" {
+  let server_sk = @sha256.sha256(tls13_seed(10) + b"server-signing-key")
+  let cert = b"opaque test certificate DER"
+  let (client, server) = tls13_do_handshake(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    server_sk,
+    cert,
   )
-  // Version 0x0304
-  assert_eq(hello[0].to_int(), 0x03)
-  assert_eq(hello[1].to_int(), 0x04)
-  // 32 bytes of random
-  for i = 0; i < 32; i = i + 1 {
-    assert_eq(hello[2 + i].to_int(), 0x42)
+  // Application data client -> server.
+  let r1 = tls13_send_app(client, b"GET / HTTP/1.1")
+  match tls13_recv_app(server, r1) {
+    Some(v) => assert_eq(v, b"GET / HTTP/1.1")
+    None => fail("server failed to open client record")
+  }
+  // Server -> client.
+  let r2 = tls13_send_app(server, b"200 OK")
+  match tls13_recv_app(client, r2) {
+    Some(v) => assert_eq(v, b"200 OK")
+    None => fail("client failed to open server record")
+  }
+  // Multiple messages advance the sequence numbers correctly.
+  let r3 = tls13_send_app(client, b"second")
+  let r4 = tls13_send_app(client, b"third")
+  match tls13_recv_app(server, r3) {
+    Some(v) => assert_eq(v, b"second")
+    None => fail("server failed to open r3")
+  }
+  match tls13_recv_app(server, r4) {
+    Some(v) => assert_eq(v, b"third")
+    None => fail("server failed to open r4")
   }
 }
 
 ///|
-test "tls_client_hello: multiple cipher suites" {
-  let random = make_bytes(0x00, 32)
-  let key_share = Bytes::from_array([])
-  let hello = tls_client_hello(
-    random,
-    [
-      TlsCipherSuite::aes128_gcm_sha256(),
-      TlsCipherSuite::aes256_gcm_sha384(),
-      TlsCipherSuite::chacha20_poly1305_sha256(),
-    ],
-    key_share,
+test "tls13_full_handshake_aes128gcm" {
+  let server_sk = @sha256.sha256(tls13_seed(11) + b"server-signing-key")
+  let cert = b"opaque test certificate DER 2"
+  let (client, server) = tls13_do_handshake(TlsCipherSuite::aes128_gcm_sha256(), server_sk, cert)
+  let r = tls13_send_app(client, b"payload-over-gcm")
+  match tls13_recv_app(server, r) {
+    Some(v) => assert_eq(v, b"payload-over-gcm")
+    None => fail("AES-GCM record failed to open")
+  }
+}
+
+///|
+test "tls13_tampered_flight_rejected" {
+  let server_sk = @sha256.sha256(tls13_seed(12) + b"server-signing-key")
+  let server_pk = @ed25519.derive_public_key(server_sk)
+  let cert = b"opaque cert"
+  let client_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), Some(server_pk))
+  let server_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), None)
+  let client = tls13_client_new(client_config, tls13_seed(3))
+  let server = tls13_server_new(server_config)
+  let ch = tls13_client_hello(client)
+  let sh = tls13_server_process_hello(server, ch, tls13_seed(4))
+  tls13_client_process_hello(client, sh)
+  let flight = tls13_server_handshake_finish(server, cert, server_sk)
+  // Flip one ciphertext byte: AEAD authentication must reject it.
+  let tampered = flight.to_array()
+  tampered[tampered.length() / 2] = (
+    tampered[tampered.length() / 2].to_int() ^ 0x01
+  ).to_byte()
+  let r = Some(
+    tls13_client_process_flight(client, Bytes::from_array(tampered)),
+  ) catch { _ => None }
+  match r {
+    Some(_) => fail("client accepted a tampered server flight")
+    None => ()
+  }
+}
+
+///|
+test "tls13_wrong_certificate_key_rejected" {
+  let server_sk = @sha256.sha256(tls13_seed(13) + b"server-signing-key")
+  let attacker_pk = @ed25519.derive_public_key(
+    @sha256.sha256(tls13_seed(14) + b"attacker-key"),
   )
-  // After version(2) + random(32) = 34 bytes, comes cipher suite count (2 bytes)
-  let cs_count = (hello[34].to_int() << 8) | hello[35].to_int()
-  assert_eq(cs_count, 3)
-  // First cipher suite ID: AES_128_GCM_SHA256 = 0x1301
-  let cs0 = (hello[36].to_int() << 8) | hello[37].to_int()
-  assert_eq(cs0, 0x1301)
-  let cs1 = (hello[38].to_int() << 8) | hello[39].to_int()
-  assert_eq(cs1, 0x1302)
-  let cs2 = (hello[40].to_int() << 8) | hello[41].to_int()
-  assert_eq(cs2, 0x1303)
+  let cert = b"opaque cert"
+  // Client trusts a *different* key than the one that signs
+  // CertificateVerify: the handshake must fail.
+  let client_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), Some(attacker_pk))
+  let server_config = tls13_config_new(TlsCipherSuite::chacha20_poly1305_sha256(), None)
+  let client = tls13_client_new(client_config, tls13_seed(5))
+  let server = tls13_server_new(server_config)
+  let ch = tls13_client_hello(client)
+  let sh = tls13_server_process_hello(server, ch, tls13_seed(6))
+  tls13_client_process_hello(client, sh)
+  let flight = tls13_server_handshake_finish(server, cert, server_sk)
+  let r = Some(tls13_client_process_flight(client, flight)) catch { _ => None }
+  match r {
+    Some(_) => fail("client accepted a CertificateVerify under the wrong key")
+    None => ()
+  }
 }
 
 ///|
-test "tls_client_hello: short random is zero-padded" {
-  let random = Bytes::from_array([0xFF])
-  let key_share = Bytes::from_array([])
-  let hello = tls_client_hello(
-    random,
-    [TlsCipherSuite::aes128_gcm_sha256()],
-    key_share,
+test "tls13_tampered_app_record_rejected" {
+  let server_sk = @sha256.sha256(tls13_seed(15) + b"server-signing-key")
+  let (client, server) = tls13_do_handshake(
+    TlsCipherSuite::chacha20_poly1305_sha256(),
+    server_sk,
+    b"cert",
   )
-  assert_eq(hello[2].to_int(), 0xFF)
+  let r = tls13_send_app(client, b"sensitive data")
+  let tampered = r.to_array()
+  tampered[tampered.length() - 3] = (
+    tampered[tampered.length() - 3].to_int() ^ 0x80
+  ).to_byte()
+  assert_eq(tls13_recv_app(server, Bytes::from_array(tampered)), None)
+  // Out-of-order delivery fails authentication: the receiver's nonce
+  // counter advances strictly, so neither a skipped nor a replayed
+  // record can be opened.
+  let a = tls13_send_app(client, b"msg-a") // sender seq 1
+  let b_ = tls13_send_app(client, b"msg-b") // sender seq 2
+  assert_eq(tls13_recv_app(server, b_), None) // receiver expects seq 1
+  assert_eq(tls13_recv_app(server, a), None) // receiver now expects seq 2+
 }
 
 ///|
-test "tls_client_hello: key share is included" {
-  let random = make_bytes(0x00, 32)
-  let key_share = Bytes::from_array([0xDE, 0xAD, 0xBE, 0xEF])
-  let hello = tls_client_hello(
-    random,
-    [TlsCipherSuite::aes128_gcm_sha256()],
-    key_share,
-  )
-  // Layout: version(2) + random(32) + cs_count(2) + cs(2) + ks_len(2) + ks_data
-  let ks_len = (hello[38].to_int() << 8) | hello[39].to_int()
-  assert_eq(ks_len, 4)
-  assert_eq(hello[40].to_int(), 0xDE)
-  assert_eq(hello[41].to_int(), 0xAD)
-  assert_eq(hello[42].to_int(), 0xBE)
-  assert_eq(hello[43].to_int(), 0xEF)
-}
-
-// ===========================================================================
-// Key derivation tests
-// ===========================================================================
-
-///|
-test "tls_derive_keys: produces 32-byte keys" {
-  let shared = make_bytes(0x01, 32)
-  let client_r = make_bytes(0x02, 32)
-  let server_r = make_bytes(0x03, 32)
-  let (ck, sk) = tls_derive_keys(shared, client_r, server_r)
-  assert_eq(ck.length(), 32)
-  assert_eq(sk.length(), 32)
-}
-
-///|
-test "tls_derive_keys: different inputs produce different keys" {
-  let shared = make_bytes(0x01, 32)
-  let cr1 = make_bytes(0x02, 32)
-  let cr2 = make_bytes(0x03, 32)
-  let sr = make_bytes(0x04, 32)
-  let (ck1, _) = tls_derive_keys(shared, cr1, sr)
-  let (ck2, _) = tls_derive_keys(shared, cr2, sr)
-  assert_true(ck1 != ck2)
-}
-
-///|
-test "tls_derive_keys: client and server keys differ" {
-  let shared = make_bytes(0xAA, 32)
-  let cr = make_bytes(0xBB, 32)
-  let sr = make_bytes(0xCC, 32)
-  let (ck, sk) = tls_derive_keys(shared, cr, sr)
-  assert_true(ck != sk)
-}
-
-///|
-test "tls_derive_keys: deterministic with same inputs" {
-  let shared = make_bytes(0x11, 32)
-  let cr = make_bytes(0x22, 32)
-  let sr = make_bytes(0x33, 32)
-  let (ck1, sk1) = tls_derive_keys(shared, cr, sr)
-  let (ck2, sk2) = tls_derive_keys(shared, cr, sr)
-  assert_eq(ck1, ck2)
-  assert_eq(sk1, sk2)
-}
-
-// ===========================================================================
-// Record creation tests
-// ===========================================================================
-
-///|
-test "tls_create_record: basic ApplicationData record" {
-  let key = make_bytes(0x00, 16)
-  let payload = Bytes::from_array([0x48, 0x49])
-  let record = tls_create_record(
-    TlsContentType::application_data(),
-    payload,
-    key,
-    0,
-  )
-  assert_eq(record[0].to_int(), 23)
-  assert_eq(record[1].to_int(), 0x03)
-  assert_eq(record[2].to_int(), 0x04)
-  let len = (record[3].to_int() << 8) | record[4].to_int()
-  assert_eq(len, 2)
-}
-
-///|
-test "tls_create_record: Handshake content type" {
-  let key = make_bytes(0x00, 16)
-  let payload = Bytes::from_array([0x01])
-  let record = tls_create_record(TlsContentType::handshake(), payload, key, 0)
-  assert_eq(record[0].to_int(), 22)
-}
-
-///|
-test "tls_create_record: Alert content type" {
-  let key = make_bytes(0x00, 16)
-  let payload = Bytes::from_array([0x01, 0x00])
-  let record = tls_create_record(TlsContentType::alert(), payload, key, 0)
-  assert_eq(record[0].to_int(), 21)
-}
-
-///|
-test "tls_create_record: ChangeCipherSpec content type" {
-  let key = make_bytes(0x00, 16)
-  let payload = Bytes::from_array([0x01])
-  let record = tls_create_record(
-    TlsContentType::change_cipher_spec(),
-    payload,
-    key,
-    0,
-  )
-  assert_eq(record[0].to_int(), 20)
-}
-
-///|
-test "tls_create_record: payload is encrypted (XOR with nonce)" {
-  let key = make_bytes(0xFF, 16)
-  let payload = Bytes::from_array([0x00, 0x00, 0x00, 0x00])
-  let record = tls_create_record(
-    TlsContentType::application_data(),
-    payload,
-    key,
-    0,
-  )
-  assert_eq(record[5].to_int(), 0xFF)
-}
-
-///|
-test "tls_create_record: different sequence numbers produce different ciphertext" {
-  let key = make_bytes(0x00, 16)
-  let payload = make_bytes(0x42, 17)
-  let r1 = tls_create_record(
-    TlsContentType::application_data(),
-    payload,
-    key,
-    0,
-  )
-  let r2 = tls_create_record(
-    TlsContentType::application_data(),
-    payload,
-    key,
-    1,
-  )
-  assert_true(r1 != r2)
-}
-
-// ===========================================================================
-// Record header parsing tests
-// ===========================================================================
-
-///|
-test "tls_parse_record_header: valid header" {
-  let key = make_bytes(0x00, 16)
-  let payload = Bytes::from_array([0x01, 0x02, 0x03])
-  let record = tls_create_record(
-    TlsContentType::application_data(),
-    payload,
-    key,
-    0,
-  )
-  let parsed = tls_parse_record_header(record)
-  match parsed {
-    Some((ct, ver, len)) => {
+test "tls13_record_header_parsing" {
+  match tls_parse_record_header(Bytes::from_array([23, 3, 3, 0, 3, 1, 2, 3])) {
+    Some((ct, len, payload)) => {
       assert_eq(ct, 23)
-      assert_eq(ver, 0x0304)
       assert_eq(len, 3)
+      assert_eq(payload.length(), 3)
     }
-    None => abort("expected Some")
+    None => fail("valid record header rejected")
   }
-}
-
-///|
-test "tls_parse_record_header: too short returns None" {
-  let data = Bytes::from_array([0x01, 0x02])
-  assert_true(tls_parse_record_header(data) is None)
-}
-
-///|
-test "tls_parse_record_header: empty data returns None" {
-  let data = Bytes::from_array([])
-  assert_true(tls_parse_record_header(data) is None)
-}
-
-///|
-test "tls_parse_record_header: exactly 5 bytes" {
-  let data = Bytes::from_array([22, 0x03, 0x04, 0x00, 0x10])
-  let parsed = tls_parse_record_header(data)
-  match parsed {
-    Some((ct, ver, len)) => {
-      assert_eq(ct, 22)
-      assert_eq(ver, 0x0304)
-      assert_eq(len, 16)
-    }
-    None => abort("expected Some")
-  }
-}
-
-// ===========================================================================
-// Round-trip: create + parse
-// ===========================================================================
-
-///|
-test "tls_round_trip: create and parse header" {
-  let key = make_bytes(0x42, 32)
-  let payload = make_bytes(0x77, 100)
-  let record = tls_create_record(TlsContentType::handshake(), payload, key, 7)
-  let parsed = tls_parse_record_header(record)
-  match parsed {
-    Some((ct, ver, len)) => {
-      assert_eq(ct, 22)
-      assert_eq(ver, 0x0304)
-      assert_eq(len, 100)
-    }
-    None => abort("expected Some")
-  }
+  assert_eq(tls_parse_record_header(Bytes::from_array([23, 3, 3])), None)
+  // Wrong legacy version is rejected.
+  assert_eq(
+    tls_parse_record_header(Bytes::from_array([23, 3, 1, 0, 0])),
+    None,
+  )
 }

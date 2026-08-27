@@ -1,164 +1,192 @@
-/// Threshold signatures — white-box test suite.
-///
-/// IMPORTANT (implementation bug): this package uses `Int`, which is a 31-bit
-/// signed integer in MoonBit, while `TS_PRIME = 2147483647 = 2^31 - 1` is the
-/// maximum 31-bit value. The shared `mod_pow`/`mod_inv` helpers multiply
-/// `result * b` (each up to ~2^31 - 1), which overflows 31-bit `Int`. As a
-/// result, `threshold_reconstruct` and `threshold_combine_signatures` return
-/// *incorrect* results whenever the internal coefficients/partials are large
-/// (i.e. for any threshold t >= 2, since keygen draws random coefficients up
-/// near 2^31 - 1). The no-overflow regime (t = 1, small values) is correct.
-///
-/// These tests cover the working surface: key generation structure,
-/// determinism, the well-defined `t = 1` correctness path, `sign_partial`
-/// structure, `verify`'s own documented contract, and determinism of the
-/// reconstruction / combination routines. The t >= 2 correctness gap is
-/// documented in the coverage report, not asserted here.
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// Tests for crypto/threshold_sig — (t, n) threshold Schnorr over
+// secp256k1. Adversarial cases included: forgery without enough
+// shares, tampered partials, wrong-message rejection.
 
 ///|
-/// Local re-implementation of the package's `mod_pow` (mirrors its exact
-/// operation order so it overflows identically and can be used to probe the
-/// package's deterministic behavior). `p` below equals `TS_PRIME`.
-fn tmod_pow(base : Int, exp : Int, m : Int) -> Int {
-  if m == 1 {
-    return 0
+fn ts_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i = 0; i < 32; i = i + 1 {
+    arr.push(((n * 31 + i * 7 + 5) & 0xFF).to_byte())
   }
-  let mut result = 1
-  let mut b = base % m
-  if b < 0 {
-    b = b + m
-  }
-  let mut e = exp
-  while e > 0 {
-    if (e & 1) == 1 {
-      result = result * b % m
-    }
-    e = e >> 1
-    b = b * b % m
-  }
-  result
+  Bytes::from_array(arr)
 }
 
-// ---------------------------------------------------------------------------
-// Key generation & reconstruction
-// ---------------------------------------------------------------------------
+///|
+/// Run one full signing session with the given signer indices.
+fn ts_sign_session(
+  all_shares : Array[KeyShare],
+  signer_indices : Array[Int],
+  pubkey : Bytes,
+  message : Bytes,
+  session_seed : Int,
+) -> Bytes raise {
+  let nonces : Array[NoncePair] = []
+  let commitments : Array[Bytes] = []
+  let picked : Array[KeyShare] = []
+  for i = 0; i < signer_indices.length(); i = i + 1 {
+    let idx = signer_indices[i]
+    let nonce = threshold_nonce_generate(ts_seed(session_seed + idx * 977))
+    nonces.push(nonce)
+    commitments.push(nonce.commitment)
+    picked.push(all_shares[idx - 1])
+  }
+  let partials : Array[Bytes] = []
+  for i = 0; i < signer_indices.length(); i = i + 1 {
+    partials.push(
+      threshold_sign_partial(
+        picked[i],
+        signer_indices,
+        commitments,
+        nonces[i],
+        pubkey,
+        message,
+      ),
+    )
+  }
+  threshold_combine_signatures(
+    partials,
+    picked,
+    signer_indices,
+    commitments,
+    pubkey,
+    message,
+  )
+}
 
 ///|
-test "threshold: keygen produces n shares with party ids 1..n" {
-  let shares = threshold_keygen(123456789, 5, 3, 42)
+test "threshold_keygen_and_reconstruct" {
+  let (pubkey, shares) = threshold_keygen(5, 3, ts_seed(1))
+  assert_eq(pubkey.length(), 33)
   assert_eq(shares.length(), 5)
-  for i = 0; i < 5; i = i + 1 {
-    assert_eq(shares[i].party_id, i + 1)
+  // Any 3 shares reconstruct the same secret; the reconstructed key
+  // must correspond to the group public key.
+  let subset : Array[KeyShare] = [shares[0], shares[2], shares[4]]
+  let secret = threshold_reconstruct(subset)
+  let subset2 : Array[KeyShare] = [shares[1], shares[3], shares[4]]
+  assert_eq(threshold_reconstruct(subset2), secret)
+}
+
+///|
+test "threshold_sign_verify_3_of_5" {
+  let (pubkey, shares) = threshold_keygen(5, 3, ts_seed(2))
+  let msg = b"moon-certified threshold signing"
+  let sig = ts_sign_session(shares, [1, 3, 5], pubkey, msg, 100)
+  assert_eq(sig.length(), 65)
+  assert_eq(threshold_verify(pubkey, msg, sig), true)
+  // Different signer subsets produce valid (different) signatures.
+  let sig2 = ts_sign_session(shares, [2, 3, 4], pubkey, msg, 200)
+  assert_eq(threshold_verify(pubkey, msg, sig2), true)
+}
+
+///|
+test "threshold_rejects_wrong_message_and_key" {
+  let (pubkey, shares) = threshold_keygen(4, 2, ts_seed(3))
+  let msg = b"original message"
+  let sig = ts_sign_session(shares, [1, 2], pubkey, msg, 300)
+  assert_eq(threshold_verify(pubkey, b"tampered message", sig), false)
+  // A different group key must not validate the signature.
+  let (other_pk, _) = threshold_keygen(4, 2, ts_seed(4))
+  assert_eq(threshold_verify(other_pk, msg, sig), false)
+  // Truncated / garbage signatures are rejected, not crashed on.
+  assert_eq(threshold_verify(pubkey, msg, Bytes::make(64, b'\x00')), false)
+  assert_eq(threshold_verify(pubkey, msg, Bytes::make(65, b'\xff')), false)
+}
+
+///|
+test "threshold_tampered_partial_rejected" {
+  let (pubkey, shares) = threshold_keygen(3, 2, ts_seed(5))
+  let msg = b"adversarial partial check"
+  let signer_indices = [1, 2]
+  let nonces : Array[NoncePair] = []
+  let commitments : Array[Bytes] = []
+  let picked : Array[KeyShare] = []
+  for i = 0; i < signer_indices.length(); i = i + 1 {
+    let idx = signer_indices[i]
+    let nonce = threshold_nonce_generate(ts_seed(400 + idx * 977))
+    nonces.push(nonce)
+    commitments.push(nonce.commitment)
+    picked.push(shares[idx - 1])
+  }
+  let partials : Array[Bytes] = []
+  for i = 0; i < signer_indices.length(); i = i + 1 {
+    partials.push(
+      threshold_sign_partial(
+        picked[i],
+        signer_indices,
+        commitments,
+        nonces[i],
+        pubkey,
+        msg,
+      ),
+    )
+  }
+  // Corrupt the second partial's scalar.
+  let bad = partials[1].to_array()
+  bad[31] = (bad[31].to_int() ^ 1).to_byte()
+  let bad_partials = [partials[0], Bytes::from_array(bad)]
+  let r = Some(
+    threshold_combine_signatures(
+      bad_partials,
+      picked,
+      signer_indices,
+      commitments,
+      pubkey,
+      msg,
+    ),
+  ) catch { _ => None }
+  assert_eq(r, None)
+}
+
+///|
+// The old fake implementation let anyone "sign" without any key
+// material. Verify this is no longer possible: without t shares the
+// signing API cannot even be invoked meaningfully, and a signature
+// under the group key cannot be produced from fewer shares.
+test "threshold_no_forgery_without_shares" {
+  let (pubkey, shares) = threshold_keygen(3, 2, ts_seed(6))
+  let msg = b"forgery attempt"
+  // A single share (< t) cannot form a valid signer set; attempting a
+  // 1-of-3 session produces a signature only over the attacker's own
+  // share, which fails group verification.
+  let one = [shares[0]]
+  let idx1 = [1]
+  let nonce = threshold_nonce_generate(ts_seed(500))
+  let partial = threshold_sign_partial(
+    one[0],
+    idx1,
+    [nonce.commitment],
+    nonce,
+    pubkey,
+    msg,
+  )
+  let attempt = Some(
+    threshold_combine_signatures(
+      [partial],
+      one,
+      idx1,
+      [nonce.commitment],
+      pubkey,
+      msg,
+    ),
+  ) catch { _ => None }
+  match attempt {
+    Some(sig) => assert_eq(threshold_verify(pubkey, msg, sig), false)
+    None => ()
   }
 }
 
 ///|
-test "threshold: keygen is deterministic for a fixed seed" {
-  let s1 = threshold_keygen(123, 4, 2, 5)
-  let s2 = threshold_keygen(123, 4, 2, 5)
+test "threshold_signature_is_deterministic_per_session" {
+  let (pubkey, shares) = threshold_keygen(3, 2, ts_seed(7))
+  let msg = b"determinism"
+  let s1 = ts_sign_session(shares, [1, 3], pubkey, msg, 600)
+  let s2 = ts_sign_session(shares, [1, 3], pubkey, msg, 600)
   assert_eq(s1.length(), s2.length())
+  let mut same = true
   for i = 0; i < s1.length(); i = i + 1 {
-    assert_eq(s1[i].share, s2[i].share)
+    if s1[i] != s2[i] {
+      same = false
+    }
   }
-}
-
-///|
-test "threshold: reconstruct with t=1 (no overflow) recovers the secret" {
-  // Threshold 1 => the polynomial is constant, every share equals the secret,
-  // and no large intermediate multiplications occur.
-  let secret = 555
-  let shares = threshold_keygen(secret, 4, 1, 3)
-  assert_eq(shares[0].share, secret)
-  let recovered = threshold_reconstruct([shares[0]])
-  assert_eq(recovered, secret)
-}
-
-///|
-test "threshold: reconstruct is deterministic for a fixed share set" {
-  let shares = threshold_keygen(123456789, 5, 3, 42)
-  let r1 = threshold_reconstruct(shares)
-  let r2 = threshold_reconstruct(shares)
-  assert_eq(r1, r2)
-}
-
-// ---------------------------------------------------------------------------
-// Threshold signing
-// ---------------------------------------------------------------------------
-
-///|
-test "threshold: sign_partial preserves party ids and count" {
-  let secret = 55
-  let n = 5
-  let shares = threshold_keygen(secret, n, 3, 11)
-  let mh = 12345
-  let partials : Array[PartialSignature] = []
-  for i = 0; i < n; i = i + 1 {
-    partials.push(threshold_sign_partial(shares[i], mh))
-  }
-  assert_eq(partials.length(), n)
-  for i = 0; i < n; i = i + 1 {
-    assert_eq(partials[i].party_id, shares[i].party_id)
-  }
-}
-
-///|
-test "threshold: combine with n=t=1 (no overflow) yields secret*message_hash" {
-  // Small values avoid the 31-bit overflow, exercising the correct path.
-  let secret = 2
-  let mh = 3
-  let shares = threshold_keygen(secret, 1, 1, 5)
-  let partials : Array[PartialSignature] = []
-  for i = 0; i < 1; i = i + 1 {
-    partials.push(threshold_sign_partial(shares[i], mh))
-  }
-  let sig = threshold_combine_signatures(partials)
-  assert_eq(sig, secret % 2147483647 * mh % 2147483647)
-}
-
-///|
-test "threshold: combine is deterministic for a fixed partial set" {
-  let secret = 99
-  let shares = threshold_keygen(secret, 4, 2, 8)
-  let mh = 777
-  let partials : Array[PartialSignature] = []
-  for i = 0; i < 4; i = i + 1 {
-    partials.push(threshold_sign_partial(shares[i], mh))
-  }
-  let s1 = threshold_combine_signatures(partials)
-  let s2 = threshold_combine_signatures(partials)
-  assert_eq(s1, s2)
-}
-
-// ---------------------------------------------------------------------------
-// Verification (tested on its own documented contract:
-// `signature == public_key^message_hash mod p`)
-// ---------------------------------------------------------------------------
-
-///|
-test "threshold: verify accepts signature == public_key^message_hash" {
-  let pk = 17
-  let mh = 99
-  let expected_sig = tmod_pow(pk, mh, 2147483647)
-  assert_true(threshold_verify(pk, mh, expected_sig))
-}
-
-///|
-test "threshold: verify rejects a wrong signature" {
-  let pk = 17
-  let mh = 99
-  let expected_sig = tmod_pow(pk, mh, 2147483647)
-  assert_false(threshold_verify(pk, mh, (expected_sig + 1) % 2147483647))
-}
-
-///|
-test "threshold: verify is consistent for a fixed public key and message" {
-  let pk = 123
-  let mh = 456
-  let s = tmod_pow(pk, mh, 2147483647)
-  assert_true(threshold_verify(pk, mh, s))
-  assert_true(threshold_verify(pk, mh, s))
+  assert_eq(same, true)
 }

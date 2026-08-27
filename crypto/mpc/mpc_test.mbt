@@ -1,133 +1,133 @@
+// Tests for crypto/mpc — Shamir secret sharing and BGW88 secure
+// multiplication over the Mersenne prime field 2^31 - 1.
+
 ///|
-/// Secure Multi-Party Computation (MPC) — white-box test suite.
-///
-/// IMPORTANT (implementation bugs):
-/// 1. As in `threshold_sig`, this package uses 31-bit `Int` while
-///    `MPC_PRIME = 2147483647 = 2^31 - 1`. `mod_pow`/`mod_inv` and the inline
-///    multiplications (`coeffs[i] * x_pow`, `a_i + b_i`, `a_i * b_i`) overflow
-///    for large intermediate values, so anything beyond the no-overflow
-///    regime (small secret, threshold t = 1) is numerically incorrect.
-/// 2. `mpc_secure_mul` is also *algorithmically* wrong: it re-shares each
-///    local product with a degree-(t-1) polynomial and sums the resulting
-///    shares, which yields `n * a * b` (sum over n local products) rather than
-///    `a * b`. The BGW degree reduction is missing the `1/n` re-scaling step.
-///
-/// These tests exercise the working surface — Shamir split/reconstruct
-/// structure and determinism, the correct `t = 1` paths, `mpc_add`/`mpc_secure_mul`
-/// structure, and `mpc_secure_mul`'s actual (buggy) relationship to `a * b` —
-/// and document the gaps rather than asserting the (unreachable) correct math.
+fn mpc_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i = 0; i < 32; i = i + 1 {
+    arr.push(((n + i * 7919) & 0xFF).to_byte())
+  }
+  Bytes::from_array(arr)
+}
 
-// ---------------------------------------------------------------------------
-// Shamir secret sharing
-// ---------------------------------------------------------------------------
-
-test "mpc: shamir_split produces n shares with x = 1..n" {
-  let shares = shamir_split(1234567, 5, 3, 99)
-  assert_eq(shares.length(), 5)
-  for i = 0; i < 5; i = i + 1 {
-    assert_eq(shares[i].x, i + 1)
+///|
+test "shamir_split_reconstruct_thresholds" {
+  // Several (n, t) configurations must all reconstruct exactly.
+  let configs = [(3, 2), (5, 3), (7, 4), (5, 5), (4, 1)]
+  for cfg in configs {
+    let n = cfg.0
+    let t = cfg.1
+    let secret = 1234567
+    let shares = shamir_split(secret, n, t, mpc_seed(n * 100 + t))
+    assert_eq(shares.length(), n)
+    assert_eq(shamir_reconstruct(shares), secret)
+    // Any t-share subset must also reconstruct.
+    let subset : Array[ShamirShare] = []
+    for i = 0; i < t; i = i + 1 {
+      subset.push(shares[n - 1 - i])
+    }
+    assert_eq(shamir_reconstruct(subset), secret)
+    // A disjoint t-share subset too.
+    let subset2 : Array[ShamirShare] = []
+    for i = 0; i < t; i = i + 1 {
+      subset2.push(shares[(i * 2) % n])
+    }
+    assert_eq(shamir_reconstruct(subset2), secret)
   }
 }
 
 ///|
-test "mpc: shamir_split is deterministic for a fixed seed" {
-  let s1 = shamir_split(123, 4, 2, 5)
-  let s2 = shamir_split(123, 4, 2, 5)
-  assert_eq(s1.length(), s2.length())
-  for i = 0; i < s1.length(); i = i + 1 {
-    assert_eq(s1[i].y, s2[i].y)
+test "shamir_below_threshold_does_not_reconstruct" {
+  let secret = 987654321
+  let shares = shamir_split(secret, 5, 3, mpc_seed(1))
+  // With t-1 shares the interpolation is unconstrained at 0: over a
+  // 2^31-sized field the chance of guessing the secret is negligible.
+  let few : Array[ShamirShare] = [shares[0], shares[1]]
+  assert_true(shamir_reconstruct(few) != secret)
+  let one : Array[ShamirShare] = [shares[3]]
+  assert_true(shamir_reconstruct(one) != secret)
+}
+
+///|
+test "shamir_field_boundaries" {
+  // Secrets at field edges round-trip.
+  let edge0 = shamir_split(0, 3, 2, mpc_seed(2))
+  assert_eq(shamir_reconstruct(edge0), 0)
+  let edge_max = shamir_split(MPC_PRIME - 1, 3, 2, mpc_seed(3))
+  assert_eq(shamir_reconstruct(edge_max), MPC_PRIME - 1)
+}
+
+///|
+test "shamir_invalid_params_rejected" {
+  let r1 = Some(shamir_split(5, 2, 3, mpc_seed(4))) catch { _ => None }
+  assert_eq(r1, None)
+  let r2 = Some(shamir_split(5, 3, 0, mpc_seed(5))) catch { _ => None }
+  assert_eq(r2, None)
+  let r3 = Some(shamir_split(MPC_PRIME, 3, 2, mpc_seed(6))) catch {
+    _ => None
+  }
+  assert_eq(r3, None)
+}
+
+///|
+test "mpc_add_is_linear" {
+  let a = 111111111
+  let b = 222222222
+  let sa = shamir_split(a, 5, 3, mpc_seed(10))
+  let sb = shamir_split(b, 5, 3, mpc_seed(11))
+  let ssum = mpc_add(sa, sb)
+  assert_eq(shamir_reconstruct(ssum), mpc_field_add(a, b))
+}
+
+///|
+// The old implementation returned shares of an arbitrary linear
+// combination of local products, not a·b. The BGW degree-reduction
+// must now produce a correct degree-(t-1) sharing of the product.
+test "mpc_secure_mul_correctness" {
+  let cases = [(6, 9, 3, 2), (42, 7, 5, 3), (2147483646, 2, 3, 2), (0, 12345, 5, 3)]
+  for c in cases {
+    let a = c.0
+    let b = c.1
+    let n = c.2
+    let t = c.3
+    let sa = shamir_split(a, n, t, mpc_seed(n * 1000 + t))
+    let sb = shamir_split(b, n, t, mpc_seed(n * 2000 + t))
+    let prod = mpc_secure_mul(sa, sb, n, t, mpc_seed(n * 3000 + t))
+    assert_eq(prod.length(), n)
+    // Full reconstruction gives a·b mod p.
+    assert_eq(shamir_reconstruct(prod), mpc_field_mul(a, b))
+    // The result is a proper degree-(t-1) sharing: any t shares
+    // reconstruct, and the x-coordinates are preserved.
+    let subset : Array[ShamirShare] = []
+    for i = 0; i < t; i = i + 1 {
+      subset.push(prod[n - 1 - i])
+      assert_eq(prod[i].x, i + 1)
+    }
+    assert_eq(shamir_reconstruct(subset), mpc_field_mul(a, b))
   }
 }
 
 ///|
-test "mpc: reconstruct with t=1 (no overflow) recovers the secret" {
-  // Threshold 1 => constant polynomial, every share equals the secret.
-  let secret = 555
-  let shares = shamir_split(secret, 4, 1, 3)
-  assert_eq(shares[0].y, secret)
-  let recovered = shamir_reconstruct([shares[0]])
-  assert_eq(recovered, secret)
+test "mpc_secure_mul_requires_honest_majority" {
+  // n = 2, t = 2 violates n >= 2t - 1 and must be rejected.
+  let sa = shamir_split(3, 2, 2, mpc_seed(20))
+  let sb = shamir_split(4, 2, 2, mpc_seed(21))
+  let r = Some(mpc_secure_mul(sa, sb, 2, 2, mpc_seed(22))) catch { _ => None }
+  assert_eq(r, None)
 }
 
 ///|
-test "mpc: reconstruct handles the secret 0 (edge)" {
-  let shares = shamir_split(0, 3, 1, 7)
-  let recovered = shamir_reconstruct([shares[0]])
-  assert_eq(recovered, 0)
-}
-
-///|
-test "mpc: reconstruct is deterministic for a fixed share set" {
-  let shares = shamir_split(1234567, 5, 3, 99)
-  let r1 = shamir_reconstruct(shares)
-  let r2 = shamir_reconstruct(shares)
-  assert_eq(r1, r2)
-}
-
-// ---------------------------------------------------------------------------
-// Secure addition
-// ---------------------------------------------------------------------------
-
-///|
-test "mpc: add returns n shares" {
-  let sa = shamir_split(100, 5, 1, 1)
-  let sb = shamir_split(250, 5, 1, 2)
+test "mpc_circuit_add_then_mul" {
+  // Evaluate (a + b) * c through the sharing layer end-to-end.
+  let a = 135791
+  let b = 246810
+  let c = 112233
+  let n = 5
+  let t = 3
+  let sa = shamir_split(a, n, t, mpc_seed(30))
+  let sb = shamir_split(b, n, t, mpc_seed(31))
+  let sc = shamir_split(c, n, t, mpc_seed(32))
   let sum = mpc_add(sa, sb)
-  assert_eq(sum.length(), 5)
-}
-
-///|
-test "mpc: add with t=1 (no overflow) reconstructs to a + b" {
-  let a = 100
-  let b = 250
-  let sa = shamir_split(a, 5, 1, 1)
-  let sb = shamir_split(b, 5, 1, 2)
-  let sum = mpc_add(sa, sb)
-  let rec = shamir_reconstruct(sum)
-  assert_eq(rec, 350)
-}
-
-// ---------------------------------------------------------------------------
-// Secure multiplication (BGW)
-// ---------------------------------------------------------------------------
-
-///|
-test "mpc: secure_mul returns n shares" {
-  let a = 6
-  let b = 7
-  let n = 5
-  let sa = shamir_split(a, n, 1, 1)
-  let sb = shamir_split(b, n, 1, 2)
-  let prod = mpc_secure_mul(sa, sb, n, 1, 3)
-  assert_eq(prod.length(), n)
-}
-
-///|
-test "mpc: secure_mul with t=1 yields n*a*b (documented bug, missing 1/n)" {
-  // Correct MPC multiplication should reconstruct to a * b = 42 here.
-  // This implementation re-shares every local product and sums the shares,
-  // producing n * a * b = 5 * 6 * 7 = 210. The 1/n re-scaling is absent.
-  let a = 6
-  let b = 7
-  let n = 5
-  let sa = shamir_split(a, n, 1, 1)
-  let sb = shamir_split(b, n, 1, 2)
-  let prod = mpc_secure_mul(sa, sb, n, 1, 3)
-  let rec = shamir_reconstruct(prod)
-  assert_eq(rec, 210)
-}
-
-///|
-test "mpc: secure_mul is deterministic for a fixed seed" {
-  let a = 6
-  let b = 7
-  let n = 5
-  let sa = shamir_split(a, n, 1, 1)
-  let sb = shamir_split(b, n, 1, 2)
-  let p1 = mpc_secure_mul(sa, sb, n, 1, 3)
-  let p2 = mpc_secure_mul(sa, sb, n, 1, 3)
-  assert_eq(p1.length(), p2.length())
-  for i = 0; i < p1.length(); i = i + 1 {
-    assert_eq(p1[i].y, p2[i].y)
-  }
+  let out = mpc_secure_mul(sum, sc, n, t, mpc_seed(33))
+  assert_eq(shamir_reconstruct(out), mpc_field_mul(mpc_field_add(a, b), c))
 }

@@ -1,275 +1,144 @@
-///|
-/// Comprehensive tests for FHE (Fully Homomorphic Encryption) — LWE scheme.
-
-// ===========================================================================
-// Key generation tests
-// ===========================================================================
-
-test "lwe_keygen: produces correct dimension" {
-  let sk = lwe_keygen(42)
-  assert_eq(sk.s.length(), 16) // LWE_N = 16
-}
+// Tests for crypto/fhe — BFV somewhat-homomorphic encryption.
 
 ///|
-test "lwe_keygen: small secret coefficients" {
-  let sk = lwe_keygen(42)
-  for v in sk.s {
-    assert_true(v >= -3 && v <= 3) // LWE_NOISE_BOUND = 3
+fn fhe_seed(n : Int) -> Bytes {
+  let arr : Array[Byte] = []
+  for i = 0; i < 40; i = i + 1 {
+    arr.push(((n * 53 + i * 29 + 11) & 0xFF).to_byte())
   }
+  Bytes::from_array(arr)
 }
 
 ///|
-test "lwe_keygen: deterministic with same seed" {
-  let sk1 = lwe_keygen(123)
-  let sk2 = lwe_keygen(123)
-  assert_eq(sk1.s, sk2.s)
-}
-
-///|
-test "lwe_keygen: different seeds produce different keys" {
-  let sk1 = lwe_keygen(1)
-  let sk2 = lwe_keygen(2)
-  assert_true(sk1.s != sk2.s)
-}
-
-// ===========================================================================
-// Encrypt / Decrypt round-trip tests
-// ===========================================================================
-
-///|
-test "lwe_encrypt_decrypt: zero message" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 0, 100)
-  let result = lwe_decrypt(sk, ct)
-  assert_eq(result, 0)
-}
-
-///|
-test "lwe_encrypt_decrypt: positive message" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 5, 100)
-  let result = lwe_decrypt(sk, ct)
-  assert_eq(result, 5)
-}
-
-///|
-test "lwe_encrypt_decrypt: negative message" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, -3, 100)
-  let result = lwe_decrypt(sk, ct)
-  assert_eq(result, -3)
-}
-
-///|
-test "lwe_encrypt_decrypt: large positive" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 30, 100)
-  let result = lwe_decrypt(sk, ct)
-  assert_eq(result, 30)
-}
-
-///|
-test "lwe_encrypt_decrypt: large negative" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, -30, 100)
-  let result = lwe_decrypt(sk, ct)
-  assert_eq(result, -30)
-}
-
-///|
-test "lwe_encrypt_decrypt: multiple values" {
-  let sk = lwe_keygen(999)
-  for m in [0, 1, -1, 10, -10, 25, -25, 30, -30] {
-    let ct = lwe_encrypt(sk, m, 200)
-    assert_eq(lwe_decrypt(sk, ct), m)
+fn fhe_msg(vals : Array[Int]) -> Array[Int] {
+  let m = Array::make(BFV_N, 0)
+  for i = 0; i < vals.length() && i < BFV_N; i = i + 1 {
+    m[i] = vals[i]
   }
+  m
 }
 
 ///|
-test "lwe_encrypt: ciphertext dimension matches key" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 7, 100)
-  assert_eq(ct.a.length(), 16)
-}
-
-// ===========================================================================
-// Homomorphic addition tests
-// ===========================================================================
-
-///|
-test "lwe_add: homomorphic addition of plaintexts" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 10, 100)
-  let ct2 = lwe_encrypt(sk, 20, 200)
-  let ct_sum = lwe_add(ct1, ct2)
-  let result = lwe_decrypt(sk, ct_sum)
-  assert_eq(result, 30)
-}
-
-///|
-test "lwe_add: addition with zero" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 15, 100)
-  let ct2 = lwe_encrypt(sk, 0, 200)
-  let ct_sum = lwe_add(ct1, ct2)
-  assert_eq(lwe_decrypt(sk, ct_sum), 15)
-}
-
-///|
-test "lwe_add: addition of negatives" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, -5, 100)
-  let ct2 = lwe_encrypt(sk, -10, 200)
-  let ct_sum = lwe_add(ct1, ct2)
-  assert_eq(lwe_decrypt(sk, ct_sum), -15)
-}
-
-///|
-test "lwe_add: chain of additions" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 1, 100)
-  let mut acc = ct
-  for i = 0; i < 5; i = i + 1 {
-    acc = lwe_add(acc, lwe_encrypt(sk, 2, 300 + i))
+fn fhe_msg_eq(a : Array[Int], b : Array[Int]) -> Bool {
+  for i = 0; i < BFV_N; i = i + 1 {
+    if a[i] != b[i] {
+      return false
+    }
   }
-  // 1 + 2*5 = 11
-  assert_eq(lwe_decrypt(sk, acc), 11)
-}
-
-// ===========================================================================
-// Homomorphic subtraction tests
-// ===========================================================================
-
-///|
-test "lwe_sub: homomorphic subtraction" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 30, 100)
-  let ct2 = lwe_encrypt(sk, 12, 200)
-  let ct_diff = lwe_sub(ct1, ct2)
-  assert_eq(lwe_decrypt(sk, ct_diff), 18)
+  true
 }
 
 ///|
-test "lwe_sub: subtraction yielding negative" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 5, 100)
-  let ct2 = lwe_encrypt(sk, 15, 200)
-  let ct_diff = lwe_sub(ct1, ct2)
-  assert_eq(lwe_decrypt(sk, ct_diff), -10)
+test "bfv_encrypt_decrypt_roundtrip" {
+  let (pk, sk) = bfv_keygen(fhe_seed(1))
+  let m = fhe_msg([3, 7, 0, 256, 1, 128, 42])
+  let ct = bfv_encrypt(pk, m, fhe_seed(2))
+  let dec = bfv_decrypt(sk, ct)
+  assert_eq(fhe_msg_eq(dec, m), true)
+  // A different message round-trips too.
+  let m2 = fhe_msg([100, 200, 250, 17])
+  let ct2 = bfv_encrypt(pk, m2, fhe_seed(3))
+  assert_eq(fhe_msg_eq(bfv_decrypt(sk, ct2), m2), true)
 }
 
 ///|
-test "lwe_sub: self subtraction yields zero" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 42, 100)
-  let ct2 = lwe_encrypt(sk, 42, 100)
-  let ct_diff = lwe_sub(ct1, ct2)
-  assert_eq(lwe_decrypt(sk, ct_diff), 0)
-}
-
-// ===========================================================================
-// Homomorphic scalar multiplication tests
-// ===========================================================================
-
-///|
-test "lwe_mul_scalar: multiply by positive" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 7, 100)
-  let ct_scaled = lwe_mul_scalar(ct, 3)
-  assert_eq(lwe_decrypt(sk, ct_scaled), 21)
-}
-
-///|
-test "lwe_mul_scalar: multiply by zero" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 7, 100)
-  let ct_scaled = lwe_mul_scalar(ct, 0)
-  assert_eq(lwe_decrypt(sk, ct_scaled), 0)
-}
-
-///|
-test "lwe_mul_scalar: multiply by negative" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 7, 100)
-  let ct_scaled = lwe_mul_scalar(ct, -2)
-  assert_eq(lwe_decrypt(sk, ct_scaled), -14)
+test "bfv_homomorphic_add_sub_negate" {
+  let (pk, sk) = bfv_keygen(fhe_seed(4))
+  let ma = fhe_msg([10, 20, 30])
+  let mb = fhe_msg([3, 4, 5])
+  let ca = bfv_encrypt(pk, ma, fhe_seed(5))
+  let cb = bfv_encrypt(pk, mb, fhe_seed(6))
+  // Addition: coefficient-wise, including wraparound mod t.
+  let sum = bfv_decrypt(sk, bfv_add(ca, cb))
+  assert_eq(sum[0], 13)
+  assert_eq(sum[1], 24)
+  assert_eq(sum[2], 35)
+  // Subtraction with underflow mod t.
+  let diff = bfv_decrypt(sk, bfv_sub(cb, ca))
+  assert_eq(diff[0], BFV_T - 7)
+  assert_eq(diff[1], BFV_T - 16)
+  assert_eq(diff[2], BFV_T - 25)
+  // Negation.
+  let neg = bfv_decrypt(sk, bfv_negate(ca))
+  assert_eq(neg[0], BFV_T - 10)
+  assert_eq(neg[1], BFV_T - 20)
+  assert_eq(neg[2], BFV_T - 30)
+  // Adding several ciphertexts accumulates correctly.
+  let acc = bfv_add(bfv_add(ca, ca), ca)
+  let thrice = bfv_decrypt(sk, acc)
+  assert_eq(thrice[0], 30)
+  assert_eq(thrice[1], 60)
+  assert_eq(thrice[2], 90)
 }
 
 ///|
-test "lwe_mul_scalar: multiply by one" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 7, 100)
-  let ct_scaled = lwe_mul_scalar(ct, 1)
-  assert_eq(lwe_decrypt(sk, ct_scaled), 7)
-}
-
-// ===========================================================================
-// Homomorphic negation tests
-// ===========================================================================
-
-///|
-test "lwe_negate: negate positive" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 15, 100)
-  let ct_neg = lwe_negate(ct)
-  assert_eq(lwe_decrypt(sk, ct_neg), -15)
+test "bfv_homomorphic_scalar_mul" {
+  let (pk, sk) = bfv_keygen(fhe_seed(7))
+  let m = fhe_msg([5, 11, 19])
+  let ct = bfv_encrypt(pk, m, fhe_seed(8))
+  let scaled = bfv_decrypt(sk, bfv_mul_scalar(ct, 7))
+  assert_eq(scaled[0], 35)
+  assert_eq(scaled[1], 77)
+  assert_eq(scaled[2], 133)
+  // Scalar multiplication modulo t.
+  let wrapped = bfv_decrypt(sk, bfv_mul_scalar(ct, BFV_T + 2))
+  assert_eq(wrapped[0], 10)
+  assert_eq(wrapped[1], 22)
+  assert_eq(wrapped[2], 38)
 }
 
 ///|
-test "lwe_negate: negate negative" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, -8, 100)
-  let ct_neg = lwe_negate(ct)
-  assert_eq(lwe_decrypt(sk, ct_neg), 8)
+// The core claim: ciphertext × ciphertext multiplication through the
+// tensor product + relinearization decrypts to the product polynomial
+// mod t (negacyclic convolution).
+test "bfv_homomorphic_ciphertext_mul" {
+  let (pk, sk) = bfv_keygen(fhe_seed(9))
+  let evk = bfv_eval_key(sk, fhe_seed(10))
+  // Constant polynomials: product is a plain integer product.
+  let ma = fhe_msg([6])
+  let mb = fhe_msg([7])
+  let ca = bfv_encrypt(pk, ma, fhe_seed(11))
+  let cb = bfv_encrypt(pk, mb, fhe_seed(12))
+  let prod = bfv_decrypt(sk, bfv_mul(ca, cb, evk))
+  assert_eq(prod[0], 42)
+  // Non-constant polynomials: negacyclic convolution mod t.
+  // a = 1 + 2x, b = 3 + x  =>  a·b = 3 + 7x + 2x^2
+  let pa = fhe_msg([1, 2])
+  let pb = fhe_msg([3, 1])
+  let cpa = bfv_encrypt(pk, pa, fhe_seed(13))
+  let cpb = bfv_encrypt(pk, pb, fhe_seed(14))
+  let pprod = bfv_decrypt(sk, bfv_mul(cpa, cpb, evk))
+  assert_eq(pprod[0], 3)
+  assert_eq(pprod[1], 7)
+  assert_eq(pprod[2], 2)
+  assert_eq(pprod[3], 0)
+  // Multiplication distributes over addition:
+  // (a + a) * b == a*b + a*b
+  let lhs = bfv_mul(bfv_add(cpa, cpa), cpb, evk)
+  let rhs = bfv_add(bfv_mul(cpa, cpb, evk), bfv_mul(cpa, cpb, evk))
+  let dl = bfv_decrypt(sk, lhs)
+  let dr = bfv_decrypt(sk, rhs)
+  assert_eq(fhe_msg_eq(dl, dr), true)
 }
 
 ///|
-test "lwe_negate: negate zero" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 0, 100)
-  let ct_neg = lwe_negate(ct)
-  assert_eq(lwe_decrypt(sk, ct_neg), 0)
+test "bfv_wrong_key_gives_wrong_plaintext" {
+  let (pk, _sk) = bfv_keygen(fhe_seed(15))
+  let (_pk2, sk2) = bfv_keygen(fhe_seed(16))
+  let m = fhe_msg([9, 9, 9])
+  let ct = bfv_encrypt(pk, m, fhe_seed(17))
+  // Decryption under an unrelated secret key must not recover the
+  // message (noise overwhelms the scaled plaintext).
+  let dec = bfv_decrypt(sk2, ct)
+  assert_eq(fhe_msg_eq(dec, m), false)
 }
 
 ///|
-test "lwe_negate: double negation" {
-  let sk = lwe_keygen(42)
-  let ct = lwe_encrypt(sk, 5, 100)
-  let ct_neg2 = lwe_negate(lwe_negate(ct))
-  assert_eq(lwe_decrypt(sk, ct_neg2), 5)
-}
-
-// ===========================================================================
-// Combined homomorphic operations tests
-// ===========================================================================
-
-///|
-test "lwe_combined: add then subtract" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 20, 100)
-  let ct2 = lwe_encrypt(sk, 5, 200)
-  let ct3 = lwe_encrypt(sk, 3, 300)
-  // (20 + 5) - 3 = 22
-  let result = lwe_sub(lwe_add(ct1, ct2), ct3)
-  assert_eq(lwe_decrypt(sk, result), 22)
-}
-
-///|
-test "lwe_combined: scale then add" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 3, 100)
-  let ct2 = lwe_encrypt(sk, 4, 200)
-  // 3*2 + 4*3 = 18
-  let result = lwe_add(lwe_mul_scalar(ct1, 2), lwe_mul_scalar(ct2, 3))
-  assert_eq(lwe_decrypt(sk, result), 18)
-}
-
-///|
-test "lwe_combined: negate then add" {
-  let sk = lwe_keygen(42)
-  let ct1 = lwe_encrypt(sk, 10, 100)
-  let ct2 = lwe_encrypt(sk, 3, 200)
-  // 10 + (-3) = 7
-  let result = lwe_add(ct1, lwe_negate(ct2))
-  assert_eq(lwe_decrypt(sk, result), 7)
+test "bfv_rejects_bad_message_length" {
+  let (pk, _sk) = bfv_keygen(fhe_seed(18))
+  let r = Some(bfv_encrypt(pk, [1, 2, 3], fhe_seed(19))) catch { _ => None }
+  match r {
+    Some(_) => fail("short message accepted")
+    None => ()
+  }
 }

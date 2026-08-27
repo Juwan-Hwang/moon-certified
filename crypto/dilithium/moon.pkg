@@ -1,5 +1,5 @@
 import {
-  "moon-certified/crypto/sha256",
+  "moon-certified/crypto/sha3",
 }
 
 options(

@@ -1,56 +1,147 @@
-/// Secure Multi-Party Computation (MPC) — Shamir Secret Sharing + BGW Protocol
+///|
+/// Secure Multi-Party Computation (MPC) — Shamir Secret Sharing +
+/// BGW88 Secure Multiplication
 ///
-/// MPC allows multiple parties to jointly compute a function on their private
-/// inputs without revealing those inputs.
+/// MPC allows multiple parties to jointly compute a function on their
+/// private inputs without revealing those inputs.
 ///
 /// ## Design
 ///
-/// - **Shamir Secret Sharing**: Split a secret s into n shares where any t
-///   shares can reconstruct s, but t-1 shares reveal nothing.
-/// - **BGW Protocol**: For arithmetic circuits over a field, parties compute
-///   addition (local) and multiplication (degree reduction via share exchange).
+/// - **Field**: integers modulo the Mersenne prime `2^31 - 1`. All
+///   products are computed in `Int64` to avoid 32-bit overflow.
+/// - **Shamir Secret Sharing**: split a secret s into n shares where
+///   any t shares reconstruct s, but t-1 shares reveal nothing
+///   (information-theoretically, over a field larger than the secret).
+/// - **BGW multiplication** (Ben-Or, Goldwasser, Wigderson 1988):
+///   parties locally multiply their shares (points of a degree-2(t-1)
+///   polynomial h with h(0) = a·b), then degree-reduce: each party
+///   re-shares its local product with a fresh degree-(t-1) polynomial,
+///   and every party's new share is the Lagrange-weighted (at 0) sum
+///   of the received sub-shares. The result is a degree-(t-1) sharing
+///   of a·b. Requires `n >= 2t - 1`.
+/// - **Randomness**: all protocol randomness is drawn from a
+///   ChaCha20-based CSPRNG keyed by SHA-256 of the caller-provided
+///   seed. Passing a predictable seed yields a predictable sharing —
+///   production deployments must seed from `crypto/csprng`.
+///
+/// ## Security model
+///
+/// Semi-honest (honest-but-curious) adversaries corrupting fewer than
+/// t parties; the multiplication gate additionally requires an honest
+/// majority (`n >= 2t - 1`). Shares of different secrets must never
+/// reuse a seed.
 ///
 /// ## References
 ///
 /// - Shamir, "How to Share a Secret." CACM 1979.
-/// - Ben-Or, Goldwasser, Wigderson. "BGW Protocol." STOC 1988.
+/// - Ben-Or, Goldwasser, Wigderson. "Completeness Theorems for
+///   Non-Cryptographic Fault-Tolerant Distributed Computation." STOC
+///   1988.
 ///
 /// `proof-enabled` is `false`.
 
 ///|
-const MPC_PRIME : Int = 10007 // A prime large enough for demo purposes, small enough to avoid Int overflow in products
+/// Field prime: 2^31 - 1 (Mersenne prime M31).
+pub const MPC_PRIME : Int = 2147483647
 
 ///|
-fn mod_p(x : Int) -> Int {
-  let r = x % MPC_PRIME
-  if r < 0 {
-    r + MPC_PRIME
+fn mpc_add_mod(a : Int, b : Int) -> Int {
+  let s = a.to_int64() + b.to_int64()
+  let r = s % MPC_PRIME.to_int64()
+  r.to_int()
+}
+
+///|
+fn mpc_mul_mod(a : Int, b : Int) -> Int {
+  let p = (a.to_int64() * b.to_int64()) % MPC_PRIME.to_int64()
+  let r = if p < 0L { p + MPC_PRIME.to_int64() } else { p }
+  r.to_int()
+}
+
+///|
+/// Field addition modulo `MPC_PRIME`.
+pub fn mpc_field_add(a : Int, b : Int) -> Int {
+  mpc_add_mod(a, b)
+}
+
+///|
+/// Field multiplication modulo `MPC_PRIME`.
+pub fn mpc_field_mul(a : Int, b : Int) -> Int {
+  mpc_mul_mod(a, b)
+}
+
+///|
+fn mpc_neg(a : Int) -> Int {
+  if a == 0 {
+    0
   } else {
-    r
+    MPC_PRIME - a
   }
 }
 
 ///|
-fn mod_pow(base : Int, exp : Int, m : Int) -> Int {
-  if m == 1 {
-    return 0
+/// Modular inverse via the extended Euclidean algorithm.
+fn mpc_inv_mod(a : Int) -> Int {
+  let mut old_r = a.to_int64()
+  let mut r = MPC_PRIME.to_int64()
+  let mut old_s = 1L
+  let mut s = 0L
+  while r != 0L {
+    let q = old_r / r
+    let nr = old_r - q * r
+    old_r = r
+    r = nr
+    let ns = old_s - q * s
+    old_s = s
+    s = ns
   }
-  let mut result = 1
-  let mut b = mod_p(base)
-  let mut e = exp
-  while e > 0 {
-    if (e & 1) == 1 {
-      result = result * b % m
+  let v = old_s % MPC_PRIME.to_int64()
+  let w = if v < 0L { v + MPC_PRIME.to_int64() } else { v }
+  w.to_int()
+}
+
+///|
+/// Lagrange coefficient `L_i(0)` for the share set (x-coordinates).
+fn mpc_lagrange_at_zero(shares : Array[ShamirShare], i : Int) -> Int {
+  let mut num = 1
+  let mut den = 1
+  for j = 0; j < shares.length(); j = j + 1 {
+    if i != j {
+      num = mpc_mul_mod(num, mpc_neg(shares[j].x))
+      let mut diff = shares[i].x - shares[j].x
+      if diff < 0 {
+        diff = diff + MPC_PRIME
+      }
+      den = mpc_mul_mod(den, diff)
     }
-    e = e >> 1
-    b = b * b % m
   }
-  result
+  mpc_mul_mod(num, mpc_inv_mod(den))
+}
+
+// ===========================================================================
+// CSPRNG plumbing (ChaCha20 keyed by SHA-256 of the seed)
+// ===========================================================================
+
+///|
+fn mpc_rng(seed : Bytes) -> @chacha20.ChaCha20Rng raise {
+  let key = @sha256.sha256(seed)
+  let nonce_src = @sha256.sha256(seed + b"mpc-nonce")
+  let nonce_arr : Array[Byte] = []
+  for i = 0; i < 12; i = i + 1 {
+    nonce_arr.push(nonce_src[i])
+  }
+  match @chacha20.create_rng(key, Bytes::from_array(nonce_arr)) {
+    Some(rng) => rng
+    None => fail("mpc: failed to initialise CSPRNG")
+  }
 }
 
 ///|
-fn mod_inv(a : Int, m : Int) -> Int {
-  mod_pow(a, m - 2, m)
+fn mpc_rand_field(rng : @chacha20.ChaCha20Rng) -> Int raise {
+  match @chacha20.next_int_in_range(rng, MPC_PRIME) {
+    Some(v) => v
+    None => fail("mpc: CSPRNG exhausted")
+  }
 }
 
 // ===========================================================================
@@ -64,163 +155,138 @@ pub struct ShamirShare {
   x : Int
   /// Y-coordinate (share value)
   y : Int
-}
+} derive(Eq, Debug)
 
 ///|
-priv struct Xorshift64 {
-  mut state : Int64
-}
-
-///|
-fn Xorshift64::new(seed : Int) -> Xorshift64 {
-  { state: (seed.to_int64() | 1L) & 0x7FFFFFFFFFFFFFFFL }
-}
-
-///|
-fn Xorshift64::next(self : Xorshift64) -> Int {
-  let mut x = self.state
-  x = x ^ (x << 13)
-  x = x ^ (x >> 7)
-  x = x ^ (x << 17)
-  self.state = x
-  (x & 0x7FFFFFFF).to_int()
+/// Evaluate a polynomial (coefficients low-to-high) at x modulo p.
+fn mpc_poly_eval(coeffs : Array[Int], x : Int) -> Int {
+  let mut acc = 0
+  for i = coeffs.length() - 1; i >= 0; i = i - 1 {
+    acc = mpc_add_mod(mpc_mul_mod(acc, x), coeffs[i])
+  }
+  acc
 }
 
 ///|
 /// Split a secret into n shares using threshold t.
 ///
-/// Any t shares can reconstruct the secret.
-/// Requires: n >= t >= 1.
+/// Any t shares can reconstruct the secret; fewer reveal nothing.
+/// Requires `1 <= t <= n` and values in `[0, MPC_PRIME)`.
 pub fn shamir_split(
   secret : Int,
   n : Int,
   t : Int,
-  seed : Int,
-) -> Array[ShamirShare] {
+  seed : Bytes,
+) -> Array[ShamirShare] raise {
   if t < 1 || n < t {
-    abort("Shamir: invalid parameters")
+    fail("shamir: requires 1 <= t <= n")
   }
-  let rng = Xorshift64::new(seed)
-  // Generate random polynomial coefficients: f(x) = secret + a_1*x + ... + a_{t-1}*x^{t-1}
+  if secret < 0 || secret >= MPC_PRIME {
+    fail("shamir: secret out of field range")
+  }
+  let rng = mpc_rng(seed)
+  // Random polynomial f with f(0) = secret.
   let coeffs = Array::make(t, 0)
-  coeffs[0] = mod_p(secret)
+  coeffs[0] = secret
   for i = 1; i < t; i = i + 1 {
-    coeffs[i] = rng.next() % MPC_PRIME
+    coeffs[i] = mpc_rand_field(rng)
   }
-  // Evaluate f(x) for x = 1, 2, ..., n
   let shares : Array[ShamirShare] = []
   for x = 1; x <= n; x = x + 1 {
-    let mut y = 0
-    let mut x_pow = 1
-    for i = 0; i < t; i = i + 1 {
-      y = mod_p(y + coeffs[i] * x_pow)
-      x_pow = mod_p(x_pow * x)
-    }
-    shares.push({ x, y })
+    shares.push({ x, y: mpc_poly_eval(coeffs, x) })
   }
   shares
 }
 
 ///|
-/// Reconstruct a secret from t shares using Lagrange interpolation.
+/// Reconstruct a secret from shares using Lagrange interpolation at 0.
+/// Passing fewer than the threshold shares yields an arbitrary field
+/// element, not the secret.
 pub fn shamir_reconstruct(shares : Array[ShamirShare]) -> Int {
-  let t = shares.length()
   let mut result = 0
-  for i = 0; i < t; i = i + 1 {
-    // Lagrange coefficient: L_i(0) = prod_{j≠i} (-x_j) / (x_i - x_j)
-    let mut num = 1
-    let mut den = 1
-    for j = 0; j < t; j = j + 1 {
-      if i != j {
-        num = mod_p(num * -shares[j].x)
-        den = mod_p(den * mod_p(shares[i].x - shares[j].x))
-      }
-    }
-    let lagrange = mod_p(num * mod_inv(den, MPC_PRIME))
-    result = mod_p(result + shares[i].y * lagrange)
+  for i = 0; i < shares.length(); i = i + 1 {
+    let li = mpc_lagrange_at_zero(shares, i)
+    result = mpc_add_mod(result, mpc_mul_mod(shares[i].y, li))
   }
   result
 }
 
 // ===========================================================================
-// Secure Multiplication (BGW protocol, single multiplication)
+// BGW secure arithmetic
 // ===========================================================================
 
 ///|
-/// Secure multiplication of two shared secrets.
-///
-/// Each party locally computes the product of their shares, then shares
-/// the result using degree-reduced sharing.
-///
-/// ## Parameters
-/// - `shares_a`: shares of secret a
-/// - `shares_b`: shares of secret b
-/// - `n`: number of parties
-/// - `t`: threshold
-/// - `seed`: randomness
-///
-/// ## Returns
-/// Shares of a * b.
-pub fn mpc_secure_mul(
-  shares_a : Array[ShamirShare],
-  shares_b : Array[ShamirShare],
-  n : Int,
-  t : Int,
-  seed : Int,
-) -> Array[ShamirShare] {
-  // Each party computes c_i = a_i * b_i (local)
-  let local_products : Array[Int] = []
-  for i = 0; i < shares_a.length(); i = i + 1 {
-    local_products.push(mod_p(shares_a[i].y * shares_b[i].y))
-  }
-  // Each party shares their local product using degree t-1 polynomial
-  // (degree reduction from 2(t-1) to t-1)
-  let rng = Xorshift64::new(seed)
-  let shares_of_products : Array[Array[ShamirShare]] = []
-  for i = 0; i < local_products.length(); i = i + 1 {
-    // Share local_products[i] using a degree t-1 polynomial
-    let coeffs = Array::make(t, 0)
-    coeffs[0] = local_products[i]
-    for j = 1; j < t; j = j + 1 {
-      coeffs[j] = rng.next() % MPC_PRIME
-    }
-    let party_shares : Array[ShamirShare] = []
-    for x = 1; x <= n; x = x + 1 {
-      let mut y = 0
-      let mut x_pow = 1
-      for k = 0; k < t; k = k + 1 {
-        y = mod_p(y + coeffs[k] * x_pow)
-        x_pow = mod_p(x_pow * x)
-      }
-      party_shares.push({ x, y })
-    }
-    shares_of_products.push(party_shares)
-  }
-  // Each party j collects the j-th share from all parties and sums them
-  let result : Array[ShamirShare] = []
-  for j = 0; j < n; j = j + 1 {
-    let mut sum = 0
-    let mut x = 0
-    for i = 0; i < shares_of_products.length(); i = i + 1 {
-      if j < shares_of_products[i].length() {
-        sum = mod_p(sum + shares_of_products[i][j].y)
-        x = shares_of_products[i][j].x
-      }
-    }
-    result.push({ x, y: sum })
-  }
-  result
-}
-
-///|
-/// Secure addition of two shared secrets (local operation).
+/// Secure addition of two shared secrets (purely local).
 pub fn mpc_add(
   shares_a : Array[ShamirShare],
   shares_b : Array[ShamirShare],
 ) -> Array[ShamirShare] {
   let result : Array[ShamirShare] = []
   for i = 0; i < shares_a.length(); i = i + 1 {
-    result.push({ x: shares_a[i].x, y: mod_p(shares_a[i].y + shares_b[i].y) })
+    result.push({
+      x: shares_a[i].x,
+      y: mpc_add_mod(shares_a[i].y, shares_b[i].y),
+    })
+  }
+  result
+}
+
+///|
+/// Secure multiplication of two shared secrets (BGW88).
+///
+/// Each party locally multiplies its shares of a and b, obtaining
+/// points of a degree-2(t-1) polynomial h with h(0) = a·b. Degree
+/// reduction then re-shares every local product with a fresh
+/// degree-(t-1) polynomial and combines the sub-shares with Lagrange
+/// weights at 0, yielding a degree-(t-1) sharing of a·b.
+///
+/// Requires `n >= 2t - 1` (honest majority). Returns shares with the
+/// same x-coordinates as the inputs.
+pub fn mpc_secure_mul(
+  shares_a : Array[ShamirShare],
+  shares_b : Array[ShamirShare],
+  n : Int,
+  t : Int,
+  seed : Bytes,
+) -> Array[ShamirShare] raise {
+  if t < 1 || n < t {
+    fail("bgw: requires 1 <= t <= n")
+  }
+  if n < 2 * t - 1 {
+    fail("bgw: multiplication requires n >= 2t - 1 (honest majority)")
+  }
+  if shares_a.length() != n || shares_b.length() != n {
+    fail("bgw: share arrays must have length n")
+  }
+  // Local products: points of h(x) = a(x)·b(x), degree 2(t-1).
+  let local_products : Array[Int] = []
+  for i = 0; i < n; i = i + 1 {
+    local_products.push(mpc_mul_mod(shares_a[i].y, shares_b[i].y))
+  }
+  // Lagrange weights at 0 over the input x-coordinates.
+  let weights : Array[Int] = []
+  for i = 0; i < n; i = i + 1 {
+    weights.push(mpc_lagrange_at_zero(shares_a, i))
+  }
+  // Each party re-shares its local product with a fresh degree-(t-1)
+  // polynomial; party j accumulates the Lagrange-weighted sub-shares.
+  let rng = mpc_rng(seed)
+  let accum : Array[Int] = Array::make(n, 0)
+  for i = 0; i < n; i = i + 1 {
+    let coeffs = Array::make(t, 0)
+    coeffs[0] = local_products[i]
+    for j = 1; j < t; j = j + 1 {
+      coeffs[j] = mpc_rand_field(rng)
+    }
+    let wi = weights[i]
+    for j = 0; j < n; j = j + 1 {
+      let sub = mpc_poly_eval(coeffs, shares_a[j].x)
+      accum[j] = mpc_add_mod(accum[j], mpc_mul_mod(wi, sub))
+    }
+  }
+  let result : Array[ShamirShare] = []
+  for j = 0; j < n; j = j + 1 {
+    result.push({ x: shares_a[j].x, y: accum[j] })
   }
   result
 }

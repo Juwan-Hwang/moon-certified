@@ -1,3 +1,7 @@
 options(
   "proof-enabled": false,
 )
+import {
+  "moon-certified/crypto/chacha20",
+  "moon-certified/crypto/sha256",
+}
